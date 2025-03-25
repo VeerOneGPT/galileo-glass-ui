@@ -1,10 +1,7 @@
 # Galileo Glass UI
 
 <div align="center">
-  <svg width="200" height="200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#4F46E5" />
-    <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="#4F46E5" strokeWidth="2" />
-  </svg>
+  <img width="200" height="200" src="./assets/galileo-glass-logo.svg" alt="Galileo Glass UI Logo">
   <p><em>Modern glass morphism UI components for React applications</em></p>
 
   <p>
@@ -42,19 +39,19 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
       <td>
         
 ```bash
-npm install VeerOneGPT/galileo-glass-ui styled-components
+npm install github:VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
       <td>
         
 ```bash
-yarn add VeerOneGPT/galileo-glass-ui styled-components
+yarn add github:VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
       <td>
         
 ```bash
-pnpm add VeerOneGPT/galileo-glass-ui styled-components
+pnpm add github:VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
     </tr>
