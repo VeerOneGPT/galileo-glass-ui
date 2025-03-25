@@ -426,13 +426,34 @@ function MagneticButton() {
 | Command | Description |
 |---------|-------------|
 | `npm run test` | Run unit tests |
-| `npm run test:visual` | Run visual regression tests |
-| `npm run test:accessibility` | Run accessibility tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
 | `npm run storybook` | Start Storybook for component development |
 | `npm run lint` | Run ESLint to check code style |
 | `npm run typecheck` | Verify TypeScript types |
+| `npm run typecheck:permissive` | Run type checking with less strict rules |
 
 </div>
+
+### Unit Test Implementation
+
+Galileo Glass UI follows a comprehensive testing strategy to ensure reliability:
+
+1. **Component Tests**: We use React Testing Library to verify that components render correctly and respond to user interactions as expected.
+
+2. **Hook Tests**: Our custom hooks are tested for proper behavior, reactivity, and performance optimizations.
+
+3. **Utility Tests**: Core utilities and mixins have unit tests to ensure they produce the expected output.
+
+4. **Theme Tests**: The theming system is tested to ensure proper context propagation and consistent styling.
+
+5. **Accessibility Tests**: We verify that our components maintain accessibility standards, including support for reduced motion and keyboard navigation.
+
+To run a specific test:
+
+```bash
+npm test -- -t "Button Component"
+```
 
 ## 📄 License
 
