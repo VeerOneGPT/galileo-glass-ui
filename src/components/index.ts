@@ -18,6 +18,7 @@ export { Divider } from './Divider';
 export { Link } from './Link';
 
 // Form components
+export { Autocomplete, GlassAutocomplete } from './Autocomplete';
 export { Checkbox, GlassCheckbox } from './Checkbox';
 export { Radio, GlassRadio } from './Radio';
 export { Switch, GlassSwitch } from './Switch';

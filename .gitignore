@@ -48,7 +48,9 @@ yarn-error.log*
 .vercel
 .rollup.cache
 tsconfig.tsbuildinfo
-
+CLAUDE.md
+LeftOver.md
+LeftOverDesign.md
 # Package managers
 yarn.lock
 package-lock.json

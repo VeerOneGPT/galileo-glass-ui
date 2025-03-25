@@ -1,12 +1,15 @@
 # Galileo Glass UI
 
 <div align="center">
-  <img src="https://github.com/VeerOneGPT/galileo-glass-ui/raw/main/logo.png" alt="Galileo Glass UI Logo" width="200" />
+  <svg width="200" height="200" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#4F46E5" />
+    <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="#4F46E5" strokeWidth="2" />
+  </svg>
   <p><em>Modern glass morphism UI components for React applications</em></p>
 
   <p>
-    <a href="https://www.npmjs.com/package/galileo-glass-ui"><img src="https://img.shields.io/npm/v/galileo-glass-ui.svg" alt="npm version" /></a>
-    <a href="https://www.npmjs.com/package/galileo-glass-ui"><img src="https://img.shields.io/npm/dm/galileo-glass-ui.svg" alt="npm downloads" /></a>
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui"><img src="https://img.shields.io/github/stars/VeerOneGPT/galileo-glass-ui.svg" alt="GitHub stars" /></a>
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/network/members"><img src="https://img.shields.io/github/forks/VeerOneGPT/galileo-glass-ui.svg" alt="GitHub forks" /></a>
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VeerOneGPT/galileo-glass-ui.svg" alt="license" /></a>
   </p>
 </div>
@@ -39,19 +42,19 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
       <td>
         
 ```bash
-npm install galileo-glass-ui styled-components
+npm install VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
       <td>
         
 ```bash
-yarn add galileo-glass-ui styled-components
+yarn add VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
       <td>
         
 ```bash
-pnpm add galileo-glass-ui styled-components
+pnpm add VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
     </tr>
