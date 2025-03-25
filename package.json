@@ -1,0 +1,113 @@
+{
+  "name": "galileo-glass-ui",
+  "version": "1.0.0",
+  "description": "A comprehensive glass morphism design system for modern interfaces",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./core": {
+      "import": "./dist/core.esm.js",
+      "require": "./dist/core.js",
+      "types": "./dist/core.d.ts"
+    },
+    "./theme": {
+      "import": "./dist/theme.esm.js",
+      "require": "./dist/theme.js",
+      "types": "./dist/theme.d.ts"
+    },
+    "./animations": {
+      "import": "./dist/animations.esm.js",
+      "require": "./dist/animations.js",
+      "types": "./dist/animations.d.ts"
+    },
+    "./components": {
+      "import": "./dist/components.esm.js",
+      "require": "./dist/components.js",
+      "types": "./dist/components.d.ts"
+    },
+    "./hooks": {
+      "import": "./dist/hooks.esm.js",
+      "require": "./dist/hooks.js",
+      "types": "./dist/hooks.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "jest",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx src/",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
+  },
+  "keywords": [
+    "glass",
+    "ui",
+    "design-system",
+    "glassmorphism",
+    "react",
+    "animation",
+    "theme",
+    "charts"
+  ],
+  "author": "Galileo",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^17.0.0 || ^18.0.0",
+    "react-dom": "^17.0.0 || ^18.0.0",
+    "styled-components": "^5.3.3"
+  },
+  "dependencies": {
+    "chart.js": "^4.3.0",
+    "react-chartjs-2": "^5.2.0",
+    "color": "^4.2.3",
+    "popmotion": "^11.0.5",
+    "polished": "^4.2.2",
+    "react-spring": "^9.6.1"
+  },
+  "devDependencies": {
+    "@mui/icons-material": "^5.11.16",
+    "@mui/material": "^5.13.0",
+    "@babel/core": "^7.20.12",
+    "@babel/preset-env": "^7.20.2",
+    "@babel/preset-react": "^7.18.6",
+    "@babel/preset-typescript": "^7.18.6",
+    "@rollup/plugin-babel": "^6.0.3",
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@storybook/addon-actions": "^6.5.16",
+    "@storybook/addon-essentials": "^6.5.16",
+    "@storybook/addon-links": "^6.5.16",
+    "@storybook/react": "^6.5.16",
+    "@types/chart.js": "^2.9.37",
+    "@types/react": "^18.0.27",
+    "@types/react-dom": "^18.0.10",
+    "@types/styled-components": "^5.1.26",
+    "@typescript-eslint/eslint-plugin": "^5.50.0",
+    "@typescript-eslint/parser": "^5.50.0",
+    "eslint": "^8.33.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "jest": "^29.4.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rollup": "^3.14.0",
+    "rollup-plugin-dts": "^5.1.1",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-terser": "^7.0.2",
+    "styled-components": "^5.3.6",
+    "typescript": "^4.9.5"
+  }
+}
