@@ -1,5 +1,16 @@
 # Galileo Glass UI
 
+<div align="center">
+  <img src="https://github.com/VeerOneGPT/galileo-glass-ui/raw/main/logo.png" alt="Galileo Glass UI Logo" width="200" />
+  <p><em>Modern glass morphism UI components for React applications</em></p>
+
+  <p>
+    <a href="https://www.npmjs.com/package/galileo-glass-ui"><img src="https://img.shields.io/npm/v/galileo-glass-ui.svg" alt="npm version" /></a>
+    <a href="https://www.npmjs.com/package/galileo-glass-ui"><img src="https://img.shields.io/npm/dm/galileo-glass-ui.svg" alt="npm downloads" /></a>
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VeerOneGPT/galileo-glass-ui.svg" alt="license" /></a>
+  </p>
+</div>
+
 A comprehensive Glass UI framework for modern web applications, featuring glass morphism styling, performant animations, accessibility features, and a complete set of UI components. This standalone package provides all the tools you need to create beautiful, accessible, and performant interfaces with a glass-like aesthetic.
 
 ## 🌟 Features
@@ -17,15 +28,42 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 
 ### Installation
 
+<div align="center">
+  <table>
+    <tr>
+      <th>npm</th>
+      <th>yarn</th>
+      <th>pnpm</th>
+    </tr>
+    <tr>
+      <td>
+        
 ```bash
 npm install galileo-glass-ui styled-components
 ```
+      </td>
+      <td>
+        
+```bash
+yarn add galileo-glass-ui styled-components
+```
+      </td>
+      <td>
+        
+```bash
+pnpm add galileo-glass-ui styled-components
+```
+      </td>
+    </tr>
+  </table>
+</div>
 
 ### Basic Usage
 
 ```jsx
 import React from 'react';
 import { ThemeProvider, Button, Card, Typography } from 'galileo-glass-ui';
+import styled from 'styled-components';
 
 function App() {
   return (
@@ -46,24 +84,51 @@ function App() {
 export default App;
 ```
 
+<details>
+<summary><strong>Live Demo</strong></summary>
+
+Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass-ui/blob/main/examples/README.md) to see Galileo Glass UI in action!
+
+</details>
+
 ## 📋 Documentation
 
-For more detailed documentation, please refer to:
-
-- [GalileoGlass.md](./docs/GalileoGlass.md) - Complete documentation of the Glass UI framework
-- [AnimationSystem.md](./docs/AnimationSystem.md) - In-depth guide to the animation system
-- [ThemeProvider.md](./docs/ThemeProvider.md) - Theme system documentation
-- [GlassCharts.md](./docs/GlassCharts.md) - Glass-styled chart components
-- [STRUCTURE.md](./STRUCTURE.md) - Architecture and package structure
+<div align="center">
+  <table>
+    <tr>
+      <th>📚 Core Docs</th>
+      <th>🎨 Styling</th>
+      <th>🔄 Animation</th>
+      <th>📊 Charts</th>
+      <th>🏗️ Structure</th>
+    </tr>
+    <tr>
+      <td><a href="./docs/GalileoGlass.md">Framework Guide</a></td>
+      <td><a href="./docs/GalileoGlass.md#glass-surface-system">Glass Surfaces</a></td>
+      <td><a href="./docs/AnimationSystem.md">Animation System</a></td>
+      <td><a href="./docs/GlassCharts.md">Chart Components</a></td>
+      <td><a href="./STRUCTURE.md">Package Architecture</a></td>
+    </tr>
+    <tr>
+      <td><a href="./docs/ThemeProvider.md">Theme System</a></td>
+      <td><a href="./docs/GalileoGlass.md#z-space-layering">Z-Space Layering</a></td>
+      <td><a href="./docs/AnimationSystem.md#physics-animation-system-for-modern-glass-ui">Physics Animations</a></td>
+      <td><a href="./docs/GlassCharts.md#glass-styling-implementation">Chart Styling</a></td>
+      <td><a href="./STRUCTURE.md#component-pattern">Component Patterns</a></td>
+    </tr>
+  </table>
+</div>
 
 ## ⚠️ Critical Implementation Requirements
 
-### 1. CSS Property Naming in Styled Components
+<details open>
+<summary><b>1. CSS Property Naming in Styled Components</b></summary>
+<br>
 
 **ALWAYS use kebab-case (not camelCase) for CSS properties in styled-components template literals:**
 
 ```tsx
-// ✅ CORRECT: Use kebab-case for CSS properties in styled-components
+// ✅ CORRECT: Use kebab-case for CSS properties
 const Component = styled.div`
   background-color: rgba(255, 255, 255, 0.1);  // ✅ Correct!
   backdrop-filter: blur(10px);                // ✅ Correct!
@@ -78,7 +143,12 @@ const Component = styled.div`
 `;
 ```
 
-### 2. Always Pass Theme Context to Glass Mixins
+> **Note**: Use camelCase only for inline styles: `<div style={{ backgroundColor: 'red' }} />`
+</details>
+
+<details open>
+<summary><b>2. Always Pass Theme Context to Glass Mixins</b></summary>
+<br>
 
 **ALWAYS pass themeContext to glass mixins:**
 
@@ -96,20 +166,109 @@ const GlassComponent = styled.div`
 `;
 ```
 
-For more detailed requirements, see [GalileoGlass.md](./docs/GalileoGlass.md).
+> **Why?** The theme context provides color mode, variant, and other critical styling information
+</details>
 
-## 📦 Component Categories
+For a complete implementation guide, see the [Glass UI Framework Documentation](./docs/GalileoGlass.md).
 
-- **Layout**: Box, Container, Paper, Grid, Stack, Divider
-- **Typography**: Typography, Link
-- **Input**: Button, TextField, Checkbox, Radio, Switch, Select, Slider
-- **Navigation**: Tabs, Pagination, BottomNavigation
-- **Feedback**: Alert, Progress, Snackbar, Loader
-- **Data Display**: Card, Table, List, Chip, Avatar, Badge
-- **Utility**: Backdrop, Modal, Drawer, Tooltip, Icon, Fab
-- **Charts**: BarChart, LineChart, AreaChart, PieChart
+## 📦 Component Library
 
-## 🎭 Styling Example
+<div align="center">
+  <table>
+    <tr>
+      <th align="center">🧩 Layout</th>
+      <th align="center">🔤 Typography</th>
+      <th align="center">🎛️ Input</th>
+      <th align="center">🧭 Navigation</th>
+    </tr>
+    <tr valign="top">
+      <td>
+        <ul>
+          <li>Box</li>
+          <li>Container</li>
+          <li>Paper</li>
+          <li>Grid</li>
+          <li>Stack</li>
+          <li>Divider</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li>Typography</li>
+          <li>Link</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li>Button</li>
+          <li>TextField</li>
+          <li>Checkbox</li>
+          <li>Radio</li>
+          <li>Switch</li>
+          <li>Select</li>
+          <li>Slider</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li>Tabs, Tab</li>
+          <li>Pagination</li>
+          <li>BottomNavigation</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <th align="center">📱 Feedback</th>
+      <th align="center">📊 Data Display</th>
+      <th align="center">🛠️ Utility</th>
+      <th align="center">📈 Charts</th>
+    </tr>
+    <tr valign="top">
+      <td>
+        <ul>
+          <li>Alert</li>
+          <li>Progress</li>
+          <li>Snackbar</li>
+          <li>Loader</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li>Card</li>
+          <li>Table</li>
+          <li>List</li>
+          <li>Chip</li>
+          <li>Avatar</li>
+          <li>Badge</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li>Backdrop</li>
+          <li>Modal</li>
+          <li>Drawer</li>
+          <li>Tooltip</li>
+          <li>Icon</li>
+          <li>Fab</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li>BarChart</li>
+          <li>LineChart</li>
+          <li>AreaChart</li>
+          <li>PieChart</li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+</div>
+
+## 🧩 Code Examples
+
+<details open>
+<summary><b>🎭 Glass Card with Hover Effects</b></summary>
+<br>
 
 ```jsx
 import { styled } from 'styled-components';
@@ -144,10 +303,11 @@ const GlassCard = styled(Box)`
   })}
 `;
 ```
+</details>
 
-## 🧩 Examples by Feature
-
-### Animation System
+<details>
+<summary><b>🔄 Accessible Animations</b></summary>
+<br>
 
 ```jsx
 import { styled } from 'styled-components';
@@ -163,7 +323,12 @@ const AnimatedComponent = styled.div`
 `;
 ```
 
-### Z-Space Layering
+> **Accessibility**: This animation automatically respects the user's `prefers-reduced-motion` settings
+</details>
+
+<details>
+<summary><b>🌎 Z-Space Layering</b></summary>
+<br>
 
 ```jsx
 import { styled } from 'styled-components';
@@ -180,7 +345,12 @@ const OverlayComponent = styled.div`
 `;
 ```
 
-### Physics Interactions
+> **Z-Space** creates meaningful depth in interfaces by controlling elevation and visual hierarchy
+</details>
+
+<details>
+<summary><b>🧲 Physics Interactions</b></summary>
+<br>
 
 ```jsx
 import { usePhysicsInteraction } from 'galileo-glass-ui/hooks';
@@ -204,26 +374,69 @@ function MagneticButton() {
 }
 ```
 
+> **Magnetic Interactions** create natural-feeling UI elements that respond to user movements
+</details>
+
 ## 🌐 Browser Support
 
-- Chrome 76+
-- Firefox 70+
-- Safari 14+
-- Edge 79+ (Chromium-based)
-- iOS Safari 14.4+
-- Android Chrome 86+
+<div align="center">
+  <table>
+    <tr>
+      <th align="center">Browser</th>
+      <th align="center">Supported Versions</th>
+      <th align="center">Notes</th>
+    </tr>
+    <tr>
+      <td align="center">Chrome</td>
+      <td align="center">76+</td>
+      <td>Full support</td>
+    </tr>
+    <tr>
+      <td align="center">Firefox</td>
+      <td align="center">70+</td>
+      <td>Full support</td>
+    </tr>
+    <tr>
+      <td align="center">Safari</td>
+      <td align="center">14+</td>
+      <td>Full support</td>
+    </tr>
+    <tr>
+      <td align="center">Edge</td>
+      <td align="center">79+</td>
+      <td>Chromium-based</td>
+    </tr>
+    <tr>
+      <td align="center">iOS Safari</td>
+      <td align="center">14.4+</td>
+      <td>Full support</td>
+    </tr>
+    <tr>
+      <td align="center">Android Chrome</td>
+      <td align="center">86+</td>
+      <td>Full support</td>
+    </tr>
+  </table>
+</div>
 
-## 🧪 Testing
+## 🧪 Testing & Development
 
-```bash
-npm run test               # Run unit tests
-npm run test:visual        # Run visual regression tests
-npm run test:accessibility # Run accessibility tests
-```
+<div align="center">
+
+| Command | Description |
+|---------|-------------|
+| `npm run test` | Run unit tests |
+| `npm run test:visual` | Run visual regression tests |
+| `npm run test:accessibility` | Run accessibility tests |
+| `npm run storybook` | Start Storybook for component development |
+| `npm run lint` | Run ESLint to check code style |
+| `npm run typecheck` | Verify TypeScript types |
+
+</div>
 
 ## 📄 License
 
-MIT License
+[MIT License](./LICENSE) © Galileo Glass UI
 
 ## 🤝 Contributing
 
@@ -231,4 +444,10 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
 
 ---
 
-Made with ❤️ by the Galileo Glass UI Team
+<div align="center">
+  <p>Made with ❤️ by the VeerOne UI Team</p>
+  <p>
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/stargazers">Star us on GitHub</a> •
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/issues">Report an Issue</a>
+  </p>
+</div>
