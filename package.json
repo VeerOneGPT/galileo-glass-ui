@@ -80,9 +80,23 @@
     "typecheck:ultra": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
     "typecheck:examples": "tsc --noEmit --skipLibCheck --project ./.ts-examples.json",
     "typecheck:build": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
-    "prepare": "npm run build",
+    "prepare": "npm run build && husky install",
     "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook"
+    "build-storybook": "build-storybook",
+    "verify": "./scripts/verify.sh",
+    "verify:fix": "./scripts/verify.sh --fix",
+    "fix:unused-vars": "node scripts/fix-unused-vars.js",
+    "fix:hooks": "node scripts/fix-hooks.js",
+    "precommit": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   },
   "keywords": [
     "glass",
@@ -159,6 +173,8 @@
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-terser": "^7.0.2",
     "styled-components": "^5.3.6",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "husky": "^8.0.3",
+    "lint-staged": "^13.2.2"
   }
 }

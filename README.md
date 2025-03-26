@@ -603,3 +603,64 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui/issues">Report an Issue</a>
   </p>
 </div>
+
+## Verification Tools
+
+We've implemented several tools to help maintain code quality:
+
+#### 1. Comprehensive Verification
+
+Run the complete verification process including typechecking, linting, and building:
+
+```bash
+./scripts/verify.sh
+```
+
+To automatically fix common issues:
+
+```bash
+./scripts/verify.sh --fix
+```
+
+#### 2. Fix Unused Variables
+
+Automatically prefix unused variables with underscores to suppress warnings:
+
+```bash
+node scripts/fix-unused-vars.js
+```
+
+Run in dry-run mode to preview changes:
+
+```bash
+node scripts/fix-unused-vars.js --dry-run
+```
+
+#### 3. Fix React Hook Dependencies
+
+Identify and suggest fixes for React Hook dependency issues:
+
+```bash
+node scripts/fix-hooks.js
+```
+
+Apply automatic fixes when possible:
+
+```bash
+node scripts/fix-hooks.js --fix
+```
+
+### Code Style Guidelines
+
+1. **CSS Properties**: Always use kebab-case in styled-components (e.g., `background-color`, not `backgroundColor`).
+2. **Glass Mixins**: Always pass `themeContext` to glass mixins using `createThemeContext(props.theme)`.
+3. **Component Structure**: Export both standard and Glass-prefixed versions of components.
+4. **Naming**: Use PascalCase for components, camelCase for functions and variables.
+5. **TypeScript**: Define prop interfaces with JSDoc comments for all components.
+6. **Imports**: Group imports: React, third-party, internal modules, relative imports.
+7. **Styled Components**: Use `$` prefix for transient props (e.g., `$variant`).
+8. **Error Handling**: For user interactions, provide graceful fallbacks with feedback.
+9. **Animation**: Use `accessibleAnimation` to respect user's reduced motion preferences.
+10. **Performance**: Use memoization for complex components and computations.
+
+For complete documentation on glass morphism styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).

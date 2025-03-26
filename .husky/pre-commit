@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run lint-staged for checking staged files
+npm run precommit
+
+# Fix unused variables for all staged TypeScript/JavaScript files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.tsx?$|\.jsx?$')
+if [ -n "$STAGED_FILES" ]; then
+  echo "Running unused variables fix on staged files..."
+  node scripts/fix-unused-vars.js
+  # Re-stage files that were modified during the fix
+  for FILE in $STAGED_FILES; do
+    if [ -f "$FILE" ]; then
+      git add "$FILE"
+    fi
+  done
+fi 

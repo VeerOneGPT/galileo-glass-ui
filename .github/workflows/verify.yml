@@ -1,0 +1,97 @@
+name: Verify
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run verification
+        run: ./scripts/verify.sh
+
+      - name: Package size check
+        run: |
+          npm run build
+          echo "📦 Checking bundle size..."
+          du -h dist/ | sort -h
+
+      - name: Comment PR with lint summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            try {
+              // Run ESLint and generate a summary
+              const { execSync } = require('child_process');
+              const output = execSync('npx eslint --ext .ts,.tsx,.js,.jsx src/ --format json');
+              const results = JSON.parse(output);
+              
+              // Count warnings and errors
+              let warningCount = 0;
+              let errorCount = 0;
+              const ruleViolations = {};
+              
+              results.forEach(file => {
+                file.messages.forEach(msg => {
+                  if (msg.severity === 1) warningCount++;
+                  if (msg.severity === 2) errorCount++;
+                  
+                  const rule = msg.ruleId || 'unknown';
+                  ruleViolations[rule] = (ruleViolations[rule] || 0) + 1;
+                });
+              });
+              
+              // Create markdown summary
+              let summary = `## Lint Summary\n\n`;
+              summary += `- **Errors**: ${errorCount}\n`;
+              summary += `- **Warnings**: ${warningCount}\n\n`;
+              
+              if (errorCount > 0 || warningCount > 0) {
+                summary += `### Top Issues:\n\n`;
+                const sortedViolations = Object.entries(ruleViolations)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 5);
+                
+                summary += `| Rule | Count |\n|------|-------|\n`;
+                sortedViolations.forEach(([rule, count]) => {
+                  summary += `| ${rule} | ${count} |\n`;
+                });
+                
+                summary += `\n⚠️ Please run \`./scripts/verify.sh --fix\` locally to address these issues.`;
+              } else {
+                summary += `✅ No linting issues found. Great job!`;
+              }
+              
+              // Post comment on PR
+              const { issue: { number: issue_number }, repo: { owner, repo } } = context;
+              github.rest.issues.createComment({
+                issue_number,
+                owner,
+                repo,
+                body: summary
+              });
+            } catch (error) {
+              console.error('Error generating lint summary:', error);
+            } 
