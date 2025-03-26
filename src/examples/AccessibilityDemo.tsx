@@ -199,7 +199,7 @@ const AccessibilityDemo = () => {
 
         <Typography variant="body2" style={{ marginTop: '8px', fontStyle: 'italic' }}>
           Note: These demo controls only affect the examples below. Real accessibility features
-          would respect the user's system settings.
+          would respect the user{"'"}s system settings.
         </Typography>
       </DemoSection>
 

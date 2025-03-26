@@ -1,2 +1,6 @@
 // Mock file imports for test
-module.exports = 'test-file-stub';
+const fileStub = 'test-file-stub';
+
+// CommonJS export for Jest
+// eslint-disable-next-line no-undef
+module.exports = fileStub;

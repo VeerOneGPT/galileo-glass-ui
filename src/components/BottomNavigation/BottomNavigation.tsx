@@ -1,4 +1,5 @@
 import React, { forwardRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import styled, { css } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
@@ -376,6 +377,19 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
 
 BottomNavigation.displayName = 'BottomNavigation';
 
+// Add PropTypes for BottomNavigation
+BottomNavigation.propTypes = {
+  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+  variant: PropTypes.oneOf(['standard', 'glass']),
+  color: PropTypes.oneOf(['primary', 'secondary', 'default']),
+  elevation: PropTypes.oneOf([0, 1, 2, 3, 4]),
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  onChange: PropTypes.func,
+  showLabels: PropTypes.bool
+};
+
 /**
  * BottomNavigationAction Component
  *
@@ -423,6 +437,21 @@ export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNaviga
 
 BottomNavigationAction.displayName = 'BottomNavigationAction';
 
+// Add PropTypes
+BottomNavigationAction.propTypes = {
+  label: PropTypes.string.isRequired,
+  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
+  icon: PropTypes.node.isRequired,
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+  selected: PropTypes.bool,
+  disabled: PropTypes.bool,
+  showLabel: PropTypes.bool,
+  onClick: PropTypes.func,
+  className: PropTypes.string,
+  variant: PropTypes.oneOf(['standard', 'glass']),
+  color: PropTypes.oneOf(['primary', 'secondary', 'default'])
+};
+
 /**
  * GlassBottomNavigation Component
  *
@@ -444,3 +473,16 @@ export const GlassBottomNavigation = forwardRef<HTMLDivElement, BottomNavigation
 );
 
 GlassBottomNavigation.displayName = 'GlassBottomNavigation';
+
+// Add PropTypes for GlassBottomNavigation
+GlassBottomNavigation.propTypes = {
+  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
+  children: PropTypes.node.isRequired,
+  className: PropTypes.string,
+  variant: PropTypes.oneOf(['standard', 'glass']),
+  color: PropTypes.oneOf(['primary', 'secondary', 'default']),
+  elevation: PropTypes.oneOf([0, 1, 2, 3, 4]),
+  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+  onChange: PropTypes.func,
+  showLabels: PropTypes.bool
+};

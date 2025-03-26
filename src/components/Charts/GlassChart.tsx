@@ -4,8 +4,8 @@
  * A unified chart container with glass styling, physics-based interactions,
  * and Z-Space layering. Acts as a wrapper for all chart types.
  */
-import React, { useMemo, useState, useRef, useCallback } from 'react';
-import styled from 'styled-components';
+import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import styled, { DefaultTheme } from 'styled-components';
 
 import { useMouseMagneticEffect, usePhysicsInteraction } from '../../animations/hooks';
 import { zSpaceLayer } from '../../core/mixins/depth/zSpaceLayer';
@@ -16,7 +16,6 @@ import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
 import { FlexibleElementRef } from '../../utils/elementTypes';
 import { asCoreThemeContext } from '../../utils/themeHelpers';
 import { useTheme } from '../../theme';
-import { DefaultTheme } from 'styled-components';
 
 import { AreaChart } from './AreaChart';
 import { BarChart } from './BarChart';
@@ -456,21 +455,29 @@ export const GlassChart: React.FC<GlassChartProps> = ({
   // Refs for chart container
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Use magnetic effect if enabled
-  const magneticProps = useMemo(() => {
-    if (magneticEffect && !prefersReducedMotion) {
-      return useMouseMagneticEffect<HTMLDivElement>({
-        type: 'attract',
-        strength: magneticStrength,
-        radius: 200,
-        maxDisplacement: 10,
-        affectsRotation: false,
-        affectsScale: false,
-        smooth: true,
-      });
+  // Call the magnetic effect hook directly at component level
+  const magneticEffectProps = magneticEffect && !prefersReducedMotion ? {
+    type: 'attract' as const,
+    strength: magneticStrength,
+    radius: 200,
+    maxDisplacement: 10,
+    affectsRotation: false,
+    affectsScale: false,
+    smooth: true,
+  } : null;
+
+  // Always call the hook, but conditionally pass null
+  const magneticProps = useMouseMagneticEffect<HTMLDivElement>(
+    magneticEffectProps || {
+      type: 'attract' as const,
+      strength: 0,
+      radius: 0,
+      maxDisplacement: 0,
+      affectsRotation: false,
+      affectsScale: false,
+      smooth: false,
     }
-    return null;
-  }, [magneticEffect, magneticStrength, prefersReducedMotion]);
+  );
 
   // Use depth animation if enabled
   const zAnimationResult = useZSpaceAnimation({
@@ -481,11 +488,21 @@ export const GlassChart: React.FC<GlassChartProps> = ({
     duration: 0.5,
   });
 
-  // Create a simplified API for depth animation
-  const animate = useCallback(() => {
-    // Set a custom position to create animation effect
-    zAnimationResult.setCustomPosition(0, 10, 20);
-    setTimeout(() => zAnimationResult.reset(), 500);
+  // Store animation functions in a ref to avoid recreation
+  const animationFunctionsRef = useRef({
+    animate: () => {
+      // Set a custom position to create animation effect
+      zAnimationResult.setCustomPosition(0, 10, 20);
+      setTimeout(() => zAnimationResult.reset(), 500);
+    }
+  });
+
+  // Update the ref when zAnimationResult changes
+  useEffect(() => {
+    animationFunctionsRef.current.animate = () => {
+      zAnimationResult.setCustomPosition(0, 10, 20);
+      setTimeout(() => zAnimationResult.reset(), 500);
+    };
   }, [zAnimationResult]);
 
   const depthStyles = zAnimationResult.style;
@@ -508,7 +525,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
     if (focusMode) {
       setIsFocused(!isFocused);
       if (depthAnimation && !isFocused) {
-        animate();
+        animationFunctionsRef.current.animate();
       }
     }
   };
@@ -566,7 +583,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
       default:
         return <BarChart {...commonProps} />;
     }
-  }, [currentType, data, glass, chartProps, useSimplified]);
+  }, [currentType, data, glass, chartProps, useSimplified, adaptToCapabilities, onError]);
 
   // Create a ref callback that handles both container ref and magnetic ref
   const combinedRefCallback = useCallback(

@@ -7,6 +7,7 @@ import React, {
   useRef,
   useContext,
 } from 'react';
+import PropTypes from 'prop-types';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 
 import { createThemeContext as _createThemeContext } from '../core/themeUtils';
@@ -226,6 +227,21 @@ export interface ThemeProviderProps {
    */
   onThemeChange?: (theme: string) => void;
 }
+
+// Import PropTypes for GlassSurfaceProps
+const GlassSurfacePropTypes = PropTypes.shape({
+  variant: PropTypes.oneOf(['standard', 'frosted', 'dimensional', 'heat']),
+  blurStrength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  backgroundOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  borderOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  glowIntensity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  elevation: PropTypes.oneOfType([
+    PropTypes.number,
+    PropTypes.oneOf(['none', 'low', 'medium', 'high'])
+  ]),
+  interactive: PropTypes.bool,
+  darkMode: PropTypes.bool
+});
 
 /**
  * Unified Theme Provider Component
@@ -775,7 +791,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       ${interactiveStyles}
     `;
     },
-    [isDarkMode, getBackgroundOpacity, getBorderOpacity, getBlurStrength, getGlowIntensity] // colors removed as it doesn't cause re-renders
+    [isDarkMode, getBackgroundOpacity, getBorderOpacity, getBlurStrength, getGlowIntensity]
   );
 
   // ------ Create Responsive Utilities ------
@@ -1010,12 +1026,34 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
   );
 };
 
+// PropTypes for UnifiedThemeProvider
+UnifiedThemeProvider.propTypes = {
+  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
+  children: PropTypes.node.isRequired,
+  initialColorMode: PropTypes.oneOf(['light', 'dark', 'system']),
+  initialTheme: PropTypes.string,
+  enableAutoDetection: PropTypes.bool,
+  respectSystemPreference: PropTypes.bool,
+  forceColorMode: PropTypes.oneOf(['light', 'dark', 'system']),
+  disableTransitions: PropTypes.bool,
+  enableScrollOptimization: PropTypes.bool,
+  initialQualityTier: PropTypes.oneOf(['ultra', 'high', 'medium', 'low', 'minimal']),
+  isolateTheme: PropTypes.bool,
+  enableOptimizations: PropTypes.bool,
+  debug: PropTypes.bool,
+  performanceMonitoring: PropTypes.bool,
+  contextUpdateThrottle: PropTypes.number,
+  updateOnlyOnCommit: PropTypes.bool,
+  onColorModeChange: PropTypes.func,
+  onThemeChange: PropTypes.func
+};
+
 /**
  * Memoized ThemeProvider wrapper with presence tracking.
  *
  * This component prevents unnecessary re-renders and provides theme context.
  */
-export const ThemeProvider: React.FC<ThemeProviderProps> = React.memo(UnifiedThemeProvider);
+export const ThemeProvider = React.memo(UnifiedThemeProvider);
 
 // ------ Create Hooks for Accessing Context ------
 

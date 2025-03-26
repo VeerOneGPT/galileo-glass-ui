@@ -1,68 +1,32 @@
 {
+  "root": true,
   "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint", "react", "react-hooks", "import", "prettier"],
   "extends": [
     "eslint:recommended",
-    "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
+    "plugin:react/recommended",
     "plugin:react-hooks/recommended",
-    "plugin:prettier/recommended",
     "plugin:import/errors",
     "plugin:import/warnings",
-    "plugin:import/typescript"
+    "plugin:import/typescript",
+    "prettier"
   ],
-  "plugins": [
-    "react",
-    "@typescript-eslint",
-    "prettier",
-    "react-hooks",
-    "import"
-  ],
-  "env": {
-    "browser": true,
-    "es2021": true,
-    "node": true,
-    "jest": true
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["warn", {
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_",
+      "caughtErrorsIgnorePattern": "^_"
+    }],
+    "@typescript-eslint/ban-ts-comment": ["error", {
+      "ts-ignore": "allow-with-description"
+    }],
+    "no-prototype-builtins": "off",
+    "no-case-declarations": "warn"
   },
   "settings": {
     "react": {
       "version": "detect"
-    },
-    "import/resolver": {
-      "node": {
-        "extensions": [".js", ".jsx", ".ts", ".tsx"]
-      }
     }
-  },
-  "rules": {
-    "prettier/prettier": "error",
-    "react/prop-types": "off",
-    "react/react-in-jsx-scope": "off",
-    "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "import/namespace": "off",
-    "import/named": "off",
-    "import/no-unresolved": "off",
-    "import/order": [
-      "warn",
-      {
-        "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
-        "newlines-between": "always",
-        "alphabetize": { "order": "asc", "caseInsensitive": true }
-      }
-    ],
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
-    "no-case-declarations": "warn"
-  },
-  "overrides": [
-    {
-      "files": ["**/*.test.tsx", "**/*.test.ts", "src/__mocks__/**/*"],
-      "rules": {
-        "@typescript-eslint/no-explicit-any": "off",
-        "no-console": "off"
-      }
-    }
-  ]
+  }
 }

@@ -4,8 +4,7 @@
  * Demonstrates the mouse physics hooks from the animation system
  */
 import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { DefaultTheme } from 'styled-components';
+import styled, { DefaultTheme } from 'styled-components';
 
 import {
   useMouseMagneticEffect,

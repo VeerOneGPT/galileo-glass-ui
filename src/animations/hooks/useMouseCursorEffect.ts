@@ -167,17 +167,17 @@ export const useMouseCursorEffect = (options: MouseCursorEffectOptions = {}) => 
     }
   }, [type, prefersReducedMotion, 
     // These are declared later but the linter requires them here
-    // @ts-ignore
+    // @ts-ignore - Function is defined below but referenced here in dependency array
     setupGlowEffect, 
-    // @ts-ignore
+    // @ts-ignore - Function is defined below but referenced here in dependency array
     setupTrailEffect, 
-    // @ts-ignore
+    // @ts-ignore - Function is defined below but referenced here in dependency array
     setupMagneticEffect, 
-    // @ts-ignore
+    // @ts-ignore - Function is defined below but referenced here in dependency array
     setupRepelEffect, 
-    // @ts-ignore
+    // @ts-ignore - Function is defined below but referenced here in dependency array
     setupSpotlightEffect, 
-    // @ts-ignore
+    // @ts-ignore - Function is defined below but referenced here in dependency array
     setupRippleEffect
   ]);
 

@@ -84,7 +84,7 @@ function SpeedDialIconComponent(
   const openIconToShow = openIcon || <DefaultOpenIcon />;
 
   // If only using one icon, rotate it
-  if (!openIcon && !props.hasOwnProperty('openIcon')) {
+  if (!openIcon && !Object.prototype.hasOwnProperty.call(props, 'openIcon')) {
     return (
       <IconRoot
         ref={ref}

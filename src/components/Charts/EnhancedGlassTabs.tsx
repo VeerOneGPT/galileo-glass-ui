@@ -5,7 +5,10 @@
  * with glass morphism styling.
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import styled from 'styled-components';
+import styled, { DefaultTheme } from 'styled-components';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { asCoreThemeContext } from '../../utils/themeHelpers';
+import { useTheme } from '../../theme';
 
 import { useMagneticButton } from '../../animations/hooks';
 import { cssWithKebabProps } from '../../core/cssUtils';
@@ -14,9 +17,7 @@ import { glassGlow, GlowEffectProps } from '../../core/mixins/glowEffects';
 import { interactiveGlass } from '../../core/mixins/interactions/interactiveGlass';
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { asCoreThemeContext } from '../../utils/themeHelpers';
-import { useTheme } from '../../theme';
-import { DefaultTheme } from 'styled-components';
+import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
 
 /**
  * TabItem interface
@@ -133,6 +134,8 @@ export interface EnhancedGlassTabsProps {
  */
 const StyledTabsContainer = styled.div<{
   variant: 'default' | 'elevated' | 'outlined' | 'text';
+  color: EnhancedGlassTabsProps['color'];
+  size: EnhancedGlassTabsProps['size'];
   highContrast: boolean;
   theme: any;
 }>`
@@ -480,13 +483,19 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
   const providedTheme = useTheme();
   const theme = ensureValidTheme(providedTheme);
   
+  // Check for reduced motion preference
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+
+  // Refs for tab elements
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  
+  // Ref for the container element
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // State for currently active tab
   const [currentTab, setCurrentTab] = useState(
     activeTab || defaultTab || (tabs.length > 0 ? tabs[0].id : '')
   );
-
-  // Refs for tab elements
-  const [tabRefs, setTabRefs] = useState<Record<string, HTMLButtonElement | null>>({});
 
   // State for indicator position
   const [indicatorStyle, setIndicatorStyle] = useState<{
@@ -501,9 +510,6 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
     bottom: 0,
   });
 
-  // Check for reduced motion preference
-  const prefersReducedMotion = useReducedMotion();
-
   // Update active tab when controlled prop changes
   useEffect(() => {
     if (activeTab !== undefined && activeTab !== currentTab) {
@@ -513,19 +519,45 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
 
   // Update indicator position when active tab changes
   useEffect(() => {
-    const activeTabElement = tabRefs[currentTab];
+    const activeTabElement = tabRefs.current[currentTab];
     if (activeTabElement) {
       const { left, width } = activeTabElement.getBoundingClientRect();
-      const containerLeft = activeTabElement.parentElement?.getBoundingClientRect().left || 0;
+      const containerLeft = containerRef.current?.getBoundingClientRect().left || 0;
+      const relativeLeft = left - containerLeft;
+
+      const finalHeight = 3;
+      const finalBottom = 0;
 
       setIndicatorStyle({
-        left: left - containerLeft,
+        left: relativeLeft,
         width,
-        height: size === 'small' ? 2 : size === 'large' ? 4 : 3,
-        bottom: 0,
+        height: finalHeight,
+        bottom: finalBottom,
       });
     }
-  }, [currentTab, tabRefs, size]);
+  }, [currentTab]);
+
+  // Function to update indicator position
+  const updateIndicator = useCallback(() => {
+    if (!currentTab) return;
+    
+    const activeTabElement = tabRefs.current[currentTab];
+    if (activeTabElement && containerRef.current) {
+      const { left, width } = activeTabElement.getBoundingClientRect();
+      const containerLeft = containerRef.current.getBoundingClientRect().left || 0;
+      const relativeLeft = left - containerLeft;
+
+      const finalHeight = 3;
+      const finalBottom = 0;
+
+      setIndicatorStyle({
+        left: relativeLeft,
+        width,
+        height: finalHeight,
+        bottom: finalBottom,
+      });
+    }
+  }, [currentTab]);
 
   // Handle tab change
   const handleTabChange = (tabId: string) => {
@@ -537,17 +569,11 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
     }
   };
 
-  // Set ref for a tab
-  const setTabRef = (tabId: string, ref: HTMLButtonElement | null) => {
-    setTabRefs(prev => ({
-      ...prev,
-      [tabId]: ref,
-    }));
-  };
-
   return (
     <StyledTabsContainer
       variant={variant}
+      color={color}
+      size={size}
       highContrast={highContrast}
       className={className}
       style={style}
@@ -555,30 +581,27 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
     >
       <StyledTabsList fullWidth={fullWidth}>
         {tabs.map(tab => {
-          // Use magnetic button effect if enabled with proper typing
-          const magneticProps =
-            physicsEnabled && !prefersReducedMotion
-              ? useMagneticButton<HTMLButtonElement>({
-                  strength: 0.3,
-                  maxDisplacement: 5,
-                  stiffness: 80, // springBack replacement
-                  dampingRatio: 0.6, // controls oscillation
-                })
-              : null;
-
-          // Create a ref callback that handles both the tab ref and magnetic ref
-          const handleRef = (element: HTMLButtonElement | null) => {
-            setTabRef(tab.id, element);
-            if (magneticProps && magneticProps.ref.current !== element) {
-              // Set the ref manually since we can't use multiple refs directly
-              Object.assign(magneticProps.ref, { current: element });
-            }
-          };
-
+          // Use a stable function reference by wrapping in anonymous function
           return (
             <StyledTab
               key={tab.id}
-              ref={handleRef}
+              ref={(element) => {
+                if (tabRefs.current[tab.id] !== element) {
+                  tabRefs.current[tab.id] = element;
+                  // Force update indicator when ref changes
+                  const activeTabElement = tabRefs.current[currentTab];
+                  if (activeTabElement && currentTab === tab.id) {
+                    const { left, width } = activeTabElement.getBoundingClientRect();
+                    const containerLeft = activeTabElement.parentElement?.getBoundingClientRect().left || 0;
+                    setIndicatorStyle({
+                      left: left - containerLeft,
+                      width,
+                      height: size === 'small' ? 2 : size === 'large' ? 4 : 3,
+                      bottom: 0,
+                    });
+                  }
+                }
+              }}
               active={currentTab === tab.id}
               disabled={!!tab.disabled}
               color={color}
@@ -590,7 +613,6 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
               aria-selected={currentTab === tab.id}
               role="tab"
               tabIndex={tab.disabled ? -1 : 0}
-              {...(magneticProps ? magneticProps.eventHandlers : {})}
               theme={theme}
             >
               {tab.icon && <span>{tab.icon}</span>}

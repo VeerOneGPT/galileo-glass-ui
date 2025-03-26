@@ -5,8 +5,7 @@
  * Provides a consistent look and feel across all chart types.
  */
 import React from 'react';
-import styled from 'styled-components';
-import { DefaultTheme } from 'styled-components';
+import styled, { DefaultTheme } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/animationUtils';
 import { fadeIn } from '../../animations/keyframes/basic';

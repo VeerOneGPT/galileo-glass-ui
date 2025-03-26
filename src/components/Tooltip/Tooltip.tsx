@@ -499,8 +499,10 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
       if (childRef) {
         if (typeof childRef === 'function') {
           childRef(node);
-        } else if (childRef.hasOwnProperty('current')) {
-          (childRef as React.MutableRefObject<HTMLElement>).current = node;
+        } else if (Object.prototype.hasOwnProperty.call(childRef, 'current')) {
+          if (childRef && 'current' in childRef) {
+            (childRef as React.MutableRefObject<HTMLElement>).current = node;
+          }
         }
       }
     },

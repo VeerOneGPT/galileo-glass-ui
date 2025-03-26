@@ -60,7 +60,11 @@
   },
   "sideEffects": false,
   "scripts": {
+    "preinstall": "node -e \"try { require('fs').rmdirSync('./node_modules/.chart.js-*', { recursive: true }); require('fs').rmdirSync('./node_modules/.framesync-*', { recursive: true }); } catch(e) {}\"",
     "build": "npm run typecheck:build && (npm run lint:build || true) && rollup -c",
+    "build:fix": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\" && npm run build",
+    "build:clean": "rm -rf dist && npm run build:fix",
+    "prepublishOnly": "npm run build:clean",
     "dev": "rollup -c -w",
     "test": "jest",
     "test:watch": "jest --watch",

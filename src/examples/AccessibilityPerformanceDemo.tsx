@@ -413,9 +413,9 @@ const AnimationsDemo: React.FC = () => {
           <h3>Animation Demo</h3>
           <p>
             {reducedMotion
-              ? 'Reduced motion is enabled - showing simplified animation'
+              ? "Reduced motion is enabled - showing simplified animation"
               : disableAnimations
-              ? 'Animations are disabled'
+              ? "Animations are disabled"
               : `Showing "${animationType}" animation`}
           </p>
           <Button
@@ -432,7 +432,7 @@ const AnimationsDemo: React.FC = () => {
       <div>
         <p>
           This demo shows how animations adapt to accessibility preferences. Try toggling the
-          "Reduced Motion" or "Disable Animations" settings to see how animations respond to user
+          &quot;Reduced Motion&quot; or &quot;Disable Animations&quot; settings to see how animations respond to user
           preferences.
         </p>
       </div>
