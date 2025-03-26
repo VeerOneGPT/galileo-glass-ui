@@ -2,7 +2,7 @@
 
 <div align="center">
   <img width="200" height="200" src="./assets/galileo-glass-logo.svg?v=2" alt="Galileo Glass UI Logo">
-  <p><em>Modern glass morphism UI components for React applications</em></p>
+  <p><em>Modern glass morphism UI components for React, Next.js, and any TypeScript application</em></p>
 
   <p>
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui"><img src="https://img.shields.io/github/stars/VeerOneGPT/galileo-glass-ui.svg" alt="GitHub stars" /></a>
@@ -11,7 +11,7 @@
   </p>
 </div>
 
-A comprehensive Glass UI framework for modern web applications, featuring glass morphism styling, performant animations, accessibility features, and a complete set of UI components. This standalone package provides all the tools you need to create beautiful, accessible, and performant interfaces with a glass-like aesthetic.
+A comprehensive Glass UI framework for modern web applications, featuring glass morphism styling, performant animations, accessibility features, and a complete set of UI components. This versatile package works seamlessly with React, Next.js, and any TypeScript project, providing all the tools you need to create beautiful, accessible, and performant interfaces with a glass-like aesthetic.
 
 ## 🌟 Features
 
@@ -88,6 +88,40 @@ function App() {
 }
 
 export default App;
+```
+
+### Next.js Integration
+
+```jsx
+// pages/_app.js or app/layout.js
+import { ThemeProvider } from 'galileo-glass-ui';
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <ThemeProvider>
+      <Component {...pageProps} />
+    </ThemeProvider>
+  );
+}
+```
+
+```jsx
+// Any Next.js page or component
+import { Card, Button, Typography } from 'galileo-glass-ui';
+
+export default function HomePage() {
+  return (
+    <Card glass>
+      <Typography variant="h4">Welcome to Next.js with Galileo Glass</Typography>
+      <Typography variant="body1">
+        Beautiful glass morphism styling in your Next.js application.
+      </Typography>
+      <Button variant="contained" glass>
+        Explore
+      </Button>
+    </Card>
+  );
+}
 ```
 
 ### Optimized Imports
@@ -204,6 +238,8 @@ const GlassComponent = styled.div`
 For a complete implementation guide, see the [Glass UI Framework Documentation](./docs/core/framework-guide.md).
 
 ## 📦 Component Library
+
+Galileo Glass UI offers a comprehensive set of components that work universally across React, Next.js, and TypeScript applications:
 
 <div align="center">
   <table>
