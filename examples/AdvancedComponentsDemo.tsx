@@ -26,7 +26,6 @@ import {
   ResponsiveNavigation,
   PageTransition,
   ZSpaceAppLayout,
-  ZSpaceLayer,
   GlassThemeSwitcher,
   OptimizedGlassContainer,
   AtmosphericBackground,
@@ -34,8 +33,24 @@ import {
   VisualFeedback,
   RippleButton
 } from 'galileo-glass-ui';
+import { zSpaceLayer } from 'galileo-glass-ui/core';
 import { createThemeContext } from 'galileo-glass-ui/core';
 import { type ThemeVariant } from '../src/hooks/useGlassTheme';
+
+// Custom ZSpaceLayerComponent using the zSpaceLayer utility
+const ZSpaceLayerComponent: React.FC<{ name: string; depth: number; children: React.ReactNode }> = ({ 
+  name, 
+  depth, 
+  children 
+}) => {
+  // Use the zSpaceLayer utility to create a layer div
+  const layerProps = zSpaceLayer({ 
+    layer: name, // Use name as the layer value
+    depth,
+    createStackingContext: true 
+  });
+  return <div {...layerProps}>{children}</div>;
+};
 
 // Icons (placeholders, would be imported from an icon library)
 const AddIcon = () => <span>+</span>;
@@ -383,9 +398,9 @@ export const AdvancedComponentsDemo: React.FC = () => {
                 sidebar={<Notifications />}
               >
                 <PageContent />
-                <ZSpaceLayer name="widget" depth={2}>
+                <ZSpaceLayerComponent name="widget" depth={2}>
                   <DashboardWidgets />
-                </ZSpaceLayer>
+                </ZSpaceLayerComponent>
               </ZSpaceAppLayout>
             </div>
           </FrostedGlass>
@@ -399,7 +414,6 @@ export const AdvancedComponentsDemo: React.FC = () => {
           <FrostedGlass style={{ padding: '20px', minWidth: '300px' }}>
             <h3>GlassThemeSwitcher</h3>
             <GlassThemeSwitcher
-              theme={theme}
               showColorModes={true}
             />
           </FrostedGlass>

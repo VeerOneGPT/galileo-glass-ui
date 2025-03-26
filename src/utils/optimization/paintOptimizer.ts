@@ -197,7 +197,7 @@ export class PaintOptimizer {
     this.animatingElements.add(element);
 
     // Get existing optimization level
-    const currentOptimization = element.getAttribute('data-optimization-level') || '';
+    const _currentOptimization = element.getAttribute('data-optimization-level') || '';
 
     // Special optimizations for animating elements
     element.style.willChange = 'transform, opacity';

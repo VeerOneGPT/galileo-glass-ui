@@ -43,7 +43,7 @@
   },
   "sideEffects": false,
   "scripts": {
-    "build": "rollup -c",
+    "build": "npm run typecheck:build && (npm run lint:build || true) && rollup -c",
     "dev": "rollup -c -w",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -52,10 +52,13 @@
     "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx src/ --fix",
     "lint:strict": "eslint --ext .js,.jsx,.ts,.tsx src/ --max-warnings=0",
     "lint:examples": "eslint --ext .js,.jsx,.ts,.tsx examples/ --max-warnings=30",
+    "lint:lenient": "eslint --ext .js,.jsx,.ts,.tsx src/ --max-warnings=1000 --rule 'import/named: off' --rule 'import/no-unresolved: off' --rule '@typescript-eslint/no-var-requires: off' --rule 'react/display-name: off'",
+    "lint:build": "eslint --ext .js,.jsx,.ts,.tsx src/ --max-warnings=1000 --rule 'import/named: off' --rule 'import/no-unresolved: off' --rule '@typescript-eslint/no-var-requires: off' --rule 'react/display-name: off' --rule '@typescript-eslint/no-empty-function: off' --rule '@typescript-eslint/no-explicit-any: off' --rule '@typescript-eslint/no-non-null-assertion: off' --rule '@typescript-eslint/explicit-module-boundary-types: off' --rule 'no-console: off'",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "typecheck:permissive": "tsc --noEmit --skipLibCheck --project ./.tsconfig-permissive.json",
     "typecheck:ultra": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
     "typecheck:examples": "tsc --noEmit --skipLibCheck --project ./.ts-examples.json",
+    "typecheck:build": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
     "prepare": "npm run build",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"

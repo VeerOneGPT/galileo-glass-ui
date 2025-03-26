@@ -66,6 +66,7 @@ export { contextAwareGlass, adaptiveGlass } from './effects/contextAwareGlass';
 
 // Z-Space system
 export { ZLayer, ZDepth, zLayer, zDepth, zPerspective, ZSpaceProvider, useZSpace } from './zspace';
+export { zSpaceLayer, ZSpaceLayerType, ZSpacePosition } from './mixins/depth/zSpaceLayer';
 
 // Types
 export type {

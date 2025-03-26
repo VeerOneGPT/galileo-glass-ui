@@ -3,7 +3,7 @@
  */
 import { keyframes } from 'styled-components';
 
-import { animationMapper } from '../../accessibility/AnimationMapper';
+import { animationMapper as _animationMapper } from '../../accessibility/AnimationMapper';
 import { MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
 import { AnimationOrchestrator, AnimationSequence } from '../Orchestrator';
 

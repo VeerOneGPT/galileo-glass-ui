@@ -163,5 +163,5 @@ export {
   ModalGlassContainer,
 } from './GlassPresets';
 
-// Version
-export const version = '1.0.0';
+// Local version
+export const componentsVersion = '1.0.0';

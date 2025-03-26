@@ -81,8 +81,39 @@ export {
   getAccessibleAnimation,
 } from './presets';
 
-// Export the AnimationPreset type from styled.d.ts
-export type { AnimationPreset } from './styled';
+// Export the AnimationPreset type - inline definition to avoid build issues
+export interface AnimationPreset {
+  /** The animation keyframes or direct reference to a keyframe animation */
+  keyframes?: any;
+  animation?: any;
+
+  /** Default animation duration */
+  duration: string | number;
+
+  /** Default animation easing */
+  easing: string;
+
+  /** Default animation delay */
+  delay?: string | number;
+
+  /** Default animation fill mode */
+  fillMode?: 'none' | 'forwards' | 'backwards' | 'both';
+
+  /** Reduced motion alternative */
+  reducedMotionAlternative?: AnimationPreset | null;
+
+  /** Animation intensity level */
+  intensity?: any;
+
+  /** Iterations count */
+  iterations?: number | string;
+
+  /** Animation direction */
+  direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
+
+  /** Animation play state */
+  playState?: 'running' | 'paused';
+}
 
 // Animation accessibility
 export {
@@ -125,4 +156,4 @@ export {
 } from './performance';
 
 // Version
-export const version = '1.2.0';
+export const animationsVersion = '1.2.0';

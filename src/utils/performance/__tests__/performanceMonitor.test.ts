@@ -115,7 +115,7 @@ jest.mock('../performanceMonitor', () => {
 const {
   PerformanceMonitor,
   MetricType,
-  MetricSeverity,
+  MetricSeverity: _MetricSeverity,
   createPerformanceMonitor,
 } = require('../performanceMonitor');
 

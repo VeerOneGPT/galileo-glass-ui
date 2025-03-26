@@ -35,5 +35,5 @@ export { accessibleAnimation, animateWithPhysics, useZSpaceAnimation } from './a
 // Explicitly re-export hooks
 export { useGlassTheme, usePhysicsInteraction, useOrchestration } from './hooks';
 
-// Version
-export const version = '1.0.0';
+// Main version (consolidated)
+export const version = '1.0.0'; // Main package version

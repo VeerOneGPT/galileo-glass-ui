@@ -197,17 +197,20 @@ export const createStaggeredAnimation = (
   const adjustedIndex = reverse ? totalItems - 1 - index : index;
 
   // Calculate delay based on pattern
+  // Variables for all cases
+  let center: number, distanceFromCenter: number, edgeDistance: number;
+
   switch (pattern) {
     case 'center-out':
       // Items animate outward from the center
-      const center = Math.floor(totalItems / 2);
-      const distanceFromCenter = Math.abs(adjustedIndex - center);
+      center = Math.floor(totalItems / 2);
+      distanceFromCenter = Math.abs(adjustedIndex - center);
       delay = distanceFromCenter * baseDelay;
       break;
 
     case 'edges-in':
       // Items animate inward from the edges
-      const edgeDistance = Math.min(adjustedIndex, totalItems - 1 - adjustedIndex);
+      edgeDistance = Math.min(adjustedIndex, totalItems - 1 - adjustedIndex);
       delay = edgeDistance * baseDelay;
       break;
 

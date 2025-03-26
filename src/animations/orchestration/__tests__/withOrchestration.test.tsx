@@ -5,10 +5,9 @@ import { render, cleanup } from '@testing-library/react';
 import React from 'react';
 import { keyframes } from 'styled-components';
 
-import { withOrchestration, AnimationSequence } from '../Orchestrator';
-
 // Get the original animationOrchestrator instance to mock it
 import * as OrchestratorModule from '../Orchestrator';
+import { withOrchestration, AnimationSequence } from '../Orchestrator';
 
 // Mock dependencies
 jest.mock('styled-components', () => ({
@@ -20,7 +19,7 @@ jest.mock('styled-components', () => ({
 // Create spy objects for the orchestrator functions
 const createSequenceSpy = jest
   .spyOn(OrchestratorModule.animationOrchestrator, 'createSequence')
-  .mockImplementation(function (this: any, id, sequence) {
+  .mockImplementation(function (this: any, _id, _sequence) {
     return this;
   });
 
@@ -28,7 +27,7 @@ const stopSpy = jest
   .spyOn(OrchestratorModule.animationOrchestrator, 'stop')
   .mockImplementation(() => {});
 
-const playSpy = jest
+const _playSpy = jest
   .spyOn(OrchestratorModule.animationOrchestrator, 'play')
   .mockImplementation(() => Promise.resolve());
 

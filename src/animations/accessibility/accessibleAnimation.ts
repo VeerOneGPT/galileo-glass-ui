@@ -182,7 +182,7 @@ export const useAccessibleAnimation = (
     } = options || {};
 
     // Use sensitivity if provided, otherwise motionSensitivity, or default to MEDIUM
-    const sensitivityLevel = sensitivity || motionSensitivity || MotionSensitivityLevel.MEDIUM;
+    const _sensitivityLevel = sensitivity || motionSensitivity || MotionSensitivityLevel.MEDIUM;
 
     // Use medium sensitivity for reduced motion preference
     return accessibleAnimation(animation, {

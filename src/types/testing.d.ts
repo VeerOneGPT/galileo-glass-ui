@@ -2,7 +2,7 @@
  * Test-specific type declarations
  */
 
-import { FlattenSimpleInterpolation } from 'styled-components';
+import { FlattenSimpleInterpolation as _FlattenSimpleInterpolation } from 'styled-components';
 
 // Extend FlattenSimpleInterpolation for testing purposes
 declare module 'styled-components' {

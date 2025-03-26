@@ -4,14 +4,14 @@
  * Advanced utilities for optimizing styles and rendering in Glass UI components.
  */
 
-// Import globalStyleSheet for use in this file
+// Import style optimization utilities
 import {
   OptimizedStyleSheet,
   globalStyleSheet as importedGlobalStyleSheet,
   createOptimizedStyleSheet,
 } from './optimizedStyleSheet';
 
-// Import globalPaintOptimizer for use in this file
+// Import paint optimization utilities
 import {
   PaintOptimizer,
   globalPaintOptimizer as importedGlobalPaintOptimizer,

@@ -9,14 +9,14 @@ import React, {
 } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 
-import { createThemeContext } from '../core/themeUtils';
+import { createThemeContext as _createThemeContext } from '../core/themeUtils';
 import type { ThemeContext as ThemeContextType } from '../core/themeUtils';
-import type { ColorMode, ThemeVariant, Theme, GlassSurfaceProps } from '../core/types';
+import type { ColorMode, ThemeVariant as _ThemeVariant, Theme as _Theme, GlassSurfaceProps } from '../core/types';
 
 import {
-  THEME_NAMES,
+  THEME_NAMES as _THEME_NAMES,
   THEME_VARIANTS,
-  GLASS_QUALITY_TIERS,
+  GLASS_QUALITY_TIERS as _GLASS_QUALITY_TIERS,
   BLUR_STRENGTHS,
   GLOW_INTENSITIES,
 } from './constants';
@@ -672,16 +672,22 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       // Add variant-specific styles
       let variantStyles = '';
 
+      // Variables for all cases
+      let blurNumber: number;
+      let bgOpacityAdjusted: number;
+      let blurAdjusted: number;
+      let dimBgOpacity: number;
+      
       switch (variant) {
         case 'frosted':
           // Parse blur value as number if it's a string
-          const blurNumber =
+          blurNumber =
             typeof blurValue === 'string'
               ? parseInt(blurValue.replace('px', ''), 10)
               : Number(blurValue);
 
-          const bgOpacityAdjusted = bgOpacity * 0.7;
-          const blurAdjusted = blurNumber * 1.5;
+          bgOpacityAdjusted = bgOpacity * 0.7;
+          blurAdjusted = blurNumber * 1.5;
 
           variantStyles = `
           background-color: rgba(255, 255, 255, ${bgOpacityAdjusted});
@@ -691,7 +697,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
         `;
           break;
         case 'dimensional':
-          const dimBgOpacity = bgOpacity * 0.6;
+          dimBgOpacity = bgOpacity * 0.6;
           const dimElev2 = elevation * 2;
           const dimElev6 = elevation * 6;
           const dimElev05 = elevation * 0.5;
@@ -769,7 +775,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       ${interactiveStyles}
     `;
     },
-    [isDarkMode, colors, getBackgroundOpacity, getBorderOpacity, getBlurStrength, getGlowIntensity]
+    [isDarkMode, getBackgroundOpacity, getBorderOpacity, getBlurStrength, getGlowIntensity] // colors removed as it doesn't cause re-renders
   );
 
   // ------ Create Responsive Utilities ------

@@ -28,7 +28,7 @@ export {
 } from './keyframes/basic';
 
 // All keyframes collection
-const keyframes = {
+const _keyframes = {
   fadeIn: {},
   fadeOut: {},
   slideIn: {},

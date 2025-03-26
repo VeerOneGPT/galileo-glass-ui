@@ -4,9 +4,6 @@
  * A comprehensive collection of animation presets for Galileo Glass UI.
  */
 
-// Export accessible animation utilities
-export * from './accessibleAnimations';
-
 // Export UI-specific animations
 export * from './ui';
 
@@ -20,6 +17,9 @@ import {
   getAccessibleAnimation,
 } from './accessibleAnimations';
 import { uiAnimations } from './ui';
+
+// Re-export animation elements
+export { animationTimings, animationEasings, AnimationIntensity };
 
 // Combined presets object
 export const presets = {

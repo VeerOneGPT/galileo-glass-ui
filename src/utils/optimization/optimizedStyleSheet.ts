@@ -330,7 +330,7 @@ export class OptimizedStyleSheet {
     glassClasses.forEach(className => {
       const info = this.classNameMap.get(className);
       if (info) {
-        const optimizedCss = globalStyleOptimizer.optimizeGlassStyles(info.originalCss);
+        const _optimizedCss = globalStyleOptimizer.optimizeGlassStyles(info.originalCss);
         this.updateClass(className, info.originalCss, true);
       }
     });

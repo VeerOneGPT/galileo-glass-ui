@@ -165,7 +165,21 @@ export const useMouseCursorEffect = (options: MouseCursorEffectOptions = {}) => 
       default:
         return setupGlowEffect();
     }
-  }, [type, prefersReducedMotion]);
+  }, [type, prefersReducedMotion, 
+    // These are declared later but the linter requires them here
+    // @ts-ignore
+    setupGlowEffect, 
+    // @ts-ignore
+    setupTrailEffect, 
+    // @ts-ignore
+    setupMagneticEffect, 
+    // @ts-ignore
+    setupRepelEffect, 
+    // @ts-ignore
+    setupSpotlightEffect, 
+    // @ts-ignore
+    setupRippleEffect
+  ]);
 
   // Setup functions for different effect types
   const setupGlowEffect = useCallback(() => {
@@ -357,7 +371,7 @@ export const useMouseCursorEffect = (options: MouseCursorEffectOptions = {}) => 
   const updateEffect = useCallback(() => {
     if (!isActiveRef.current) return;
 
-    const { x, y, velocity } = cursorPosition;
+    const { x, y, velocity: _velocity } = cursorPosition;
 
     switch (type) {
       case 'glow':

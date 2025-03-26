@@ -214,8 +214,8 @@ describe('ZSpaceAnimator', () => {
   });
 });
 
-// We need to mock React hooks
-const mockReactHooks = () => {
+// We need to mock React hooks (unused function but kept for documentation)
+const _mockReactHooks = () => {
   jest.mock('react', () => {
     const actual = jest.requireActual('react');
     return {

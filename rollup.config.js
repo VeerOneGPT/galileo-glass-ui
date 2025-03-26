@@ -32,7 +32,12 @@ const basePlugins = [
     }
   }),
   commonjs(),
-  typescript({ tsconfig: './tsconfig.json' }),
+  typescript({ 
+    tsconfig: './tsconfig.json',
+    declaration: true,
+    declarationDir: './dist/dts',
+    rootDir: './src' 
+  }),
   babel({
     extensions,
     babelHelpers: 'bundled',
@@ -132,44 +137,53 @@ const dtsConfigs = [
     input: 'dist/dts/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'es' }],
     plugins: [dts()],
-    external: [/\.css$/]
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },
   {
     input: 'dist/dts/animations/index.d.ts',
     output: [{ file: 'dist/animations.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/]
+    plugins: [dts({
+      // Resolvers for common issues
+      respectExternal: true,
+      compilerOptions: {
+        baseUrl: ".",
+        paths: {
+          "styled-components": ["node_modules/styled-components"]
+        }
+      }
+    })],
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom', './styled']
   },
   {
     input: 'dist/dts/core/index.d.ts',
     output: [{ file: 'dist/core.d.ts', format: 'es' }],
     plugins: [dts()],
-    external: [/\.css$/]
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },
   {
     input: 'dist/dts/components/index.d.ts',
     output: [{ file: 'dist/components.d.ts', format: 'es' }],
     plugins: [dts()],
-    external: [/\.css$/]
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },
   {
     input: 'dist/dts/hooks/index.d.ts',
     output: [{ file: 'dist/hooks.d.ts', format: 'es' }],
     plugins: [dts()],
-    external: [/\.css$/]
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },
   {
     input: 'dist/dts/theme/index.d.ts',
     output: [{ file: 'dist/theme.d.ts', format: 'es' }],
     plugins: [dts()],
-    external: [/\.css$/]
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },
   // Examples types (optional)
   {
     input: 'dist/dts/examples/index.d.ts',
     output: [{ file: 'dist/examples.d.ts', format: 'es' }],
     plugins: [dts()],
-    external: [/\.css$/]
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   }
 ];
 

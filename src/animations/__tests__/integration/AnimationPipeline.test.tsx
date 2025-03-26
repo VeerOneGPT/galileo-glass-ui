@@ -4,18 +4,19 @@
  * This test file demonstrates how different parts of the animation system
  * work together to create a complete animation pipeline.
  */
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act as _act } from '@testing-library/react';
 import React from 'react';
-import { keyframes } from 'styled-components';
+import { keyframes as _keyframes } from 'styled-components';
 
 // Import AnimationIntensity to use the proper enum values
 import { ZSpaceProvider } from '../../../core/zspace/ZSpaceContext';
 import { ThemeProvider } from '../../../theme/ThemeProvider';
-import { accessibleAnimation } from '../../accessibility/accessibleAnimation';
+import { accessibleAnimation as _accessibleAnimation } from '../../accessibility/accessibleAnimation';
 import { MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
 import { ZSpaceAnimator } from '../../dimensional/ZSpaceAnimation';
 import { createStaggeredSequence } from '../../orchestration/GestaltPatterns';
 import { AnimationOrchestrator } from '../../orchestration/Orchestrator';
+import { springAnimation } from '../../physics/springAnimation'; // Used but underscore not needed as it's properly referenced
 import { AnimationIntensity } from '../../presets/accessibleAnimations';
 
 // Mock styled-components
@@ -202,7 +203,7 @@ jest.mock('../../orchestration/Orchestrator', () => {
       animations: Array.isArray(sequenceConfig) ? sequenceConfig : [],
       totalDuration: 950,
     })),
-    play: jest.fn(sequence => ({
+    play: jest.fn(_sequence => ({
       isPlaying: true,
       then: jest.fn(callback => {
         setTimeout(callback, 1000);
@@ -219,7 +220,7 @@ jest.mock('../../orchestration/Orchestrator', () => {
   return {
     AnimationOrchestrator: MockAnimationOrchestrator,
     animationOrchestrator: new MockAnimationOrchestrator(),
-    withOrchestration: jest.fn((Component, config) => props => Component(props)),
+    withOrchestration: jest.fn((Component, _config) => props => Component(props)),
   };
 });
 
@@ -233,12 +234,10 @@ jest.mock('../../orchestration/GestaltPatterns', () => ({
 
 // Now import animation system components
 
-// Create a simple withOrchestration helper for testing
-const withOrchestration = (Component, config) => {
+const withOrchestration = (Component, _config) => {
   // Simple mock that just returns the original component
   return props => <Component {...props} />;
 };
-import { springAnimation } from '../../physics/springAnimation';
 // Mock ThemeProvider
 jest.mock('../../../theme/ThemeProvider', () => ({
   ThemeProvider: ({ children }) => children,
@@ -289,7 +288,7 @@ jest.mock('../../accessibility/MotionSensitivity', () => ({
   })),
   isAnimationComplexityAllowed: jest.fn(() => true),
   isAnimationDurationAllowed: jest.fn(() => true),
-  getAdjustedAnimation: jest.fn((options, sensitivity) => ({
+  getAdjustedAnimation: jest.fn((options, _sensitivity) => ({
     duration: options.duration || 300,
     shouldAnimate: true,
   })),

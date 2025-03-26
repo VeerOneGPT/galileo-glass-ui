@@ -1,16 +1,18 @@
 /**
  * Tests for accessible animation system
  */
-import React from 'react';
+import _React from 'react';
 
 import 'jest-styled-components';
-import { AnimationComplexity, MotionSensitivityLevel } from '../MotionSensitivity';
+
+// Import in alphabetical order grouped by path depth
 import {
   accessibleAnimation,
   conditionalAnimation,
   getAccessibleKeyframes,
   useAccessibleAnimation,
 } from '../accessibleAnimation';
+import { AnimationComplexity as _AnimationComplexity, MotionSensitivityLevel } from '../MotionSensitivity';
 
 // Mock useReducedMotion hook
 jest.mock('../../../hooks/useReducedMotion', () => ({

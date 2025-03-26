@@ -104,7 +104,7 @@ export function createCompatibleRef<
  * @param Component React component to wrap
  * @returns Component that accepts any HTML element ref
  */
-export function withFlexibleRef<P extends {}>(
+export function withFlexibleRef<P extends Record<string, unknown>>(
   Component: React.ComponentType<P>
 ): React.ComponentType<P> {
   return Component as React.ComponentType<P>;

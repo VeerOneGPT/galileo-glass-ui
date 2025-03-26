@@ -11,17 +11,17 @@ declare module 'styled-components' {
     rules: string;
     toString: () => string;
   }
-  
+
   export interface FlattenSimpleInterpolation {
     __cssString?: string;
     [key: string]: any;
   }
-  
+
   // Helper types for complex nested theme structures
   interface NestedStringRecord {
     [key: string]: string | NestedStringRecord;
   }
-  
+
   interface ThemeColors {
     nebula: {
       accentPrimary: string;
@@ -57,7 +57,7 @@ declare module 'styled-components' {
     };
     [key: string]: Record<string, string> | NestedStringRecord;
   }
-  
+
   interface ZIndexes {
     hide: number;
     auto: string | number;
@@ -75,7 +75,7 @@ declare module 'styled-components' {
     glacial: number;
     [key: string]: string | number;
   }
-  
+
   export interface DefaultTheme {
     isDarkMode: boolean;
     colorMode: ColorMode;
