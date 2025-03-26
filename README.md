@@ -22,7 +22,7 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 - **Performance Optimized**: Adapts to device capabilities for smooth performance on all devices
 - **Extensive Customization**: Powerful styling mixins for creating your own custom glass effects
 - **TypeScript Support**: Fully typed API for better developer experience
-- **Zero Material UI Dependencies**: Completely independent implementation using styled-components
+- **Standalone Implementation**: Built with styled-components for complete independence and flexibility
 
 ## 🚀 Getting Started
 

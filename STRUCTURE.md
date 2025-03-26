@@ -96,7 +96,7 @@ galileo-glass-ui/
 
 ## Key Design Principles
 
-- **Zero Material UI Dependencies**: Completely independent implementation using styled-components
+- **Standalone Implementation**: Fully independent framework built with styled-components
 - **Accessibility-First**: All components respect user preferences, including reduced motion
 - **Performance-Optimized**: Components adapt to device capabilities
 - **Consistent API**: All components follow consistent patterns and naming conventions

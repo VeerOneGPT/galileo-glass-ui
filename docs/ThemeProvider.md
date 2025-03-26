@@ -2,7 +2,7 @@
 
 This comprehensive guide covers the ThemeProvider implementation in the Galileo Glass UI system, explaining different theme context patterns and best practices.
 
-**IMPORTANT: Galileo Glass UI is a fully independent, custom-built UI/UX system that has no relationship with Material UI. The ThemeProvider is a custom implementation built specifically for the Glass design system.**
+**IMPORTANT: Galileo Glass UI is a fully independent, custom-built UI/UX system. The ThemeProvider is a custom implementation built specifically for the Glass design system.**
 
 ## Table of Contents
 
