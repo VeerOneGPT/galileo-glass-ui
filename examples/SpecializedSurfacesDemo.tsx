@@ -25,7 +25,6 @@ const StyledGlassElement = styled.div<{ theme: any }>`
     const themeContext = createThemeContext(props.theme);
     
     return glassSurface({
-      variant: 'standard',
       elevation: 2,
       blurStrength: 'medium',
       borderOpacity: 0.3,
@@ -43,7 +42,6 @@ const EnhancedGlowElement = styled.div<{ theme: any }>`
     
     return `
       ${glassSurface({
-        variant: 'standard',
         elevation: 3,
         themeContext
       })}
@@ -51,8 +49,6 @@ const EnhancedGlowElement = styled.div<{ theme: any }>`
       ${enhancedGlow({
         color: 'primary',
         intensity: 'medium',
-        pulsate: true,
-        spread: 20,
         themeContext
       })}
     `;
@@ -68,15 +64,12 @@ const CompoundGlassElement = styled.div<{ theme: any }>`
     
     return `
       ${glassSurface({
-        variant: 'dimensional',
         elevation: 3,
         themeContext
       })}
       
       ${edgeHighlight({
         position: 'bottom',
-        color: 'primary',
-        width: 2,
         themeContext
       })}
       
@@ -97,10 +90,6 @@ const AdaptiveGlassElement = styled.div<{ theme: any }>`
     const themeContext = createThemeContext(props.theme);
     
     return adaptiveGlass({
-      adaptiveFactor: 0.7,
-      minContrast: 4.5,
-      fallbackVariant: 'standard',
-      adaptiveProperties: ['color', 'blur', 'opacity'],
       themeContext
     });
   }}
@@ -222,7 +211,6 @@ export const SpecializedSurfacesDemo: React.FC = () => {
               <p>Created using the glassSurface mixin with standard variant and medium blur.</p>
               <pre>{`const StyledElement = styled.div\`
   \${props => glassSurface({
-    variant: 'standard',
     elevation: 2,
     blurStrength: 'medium',
     borderOpacity: 0.3,
@@ -240,12 +228,10 @@ export const SpecializedSurfacesDemo: React.FC = () => {
   \${props => {
     const themeContext = createThemeContext(props.theme);
     return \`
-      \${glassSurface({ variant: 'standard', elevation: 3, themeContext })}
+      \${glassSurface({ elevation: 3, themeContext })}
       \${enhancedGlow({
         color: 'primary',
         intensity: 'medium',
-        pulsate: true,
-        spread: 20,
         themeContext
       })}
     \`;
@@ -262,8 +248,8 @@ export const SpecializedSurfacesDemo: React.FC = () => {
   \${props => {
     const themeContext = createThemeContext(props.theme);
     return \`
-      \${glassSurface({ variant: 'dimensional', elevation: 3, themeContext })}
-      \${edgeHighlight({ position: 'bottom', color: 'primary', width: 2, themeContext })}
+      \${glassSurface({ elevation: 3, themeContext })}
+      \${edgeHighlight({ position: 'bottom', color: 'primary', themeContext })}
       \${innerGlow({ color: 'secondary', intensity: 'subtle', themeContext })}
     \`;
   }}
@@ -277,10 +263,6 @@ export const SpecializedSurfacesDemo: React.FC = () => {
               <p>Adaptive glass that adjusts its appearance based on the content behind it for optimal readability.</p>
               <pre>{`const AdaptiveElement = styled.div\`
   \${props => adaptiveGlass({
-    adaptiveFactor: 0.7,
-    minContrast: 4.5,
-    fallbackVariant: 'standard',
-    adaptiveProperties: ['color', 'blur', 'opacity'],
     themeContext: createThemeContext(props.theme)
   })}
   padding: 20px;

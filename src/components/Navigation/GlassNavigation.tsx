@@ -6,7 +6,7 @@ import { Button } from '../Button';
 import { Icon } from '../Icon';
 import { Badge } from '../Badge';
 import { Tooltip } from '../Tooltip';
-import { createThemeContext } from '../../core/themeContext';
+import { createThemeContext } from '../../core/themeUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassBorder } from '../../core/mixins/glassBorder';
 import { glowEffects } from '../../core/mixins/effects/glowEffects';

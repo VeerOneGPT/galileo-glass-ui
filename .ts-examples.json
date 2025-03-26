@@ -12,7 +12,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "isolatedModules": true,
+    "isolatedModules": false,
     "jsx": "react-jsx",
     "declaration": true,
     "outDir": "dist",
@@ -24,9 +24,10 @@
     "strictFunctionTypes": false,
     "strictPropertyInitialization": false,
     "noImplicitThis": false,
+    "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "typeRoots": ["./node_modules/@types", "./examples"],
+    "noErrorTruncation": true,
     "baseUrl": ".",
     "paths": {
       "galileo-glass-ui": ["./src"],
@@ -34,8 +35,12 @@
       "galileo-glass-ui/animations": ["./src/animations"],
       "galileo-glass-ui/theme": ["./src/theme"],
       "galileo-glass-ui/*": ["./src/*"]
-    }
+    },
+    "ignoreDeprecations": "5.0",
+    "suppressExcessPropertyErrors": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "noImplicitOverride": false
   },
-  "include": ["src/**/*", "examples/**/*"],
-  "exclude": ["node_modules", "dist"]
-}
+  "include": ["examples/**/*"],
+  "exclude": ["node_modules", "dist", "src/**/*"]
+} 

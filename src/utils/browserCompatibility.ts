@@ -268,18 +268,21 @@ export function detectFeatures(): BrowserFeatures {
   let backdropFilterBlur = false;
   if (backdropFilter) {
     try {
+      // Standard property
       testDiv.style.backdropFilter = 'blur(5px)';
       backdropFilterBlur = !!testDiv.style.backdropFilter;
       
       if (!backdropFilterBlur) {
-        // Try both camel case and kebab case
+        // Try WebKit prefix with camel case (standard in TypeScript DOM types)
         testDiv.style.WebkitBackdropFilter = 'blur(5px)';
         backdropFilterBlur = !!testDiv.style.WebkitBackdropFilter;
         
         if (!backdropFilterBlur) {
-          // Using string index access to avoid TypeScript errors with kebab case
-          testDiv.style['-webkit-backdrop-filter' as any] = 'blur(5px)';
-          backdropFilterBlur = !!(testDiv.style['-webkit-backdrop-filter' as any]);
+          // For older browsers that might need string access with kebab case
+          // Use proper casting to avoid TypeScript errors
+          const prop = '-webkit-backdrop-filter';
+          (testDiv.style as any)[prop] = 'blur(5px)';
+          backdropFilterBlur = !!(testDiv.style as any)[prop];
         }
       }
     } catch (e) {
@@ -558,12 +561,8 @@ export function getBackdropFilterValue(
   // Normalize blur value
   const blurPx = typeof blurValue === 'number' ? `${blurValue}px` : blurValue;
   
-  // Use vendor prefix if needed
-  if (features.browser === 'safari') {
-    return `backdrop-filter: blur(${blurPx}); -webkit-backdrop-filter: blur(${blurPx});`;
-  }
-  
-  return `backdrop-filter: blur(${blurPx});`;
+  // Always include both standard and vendor prefixed versions for maximum compatibility
+  return `backdrop-filter: blur(${blurPx}); -webkit-backdrop-filter: blur(${blurPx});`;
 }
 
 /**

@@ -14,7 +14,7 @@ import {
   createPaintOptimizer,
   markAsAnimating,
   optimizeForPainting,
-  PaintOptimizationConfig
+  type PaintOptimizationConfig
 } from './paintOptimizer';
 
 // Re-export the imported items
@@ -28,9 +28,9 @@ export {
   type PaintOptimizationConfig
 };
 
-// Export references to the global instances
-export const globalStyleSheet = importedGlobalStyleSheet;
-export const globalPaintOptimizer = importedGlobalPaintOptimizer;
+// Export references to the global instances with proper type safety
+export const globalStyleSheet: OptimizedStyleSheet | null = importedGlobalStyleSheet;
+export const globalPaintOptimizer: PaintOptimizer | null = importedGlobalPaintOptimizer;
 
 // Export StyleUpdateBatcher
 export {
@@ -61,7 +61,7 @@ export const optimizeElement = (element: HTMLElement, isGlass: boolean = false):
   // Add to optimized stylesheet if it's not already styled
   if (globalStyleSheet && !element.className) {
     const className = globalStyleSheet.createClass(
-      `position: relative; will-change: transform; backface-visibility: hidden;${
+      `position: relative; will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden;${
         isGlass ? ' transform: translateZ(0);' : ''
       }`,
       isGlass ? 'glass-element' : 'optimized-element',

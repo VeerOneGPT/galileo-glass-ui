@@ -83,7 +83,7 @@ export type AnimationPlayState = 'running' | 'paused';
  * Animation preset type reference
  * The full definition is in styled.d.ts
  */
-import { AnimationPreset } from './styled';
+import type { AnimationPreset } from './styled';
 export type AnimationPresetReference = string | AnimationPreset;
 
 /**

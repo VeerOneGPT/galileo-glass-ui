@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # Galileo Glass UI Coding Guidelines
 
 ## Build/Lint/Test Commands

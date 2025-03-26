@@ -32,55 +32,47 @@ export const PhysicsAnimationDemo: React.FC = () => {
   const {
     ref: springRef,
     style: springStyle,
-    animationProps: springAnimationProps,
     ...springEventHandlers
   } = usePhysicsInteraction({
     type: 'spring',
     mass: 1,
     stiffness: 170,
-    damping: 26,
-    intensity: 'responsive',
-    scale: true,
-    rotation: false
+    dampingRatio: 26,
+    affectsScale: true,
+    affectsRotation: false
   });
 
   // Advanced Physics Demo
   const {
     ref: advancedRef,
     style: advancedStyle,
-    animationProps: advancedAnimationProps,
     ...advancedEventHandlers
   } = usePhysicsInteraction({
-    type: 'advanced',
+    type: 'follow',
     mass: 1.5,
     stiffness: 200,
-    damping: 20,
-    gravity: 0.5,
+    dampingRatio: 20,
+    gravity: { x: 0, y: 0.5, z: 0, strength: 0.5 },
     friction: 0.1,
-    mode: PhysicsAnimationMode.NATURAL,
-    initialVelocity: { x: 0, y: 0 },
-    boundaries: {
+    bounds: {
       top: 0,
       right: 400,
       bottom: 400,
       left: 0
-    },
-    collisionElasticity: 0.7
+    }
   });
 
   // Magnetic Effect Demo
   const {
     ref: magneticRef,
     style: magneticStyle,
-    animationProps: magneticAnimationProps,
     ...magneticEventHandlers
   } = usePhysicsInteraction({
     type: 'magnetic',
     strength: 40,
     radius: 150,
     stiffness: 400,
-    damping: 30,
-    maxDistance: 200
+    dampingRatio: 30
   });
 
   // Particle System Demo
@@ -125,7 +117,7 @@ export const PhysicsAnimationDemo: React.FC = () => {
             <p>Interact with the element to see spring-based physics response</p>
             <div style={{ width: '400px', height: '400px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <DimensionalGlass
-                ref={springRef}
+                ref={springRef as React.RefObject<HTMLDivElement>}
                 elevation={3}
                 style={{
                   ...springStyle,
@@ -147,10 +139,9 @@ export const PhysicsAnimationDemo: React.FC = () => {
   type: 'spring',
   mass: 1,
   stiffness: 170,
-  damping: 26,
-  intensity: 'responsive',
-  scale: true,
-  rotation: false
+  dampingRatio: 26,
+  affectsScale: true,
+  affectsRotation: false
 })`}</pre>
             </div>
           </div>
@@ -163,7 +154,7 @@ export const PhysicsAnimationDemo: React.FC = () => {
             <p>Drag and release the element to observe gravity and boundary collisions</p>
             <div style={{ width: '400px', height: '400px', position: 'relative', border: '1px solid rgba(255,255,255,0.2)' }}>
               <HeatGlass
-                ref={advancedRef}
+                ref={advancedRef as React.RefObject<HTMLDivElement>}
                 intensity="medium"
                 style={{
                   ...advancedStyle,
@@ -185,14 +176,13 @@ export const PhysicsAnimationDemo: React.FC = () => {
             </div>
             <div>
               <pre>{`usePhysicsInteraction({
-  type: 'advanced',
+  type: 'follow',
   mass: 1.5,
   stiffness: 200,
-  damping: 20,
-  gravity: 0.5,
+  dampingRatio: 20,
+  gravity: { x: 0, y: 0.5, z: 0, strength: 0.5 },
   friction: 0.1,
-  mode: PhysicsAnimationMode.NATURAL,
-  boundaries: { top: 0, right: 400, bottom: 400, left: 0 },
+  bounds: { top: 0, right: 400, bottom: 400, left: 0 },
   collisionElasticity: 0.7
 })`}</pre>
             </div>
@@ -206,7 +196,7 @@ export const PhysicsAnimationDemo: React.FC = () => {
             <p>Move your cursor near the element to observe magnetic attraction</p>
             <div style={{ width: '400px', height: '400px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <DimensionalGlass
-                ref={magneticRef}
+                ref={magneticRef as React.RefObject<HTMLDivElement>}
                 elevation={3}
                 style={{
                   ...magneticStyle,
@@ -228,8 +218,7 @@ export const PhysicsAnimationDemo: React.FC = () => {
   strength: 40,
   radius: 150,
   stiffness: 400,
-  damping: 30,
-  maxDistance: 200
+  dampingRatio: 30
 })`}</pre>
             </div>
           </div>

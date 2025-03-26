@@ -7,7 +7,7 @@ import { OptimizedStyleSheet, OptimizedStyleSheetConfig } from './optimizedStyle
 import { OptimizationLevel } from '../performanceOptimizations';
 
 // Global paint optimizer instance
-export const globalPaintOptimizer = new PaintOptimizer({
+export const globalPaintOptimizer = typeof window !== 'undefined' ? new PaintOptimizer({
   enableProfiling: process.env.NODE_ENV === 'development',
   reduceOverdraw: true,
   useOpacityAwarePainting: true,
@@ -15,10 +15,10 @@ export const globalPaintOptimizer = new PaintOptimizer({
   optimizeGlassEffects: true,
   cacheSize: 100,
   optimizationLevel: OptimizationLevel.NONE
-} as PaintOptimizationConfig);
+}) : null;
 
 // Global optimized stylesheet instance
-export const globalStyleSheet = new OptimizedStyleSheet({
+export const globalStyleSheet = typeof window !== 'undefined' ? new OptimizedStyleSheet({
   namespace: 'galileo-glass',
   optimizeSelectors: true,
   reuseClasses: true,
@@ -32,4 +32,4 @@ export const globalStyleSheet = new OptimizedStyleSheet({
   useNamespacedClasses: true,
   groupSimilarRules: true,
   minifyCss: true
-} as OptimizedStyleSheetConfig);
+}) : null;

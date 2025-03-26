@@ -212,7 +212,7 @@ export class PaintOptimizer {
       // For glass components, temporarily reduce effects quality
       if (element.getAttribute('data-glass-component') === 'true') {
         // Reduce blur strength
-        const backdropFilter = element.style.backdropFilter || element.style.webkitBackdropFilter;
+        const backdropFilter = element.style.backdropFilter || (element.style as any).webkitBackdropFilter;
         if (backdropFilter && backdropFilter.includes('blur')) {
           element.setAttribute('data-original-backdrop-filter', backdropFilter);
           
@@ -224,7 +224,7 @@ export class PaintOptimizer {
             const newFilter = backdropFilter.replace(/blur\((\d+)px\)/, `blur(${reducedBlur}px)`);
             
             element.style.backdropFilter = newFilter;
-            element.style.webkitBackdropFilter = newFilter;
+            (element.style as any).webkitBackdropFilter = newFilter;
           }
         }
         
@@ -257,7 +257,7 @@ export class PaintOptimizer {
     const originalBackdropFilter = element.getAttribute('data-original-backdrop-filter');
     if (originalBackdropFilter) {
       element.style.backdropFilter = originalBackdropFilter;
-      element.style.webkitBackdropFilter = originalBackdropFilter;
+      (element.style as any).webkitBackdropFilter = originalBackdropFilter;
       element.removeAttribute('data-original-backdrop-filter');
     }
     
@@ -384,7 +384,7 @@ export class PaintOptimizer {
     
     const hasBackdropFilter = isGlassComponent || 
       style.backdropFilter !== 'none' || 
-      style.webkitBackdropFilter !== 'none';
+      (style as any).webkitBackdropFilter !== 'none';
     
     const hasBoxShadow = style.boxShadow !== 'none';
     
@@ -476,19 +476,19 @@ export class PaintOptimizer {
       // Set specific CSS overrides for different effects
       if (attributes.hasBackdropFilter) {
         // Reduce blur strength during interaction
-        actions.cssOverrides['backdrop-filter'] = 'blur(5px)';
-        actions.cssOverrides['-webkit-backdrop-filter'] = 'blur(5px)';
+        actions.cssOverrides['backdropFilter'] = 'blur(5px)';
+        actions.cssOverrides['webkitBackdropFilter'] = 'blur(5px)';
       }
       
       if (attributes.hasBoxShadow) {
         // Simplify box shadow during interaction
-        actions.cssOverrides['box-shadow'] = '0 2px 8px rgba(0, 0, 0, 0.15)';
+        actions.cssOverrides['boxShadow'] = '0 2px 8px rgba(0, 0, 0, 0.15)';
       }
       
       if (attributes.hasComplexBackground) {
         // Simplify or hide complex backgrounds during interaction
         if (this.config.optimizationLevel === OptimizationLevel.AGGRESSIVE) {
-          actions.cssOverrides['background-image'] = 'none';
+          actions.cssOverrides['backgroundImage'] = 'none';
         }
       }
     }
@@ -513,6 +513,8 @@ export class PaintOptimizer {
       
       // Add backface visibility for better performance
       element.style.backfaceVisibility = 'hidden';
+      // Add webkit prefix for Safari
+      element.style.webkitBackfaceVisibility = 'hidden';
     }
     
     // Promote to layer if needed
@@ -617,8 +619,7 @@ export class PaintOptimizer {
     
     // Store original backdrop-filter for glass components with proper webkit handling
     const backdropFilter = element.style.backdropFilter || 
-                         element.style.WebkitBackdropFilter ||
-                         element.style['-webkit-backdrop-filter' as any];
+                         (element.style as any).webkitBackdropFilter;
     if (backdropFilter && backdropFilter !== 'none') {
       element.setAttribute('data-original-backdrop-filter', backdropFilter);
       
@@ -630,10 +631,9 @@ export class PaintOptimizer {
         
         const newFilter = backdropFilter.replace(/blur\((\d+)px\)/, `blur(${scrollBlur}px)`);
         
-        // Apply to all possible vendor-prefixed versions
+        // Apply to standard and webkit prefixed versions
         element.style.backdropFilter = newFilter;
-        element.style.WebkitBackdropFilter = newFilter;
-        element.style['-webkit-backdrop-filter' as any] = newFilter;
+        (element.style as any).webkitBackdropFilter = newFilter;
       }
     }
     
@@ -661,7 +661,7 @@ export class PaintOptimizer {
     const originalBackdropFilter = element.getAttribute('data-original-backdrop-filter');
     if (originalBackdropFilter) {
       element.style.backdropFilter = originalBackdropFilter;
-      element.style.webkitBackdropFilter = originalBackdropFilter;
+      (element.style as any).webkitBackdropFilter = originalBackdropFilter;
       element.removeAttribute('data-original-backdrop-filter');
     }
     

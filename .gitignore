@@ -49,6 +49,7 @@ yarn-error.log*
 .rollup.cache
 tsconfig.tsbuildinfo
 CLAUDE.md
+CLAUDE.mdc
 LeftOver.md
 LeftOverDesign.md
 # Package managers

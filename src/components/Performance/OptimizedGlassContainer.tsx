@@ -2,7 +2,7 @@ import React, { forwardRef, useState, useEffect, useRef, useCallback } from 'rea
 import styled from 'styled-components';
 import { OptimizedGlassContainerProps } from './types';
 import { Box } from '../Box';
-import { createThemeContext } from '../../core/themeContext';
+import { createThemeContext } from '../../core/themeUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassBorder } from '../../core/mixins/glassBorder';
 import { useGlassPerformance } from '../../hooks/useGlassPerformance';

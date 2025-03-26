@@ -27,7 +27,15 @@
     "suppressImplicitAnyIndexErrors": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noErrorTruncation": true
+    "noErrorTruncation": true,
+    "baseUrl": ".",
+    "paths": {
+      "galileo-glass-ui": ["./src"],
+      "galileo-glass-ui/core": ["./src/core"],
+      "galileo-glass-ui/animations": ["./src/animations"],
+      "galileo-glass-ui/theme": ["./src/theme"],
+      "galileo-glass-ui/*": ["./src/*"]
+    }
   },
   "include": ["src/**/*", "examples/**/*"],
   "exclude": ["node_modules", "dist"]

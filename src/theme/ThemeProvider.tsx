@@ -3,6 +3,7 @@ import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 import { colors, typography, spacing, shadows, borderRadius, zIndex } from './tokens';
 import { THEME_NAMES, THEME_VARIANTS, GLASS_QUALITY_TIERS, BLUR_STRENGTHS, GLOW_INTENSITIES } from './constants';
 import { createThemeContext } from '../core/themeUtils';
+import type { ThemeContext as ThemeContextType } from '../core/themeUtils';
 import type { ColorMode, ThemeVariant, Theme, GlassSurfaceProps } from '../core/types';
 
 // ------ ColorMode Context ------

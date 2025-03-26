@@ -1,7 +1,7 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { PageTransitionProps } from './types';
-import { createThemeContext } from '../../core/themeContext';
+import { createThemeContext } from '../../core/themeUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 

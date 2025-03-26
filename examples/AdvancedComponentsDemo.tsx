@@ -79,15 +79,16 @@ export const AdvancedComponentsDemo: React.FC = () => {
 
   // Sample data
   const navigationItems = [
-    { label: 'Home', icon: <HomeIcon />, path: '/' },
-    { label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+    { id: 'home', label: 'Home', icon: <HomeIcon />, path: '/' },
+    { id: 'dashboard', label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { 
+      id: 'reports',
       label: 'Reports', 
       icon: <ReportsIcon />, 
       path: '/reports',
       children: [
-        { label: 'Annual', path: '/reports/annual' },
-        { label: 'Monthly', path: '/reports/monthly' }
+        { id: 'annual', label: 'Annual', path: '/reports/annual' },
+        { id: 'monthly', label: 'Monthly', path: '/reports/monthly' }
       ]
     }
   ];
@@ -364,10 +365,9 @@ export const AdvancedComponentsDemo: React.FC = () => {
             <h3>GlassNavigation</h3>
             <GlassNavigation
               items={navigationItems}
-              activePath={currentRoute}
-              onNavigate={handleNavigation}
-              variant="horizontal"
-              expandableOnHover={true}
+              activeItem={currentRoute}
+              onItemClick={handleNavigation}
+              variant="standard"
             />
           </FrostedGlass>
         </div>
@@ -377,14 +377,11 @@ export const AdvancedComponentsDemo: React.FC = () => {
             <h3>Z-Space Layout</h3>
             <div style={{ height: '300px', position: 'relative', overflow: 'hidden' }}>
               <ZSpaceAppLayout
-                backgroundLayer={<AtmosphericBackground />}
-                navLayer={<MainNavigation />}
-                contentLayer={<PageContent />}
-                overlayLayer={<Notifications />}
-                depth={3}
-                parallaxIntensity={0.2}
-                mouseParallax={true}
+                backgroundComponent={<AtmosphericBackground />}
+                navigation={<MainNavigation />}
+                sidebar={<Notifications />}
               >
+                <PageContent />
                 <ZSpaceLayer name="widget" depth={2}>
                   <DashboardWidgets />
                 </ZSpaceLayer>
@@ -401,19 +398,12 @@ export const AdvancedComponentsDemo: React.FC = () => {
           <FrostedGlass style={{ padding: '20px', minWidth: '300px' }}>
             <h3>GlassThemeSwitcher</h3>
             <GlassThemeSwitcher
-              themes={['nebula', 'cosmic', 'aurora', 'frost', 'celestial']}
-              currentTheme={theme}
-              onThemeChange={setTheme}
-              showColorMode={true}
-              variant="dropdown"
+              theme={theme}
+              showColorModes={true}
             />
           </FrostedGlass>
 
           <OptimizedGlassContainer
-            complexity="high"
-            optimizationLevel="auto"
-            deferRenderingOutsideViewport={true}
-            enableGPURendering={true}
             style={{ padding: '20px', minWidth: '300px' }}
           >
             <h3>Optimized Glass Container</h3>

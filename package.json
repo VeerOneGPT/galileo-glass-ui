@@ -52,6 +52,7 @@
     "lint:examples": "eslint --ext .js,.jsx,.ts,.tsx examples/ --max-warnings=30",
     "typecheck": "tsc --noEmit --skipLibCheck",
     "typecheck:permissive": "tsc --noEmit --skipLibCheck --project ./.tsconfig-permissive.json",
+    "typecheck:examples": "tsc --noEmit --skipLibCheck --project ./.ts-examples.json",
     "prepare": "npm run build",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"
