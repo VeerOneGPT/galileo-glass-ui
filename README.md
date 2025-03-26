@@ -664,3 +664,62 @@ node scripts/fix-hooks.js --fix
 10. **Performance**: Use memoization for complex components and computations.
 
 For complete documentation on glass morphism styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).
+
+## Development Tools
+
+We've created several tools to maintain code quality and fix common issues:
+
+### Automated Verification
+
+Run comprehensive verification including type checking, linting, and building:
+
+```bash
+./scripts/verify.sh
+```
+
+To automatically fix common issues:
+
+```bash
+./scripts/verify.sh --fix
+```
+
+### Fix Unused Variables
+
+Automatically prefix unused variables with underscores to suppress ESLint warnings:
+
+```bash
+node scripts/fix-unused-vars.js
+```
+
+Run in dry-run mode to preview changes:
+
+```bash
+node scripts/fix-unused-vars.js --dry-run
+```
+
+### Fix React Hook Dependencies
+
+Identify and fix missing dependencies in React hooks:
+
+```bash
+node scripts/fix-hooks.js
+```
+
+Apply automatic fixes when possible:
+
+```bash
+node scripts/fix-hooks.js --fix
+```
+
+### Pre-commit Hooks
+
+We've configured automatic checks to run before each commit to maintain code quality:
+
+- TypeScript type checking
+- ESLint for code style and best practices
+- Automatic prefixing of unused variables
+- Hook dependency validation
+
+## Documentation
+
+For detailed documentation, see our [documentation site](https://docs.galileo-glass.dev).

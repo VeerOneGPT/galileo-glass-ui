@@ -116,11 +116,11 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
   const adjustedScaleAmplitude = reducedMotion ? 0 : scaleAmplitude;
 
   // Create magnetic effect function based on type
-  let magneticEffect = '';
+  let magneticEffectScript = '';
 
   switch (type) {
     case 'attract':
-      magneticEffect = `
+      magneticEffectScript = `
         function applyMagneticEffect(element) {
           if (!element) return;
           
@@ -239,7 +239,7 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
       break;
 
     case 'repel':
-      magneticEffect = `
+      magneticEffectScript = `
         function applyMagneticEffect(element) {
           if (!element) return;
           
@@ -358,7 +358,7 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
       break;
 
     case 'follow':
-      magneticEffect = `
+      magneticEffectScript = `
         function applyMagneticEffect(element) {
           if (!element) return;
           
@@ -453,7 +453,7 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
       break;
 
     case 'orbit':
-      magneticEffect = `
+      magneticEffectScript = `
         function applyMagneticEffect(element) {
           if (!element) return;
           
@@ -557,10 +557,10 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
 
     default:
       // Default to attract if type is not recognized
-      return generateMagneticScript({ ...options, type: 'attract' });
+      magneticEffectScript = generateMagneticScript({ ...options, type: 'attract' });
   }
 
-  return magneticEffect;
+  return magneticEffectScript;
 };
 
 /**

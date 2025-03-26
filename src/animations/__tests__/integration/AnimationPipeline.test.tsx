@@ -11,7 +11,7 @@ import { keyframes as _keyframes } from 'styled-components';
 // Import AnimationIntensity to use the proper enum values
 import { ZSpaceProvider } from '../../../core/zspace/ZSpaceContext';
 import { ThemeProvider } from '../../../theme/ThemeProvider';
-import { accessibleAnimation as _accessibleAnimation } from '../../accessibility/accessibleAnimation';
+import { accessibleAnimation as __accessibleAnimation } from '../../accessibility/accessibleAnimation';
 import { MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
 import { ZSpaceAnimator } from '../../dimensional/ZSpaceAnimation';
 import { createStaggeredSequence } from '../../orchestration/GestaltPatterns';

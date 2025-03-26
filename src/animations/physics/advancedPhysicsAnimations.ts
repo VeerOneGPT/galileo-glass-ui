@@ -3,12 +3,13 @@
  *
  * Enhanced physics-based animation system with advanced simulation capabilities.
  */
-import { css, keyframes } from 'styled-components';
+import { css } from 'styled-components';
+import { keyframes } from 'styled-components';
 
 import {
-  AnimationComplexity,
-  MotionSensitivityLevel,
   getMotionSensitivity,
+  MotionSensitivityLevel,
+  AnimationComplexity
 } from '../accessibility/MotionSensitivity';
 import { getOptimizedGPUAcceleration } from '../performance/GPUAcceleration';
 
@@ -804,8 +805,8 @@ export const advancedPhysicsAnimation = (
   // Check if animation complexity is allowed
   if (
     !sensitivityConfig.maxAllowedComplexity ||
-    Object.values(AnimationComplexity).indexOf(options.complexity || AnimationComplexity.STANDARD) >
-      Object.values(AnimationComplexity).indexOf(sensitivityConfig.maxAllowedComplexity)
+    (Object.values(AnimationComplexity).indexOf(options.complexity || AnimationComplexity.STANDARD) >
+      Object.values(AnimationComplexity).indexOf(sensitivityConfig.maxAllowedComplexity))
   ) {
     // Return empty animation for reduced motion
     return css``;

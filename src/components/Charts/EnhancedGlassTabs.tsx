@@ -6,7 +6,6 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled, { DefaultTheme } from 'styled-components';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { asCoreThemeContext } from '../../utils/themeHelpers';
 import { useTheme } from '../../theme';
 
@@ -17,7 +16,6 @@ import { glassGlow, GlowEffectProps } from '../../core/mixins/glowEffects';
 import { interactiveGlass } from '../../core/mixins/interactions/interactiveGlass';
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
 
 /**
  * TabItem interface
@@ -484,7 +482,7 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
   const theme = ensureValidTheme(providedTheme);
   
   // Check for reduced motion preference
-  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const prefersReducedMotion = useReducedMotion();
 
   // Refs for tab elements
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});

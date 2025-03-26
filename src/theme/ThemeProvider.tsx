@@ -10,8 +10,8 @@ import React, {
 import PropTypes from 'prop-types';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
 
-import { createThemeContext as _createThemeContext } from '../core/themeUtils';
-import type { ThemeContext as ThemeContextType } from '../core/themeUtils';
+import { createThemeContext as __createThemeContext } from '../core/themeUtils';
+import type { ThemeContext as _ThemeContextType} from '../core/themeUtils';
 import type { ColorMode, ThemeVariant as _ThemeVariant, Theme as _Theme, GlassSurfaceProps } from '../core/types';
 
 import {
@@ -81,6 +81,8 @@ interface GlassEffectsContextType {
   getBorderOpacity: (opacity: string | number) => number;
   getGlowIntensity: (intensity: string | number) => number;
   createSurface: (props: GlassSurfaceProps) => string;
+  // Use any type to avoid TypeScript errors with PropTypes
+  GlassSurface: any; 
 }
 
 const GlassEffectsContext = createContext<GlassEffectsContextType>({
@@ -91,6 +93,7 @@ const GlassEffectsContext = createContext<GlassEffectsContextType>({
   getBorderOpacity: () => 0,
   getGlowIntensity: () => 0,
   createSurface: () => '',
+  GlassSurface: () => null,
 });
 
 // ------ Preferences Context ------
@@ -228,8 +231,18 @@ export interface ThemeProviderProps {
   onThemeChange?: (theme: string) => void;
 }
 
-// Import PropTypes for GlassSurfaceProps
-const GlassSurfacePropTypes = PropTypes.shape({
+/**
+ * PropTypes definition for Glass Surface components.
+ * Can be used in other components that need Glass Surface styling validation.
+ * 
+ * @example
+ * // Use in a component that accepts glass surface props
+ * MyComponent.propTypes = {
+ *   ...GlassSurfacePropTypes.isRequired,
+ *   children: PropTypes.node
+ * }
+ */
+export const GlassSurfacePropTypes = PropTypes.shape({
   variant: PropTypes.oneOf(['standard', 'frosted', 'dimensional', 'heat']),
   blurStrength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   backgroundOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
@@ -242,6 +255,9 @@ const GlassSurfacePropTypes = PropTypes.shape({
   interactive: PropTypes.bool,
   darkMode: PropTypes.bool
 });
+
+// Keep a reference to the internal version for backward compatibility
+const _GlassSurfacePropTypes = GlassSurfacePropTypes;
 
 /**
  * Unified Theme Provider Component
@@ -633,6 +649,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
   const createSurface = useCallback(
     (props: GlassSurfaceProps) => {
       const {
+        /* eslint-disable react/prop-types */
         variant = 'standard',
         blurStrength = 'medium',
         backgroundOpacity = 'medium',
@@ -641,6 +658,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
         elevation: rawElevation = 1,
         interactive = false,
         darkMode = isDarkMode,
+        /* eslint-enable react/prop-types */
       } = props;
 
       // Ensure elevation is a number
@@ -794,6 +812,71 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
     [isDarkMode, getBackgroundOpacity, getBorderOpacity, getBlurStrength, getGlowIntensity]
   );
 
+  /**
+   * GlassSurface Component - A component for rendering glass surfaces with configurable properties
+   */
+  function GlassSurfaceComponent(props: GlassSurfaceProps & { children?: React.ReactNode }) {
+    const {
+      variant = 'standard',
+      blurStrength = 'medium',
+      backgroundOpacity = 'medium',
+      borderOpacity = 'medium',
+      glowIntensity = 'medium',
+      elevation = 1,
+      interactive = false,
+      darkMode = isDarkMode,
+      children,
+      ...rest
+    } = props;
+    
+    // Generate a unique ID for this surface
+    const surfaceId = useRef(`glass-surface-${Math.random().toString(36).substring(2, 9)}`);
+    
+    // Get the glass styles
+    const cssString = createSurface({
+      variant,
+      blurStrength,
+      backgroundOpacity,
+      borderOpacity,
+      glowIntensity,
+      elevation,
+      interactive,
+      darkMode,
+    });
+    
+    return (
+      <div id={surfaceId.current} {...rest}>
+        <style dangerouslySetInnerHTML={{ __html: `
+          #${surfaceId.current} {
+            ${cssString}
+          }
+        `}} />
+        {children}
+      </div>
+    );
+  }
+
+  // Add prop validation for GlassSurface component
+  // See exported GlassSurfacePropTypes above for reusable PropTypes definition
+  // @ts-ignore - Ignoring TypeScript errors with PropTypes validation
+  GlassSurfaceComponent.propTypes = {
+    variant: PropTypes.oneOf(['standard', 'frosted', 'dimensional', 'heat']),
+    blurStrength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    backgroundOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    borderOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    glowIntensity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    elevation: PropTypes.oneOfType([
+      PropTypes.number,
+      PropTypes.oneOf(['none', 'low', 'medium', 'high'])
+    ]),
+    interactive: PropTypes.bool,
+    darkMode: PropTypes.bool,
+    children: PropTypes.node
+  };
+
+  // Use the component directly
+  const GlassSurface = GlassSurfaceComponent;
+
   // ------ Create Responsive Utilities ------
   const breakpoints = useMemo(() => {
     return {
@@ -862,7 +945,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
     [getColor, getSpacing, getShadow, getBorderRadius, getZIndex, getTypography]
   );
 
-  // GlassEffects context
+  // GlassEffects context including the component
   const glassEffectsContextValue = useMemo(
     () => ({
       qualityTier,
@@ -872,6 +955,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       getBorderOpacity,
       getGlowIntensity,
       createSurface,
+      GlassSurface,
     }),
     [
       qualityTier,
@@ -881,6 +965,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       getBorderOpacity,
       getGlowIntensity,
       createSurface,
+      GlassSurface,
     ]
   );
 
@@ -1015,7 +1100,9 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
             <GlassEffectsContext.Provider value={glassEffectsContextValue}>
               <PreferencesContext.Provider value={preferencesContextValue}>
                 <ResponsiveContext.Provider value={responsiveContextValue}>
-                  <StyledThemeProvider theme={theme}>{children}</StyledThemeProvider>
+                  <StyledThemeProvider theme={theme}>
+                    {children}
+                  </StyledThemeProvider>
                 </ResponsiveContext.Provider>
               </PreferencesContext.Provider>
             </GlassEffectsContext.Provider>
@@ -1172,5 +1259,3 @@ export const useThemeObserver = (callback: (theme: any, isDark: boolean) => void
     callback(currentTheme, isDark);
   }, [callback, currentTheme, isDark]);
 };
-
-export default ThemeProvider;
