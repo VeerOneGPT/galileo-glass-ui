@@ -1,7 +1,8 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
 
 // Box props interface
 export interface BoxProps {
@@ -9,47 +10,67 @@ export interface BoxProps {
    * The content of the box
    */
   children?: React.ReactNode;
-  
+
   /**
    * The component to render the box as
    */
   component?: React.ElementType;
-  
+
   /**
    * Display property
    */
-  display?: 'block' | 'flex' | 'inline' | 'inline-block' | 'inline-flex' | 'grid' | 'inline-grid' | 'none';
-  
+  display?:
+    | 'block'
+    | 'flex'
+    | 'inline'
+    | 'inline-block'
+    | 'inline-flex'
+    | 'grid'
+    | 'inline-grid'
+    | 'none';
+
   /**
    * Flex direction
    */
   flexDirection?: 'row' | 'row-reverse' | 'column' | 'column-reverse';
-  
+
   /**
    * Flex wrap
    */
   flexWrap?: 'nowrap' | 'wrap' | 'wrap-reverse';
-  
+
   /**
    * Justify content
    */
-  justifyContent?: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around' | 'space-evenly';
-  
+  justifyContent?:
+    | 'flex-start'
+    | 'flex-end'
+    | 'center'
+    | 'space-between'
+    | 'space-around'
+    | 'space-evenly';
+
   /**
    * Align items
    */
   alignItems?: 'flex-start' | 'flex-end' | 'center' | 'baseline' | 'stretch';
-  
+
   /**
    * Align content
    */
-  alignContent?: 'flex-start' | 'flex-end' | 'center' | 'space-between' | 'space-around' | 'stretch';
-  
+  alignContent?:
+    | 'flex-start'
+    | 'flex-end'
+    | 'center'
+    | 'space-between'
+    | 'space-around'
+    | 'stretch';
+
   /**
    * Align self
    */
   alignSelf?: 'auto' | 'flex-start' | 'flex-end' | 'center' | 'baseline' | 'stretch';
-  
+
   /**
    * Padding
    */
@@ -60,7 +81,7 @@ export interface BoxProps {
   pl?: number | string;
   px?: number | string;
   py?: number | string;
-  
+
   /**
    * Margin
    */
@@ -71,67 +92,67 @@ export interface BoxProps {
   ml?: number | string;
   mx?: number | string;
   my?: number | string;
-  
+
   /**
    * Width
    */
   width?: number | string;
-  
+
   /**
    * Height
    */
   height?: number | string;
-  
+
   /**
    * Min width
    */
   minWidth?: number | string;
-  
+
   /**
    * Min height
    */
   minHeight?: number | string;
-  
+
   /**
    * Max width
    */
   maxWidth?: number | string;
-  
+
   /**
    * Max height
    */
   maxHeight?: number | string;
-  
+
   /**
    * Border radius
    */
   borderRadius?: number | string;
-  
+
   /**
    * Background color
    */
   bgcolor?: string;
-  
+
   /**
    * If true, the box will have a glass effect
    */
   glass?: boolean;
-  
+
   /**
    * The elevation of the glass effect
    */
   elevation?: 0 | 1 | 2 | 3 | 4 | 5;
-  
+
   /**
    * Additional CSS class name
    */
   className?: string;
-  
+
   /**
    * Additional CSS styles
    */
   style?: React.CSSProperties;
-  
+
   /**
    * Click handler
    */
@@ -181,10 +202,10 @@ const StyledBox = styled.div<{
 }>`
   /* Base styles */
   box-sizing: border-box;
-  
+
   /* Display */
   ${props => props.$display && `display: ${props.$display};`}
-  
+
   /* Flex properties */
   ${props => props.$flexDirection && `flex-direction: ${props.$flexDirection};`}
   ${props => props.$flexWrap && `flex-wrap: ${props.$flexWrap};`}
@@ -199,11 +220,15 @@ const StyledBox = styled.div<{
   ${props => props.$pr !== undefined && `padding-right: ${formatSpacing(props.$pr)};`}
   ${props => props.$pb !== undefined && `padding-bottom: ${formatSpacing(props.$pb)};`}
   ${props => props.$pl !== undefined && `padding-left: ${formatSpacing(props.$pl)};`}
-  ${props => props.$px !== undefined && `
+  ${props =>
+    props.$px !== undefined &&
+    `
     padding-left: ${formatSpacing(props.$px)};
     padding-right: ${formatSpacing(props.$px)};
   `}
-  ${props => props.$py !== undefined && `
+  ${props =>
+    props.$py !== undefined &&
+    `
     padding-top: ${formatSpacing(props.$py)};
     padding-bottom: ${formatSpacing(props.$py)};
   `}
@@ -214,42 +239,68 @@ const StyledBox = styled.div<{
   ${props => props.$mr !== undefined && `margin-right: ${formatSpacing(props.$mr)};`}
   ${props => props.$mb !== undefined && `margin-bottom: ${formatSpacing(props.$mb)};`}
   ${props => props.$ml !== undefined && `margin-left: ${formatSpacing(props.$ml)};`}
-  ${props => props.$mx !== undefined && `
+  ${props =>
+    props.$mx !== undefined &&
+    `
     margin-left: ${formatSpacing(props.$mx)};
     margin-right: ${formatSpacing(props.$mx)};
   `}
-  ${props => props.$my !== undefined && `
+  ${props =>
+    props.$my !== undefined &&
+    `
     margin-top: ${formatSpacing(props.$my)};
     margin-bottom: ${formatSpacing(props.$my)};
   `}
   
   /* Dimensions */
-  ${props => props.$width !== undefined && `width: ${typeof props.$width === 'number' ? `${props.$width}px` : props.$width};`}
-  ${props => props.$height !== undefined && `height: ${typeof props.$height === 'number' ? `${props.$height}px` : props.$height};`}
-  ${props => props.$minWidth !== undefined && `min-width: ${typeof props.$minWidth === 'number' ? `${props.$minWidth}px` : props.$minWidth};`}
-  ${props => props.$minHeight !== undefined && `min-height: ${typeof props.$minHeight === 'number' ? `${props.$minHeight}px` : props.$minHeight};`}
-  ${props => props.$maxWidth !== undefined && `max-width: ${typeof props.$maxWidth === 'number' ? `${props.$maxWidth}px` : props.$maxWidth};`}
-  ${props => props.$maxHeight !== undefined && `max-height: ${typeof props.$maxHeight === 'number' ? `${props.$maxHeight}px` : props.$maxHeight};`}
+  ${props =>
+    props.$width !== undefined &&
+    `width: ${typeof props.$width === 'number' ? `${props.$width}px` : props.$width};`}
+  ${props =>
+    props.$height !== undefined &&
+    `height: ${typeof props.$height === 'number' ? `${props.$height}px` : props.$height};`}
+  ${props =>
+    props.$minWidth !== undefined &&
+    `min-width: ${typeof props.$minWidth === 'number' ? `${props.$minWidth}px` : props.$minWidth};`}
+  ${props =>
+    props.$minHeight !== undefined &&
+    `min-height: ${
+      typeof props.$minHeight === 'number' ? `${props.$minHeight}px` : props.$minHeight
+    };`}
+  ${props =>
+    props.$maxWidth !== undefined &&
+    `max-width: ${typeof props.$maxWidth === 'number' ? `${props.$maxWidth}px` : props.$maxWidth};`}
+  ${props =>
+    props.$maxHeight !== undefined &&
+    `max-height: ${
+      typeof props.$maxHeight === 'number' ? `${props.$maxHeight}px` : props.$maxHeight
+    };`}
   
   /* Border radius */
-  ${props => props.$borderRadius !== undefined && `border-radius: ${typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};`}
+  ${props =>
+    props.$borderRadius !== undefined &&
+    `border-radius: ${
+      typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius
+    };`}
   
   /* Background color */
   ${props => props.$bgcolor && `background-color: ${props.$bgcolor};`}
   
   /* Glass effect */
-  ${props => props.$glass && glassSurface({
-    elevation: props.$elevation || 1,
-    blurStrength: 'standard',
-    backgroundOpacity: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({}) // In real usage, this would use props.theme
-  })}
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: props.$elevation || 1,
+      blurStrength: 'standard',
+      backgroundOpacity: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}), // In real usage, this would use props.theme
+    })}
 `;
 
 /**
  * Box Component
- * 
+ *
  * A flexible container with system props for layout and styling.
  */
 export const Box = forwardRef<HTMLDivElement, BoxProps>((props, ref) => {
@@ -292,7 +343,7 @@ export const Box = forwardRef<HTMLDivElement, BoxProps>((props, ref) => {
     onClick,
     ...rest
   } = props;
-  
+
   return (
     <StyledBox
       as={component}
@@ -342,18 +393,12 @@ Box.displayName = 'Box';
 
 /**
  * GlassBox Component
- * 
+ *
  * A box component with glass morphism styling.
  */
 export const GlassBox = forwardRef<HTMLDivElement, BoxProps>((props, ref) => {
-  const {
-    glass = true,
-    elevation = 2,
-    borderRadius = 8,
-    className,
-    ...rest
-  } = props;
-  
+  const { glass = true, elevation = 2, borderRadius = 8, className, ...rest } = props;
+
   // Add glass styling to the base box
   return (
     <Box

@@ -1,78 +1,79 @@
 import React, { forwardRef } from 'react';
 import styled, { css } from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassGlow } from '../../core/mixins/glowEffects';
-import { edgeHighlight } from '../../core/mixins/edgeEffects';
+
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { scaleUp } from '../../animations/keyframes/basic';
+import { edgeHighlight } from '../../core/mixins/edgeEffects';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface FabProps {
   /**
    * The content of the button
    */
   children: React.ReactNode;
-  
+
   /**
    * The color of the button
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
-  
+
   /**
    * If true, the button will be disabled
    */
   disabled?: boolean;
-  
+
   /**
    * The URL to link to when the button is clicked
    */
   href?: string;
-  
+
   /**
    * The size of the button
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * The variant of the button
    */
   variant?: 'standard' | 'extended' | 'glass';
-  
+
   /**
    * Callback fired when the button is clicked
    */
   onClick?: React.MouseEventHandler<HTMLButtonElement | HTMLAnchorElement>;
-  
+
   /**
    * The position of the FAB (fixed positioning options)
    */
   position?: 'bottomRight' | 'bottomLeft' | 'topRight' | 'topLeft' | 'center' | 'none';
-  
+
   /**
    * Tooltip text for the FAB
    */
   tooltip?: string;
-  
+
   /**
    * If true, the FAB will show a pulse animation
    */
   pulse?: boolean;
-  
+
   /**
    * Additional CSS class
    */
   className?: string;
-  
+
   /**
    * If true, glass glow effect will be more intense
    */
   enhanced?: boolean;
-  
+
   /**
    * Z-index for the FAB
    */
   zIndex?: number;
-  
+
   /**
    * Type of the button
    */
@@ -102,7 +103,7 @@ const getColorByName = (color: string): string => {
 // Get size values
 const getSizeValues = (size: string, variant: string) => {
   const isExtended = variant === 'extended';
-  
+
   switch (size) {
     case 'small':
       return {
@@ -131,11 +132,11 @@ const getSizeValues = (size: string, variant: string) => {
 // Get position styles
 const getPositionStyles = (position: string) => {
   if (position === 'none') return '';
-  
+
   const base = css`
     position: fixed;
   `;
-  
+
   switch (position) {
     case 'bottomRight':
       return css`
@@ -202,7 +203,7 @@ const FabContainer = styled.button<{
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: ${props => props.$variant === 'extended' ? '28px' : '50%'};
+  border-radius: ${props => (props.$variant === 'extended' ? '28px' : '50%')};
   cursor: pointer;
   outline: none;
   user-select: none;
@@ -211,7 +212,7 @@ const FabContainer = styled.button<{
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   box-sizing: border-box;
-  
+
   /* Size styles */
   ${props => {
     const { width, height, padding, fontSize } = getSizeValues(props.$size, props.$variant);
@@ -222,7 +223,7 @@ const FabContainer = styled.button<{
       font-size: ${fontSize};
     `;
   }}
-  
+
   /* Position styles */
   ${props => getPositionStyles(props.$position)}
   
@@ -236,7 +237,7 @@ const FabContainer = styled.button<{
         -webkit-backdrop-filter: blur(10px);
       `;
     }
-    
+
     // standard or extended
     return css`
       background-color: ${getColorByName(props.$color)};
@@ -246,77 +247,85 @@ const FabContainer = styled.button<{
   }}
   
   /* Glass effect for glass variant */
-  ${props => props.$variant === 'glass' && glassSurface({
-    elevation: 3,
-    blurStrength: 'enhanced',
-    backgroundOpacity: 'medium',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    glassSurface({
+      elevation: 3,
+      blurStrength: 'enhanced',
+      backgroundOpacity: 'medium',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}),
+    })}
   
   /* Glass glow for glass variant */
-  ${props => props.$variant === 'glass' && glassGlow({
-    intensity: props.$enhanced ? 'high' : 'medium',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    glassGlow({
+      intensity: props.$enhanced ? 'high' : 'medium',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
   
   /* Edge highlight for glass variant */
-  ${props => props.$variant === 'glass' && edgeHighlight({
-    thickness: 1,
-    opacity: 0.6,
-    position: 'all',
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    edgeHighlight({
+      thickness: 1,
+      opacity: 0.6,
+      position: 'all',
+      themeContext: createThemeContext({}),
+    })}
   
   /* Pulse animation */
   ${pulse}
-  ${props => props.$pulse && css`
-    animation: pulse 1.5s infinite;
-  `}
+  ${props =>
+    props.$pulse &&
+    css`
+      animation: pulse 1.5s infinite;
+    `}
   
   /* Hover effect */
   &:hover {
-    ${props => props.$variant === 'glass' 
-      ? css`
-        background-color: rgba(255, 255, 255, 0.15);
-        transform: scale(1.05);
-      `
-      : css`
-        background-color: ${getColorByName(props.$color)}dd;
-        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-        transform: translateY(-2px);
-      `
-    }
+    ${props =>
+      props.$variant === 'glass'
+        ? css`
+            background-color: rgba(255, 255, 255, 0.15);
+            transform: scale(1.05);
+          `
+        : css`
+            background-color: ${getColorByName(props.$color)}dd;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+          `}
   }
-  
+
   /* Active effect */
   &:active {
     transform: scale(0.98);
   }
-  
+
   /* Disabled state */
   &:disabled {
-    ${props => props.$variant === 'glass'
-      ? css`
-        background-color: rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.4);
-      `
-      : css`
-        background-color: #E2E8F0;
-        color: #94A3B8;
-        box-shadow: none;
-      `
-    }
+    ${props =>
+      props.$variant === 'glass'
+        ? css`
+            background-color: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.4);
+          `
+        : css`
+            background-color: #e2e8f0;
+            color: #94a3b8;
+            box-shadow: none;
+          `}
     cursor: not-allowed;
     transform: none;
   }
-  
+
   /* Entry animation */
   ${accessibleAnimation({
     animation: scaleUp,
     duration: 0.3,
-    easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+    easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
   })}
 `;
 
@@ -334,7 +343,7 @@ const Tooltip = styled.span`
   transition: opacity 0.2s, visibility 0.2s;
   pointer-events: none;
   z-index: 1;
-  
+
   /* Position based on parent position */
   ${props => {
     const parent = props.className;
@@ -364,9 +373,9 @@ const Tooltip = styled.span`
 const FabWrapper = styled.div<{
   $position: string;
 }>`
-  position: ${props => props.$position === 'none' ? 'relative' : 'static'};
+  position: ${props => (props.$position === 'none' ? 'relative' : 'static')};
   display: inline-block;
-  
+
   &:hover ${Tooltip} {
     opacity: 1;
     visibility: visible;
@@ -375,7 +384,7 @@ const FabWrapper = styled.div<{
 
 /**
  * Fab Component
- * 
+ *
  * A floating action button (FAB) performs the primary action in an application.
  */
 export const Fab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
@@ -396,10 +405,10 @@ export const Fab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
     type = 'button',
     ...rest
   } = props;
-  
+
   // Determine component type
   const Component = href ? 'a' : 'button';
-  
+
   const fabButton = (
     <FabContainer
       as={Component}
@@ -421,12 +430,12 @@ export const Fab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
       {children}
     </FabContainer>
   );
-  
+
   // If no tooltip, return just the button
   if (!tooltip) {
     return fabButton;
   }
-  
+
   // Return button with tooltip
   return (
     <FabWrapper $position={position}>
@@ -440,24 +449,13 @@ Fab.displayName = 'Fab';
 
 /**
  * GlassFab Component
- * 
+ *
  * A floating action button with glass morphism styling.
  */
 export const GlassFab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
-  const {
-    className,
-    variant = 'glass',
-    ...rest
-  } = props;
-  
-  return (
-    <Fab
-      ref={ref}
-      className={`glass-fab ${className || ''}`}
-      variant={variant}
-      {...rest}
-    />
-  );
+  const { className, variant = 'glass', ...rest } = props;
+
+  return <Fab ref={ref} className={`glass-fab ${className || ''}`} variant={variant} {...rest} />;
 });
 
 GlassFab.displayName = 'GlassFab';

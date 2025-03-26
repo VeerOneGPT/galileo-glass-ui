@@ -1,6 +1,6 @@
 /**
  * Physics Animation System
- * 
+ *
  * Export all physics-based animation utilities
  */
 
@@ -10,13 +10,13 @@ export { particleSystem, type ParticleSystemOptions } from './particleSystem';
 export { magneticEffect, type MagneticEffectOptions } from './magneticEffect';
 
 // Advanced physics animations
-export { 
+export {
   advancedPhysicsAnimation,
   generatePhysicsKeyframes,
   calculateSpringParameters,
   PhysicsAnimationMode,
   type PhysicsState,
-  type AdvancedPhysicsOptions
+  type AdvancedPhysicsOptions,
 } from './advancedPhysicsAnimations';
 
 // Physics calculations utilities
@@ -44,5 +44,5 @@ export {
   applyNoise,
   type Vector2D,
   type SpringParams,
-  type ParticleState
+  type ParticleState,
 } from './physicsCalculations';

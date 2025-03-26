@@ -1,6 +1,6 @@
 /**
  * Theme Tokens
- * 
+ *
  * Design tokens for the Glass UI theme system
  */
 
@@ -14,20 +14,20 @@ export const colors = {
     accentPrimary: '#6366F1',
     accentSecondary: '#8B5CF6',
     accentTertiary: '#EC4899',
-    
+
     // State colors
     stateCritical: '#EF4444',
     stateOptimal: '#10B981',
     stateAttention: '#F59E0B',
     stateInformational: '#3B82F6',
-    
+
     // Neutral colors
     neutralBackground: '#0F172A',
     neutralForeground: '#E2E8F0',
     neutralBorder: 'rgba(255, 255, 255, 0.12)',
     neutralSurface: 'rgba(15, 23, 42, 0.7)',
   },
-  
+
   // Extended primary palette
   primary: {
     50: '#EEF2FF',
@@ -42,7 +42,7 @@ export const colors = {
     900: '#312E81',
     950: '#1E1B4B',
   },
-  
+
   // Extended secondary palette
   secondary: {
     50: '#F5F3FF',
@@ -57,7 +57,7 @@ export const colors = {
     900: '#4C1D95',
     950: '#2E1065',
   },
-  
+
   // Accent color palette
   accent: {
     50: '#FCE7F3',
@@ -71,7 +71,7 @@ export const colors = {
     800: '#831843',
     900: '#500724',
   },
-  
+
   // Success color palette
   success: {
     50: '#ECFDF5',
@@ -86,7 +86,7 @@ export const colors = {
     900: '#064E3B',
     950: '#022C22',
   },
-  
+
   // Error color palette
   error: {
     50: '#FEF2F2',
@@ -101,7 +101,7 @@ export const colors = {
     900: '#7F1D1D',
     950: '#450A0A',
   },
-  
+
   // Warning color palette
   warning: {
     50: '#FFFBEB',
@@ -116,7 +116,7 @@ export const colors = {
     900: '#78350F',
     950: '#451A03',
   },
-  
+
   // Info color palette
   info: {
     50: '#EFF6FF',
@@ -131,7 +131,7 @@ export const colors = {
     900: '#1E3A8A',
     950: '#172554',
   },
-  
+
   // Grayscale
   gray: {
     50: '#F9FAFB',
@@ -146,7 +146,7 @@ export const colors = {
     900: '#111827',
     950: '#0A0C14',
   },
-  
+
   // Glass specific colors
   glass: {
     // Light mode glass colors
@@ -172,8 +172,8 @@ export const colors = {
       pink: 'rgba(236, 72, 153, 0.08)',
       green: 'rgba(16, 185, 129, 0.08)',
       amber: 'rgba(245, 158, 11, 0.08)',
-    }
-  }
+    },
+  },
 };
 
 /**
@@ -182,12 +182,13 @@ export const colors = {
 export const typography = {
   // Font families
   fontFamily: {
-    primary: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
+    primary:
+      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif",
     code: "'SF Mono', 'Roboto Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
     display: "'Inter', system-ui, sans-serif",
     mono: "'SF Mono', SFMono-Regular, ui-monospace, 'Roboto Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
-  
+
   // Font weights
   fontWeight: {
     thin: 100,
@@ -200,25 +201,25 @@ export const typography = {
     extrabold: 800,
     black: 900,
   },
-  
+
   // Font sizes
   fontSize: {
     xxs: '0.625rem', // 10px
-    xs: '0.75rem',   // 12px
-    sm: '0.875rem',  // 14px
-    md: '1rem',      // 16px
-    lg: '1.125rem',  // 18px
-    xl: '1.25rem',   // 20px
+    xs: '0.75rem', // 12px
+    sm: '0.875rem', // 14px
+    md: '1rem', // 16px
+    lg: '1.125rem', // 18px
+    xl: '1.25rem', // 20px
     '2xl': '1.5rem', // 24px
     '3xl': '1.875rem', // 30px
-    '4xl': '2.25rem',  // 36px
-    '5xl': '3rem',     // 48px
-    '6xl': '3.75rem',  // 60px
-    '7xl': '4.5rem',   // 72px
-    '8xl': '6rem',     // 96px
-    '9xl': '8rem',     // 128px
+    '4xl': '2.25rem', // 36px
+    '5xl': '3rem', // 48px
+    '6xl': '3.75rem', // 60px
+    '7xl': '4.5rem', // 72px
+    '8xl': '6rem', // 96px
+    '9xl': '8rem', // 128px
   },
-  
+
   // Line heights
   lineHeight: {
     none: 1,
@@ -228,7 +229,7 @@ export const typography = {
     relaxed: 1.625,
     loose: 2,
   },
-  
+
   // Letter spacing
   letterSpacing: {
     tighter: '-0.05em',
@@ -238,7 +239,7 @@ export const typography = {
     wider: '0.05em',
     widest: '0.1em',
   },
-  
+
   // Text case transformations
   textCase: {
     none: 'none',
@@ -246,21 +247,21 @@ export const typography = {
     lowercase: 'lowercase',
     capitalize: 'capitalize',
   },
-  
+
   // Text decoration
   textDecoration: {
     none: 'none',
     underline: 'underline',
     lineThrough: 'line-through',
   },
-  
+
   // Paragraph spacing
   paragraphSpacing: {
     default: '1em',
     tight: '0.75em',
     loose: '1.5em',
   },
-  
+
   // Common text styles
   styles: {
     h1: {
@@ -339,16 +340,16 @@ export const typography = {
 export const spacing = {
   // Base spacing units
   xxs: '0.25rem', // 4px
-  xs: '0.5rem',   // 8px
-  sm: '0.75rem',  // 12px
-  md: '1rem',     // 16px
-  lg: '1.5rem',   // 24px
-  xl: '2rem',     // 32px
-  '2xl': '3rem',  // 48px
-  '3xl': '4rem',  // 64px
-  '4xl': '6rem',  // 96px
-  '5xl': '8rem',  // 128px
-  
+  xs: '0.5rem', // 8px
+  sm: '0.75rem', // 12px
+  md: '1rem', // 16px
+  lg: '1.5rem', // 24px
+  xl: '2rem', // 32px
+  '2xl': '3rem', // 48px
+  '3xl': '4rem', // 64px
+  '4xl': '6rem', // 96px
+  '5xl': '8rem', // 128px
+
   // Numeric spacing scale (for more fine-grained control)
   0: '0',
   1: '0.25rem',
@@ -381,7 +382,7 @@ export const shadows = {
   '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
   inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
   none: 'none',
-  
+
   // Glass-specific shadows
   glass: {
     light: '0 8px 32px rgba(0, 0, 0, 0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.15)',
@@ -391,7 +392,7 @@ export const shadows = {
     glow: '0 0 20px rgba(139, 92, 246, 0.15)',
     highlight: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)',
   },
-  
+
   // Colored shadows
   colored: {
     primary: '0 8px 16px rgba(99, 102, 241, 0.15)',
@@ -412,7 +413,7 @@ export const breakpoints = {
   lg: 1280,
   xl: 1920,
   '2xl': 2560,
-  
+
   // Device specific breakpoints
   mobile: 480,
   tablet: 768,
@@ -426,14 +427,14 @@ export const breakpoints = {
 export const borderRadius = {
   none: '0',
   xs: '0.0625rem', // 1px
-  sm: '0.125rem',  // 2px
-  md: '0.25rem',   // 4px
-  lg: '0.5rem',    // 8px
-  xl: '0.75rem',   // 12px
-  '2xl': '1rem',   // 16px
+  sm: '0.125rem', // 2px
+  md: '0.25rem', // 4px
+  lg: '0.5rem', // 8px
+  xl: '0.75rem', // 12px
+  '2xl': '1rem', // 16px
   '3xl': '1.5rem', // 24px
   full: '9999px',
-  
+
   // Specific border radius values
   card: '0.75rem',
   button: '0.5rem',
@@ -481,7 +482,7 @@ export const opacity = {
   90: '0.9',
   95: '0.95',
   100: '1',
-  
+
   // Glass-specific opacities
   glass: {
     ultraLight: '0.1',
@@ -503,7 +504,7 @@ export const blur = {
   xl: '24px',
   '2xl': '40px',
   '3xl': '64px',
-  
+
   // Glass-specific blurs
   glass: {
     light: '8px',
@@ -523,7 +524,7 @@ export const duration = {
   slow: '300ms',
   slower: '400ms',
   slowest: '500ms',
-  
+
   // Specific durations
   tooltip: '200ms',
   modal: '300ms',
@@ -539,12 +540,12 @@ export const easing = {
   emphasized: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
   decelerated: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
   accelerated: 'cubic-bezier(0.4, 0.0, 1, 1)',
-  
+
   // Natural motion
   spring: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
   bounce: 'cubic-bezier(0.175, 0.885, 0.32, 1.375)',
   elastic: 'cubic-bezier(0.5, 0.75, 0.25, 1.25)',
-  
+
   // Simple curves
   linear: 'linear',
   ease: 'ease',
@@ -562,18 +563,20 @@ export const mediaQueries = {
   lg: `@media (min-width: ${breakpoints.lg}px)`,
   xl: `@media (min-width: ${breakpoints.xl}px)`,
   '2xl': `@media (min-width: ${breakpoints['2xl']}px)`,
-  
+
   // Device-specific queries
   mobile: `@media (max-width: ${breakpoints.mobile}px)`,
-  tablet: `@media (min-width: ${breakpoints.mobile + 1}px) and (max-width: ${breakpoints.tablet}px)`,
+  tablet: `@media (min-width: ${breakpoints.mobile + 1}px) and (max-width: ${
+    breakpoints.tablet
+  }px)`,
   desktop: `@media (min-width: ${breakpoints.tablet + 1}px)`,
-  
+
   // Feature queries
   dark: '@media (prefers-color-scheme: dark)',
   light: '@media (prefers-color-scheme: light)',
   reducedMotion: '@media (prefers-reduced-motion: reduce)',
   highContrast: '@media (prefers-contrast: more)',
-  
+
   // Viewport orientation
   portrait: '@media (orientation: portrait)',
   landscape: '@media (orientation: landscape)',

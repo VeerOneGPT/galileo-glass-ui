@@ -1,9 +1,10 @@
 /**
  * Glass Glow Effects
- * 
+ *
  * Adds a glow effect to glass components
  */
 import { css } from 'styled-components';
+
 import { cssWithKebabProps } from '../../cssUtils';
 
 export interface GlassGlowOptions {
@@ -11,17 +12,17 @@ export interface GlassGlowOptions {
    * Intensity of the glow
    */
   intensity?: 'subtle' | 'medium' | 'strong' | number;
-  
+
   /**
    * Color of the glow
    */
   color?: 'primary' | 'secondary' | 'error' | 'success' | 'warning' | 'info' | string;
-  
+
   /**
    * Whether the glow should pulse
    */
   pulsing?: boolean;
-  
+
   /**
    * Theme context
    */
@@ -32,24 +33,23 @@ export interface GlassGlowOptions {
  * Creates a glow effect for glass components
  */
 export const glassGlow = (options: GlassGlowOptions) => {
-  const {
-    intensity = 'medium',
-    color = 'primary',
-    pulsing = false,
-    themeContext,
-  } = options;
-  
+  const { intensity = 'medium', color = 'primary', pulsing = false, themeContext } = options;
+
   // Convert intensity to a number
-  const glowSize = typeof intensity === 'number'
-    ? intensity
-    : intensity === 'subtle' ? 10
-      : intensity === 'medium' ? 15
-      : intensity === 'strong' ? 25
+  const glowSize =
+    typeof intensity === 'number'
+      ? intensity
+      : intensity === 'subtle'
+      ? 10
+      : intensity === 'medium'
+      ? 15
+      : intensity === 'strong'
+      ? 25
       : 15;
-  
+
   // Get the color based on theme or fallback
   let glowColor: string;
-  
+
   if (themeContext?.getColor && typeof color === 'string') {
     switch (color) {
       case 'primary':
@@ -76,16 +76,29 @@ export const glassGlow = (options: GlassGlowOptions) => {
   } else {
     // Fallback colors
     switch (color) {
-      case 'primary': glowColor = '#6366F1'; break;
-      case 'secondary': glowColor = '#8B5CF6'; break;
-      case 'error': glowColor = '#EF4444'; break;
-      case 'success': glowColor = '#10B981'; break;
-      case 'warning': glowColor = '#F59E0B'; break;
-      case 'info': glowColor = '#3B82F6'; break;
-      default: glowColor = typeof color === 'string' ? color : '#6366F1';
+      case 'primary':
+        glowColor = '#6366F1';
+        break;
+      case 'secondary':
+        glowColor = '#8B5CF6';
+        break;
+      case 'error':
+        glowColor = '#EF4444';
+        break;
+      case 'success':
+        glowColor = '#10B981';
+        break;
+      case 'warning':
+        glowColor = '#F59E0B';
+        break;
+      case 'info':
+        glowColor = '#3B82F6';
+        break;
+      default:
+        glowColor = typeof color === 'string' ? color : '#6366F1';
     }
   }
-  
+
   // Create the pulsing animation if needed
   const pulseAnimation = pulsing
     ? cssWithKebabProps`
@@ -97,7 +110,7 @@ export const glassGlow = (options: GlassGlowOptions) => {
       animation: pulse-glow 2s ease-in-out infinite;
     `
     : '';
-  
+
   // Build the CSS
   return cssWithKebabProps`
     box-shadow: 0 0 ${glowSize}px 0 ${glowColor}50;
@@ -109,24 +122,23 @@ export const glassGlow = (options: GlassGlowOptions) => {
  * Creates a spotlight glow effect
  */
 export const spotlightGlow = (options: GlassGlowOptions & { angle?: number }) => {
-  const {
-    intensity = 'medium',
-    color = 'primary',
-    angle = 135,
-    themeContext,
-  } = options;
-  
+  const { intensity = 'medium', color = 'primary', angle = 135, themeContext } = options;
+
   // Convert intensity to a number
-  const glowSize = typeof intensity === 'number'
-    ? intensity
-    : intensity === 'subtle' ? 10
-      : intensity === 'medium' ? 15
-      : intensity === 'strong' ? 25
+  const glowSize =
+    typeof intensity === 'number'
+      ? intensity
+      : intensity === 'subtle'
+      ? 10
+      : intensity === 'medium'
+      ? 15
+      : intensity === 'strong'
+      ? 25
       : 15;
-  
+
   // Get the color based on theme or fallback
   let glowColor: string;
-  
+
   if (themeContext?.getColor && typeof color === 'string') {
     switch (color) {
       case 'primary':
@@ -141,17 +153,22 @@ export const spotlightGlow = (options: GlassGlowOptions & { angle?: number }) =>
   } else {
     // Fallback colors
     switch (color) {
-      case 'primary': glowColor = '#6366F1'; break;
-      case 'secondary': glowColor = '#8B5CF6'; break;
-      default: glowColor = typeof color === 'string' ? color : '#6366F1';
+      case 'primary':
+        glowColor = '#6366F1';
+        break;
+      case 'secondary':
+        glowColor = '#8B5CF6';
+        break;
+      default:
+        glowColor = typeof color === 'string' ? color : '#6366F1';
     }
   }
-  
+
   // Convert angle to x and y offset
   const radian = (angle * Math.PI) / 180;
   const x = Math.round(Math.cos(radian) * (glowSize / 2));
   const y = Math.round(Math.sin(radian) * (glowSize / 2));
-  
+
   // Build the CSS
   return cssWithKebabProps`
     box-shadow: ${x}px ${y}px ${glowSize}px 0 ${glowColor}50;
@@ -163,5 +180,5 @@ export const spotlightGlow = (options: GlassGlowOptions & { angle?: number }) =>
  */
 export const glowEffects = {
   glassGlow,
-  spotlightGlow
+  spotlightGlow,
 };

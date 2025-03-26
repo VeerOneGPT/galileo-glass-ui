@@ -1,66 +1,67 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
+import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
-import { edgeHighlight } from '../../core/mixins/edgeEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface ChipProps {
   /**
    * The content of the chip
    */
   label: string;
-  
+
   /**
    * The variant of the chip
    */
   variant?: 'filled' | 'outlined' | 'glass';
-  
+
   /**
    * The color of the chip
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
-  
+
   /**
    * Icon element to display at the start of the chip
    */
   icon?: React.ReactNode;
-  
+
   /**
    * If true, the chip will be rendered with a delete button
    */
   deletable?: boolean;
-  
+
   /**
    * A function called when the delete button is clicked
    */
   onDelete?: (event: React.MouseEvent<HTMLElement>) => void;
-  
+
   /**
    * A function called when the chip is clicked
    */
   onClick?: (event: React.MouseEvent<HTMLElement>) => void;
-  
+
   /**
    * If true, the chip will be disabled
    */
   disabled?: boolean;
-  
+
   /**
    * The size of the chip
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * If true, the chip will highlight on hover
    */
   interactive?: boolean;
-  
+
   /**
    * The shape of the chip
    */
   shape?: 'rounded' | 'square';
-  
+
   /**
    * Additional CSS class
    */
@@ -100,16 +101,16 @@ const ChipRoot = styled.div<{
   align-items: center;
   justify-content: center;
   font-family: 'Inter', sans-serif;
-  border-radius: ${props => props.$shape === 'rounded' ? '16px' : '4px'};
+  border-radius: ${props => (props.$shape === 'rounded' ? '16px' : '4px')};
   white-space: nowrap;
   cursor: ${props => {
     if (props.$disabled) return 'default';
     return props.$interactive ? 'pointer' : 'default';
   }};
   transition: all 0.2s ease;
-  opacity: ${props => props.$disabled ? 0.5 : 1};
+  opacity: ${props => (props.$disabled ? 0.5 : 1)};
   user-select: none;
-  
+
   /* Size styles */
   ${props => {
     switch (props.$size) {
@@ -133,15 +134,19 @@ const ChipRoot = styled.div<{
         `;
     }
   }}
-  
+
   /* Variant styles */
   ${props => {
     switch (props.$variant) {
       case 'outlined':
         return `
           background-color: transparent;
-          border: 1px solid ${props.$color === 'default' ? 'rgba(0, 0, 0, 0.23)' : getColorByName(props.$color)};
-          color: ${props.$color === 'default' ? 'rgba(0, 0, 0, 0.87)' : getColorByName(props.$color)};
+          border: 1px solid ${
+            props.$color === 'default' ? 'rgba(0, 0, 0, 0.23)' : getColorByName(props.$color)
+          };
+          color: ${
+            props.$color === 'default' ? 'rgba(0, 0, 0, 0.87)' : getColorByName(props.$color)
+          };
         `;
       case 'glass':
         return `
@@ -149,7 +154,9 @@ const ChipRoot = styled.div<{
           backdrop-filter: blur(8px);
           -webkit-backdrop-filter: blur(8px);
           border: 1px solid ${`${getColorByName(props.$color)}66`};
-          color: ${props.$color === 'default' ? 'rgba(0, 0, 0, 0.87)' : getColorByName(props.$color)};
+          color: ${
+            props.$color === 'default' ? 'rgba(0, 0, 0, 0.87)' : getColorByName(props.$color)
+          };
         `;
       default: // filled
         return `
@@ -161,46 +168,61 @@ const ChipRoot = styled.div<{
   }}
   
   /* Glass effect for glass variant */
-  ${props => props.$variant === 'glass' && !props.$disabled && glassSurface({
-    elevation: 1,
-    blurStrength: 'minimal',
-    backgroundOpacity: 'medium',
-    borderOpacity: 'medium',
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    !props.$disabled &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'minimal',
+      backgroundOpacity: 'medium',
+      borderOpacity: 'medium',
+      themeContext: createThemeContext({}),
+    })}
   
   /* Interactive hover state */
-  ${props => props.$interactive && !props.$disabled && `
+  ${props =>
+    props.$interactive &&
+    !props.$disabled &&
+    `
     &:hover {
-      ${props.$variant === 'filled' 
-        ? `filter: brightness(1.1);` 
-        : `background-color: rgba(0, 0, 0, 0.04);`
+      ${
+        props.$variant === 'filled'
+          ? `filter: brightness(1.1);`
+          : `background-color: rgba(0, 0, 0, 0.04);`
       }
     }
     
     &:active {
-      ${props.$variant === 'filled' 
-        ? `filter: brightness(0.9);` 
-        : `background-color: rgba(0, 0, 0, 0.08);`
+      ${
+        props.$variant === 'filled'
+          ? `filter: brightness(0.9);`
+          : `background-color: rgba(0, 0, 0, 0.08);`
       }
     }
   `}
   
   /* Glass glow for glass variant */
-  ${props => props.$variant === 'glass' && !props.$disabled && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    !props.$disabled &&
+    glassGlow({
+      intensity: 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
   
   /* Edge highlight for interactive chips */
-  ${props => props.$interactive && !props.$disabled && props.$variant !== 'filled' && edgeHighlight({
-    position: 'bottom',
-    thickness: 1,
-    color: props.$color,
-    opacity: 0.6,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$interactive &&
+    !props.$disabled &&
+    props.$variant !== 'filled' &&
+    edgeHighlight({
+      position: 'bottom',
+      thickness: 1,
+      color: props.$color,
+      opacity: 0.6,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const ChipIcon = styled.span`
@@ -229,18 +251,21 @@ const DeleteButton = styled.button<{
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: ${props => props.$variant === 'filled' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.1)'};
-  color: ${props => props.$variant === 'filled' ? 'white' : 'inherit'};
+  background: ${props =>
+    props.$variant === 'filled' ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.1)'};
+  color: ${props => (props.$variant === 'filled' ? 'white' : 'inherit')};
   border: none;
   padding: 0;
   font-size: 12px;
-  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'default' : 'pointer')};
   transition: background-color 0.2s ease;
-  
+
   &:hover {
-    background: ${props => !props.$disabled && (props.$variant === 'filled' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.2)')};
+    background: ${props =>
+      !props.$disabled &&
+      (props.$variant === 'filled' ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.2)')};
   }
-  
+
   &:focus {
     outline: none;
   }
@@ -248,7 +273,7 @@ const DeleteButton = styled.button<{
 
 /**
  * Chip Component
- * 
+ *
  * A compact element to display small pieces of information.
  */
 export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
@@ -267,26 +292,26 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
     className,
     ...rest
   } = props;
-  
+
   // Handle delete button click
   const handleDelete = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
     if (disabled) return;
-    
+
     if (onDelete) {
       onDelete(event);
     }
   };
-  
+
   // Handle click
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (disabled) return;
-    
+
     if (onClick) {
       onClick(event);
     }
   };
-  
+
   return (
     <ChipRoot
       ref={ref}
@@ -324,24 +349,13 @@ Chip.displayName = 'Chip';
 
 /**
  * GlassChip Component
- * 
+ *
  * A chip component with glass morphism styling.
  */
 export const GlassChip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
-  const {
-    className,
-    variant = 'glass',
-    ...rest
-  } = props;
-  
-  return (
-    <Chip
-      ref={ref}
-      className={`glass-chip ${className || ''}`}
-      variant={variant}
-      {...rest}
-    />
-  );
+  const { className, variant = 'glass', ...rest } = props;
+
+  return <Chip ref={ref} className={`glass-chip ${className || ''}`} variant={variant} {...rest} />;
 });
 
 GlassChip.displayName = 'GlassChip';

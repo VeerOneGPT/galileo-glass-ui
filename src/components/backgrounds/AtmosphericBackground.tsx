@@ -1,10 +1,11 @@
 /**
  * AtmosphericBackground Component
- * 
+ *
  * A dynamic background component with atmospheric effects.
  */
 import React, { forwardRef, useState, useEffect, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { AtmosphericBackgroundProps } from '../surfaces/types';
 
@@ -35,9 +36,9 @@ const cloudMove = keyframes`
 
 // Default gradient colors
 const defaultGradientColors = [
-  'rgba(59, 130, 246, 0.5)',  // Blue
-  'rgba(99, 102, 241, 0.5)',  // Indigo
-  'rgba(139, 92, 246, 0.5)',  // Purple
+  'rgba(59, 130, 246, 0.5)', // Blue
+  'rgba(99, 102, 241, 0.5)', // Indigo
+  'rgba(139, 92, 246, 0.5)', // Purple
   'rgba(244, 114, 182, 0.5)', // Pink
 ];
 
@@ -66,24 +67,27 @@ const GradientLayer = styled.div<{
   right: 0;
   bottom: 0;
   background-color: ${props => props.$baseColor};
-  background-image: linear-gradient(
-    125deg,
-    ${props => props.$gradientColors.join(', ')}
-  );
-  background-size: ${props => props.$interactive ? '300% 300%' : '200% 200%'};
-  background-position: ${props => props.$interactive ? 
-    `${50 + (props.$cursorX - 50) * 0.2}% ${50 + (props.$cursorY - 50) * 0.2}%` : 
-    '0% 0%'
-  };
+  background-image: linear-gradient(125deg, ${props => props.$gradientColors.join(', ')});
+  background-size: ${props => (props.$interactive ? '300% 300%' : '200% 200%')};
+  background-position: ${props =>
+    props.$interactive
+      ? `${50 + (props.$cursorX - 50) * 0.2}% ${50 + (props.$cursorY - 50) * 0.2}%`
+      : '0% 0%'};
   opacity: ${props => props.$intensity};
-  
+
   /* Animation */
-  ${props => props.$animate && !props.$reducedMotion && !props.$interactive && `
+  ${props =>
+    props.$animate &&
+    !props.$reducedMotion &&
+    !props.$interactive &&
+    `
     animation: ${gradientShift} ${props.$duration}s ease infinite;
   `}
-  
+
   /* Interactive mode */
-  ${props => props.$interactive && `
+  ${props =>
+    props.$interactive &&
+    `
     transition: background-position 0.3s ease;
   `}
 `;
@@ -102,9 +106,12 @@ const AtmosphericEffect = styled.div<{
   opacity: 0.4;
   mix-blend-mode: overlay;
   pointer-events: none;
-  
+
   /* Animation */
-  ${props => props.$animate && !props.$reducedMotion && `
+  ${props =>
+    props.$animate &&
+    !props.$reducedMotion &&
+    `
     animation: ${cloudMove} 30s ease infinite;
   `}
 `;
@@ -118,8 +125,8 @@ const BlurLayer = styled.div<{
   left: 0;
   right: 0;
   bottom: 0;
-  backdrop-filter: ${props => props.$blur ? `blur(${props.$blurAmount}px)` : 'none'};
-  -webkit-backdrop-filter: ${props => props.$blur ? `blur(${props.$blurAmount}px)` : 'none'};
+  backdrop-filter: ${props => (props.$blur ? `blur(${props.$blurAmount}px)` : 'none')};
+  -webkit-backdrop-filter: ${props => (props.$blur ? `blur(${props.$blurAmount}px)` : 'none')};
   pointer-events: none;
 `;
 
@@ -151,43 +158,43 @@ function AtmosphericBackgroundComponent(
     blurAmount = 5,
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // State for mouse position
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
-  
+
   // Ref for background container
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // Handle mouse movement for interactive mode
   useEffect(() => {
     if (!interactive || prefersReducedMotion) return;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
-      
+
       const rect = containerRef.current.getBoundingClientRect();
-      
+
       // Calculate mouse position as percentage
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
-      
+
       setMousePosition({ x, y });
     };
-    
+
     window.addEventListener('mousemove', handleMouseMove);
-    
+
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [interactive, prefersReducedMotion]);
-  
+
   // Handle forwarded ref
   const setRefs = (element: HTMLDivElement) => {
     containerRef.current = element;
-    
+
     // Handle the forwarded ref
     if (typeof ref === 'function') {
       ref(element);
@@ -195,14 +202,9 @@ function AtmosphericBackgroundComponent(
       (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
     }
   };
-  
+
   return (
-    <BackgroundContainer
-      ref={setRefs}
-      className={className}
-      style={style}
-      {...rest}
-    >
+    <BackgroundContainer ref={setRefs} className={className} style={style} {...rest}>
       <GradientLayer
         $baseColor={baseColor}
         $gradientColors={gradientColors}
@@ -214,27 +216,19 @@ function AtmosphericBackgroundComponent(
         $cursorX={mousePosition.x}
         $cursorY={mousePosition.y}
       />
-      
-      <AtmosphericEffect
-        $animate={animate}
-        $reducedMotion={prefersReducedMotion}
-      />
-      
-      <BlurLayer
-        $blur={blur}
-        $blurAmount={blurAmount}
-      />
-      
-      <ContentLayer>
-        {children}
-      </ContentLayer>
+
+      <AtmosphericEffect $animate={animate} $reducedMotion={prefersReducedMotion} />
+
+      <BlurLayer $blur={blur} $blurAmount={blurAmount} />
+
+      <ContentLayer>{children}</ContentLayer>
     </BackgroundContainer>
   );
 }
 
 /**
  * AtmosphericBackground Component
- * 
+ *
  * A dynamic background component with atmospheric effects.
  */
 const AtmosphericBackground = forwardRef(AtmosphericBackgroundComponent);

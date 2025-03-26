@@ -1,10 +1,11 @@
 /**
  * Backdrop Component
- * 
+ *
  * A backdrop component for modals, dialogs, and other overlays with glass effect
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { createThemeContext } from '../../core/themeUtils';
 
@@ -111,7 +112,7 @@ const BackdropRoot = styled.div<BackdropProps & { theme: any }>`
     const defaultColor = isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)';
     const color = props.color || defaultColor;
     const animationDuration = props.animationDuration || 300;
-    
+
     return cssWithKebabProps`
       position: fixed;
       top: 0;
@@ -125,45 +126,60 @@ const BackdropRoot = styled.div<BackdropProps & { theme: any }>`
       touch-action: none;
       
       /* Background styles */
-      ${props.invisible ? `
+      ${
+        props.invisible
+          ? `
         background-color: transparent;
-      ` : props.gradient ? `
-        ${props.gradient === 'radial' 
-          ? `background: radial-gradient(circle, ${isDarkMode 
-              ? 'rgba(30, 30, 30, 0.9)' 
-              : 'rgba(20, 20, 20, 0.85)'} 0%, ${isDarkMode 
-                ? 'rgba(10, 10, 10, 0.95)' 
-                : 'rgba(0, 0, 0, 0.92)'} 100%);`
-          : `background: linear-gradient(180deg, ${isDarkMode 
-              ? 'rgba(25, 25, 25, 0.85)' 
-              : 'rgba(20, 20, 20, 0.8)'} 0%, ${isDarkMode 
-                ? 'rgba(10, 10, 10, 0.95)' 
-                : 'rgba(0, 0, 0, 0.9)'} 100%);`
+      `
+          : props.gradient
+          ? `
+        ${
+          props.gradient === 'radial'
+            ? `background: radial-gradient(circle, ${
+                isDarkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(20, 20, 20, 0.85)'
+              } 0%, ${isDarkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(0, 0, 0, 0.92)'} 100%);`
+            : `background: linear-gradient(180deg, ${
+                isDarkMode ? 'rgba(25, 25, 25, 0.85)' : 'rgba(20, 20, 20, 0.8)'
+              } 0%, ${isDarkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(0, 0, 0, 0.9)'} 100%);`
         }
         opacity: ${opacity};
-      ` : `
+      `
+          : `
         background-color: ${color};
         opacity: ${opacity};
-      `}
+      `
+      }
       
       /* Glass effect */
-      ${props.glass ? `
+      ${
+        props.glass
+          ? `
         backdrop-filter: blur(${blurValue});
         -webkit-backdrop-filter: blur(${blurValue});
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Animation */
-      ${props.animated ? `
+      ${
+        props.animated
+          ? `
         transition: opacity ${animationDuration}ms cubic-bezier(0.4, 0, 0.2, 1);
         
-        ${!props.open ? `
+        ${
+          !props.open
+            ? `
           opacity: 0;
           visibility: hidden;
-        ` : `
+        `
+            : `
           opacity: ${opacity};
           visibility: visible;
-        `}
-      ` : ''}
+        `
+        }
+      `
+          : ''
+      }
       
       /* Ensure children are visible above backdrop */
       & > * {

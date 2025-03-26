@@ -1,12 +1,14 @@
 /**
  * AccordionDetails Component
- * 
+ *
  * The content area of an Accordion.
  */
 import React, { forwardRef, useContext } from 'react';
 import styled from 'styled-components';
-import { AccordionContext } from './Accordion';
+
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+import { AccordionContext } from './Accordion';
 import { AccordionDetailsProps } from './types';
 
 // Calculate padding based on size
@@ -31,19 +33,23 @@ const DetailsRoot = styled.div<{
   $padding: string;
   $reducedMotion: boolean;
 }>`
-  display: ${props => props.$expanded ? 'block' : 'none'};
+  display: ${props => (props.$expanded ? 'block' : 'none')};
   padding: ${props => props.$padding};
   color: rgba(255, 255, 255, 0.8);
   overflow: hidden;
-  transition: ${props => !props.$reducedMotion ? 'height 0.2s ease' : 'none'};
-  
+  transition: ${props => (!props.$reducedMotion ? 'height 0.2s ease' : 'none')};
+
   /* Glass content styling */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     background-color: rgba(255, 255, 255, 0.01);
   `}
-  
+
   /* Non-glass styling */
-  ${props => !props.$glass && `
+  ${props =>
+    !props.$glass &&
+    `
     background-color: rgba(22, 22, 22, 0.65);
   `}
 `;
@@ -64,26 +70,26 @@ function AccordionDetailsComponent(
     padding = 'medium',
     ...rest
   } = props;
-  
+
   // Get accordion context
   const accordionContext = useContext(AccordionContext);
-  
+
   if (!accordionContext) {
     throw new Error('AccordionDetails must be used within an Accordion');
   }
-  
+
   const { expanded, glass: contextGlass } = accordionContext;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Merge props with context
   const finalGlass = propGlass !== undefined ? propGlass : contextGlass;
-  
+
   // Get root component
   const Root = DetailsRoot as unknown as React.ElementType;
   const paddingValue = getPadding(padding);
-  
+
   return (
     <Root
       as={component}
@@ -103,14 +109,14 @@ function AccordionDetailsComponent(
 
 /**
  * AccordionDetails Component
- * 
+ *
  * The content area of an Accordion.
  */
 const AccordionDetails = forwardRef(AccordionDetailsComponent);
 
 /**
  * GlassAccordionDetails Component
- * 
+ *
  * Glass variant of the AccordionDetails component.
  */
 const GlassAccordionDetails = forwardRef<HTMLDivElement, AccordionDetailsProps>((props, ref) => (

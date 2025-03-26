@@ -1,9 +1,10 @@
 /**
  * Animation Utilities for Glass UI
- * 
+ *
  * Core animation utilities and helpers
  */
 import { css, keyframes } from 'styled-components';
+
 import { cssWithKebabProps } from '../core/cssUtils';
 
 /**
@@ -14,37 +15,37 @@ export interface AnimateOptions {
    * The keyframes to animate
    */
   animation: ReturnType<typeof keyframes>;
-  
+
   /**
    * Secondary animation for reduced motion
    */
   secondaryAnimation?: ReturnType<typeof keyframes> | null;
-  
+
   /**
    * Duration of the animation in seconds
    */
   duration?: number;
-  
+
   /**
    * Easing function for the animation
    */
   easing?: string;
-  
+
   /**
    * Delay before starting the animation in seconds
    */
   delay?: number;
-  
+
   /**
    * Number of iterations (use Infinity for infinite)
    */
   iterations?: number | 'infinite';
-  
+
   /**
    * Direction of the animation
    */
   direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
-  
+
   /**
    * Fill mode for the animation
    */
@@ -64,15 +65,16 @@ export const animate = (options: AnimateOptions) => {
     direction = 'normal',
     fillMode = 'both',
   } = options;
-  
+
   // Convert iterations to a string
-  const iterationCount = iterations === 'infinite' || iterations === Infinity
-    ? 'infinite'
-    : String(iterations);
-  
+  const iterationCount =
+    iterations === 'infinite' || iterations === Infinity ? 'infinite' : String(iterations);
+
   // Create the animation CSS
   return cssWithKebabProps`
-    animation-name: ${css`${animation}`};
+    animation-name: ${css`
+      ${animation}
+    `};
     animation-duration: ${duration}s;
     animation-timing-function: ${easing};
     animation-delay: ${delay}s;
@@ -97,7 +99,7 @@ export const accessibleAnimation = (options: AnimateOptions) => {
     direction = 'normal',
     fillMode = 'both',
   } = options;
-  
+
   // If there's no secondary animation, just use the primary one
   if (!secondaryAnimation) {
     return cssWithKebabProps`
@@ -114,7 +116,7 @@ export const accessibleAnimation = (options: AnimateOptions) => {
       }
     `;
   }
-  
+
   // Otherwise, use the appropriate animation based on user preferences
   return cssWithKebabProps`
     @media (prefers-reduced-motion: reduce) {
@@ -146,13 +148,10 @@ export const accessibleAnimation = (options: AnimateOptions) => {
 /**
  * Creates a conditional animation based on a condition
  */
-export const conditionalAnimate = (
-  condition: boolean,
-  options: AnimateOptions
-) => {
+export const conditionalAnimate = (condition: boolean, options: AnimateOptions) => {
   if (!condition) {
     return '';
   }
-  
+
   return animate(options);
 };

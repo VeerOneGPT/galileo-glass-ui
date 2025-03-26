@@ -1,15 +1,16 @@
 /**
  * Gestalt Animation Patterns
- * 
+ *
  * Animation patterns based on Gestalt principles of visual perception.
  * These patterns create coordinated animations that feel natural and cohesive.
  */
 import { keyframes } from 'styled-components';
-import { 
-  AnimationPreset, 
-  AnimationIntensity, 
-  animationTimings, 
-  animationEasings 
+
+import {
+  AnimationPreset,
+  AnimationIntensity,
+  animationTimings,
+  animationEasings,
 } from '../presets/accessibleAnimations';
 
 /**
@@ -18,16 +19,16 @@ import {
 export interface StaggerOptions {
   /** Base delay between items in milliseconds */
   baseDelay?: number;
-  
+
   /** Whether to stagger in sequence or from center */
   pattern?: 'sequence' | 'center-out' | 'edges-in';
-  
+
   /** Easing function for stagger timing */
   staggerEasing?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
-  
+
   /** Maximum stagger delay in milliseconds */
   maxDelay?: number;
-  
+
   /** Whether to reverse the stagger order */
   reverse?: boolean;
 }
@@ -38,19 +39,19 @@ export interface StaggerOptions {
 export interface AnimationSequenceItem {
   /** Target element selector or reference */
   target: string | HTMLElement;
-  
+
   /** Animation to apply */
   animation: AnimationPreset;
-  
+
   /** Delay before this animation in milliseconds */
   delay?: number;
-  
+
   /** Duration override for this animation */
   duration?: number;
-  
+
   /** Whether this animation triggers the next one */
   triggers?: boolean;
-  
+
   /** Custom options for this animation */
   options?: Record<string, any>;
 }
@@ -73,7 +74,7 @@ export const GestaltPatterns = {
       transform: translateY(0);
     }
   `,
-  
+
   /**
    * Unified movement pattern
    * Elements moving together are perceived as a group
@@ -86,7 +87,7 @@ export const GestaltPatterns = {
       transform: translateY(0);
     }
   `,
-  
+
   /**
    * Common fate pattern
    * Elements that move in the same direction at the same speed are perceived as related
@@ -101,7 +102,7 @@ export const GestaltPatterns = {
       opacity: 1;
     }
   `,
-  
+
   /**
    * Progressive disclosure pattern
    * Information is revealed gradually to prevent overwhelming the user
@@ -118,7 +119,7 @@ export const GestaltPatterns = {
       margin-top: 1rem;
     }
   `,
-  
+
   /**
    * Focus and blur pattern
    * Focus attention on important elements by blurring others
@@ -133,7 +134,7 @@ export const GestaltPatterns = {
       opacity: 1;
     }
   `,
-  
+
   /**
    * Proximity pattern
    * Items that are close to each other are perceived as a group
@@ -147,7 +148,7 @@ export const GestaltPatterns = {
       transform: scale(1);
       opacity: 1;
     }
-  `
+  `,
 };
 
 /**
@@ -169,12 +170,12 @@ export const createStaggeredAnimation = (
     pattern = 'sequence',
     staggerEasing = 'ease-out',
     maxDelay = 1000,
-    reverse = false
+    reverse = false,
   } = options;
-  
+
   let delay: number;
-  let adjustedIndex = reverse ? totalItems - 1 - index : index;
-  
+  const adjustedIndex = reverse ? totalItems - 1 - index : index;
+
   // Calculate delay based on pattern
   switch (pattern) {
     case 'center-out':
@@ -183,24 +184,24 @@ export const createStaggeredAnimation = (
       const distanceFromCenter = Math.abs(adjustedIndex - center);
       delay = distanceFromCenter * baseDelay;
       break;
-      
+
     case 'edges-in':
       // Items animate inward from the edges
       const edgeDistance = Math.min(adjustedIndex, totalItems - 1 - adjustedIndex);
       delay = edgeDistance * baseDelay;
       break;
-      
+
     case 'sequence':
     default:
       // Sequential stagger
       delay = adjustedIndex * baseDelay;
       break;
   }
-  
+
   // Apply easing to the delay
   let easedDelay: number;
   const progress = index / (totalItems - 1 || 1);
-  
+
   switch (staggerEasing) {
     case 'ease-in':
       easedDelay = delay * (progress * progress);
@@ -209,23 +210,22 @@ export const createStaggeredAnimation = (
       easedDelay = delay * (1 - Math.pow(1 - progress, 2));
       break;
     case 'ease-in-out':
-      easedDelay = delay * (progress < 0.5 
-        ? 2 * progress * progress 
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2);
+      easedDelay =
+        delay * (progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2);
       break;
     case 'linear':
     default:
       easedDelay = delay;
       break;
   }
-  
+
   // Ensure delay doesn't exceed maxDelay
   const finalDelay = Math.min(easedDelay, maxDelay);
-  
+
   // Return modified animation preset
   return {
     ...baseAnimation,
-    delay: `${finalDelay}ms`
+    delay: `${finalDelay}ms`,
   };
 };
 
@@ -234,24 +234,20 @@ export const createStaggeredAnimation = (
  * @param items Animation sequence items
  * @returns Animation configuration for each target
  */
-export const createAnimationSequence = (
-  items: AnimationSequenceItem[]
-): Record<string, any> => {
+export const createAnimationSequence = (items: AnimationSequenceItem[]): Record<string, any> => {
   const result: Record<string, any> = {};
-  
+
   items.forEach((item, index) => {
-    const targetKey = typeof item.target === 'string' 
-      ? item.target 
-      : `element-${index}`;
-      
+    const targetKey = typeof item.target === 'string' ? item.target : `element-${index}`;
+
     result[targetKey] = {
       animation: item.animation,
       delay: item.delay || index * 100,
       duration: item.duration || undefined,
-      options: item.options || {}
+      options: item.options || {},
     };
   });
-  
+
   return result;
 };
 
@@ -278,9 +274,9 @@ export const coordinatedAnimations = {
       duration: animationTimings.normal,
       easing: animationEasings.standard,
       fillMode: 'both',
-      intensity: AnimationIntensity.STANDARD
+      intensity: AnimationIntensity.STANDARD,
     },
-    
+
     child: {
       keyframes: keyframes`
         from {
@@ -295,10 +291,10 @@ export const coordinatedAnimations = {
       duration: animationTimings.normal,
       easing: animationEasings.standard,
       fillMode: 'both',
-      intensity: AnimationIntensity.STANDARD
-    }
+      intensity: AnimationIntensity.STANDARD,
+    },
   },
-  
+
   /**
    * Before-after relationship
    * Perfect for showing changes or transformations
@@ -318,9 +314,9 @@ export const coordinatedAnimations = {
       duration: animationTimings.normal,
       easing: animationEasings.exit,
       fillMode: 'both',
-      intensity: AnimationIntensity.STANDARD
+      intensity: AnimationIntensity.STANDARD,
     },
-    
+
     after: {
       keyframes: keyframes`
         from {
@@ -335,10 +331,10 @@ export const coordinatedAnimations = {
       duration: animationTimings.normal,
       easing: animationEasings.enter,
       fillMode: 'both',
-      intensity: AnimationIntensity.STANDARD
-    }
+      intensity: AnimationIntensity.STANDARD,
+    },
   },
-  
+
   /**
    * Group relationship
    * Elements in a group animate together with slight variations
@@ -357,6 +353,6 @@ export const coordinatedAnimations = {
     duration: animationTimings.normal,
     easing: animationEasings.standard,
     fillMode: 'both',
-    intensity: AnimationIntensity.STANDARD
-  }
+    intensity: AnimationIntensity.STANDARD,
+  },
 };

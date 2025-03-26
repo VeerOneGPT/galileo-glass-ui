@@ -6,27 +6,27 @@ export interface GlassContextType {
    * Whether reduced effects should be used
    */
   reducedEffects: boolean | 'minimal';
-  
+
   /**
    * Whether to use hardware acceleration
    */
   useHardwareAcceleration: boolean;
-  
+
   /**
    * The quality tier for glass effects
    */
   qualityTier: 'ultra' | 'high' | 'medium' | 'low' | 'minimal';
-  
+
   /**
    * Whether dark mode is active
    */
   isDarkMode: boolean;
-  
+
   /**
    * The current theme variant
    */
   themeVariant: string;
-  
+
   /**
    * Get a color value from the theme
    */

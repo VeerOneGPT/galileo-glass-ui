@@ -1,6 +1,6 @@
 /**
  * Galileo Glass UI - Components
- * 
+ *
  * Core UI components with Glass styling.
  */
 
@@ -21,15 +21,15 @@ export { Link } from './Link';
 export { Autocomplete, GlassAutocomplete } from './Autocomplete';
 export { DatePicker, GlassDatePicker } from './DatePicker';
 export { TagInput, GlassTagInput } from './TagInput';
-export { 
-  FormGroup, 
+export {
+  FormGroup,
   GlassFormGroup,
-  FormControl, 
+  FormControl,
   GlassFormControl,
-  FormLabel, 
+  FormLabel,
   GlassFormLabel,
-  FormHelperText, 
-  GlassFormHelperText 
+  FormHelperText,
+  GlassFormHelperText,
 } from './Form';
 export { Checkbox, GlassCheckbox } from './Checkbox';
 export { Radio, GlassRadio } from './Radio';
@@ -51,10 +51,10 @@ export { Tabs, Tab, TabPanel, GlassTabs, GlassTab } from './Tabs';
 export { Pagination, GlassPagination } from './Pagination';
 export { Menu, GlassMenu } from './Menu';
 export { MenuItem, GlassMenuItem } from './MenuItem';
-export { 
-  BottomNavigation, 
-  BottomNavigationAction, 
-  GlassBottomNavigation 
+export {
+  BottomNavigation,
+  BottomNavigationAction,
+  GlassBottomNavigation,
 } from './BottomNavigation';
 export { Breadcrumbs, GlassBreadcrumbs } from './Breadcrumbs';
 export { Toolbar, GlassToolbar } from './Toolbar';
@@ -64,35 +64,23 @@ export {
   AccordionSummary,
   GlassAccordionSummary,
   AccordionDetails,
-  GlassAccordionDetails
+  GlassAccordionDetails,
 } from './Accordion';
-export {
-  TreeView,
-  GlassTreeView,
-  TreeItem,
-  GlassTreeItem
-} from './TreeView';
+export { TreeView, GlassTreeView, TreeItem, GlassTreeItem } from './TreeView';
 
 // Data display components
 export { Chip, GlassChip } from './Chip';
 export { Avatar, GlassAvatar } from './Avatar';
 export { Badge, GlassBadge } from './Badge';
 export { List, ListItem, GlassList, GlassListItem } from './List';
-export { 
-  Table, 
-  GlassTable, 
-  TableHead, 
-  TableBody, 
-  TableRow, 
-  TableCell 
-} from './Table';
+export { Table, GlassTable, TableHead, TableBody, TableRow, TableCell } from './Table';
 export {
   ImageList,
   GlassImageList,
   ImageListItem,
   GlassImageListItem,
   ImageListItemBar,
-  GlassImageListItemBar
+  GlassImageListItemBar,
 } from './ImageList';
 export { Rating, GlassRating } from './Rating';
 
@@ -102,17 +90,12 @@ export { Drawer, GlassDrawer } from './Drawer';
 export { Fab, GlassFab } from './Fab';
 export { Backdrop } from './Backdrop';
 export { Icon } from './Icon';
-export { 
-  SpeedDial, 
-  GlassSpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon
-} from './SpeedDial';
+export { SpeedDial, GlassSpeedDial, SpeedDialAction, SpeedDialIcon } from './SpeedDial';
 export {
   ToggleButton,
   GlassToggleButton,
   ToggleButtonGroup,
-  GlassToggleButtonGroup
+  GlassToggleButtonGroup,
 } from './ToggleButton';
 
 // Cookie Consent Components
@@ -122,7 +105,7 @@ export {
   GlobalCookieConsent,
   GlassGlobalCookieConsent,
   CompactCookieNotice,
-  GlassCompactCookieNotice
+  GlassCompactCookieNotice,
 } from './CookieConsent';
 
 // Navigation Components
@@ -130,7 +113,7 @@ export {
   GlassNavigation,
   ResponsiveNavigation,
   PageTransition,
-  ZSpaceAppLayout
+  ZSpaceAppLayout,
 } from './Navigation';
 
 // Theme Components
@@ -138,14 +121,11 @@ export {
   GlassThemeSwitcher,
   GlassThemeDemo,
   ThemedGlassComponents,
-  useThemedGlass
+  useThemedGlass,
 } from './ThemeComponents';
 
 // Performance Components
-export {
-  PerformanceMonitor,
-  OptimizedGlassContainer
-} from './Performance';
+export { PerformanceMonitor, OptimizedGlassContainer } from './Performance';
 
 // Advanced Components
 export { DynamicAtmosphere } from './DynamicAtmosphere';
@@ -156,30 +136,22 @@ export {
   PerformanceMetricCard,
   GlassPerformanceMetricCard,
   InteractiveKpiCard,
-  GlassInteractiveKpiCard
+  GlassInteractiveKpiCard,
 } from './KpiCard';
 export {
   DimensionalGlass,
   HeatGlass,
   FrostedGlass,
   PageGlassContainer,
-  WidgetGlass
+  WidgetGlass,
 } from './surfaces';
-export {
-  VisualFeedback,
-  RippleButton,
-  FocusIndicator,
-  StateIndicator
-} from './VisualFeedback';
+export { VisualFeedback, RippleButton, FocusIndicator, StateIndicator } from './VisualFeedback';
 
 // Background Components
-export {
-  AtmosphericBackground, 
-  ParticleBackground
-} from './backgrounds';
+export { AtmosphericBackground, ParticleBackground } from './backgrounds';
 
 // Glass Presets
-export { 
+export {
   CleanGlassContainer,
   FrostedGlassContainer,
   TexturedGlassContainer,
@@ -188,7 +160,7 @@ export {
   ImmersiveGlassContainer,
   DashboardGlassContainer,
   FormGlassContainer,
-  ModalGlassContainer
+  ModalGlassContainer,
 } from './GlassPresets';
 
 // Version

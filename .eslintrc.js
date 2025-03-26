@@ -5,23 +5,35 @@ module.exports = {
     'plugin:react/recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
+    'plugin:import/recommended',
+    'plugin:import/typescript',
+    'plugin:jsx-a11y/recommended',
     'prettier'
   ],
   plugins: [
     'react',
     '@typescript-eslint',
     'react-hooks',
-    'prettier'
+    'prettier',
+    'import',
+    'jsx-a11y',
+    'testing-library'
   ],
+  settings: {
+    react: {
+      version: 'detect'
+    },
+    'testing-library/custom-queries': {
+      'data-testid': 'data-testid'
+    },
+    'testing-library/custom-renders': {
+      'render': 'render'
+    }
+  },
   env: {
     browser: true,
     node: true,
     es6: true
-  },
-  settings: {
-    react: {
-      version: 'detect'
-    }
   },
   rules: {
     'prettier/prettier': 'error',
@@ -35,7 +47,30 @@ module.exports = {
     }],
     'no-console': ['warn', { allow: ['warn', 'error'] }],
     'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'warn'
+    'react-hooks/exhaustive-deps': 'warn',
+    
+    // Import plugin rules
+    'import/no-unresolved': 'error',
+    'import/named': 'error',
+    'import/default': 'error',
+    'import/namespace': 'error',
+    'import/order': ['warn', {
+      'groups': ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+      'newlines-between': 'always',
+      'alphabetize': { 'order': 'asc', 'caseInsensitive': true }
+    }],
+    
+    // jsx-a11y rules
+    'jsx-a11y/aria-props': 'error',
+    'jsx-a11y/aria-proptypes': 'error',
+    'jsx-a11y/aria-role': 'error',
+    'jsx-a11y/aria-unsupported-elements': 'error',
+    'jsx-a11y/alt-text': 'error',
+    
+    // Turn off testing-library rules until properly set up
+    'testing-library/await-async-query': 'off',
+    'testing-library/no-await-sync-query': 'off',
+    'testing-library/no-render-in-setup': 'off'
   },
   overrides: [
     {
@@ -49,8 +84,17 @@ module.exports = {
       env: {
         jest: true
       },
+      extends: [
+        'plugin:testing-library/react'
+      ],
       rules: {
-        '@typescript-eslint/no-explicit-any': 'off'
+        '@typescript-eslint/no-explicit-any': 'off',
+        'testing-library/prefer-screen-queries': 'warn',
+        'testing-library/prefer-find-by': 'warn',
+        'testing-library/no-wait-for-multiple-assertions': 'warn',
+        'testing-library/await-async-query': 'off',
+        'testing-library/no-await-sync-query': 'off',
+        'testing-library/no-render-in-setup': 'off'
       }
     }
   ]

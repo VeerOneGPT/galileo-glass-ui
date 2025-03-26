@@ -1,6 +1,6 @@
 /**
  * Theme Context
- * 
+ *
  * Core theme context and utilities
  */
 import { DefaultTheme } from 'styled-components';
@@ -12,30 +12,30 @@ export interface GlassTheme extends DefaultTheme {
   colors?: {
     [key: string]: any;
   };
-  
+
   spacing?: {
     unit?: number;
     [key: string]: any;
   };
-  
+
   shadows?: string[];
-  
+
   borderRadius?: {
     [key: string]: string;
   };
-  
+
   typography?: {
     [key: string]: any;
   };
-  
+
   zIndex?: {
     [key: string]: number;
   };
-  
+
   colorMode?: 'light' | 'dark';
-  
+
   variant?: string;
-  
+
   availableThemes?: string[];
 }
 
@@ -45,37 +45,37 @@ export interface GlassTheme extends DefaultTheme {
 export interface ThemeContext {
   /** Get a color value from the theme */
   getColor: (path: string, fallback?: string) => string;
-  
+
   /** Get a spacing value from the theme */
   getSpacing: (size: string | number) => string;
-  
+
   /** Get a shadow definition from the theme */
   getShadow: (level: number, color?: string) => string;
-  
+
   /** Get a border radius value from the theme */
   getBorderRadius?: (size: string) => string;
-  
+
   /** Get a typography value from the theme */
   getTypography?: (variant: string) => any;
-  
+
   /** Get a z-index value from the theme */
   getZIndex?: (component: string) => number;
-  
+
   /** Get a breakpoint value from the theme */
   getBreakpoint?: (name: string) => number;
-  
+
   /** Current color mode */
   colorMode?: 'light' | 'dark';
-  
+
   /** Current theme variant */
   variant?: string;
-  
+
   /** Raw theme object */
   theme?: GlassTheme;
-  
+
   /** Whether dark mode is enabled (alias for colorMode === 'dark') */
   isDarkMode?: boolean;
-  
+
   /** Available theme names */
   availableThemes?: string[];
 }
@@ -88,42 +88,42 @@ export const createThemeContext = (theme?: DefaultTheme): ThemeContext => {
   if (!theme) {
     return {
       getColor: (path: string, fallback = '') => fallback,
-      getSpacing: (size: string | number) => typeof size === 'number' ? `${size * 8}px` : size,
+      getSpacing: (size: string | number) => (typeof size === 'number' ? `${size * 8}px` : size),
       getShadow: () => 'none',
       theme: undefined,
       isDarkMode: false,
     };
   }
-  
+
   // Cast the theme to our extended interface
   const glassTheme = theme as GlassTheme;
-  
+
   /**
    * Gets a nested property from an object using a dot-notation path
    */
   const getNestedProperty = (obj: any, path: string, fallback?: any): any => {
     if (!obj) return fallback;
-    
+
     const parts = path.split('.');
     let current = obj;
-    
+
     for (const part of parts) {
       if (!current || typeof current !== 'object' || !(part in current)) {
         return fallback;
       }
       current = current[part];
     }
-    
+
     return current !== undefined ? current : fallback;
   };
-  
+
   /**
    * Get color value from theme
    */
-  const getColor = (path: string, fallback: string = ''): string => {
+  const getColor = (path: string, fallback = ''): string => {
     return getNestedProperty(glassTheme.colors || {}, path, fallback);
   };
-  
+
   /**
    * Get spacing value from theme
    */
@@ -132,33 +132,33 @@ export const createThemeContext = (theme?: DefaultTheme): ThemeContext => {
       const spacingUnit = glassTheme.spacing?.unit || 8;
       return `${size * spacingUnit}px`;
     }
-    
+
     if (typeof size === 'string' && glassTheme.spacing && size in glassTheme.spacing) {
       return glassTheme.spacing[size] as string;
     }
-    
+
     return typeof size === 'string' ? size : `${size}px`;
   };
-  
+
   /**
    * Get shadow definition from theme
    */
   const getShadow = (level: number, color?: string): string => {
     const shadows = glassTheme.shadows || [];
     const shadowLevel = Math.min(Math.max(0, level), shadows.length - 1 || 0);
-    
+
     if (!shadows || !shadows[shadowLevel]) {
       return 'none';
     }
-    
+
     // If color is provided, replace the default shadow color
     if (color) {
       return shadows[shadowLevel].replace(/rgba\([^)]+\)/g, color);
     }
-    
+
     return shadows[shadowLevel];
   };
-  
+
   /**
    * Get border radius value from theme
    */
@@ -166,31 +166,31 @@ export const createThemeContext = (theme?: DefaultTheme): ThemeContext => {
     if (glassTheme.borderRadius && size in glassTheme.borderRadius) {
       return glassTheme.borderRadius[size];
     }
-    
+
     return size;
   };
-  
+
   /**
    * Get typography style from theme
    */
   const getTypography = (variant: string): any => {
     return getNestedProperty(glassTheme.typography || {}, variant, {});
   };
-  
+
   /**
    * Get z-index value from theme
    */
   const getZIndex = (component: string): number => {
     return getNestedProperty(glassTheme.zIndex || {}, component, 0);
   };
-  
+
   // Get current color mode and variant
   const colorMode = glassTheme.colorMode || 'light';
   const variant = glassTheme.variant || 'default';
-  
+
   // Get available themes
   const availableThemes = glassTheme.availableThemes || [];
-  
+
   return {
     getColor,
     getSpacing,
@@ -202,6 +202,6 @@ export const createThemeContext = (theme?: DefaultTheme): ThemeContext => {
     variant,
     theme: glassTheme,
     isDarkMode: colorMode === 'dark',
-    availableThemes
+    availableThemes,
   };
 };

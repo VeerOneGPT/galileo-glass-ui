@@ -3,21 +3,17 @@
  */
 
 import Accordion, { GlassAccordion } from './Accordion';
-import AccordionSummary, { GlassAccordionSummary } from './AccordionSummary';
 import AccordionDetails, { GlassAccordionDetails } from './AccordionDetails';
+import AccordionSummary, { GlassAccordionSummary } from './AccordionSummary';
 
-export type { 
-  AccordionProps, 
-  AccordionSummaryProps, 
-  AccordionDetailsProps 
-} from './types';
+export type { AccordionProps, AccordionSummaryProps, AccordionDetailsProps } from './types';
 
 export default Accordion;
-export { 
-  Accordion, 
+export {
+  Accordion,
   GlassAccordion,
-  AccordionSummary, 
+  AccordionSummary,
   GlassAccordionSummary,
-  AccordionDetails, 
-  GlassAccordionDetails 
+  AccordionDetails,
+  GlassAccordionDetails,
 };

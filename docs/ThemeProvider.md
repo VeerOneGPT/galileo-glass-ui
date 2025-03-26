@@ -47,13 +47,16 @@ The ThemeProvider in Galileo Glass UI is built on a sophisticated multi-context 
 ### Key Components
 
 1. **UnifiedThemeProvider**: The core implementation that manages all theme state
-2. **ThemeProvider**: A memoized wrapper with presence tracking
-3. **ColorModeContext**: Manages dark/light mode states
-4. **ThemeVariantContext**: Manages theme variants (nebula, cosmic, etc.)
-5. **StyleUtilsContext**: Provides memoized style utility functions
-6. **GlassEffectsContext**: Manages glass-specific styling utilities
-7. **PreferencesContext**: Handles user preferences including accessibility options
-8. **ResponsiveContext**: Manages responsive breakpoints and media queries
+2. **ThemeProvider**: A memoized wrapper with presence tracking 
+3. **ThemeTransition**: Handles smooth transitions between theme variants
+4. **ThemePerformanceMonitor**: Monitors and optimizes theme-related performance
+5. **GlassContext**: Manages glass-specific theme settings and adaptations
+6. **ColorModeContext**: Manages dark/light mode states
+7. **ThemeVariantContext**: Manages theme variants (nebula, cosmic, etc.)
+8. **StyleUtilsContext**: Provides memoized style utility functions
+9. **GlassEffectsContext**: Manages glass-specific styling utilities
+10. **PreferencesContext**: Handles user preferences including accessibility options
+11. **ResponsiveContext**: Manages responsive breakpoints and media queries
 
 ### Core API
 

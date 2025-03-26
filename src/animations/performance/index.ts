@@ -1,6 +1,6 @@
 /**
  * Animation Performance Optimizations
- * 
+ *
  * Utilities for optimizing animation performance.
  */
 

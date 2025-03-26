@@ -26,6 +26,27 @@ Galileo Glass is a React-based UI framework that implements glass morphism desig
 
 ---
 
+## Documentation Resources
+
+This framework guide serves as the primary entry point for understanding the Galileo Glass UI system. For specific features and implementation details, please refer to the specialized documentation files:
+
+### Core Concepts
+- [Animation System](./AnimationSystem.md) - Complete animation framework
+- [Theme Provider](./ThemeProvider.md) - Theme system implementation details
+- [Physics Animations](./PhysicsAnimations.md) - Physics-based animation system
+- [Specialized Surfaces](./SpecializedSurfaces.md) - Advanced glass surfaces
+- [Glass Charts](./GlassCharts.md) - Data visualization components
+- [Advanced Components](./AdvancedComponents.md) - Complex UI components
+
+### Implementation Guides
+- [Optimization Techniques](./guides/OptimizationTechniques.md) - Performance optimization
+- [Memoization Patterns](./guides/MemoizationPatterns.md) - Caching patterns for performance
+
+### Project Architecture
+- [Project Structure](../STRUCTURE.md) - Overall package architecture
+
+---
+
 ## Table of Contents
 
 1. [Implementation Requirements](#implementation-requirements)  
@@ -580,9 +601,9 @@ const MyAnimatedComponent = styled.div`
 
 #### Documentation
 
-- @Animation System Documentation  
-- @Release Notes  
-- @Known Issues  
+- [Animation System Documentation](./AnimationSystem.md)  
+- [Physics Animation Documentation](./PhysicsAnimations.md)  
+- [Advanced Components Documentation](./AdvancedComponents.md)  
 
 ### Theme Access Pattern
 
@@ -723,6 +744,7 @@ const CustomComponent: React.FC = () => {
 - **GlassStack**: Flexbox stack layout  
 - **GlassPaper**: Surface component  
 - **GlassDivider**: Horizontal/vertical divider  
+- **PageGlassContainer**: Specialized container for full page layouts
 
 ### Typography Components
 
@@ -738,6 +760,12 @@ const CustomComponent: React.FC = () => {
 - **GlassRadio**: Radio button input  
 - **GlassSwitch**: Toggle switch  
 - **GlassSlider**: Range slider  
+- **GlassAutocomplete**: Autocomplete input with suggestions
+- **GlassDatePicker**: Date picker with calendar
+- **GlassTagInput**: Input for managing tags/labels
+- **GlassForm**: Form control components (FormControl, FormGroup, FormHelperText, FormLabel)
+- **GlassToggleButton**: Toggleable button group
+- **GlassRating**: Star rating component
 
 ### Navigation Components
 
@@ -746,6 +774,13 @@ const CustomComponent: React.FC = () => {
 - **GlassBottomNavigation**: Mobile navigation  
 - **GlassBreadcrumbs**: Breadcrumb navigation  
 - **GlassToolbar**: App bar toolbar  
+- **GlassAccordion**: Expandable accordion panels
+- **GlassSpeedDial**: Floating action menu with speed dial
+- **GlassTreeView**: Hierarchical tree navigation
+- **GlassNavigation**: Advanced navigation component
+- **GlassResponsiveNavigation**: Responsive navigation system
+- **GlassPageTransition**: Page transition effects
+- **GlassZSpaceAppLayout**: Advanced 3D layout with Z-space layering
 
 ### Feedback Components
 
@@ -754,6 +789,11 @@ const CustomComponent: React.FC = () => {
 - **GlassProgress**: Progress bars  
 - **GlassSnackbar**: Toast notifications  
 - **GlassSkeleton**: Loading placeholders  
+- **GlassVisualFeedback**: Enhanced visual feedback system
+- **GlassRippleButton**: Button with ripple effects
+- **GlassFocusIndicator**: Accessible focus indicators
+- **GlassStateIndicator**: Component state visualization
+- **GlassCookieConsent**: Cookie consent notifications
 
 ### Data Display Components
 
@@ -763,6 +803,10 @@ const CustomComponent: React.FC = () => {
 - **GlassList**: List containers  
 - **GlassAvatar**: User avatars  
 - **GlassBadge**: Badge indicators  
+- **GlassImageList**: Grid of images with optional captions
+- **GlassKpiCard**: Key performance indicator cards
+- **GlassPerformanceMetricCard**: Performance metric visualization
+- **GlassInteractiveKpiCard**: Interactive data visualization card
 
 ### Utility Components
 
@@ -771,6 +815,20 @@ const CustomComponent: React.FC = () => {
 - **GlassDrawer**: Side drawer  
 - **GlassModal**: Modal dialog  
 - **GlassTooltip**: Contextual tooltips  
+- **GlassThemeComponents**: Theme management (GlassThemeSwitcher, GlassThemeDemo)
+- **GlassPerformanceMonitor**: Performance monitoring utilities
+- **GlassOptimizedContainer**: Performance-optimized container
+- **GlassDynamicAtmosphere**: Dynamic background effects
+
+### Specialized Surface Components
+
+- **GlassDimensionalGlass**: Glass with enhanced 3D depth effects
+- **GlassHeatGlass**: Heat-sensitive glass effects
+- **GlassFrostedGlass**: Frosted glass visual treatment
+- **GlassWidgetGlass**: Specialized glass for dashboard widgets
+- **GlassAtmosphericBackground**: Advanced atmospheric backgrounds
+- **GlassParticleBackground**: Interactive particle system backgrounds
+- **GlassContextAwareGlass**: Content-adaptive glass surfaces
 
 ### Glass Presets
 

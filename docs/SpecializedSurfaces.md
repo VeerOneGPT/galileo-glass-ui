@@ -1681,10 +1681,10 @@ The glass surface system has been tested and optimized for the following browser
 
 ## Resources
 
-- [GalileoGlass.md](../../GalileoGlass.md) – Complete Glass UI framework documentation
-- [Effect Mixins Documentation](../../design/mixins/README.md) – Glass effect mixins reference
-- [Theme Provider Documentation](../../design/ThemeProvider.md) – Theming system guide
-- [Performance Optimization Guide](../../docs/performance.md) – Best practices for efficient rendering
+- [Glass UI Framework Documentation](./GalileoGlass.md) – Complete Glass UI framework documentation
+- [Effect Mixins Reference](./GalileoGlass.md#glass-surface-system) – Glass effect mixins reference
+- [Theme Provider Documentation](./ThemeProvider.md) – Theming system guide
+- [Performance Optimization Guide](./guides/OptimizationTechniques.md) – Best practices for efficient rendering
 - [Glass UI Storybook](https://galileo-glass-ui.storybook.io) – Interactive component examples
 - [Glass UI CodeSandbox Templates](https://codesandbox.io/s/galileo-glass-templates) – Starter templates
 

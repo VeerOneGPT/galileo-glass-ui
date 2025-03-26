@@ -1,30 +1,30 @@
 /**
  * Accessible Animation
- * 
+ *
  * A re-export of accessible animation utilities for convenience
  */
 
 // Export utilities from accessibility folder
-export { 
+export {
   accessibleAnimation,
   conditionalAnimation,
   useAccessibleAnimation,
-  getAccessibleKeyframes
+  getAccessibleKeyframes,
 } from './accessibility/accessibleAnimation';
 
 // Export animations from keyframes directly
-export { 
-  fadeIn, 
-  fadeOut, 
-  slideUp, 
-  slideDown, 
+export {
+  fadeIn,
+  fadeOut,
+  slideUp,
+  slideDown,
   slideInLeft,
   slideInRight,
   slideRight,
-  scaleIn, 
-  scaleOut, 
-  pulse, 
-  spin 
+  scaleIn,
+  scaleOut,
+  pulse,
+  spin,
 } from './keyframes/basic';
 
 // All keyframes collection
@@ -42,5 +42,5 @@ const keyframes = {
   zoomOut: {},
   pulse: {},
   rotate: {},
-  bounce: {}
+  bounce: {},
 };

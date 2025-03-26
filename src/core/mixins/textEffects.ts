@@ -1,12 +1,14 @@
 /**
  * Typography Special Effects
- * 
+ *
  * Advanced text effects for glass UI typography with enhanced styling and animations.
  */
 import { css } from 'styled-components';
-import { ThemeContext } from '../themeContext';
-import { cssWithKebabProps } from '../cssUtils';
+
 import { hexToRGBA, parseColorWithAlpha } from '../colorUtils';
+import { cssWithKebabProps } from '../cssUtils';
+import { ThemeContext } from '../themeContext';
+
 import { textStyles } from './typography/textStyles';
 
 // Define CSSMixin type for consistent return types
@@ -18,115 +20,115 @@ type CSSMixin = ReturnType<typeof css>;
 export interface TextEffectOptions {
   /** Text color */
   color?: string;
-  
+
   /** Text opacity (0-1) */
   opacity?: number;
-  
+
   /** Text shadow color */
   shadowColor?: string;
-  
+
   /** Text shadow blur radius */
   shadowBlur?: number;
-  
+
   /** Text shadow x-offset */
   shadowX?: number;
-  
+
   /** Text shadow y-offset */
   shadowY?: number;
-  
+
   /** Font size (with unit) */
   fontSize?: string;
-  
+
   /** Font weight */
   fontWeight?: number | string;
-  
+
   /** Line height */
   lineHeight?: number | string;
-  
+
   /** Letter spacing */
   letterSpacing?: string;
-  
+
   /** Enable gradient text */
   gradient?: boolean;
-  
+
   /** Gradient start color */
   gradientFrom?: string;
-  
+
   /** Gradient end color */
   gradientTo?: string;
-  
+
   /** Gradient angle in degrees */
   gradientAngle?: number;
-  
+
   /** Enable glowing text */
   glow?: boolean;
-  
+
   /** Glow color */
   glowColor?: string;
-  
+
   /** Glow intensity (0-1) */
   glowIntensity?: number;
-  
+
   /** Enable frosted glass text */
   frosted?: boolean;
-  
+
   /** Frosted text background opacity (0-1) */
   frostedOpacity?: number;
-  
+
   /** Enable 3D text effect */
   enable3D?: boolean;
-  
+
   /** 3D depth in pixels */
   depth3D?: number;
-  
+
   /** Light angle for 3D effect in degrees */
   lightAngle?: number;
-  
+
   /** Enable outlined text */
   outlined?: boolean;
-  
+
   /** Outline width */
   outlineWidth?: string;
-  
+
   /** Outline color */
   outlineColor?: string;
-  
+
   /** Enable neon text effect */
   neon?: boolean;
-  
+
   /** Neon color */
   neonColor?: string;
-  
+
   /** Neon intensity (0-1) */
   neonIntensity?: number;
-  
+
   /** Enable animated text */
   animated?: boolean;
-  
+
   /** Animation type */
   animationType?: 'wave' | 'pulse' | 'typing' | 'fade' | 'shimmer';
-  
+
   /** Animation duration in seconds */
   animationDuration?: number;
-  
+
   /** Enable liquid text effect */
   liquid?: boolean;
-  
+
   /** Enable text mask effect */
   mask?: boolean;
-  
+
   /** Mask image URL */
   maskImage?: string;
-  
+
   /** Enable text blur effect */
   blurred?: boolean;
-  
+
   /** Blur amount in pixels */
   blurAmount?: number;
-  
+
   /** Enable clipping (text-overflow) */
   clipping?: boolean;
-  
+
   /** Line clamp (number of lines before ellipsis) */
   lineClamp?: number;
 }
@@ -161,25 +163,21 @@ const DEFAULT_TEXT_OPTIONS: TextEffectOptions = {
   blurred: false,
   blurAmount: 2,
   clipping: false,
-  lineClamp: 2
+  lineClamp: 2,
 };
 
 /**
  * Create gradient text effect
  */
-const createGradientText = (
-  fromColor: string,
-  toColor: string,
-  angle: number = 120
-): CSSMixin => {
+const createGradientText = (fromColor: string, toColor: string, angle = 120): CSSMixin => {
   // Parse colors with alpha
   const parsedFrom = parseColorWithAlpha(fromColor);
   const parsedTo = parseColorWithAlpha(toColor);
-  
+
   // Format colors for the gradient
   const fromRgba = `rgba(${parsedFrom.r}, ${parsedFrom.g}, ${parsedFrom.b}, ${parsedFrom.a})`;
   const toRgba = `rgba(${parsedTo.r}, ${parsedTo.g}, ${parsedTo.b}, ${parsedTo.a})`;
-  
+
   return cssWithKebabProps`
     background: linear-gradient(${angle}deg, ${fromRgba}, ${toRgba});
     -webkit-background-clip: text;
@@ -193,18 +191,17 @@ const createGradientText = (
 /**
  * Create glowing text effect
  */
-const createGlowingText = (
-  color: string,
-  intensity: number = 0.5
-): CSSMixin => {
+const createGlowingText = (color: string, intensity = 0.5): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const rgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a})`;
-  
+
   // Calculate different levels of glow based on intensity
   const glow1 = `0 0 ${Math.round(intensity * 2)}px ${rgba}`;
   const glow2 = `0 0 ${Math.round(intensity * 4)}px ${rgba}`;
-  const glow3 = `0 0 ${Math.round(intensity * 6)}px rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a * 0.5})`;
-  
+  const glow3 = `0 0 ${Math.round(intensity * 6)}px rgba(${parsedColor.r}, ${parsedColor.g}, ${
+    parsedColor.b
+  }, ${parsedColor.a * 0.5})`;
+
   return cssWithKebabProps`
     color: ${rgba};
     text-shadow: ${glow1}, ${glow2}, ${glow3};
@@ -214,13 +211,10 @@ const createGlowingText = (
 /**
  * Create frosted glass text effect
  */
-const createFrostedText = (
-  color: string,
-  opacity: number = 0.1
-): CSSMixin => {
+const createFrostedText = (color: string, opacity = 0.1): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const rgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a})`;
-  
+
   return cssWithKebabProps`
     color: ${rgba};
     background-color: rgba(255, 255, 255, ${opacity});
@@ -236,43 +230,39 @@ const createFrostedText = (
 /**
  * Create 3D text effect
  */
-const create3DText = (
-  color: string,
-  depth: number = 4,
-  lightAngle: number = 45
-): CSSMixin => {
+const create3DText = (color: string, depth = 4, lightAngle = 45): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const baseColor = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a})`;
-  
+
   // Calculate light and shadow colors
   const lighterR = Math.min(255, parsedColor.r + 50);
   const lighterG = Math.min(255, parsedColor.g + 50);
   const lighterB = Math.min(255, parsedColor.b + 50);
   const lighterColor = `rgba(${lighterR}, ${lighterG}, ${lighterB}, ${parsedColor.a})`;
-  
+
   const darkerR = Math.max(0, parsedColor.r - 50);
   const darkerG = Math.max(0, parsedColor.g - 50);
   const darkerB = Math.max(0, parsedColor.b - 50);
   const darkerColor = `rgba(${darkerR}, ${darkerG}, ${darkerB}, ${parsedColor.a})`;
-  
+
   // Calculate shadow direction based on light angle
   const lightRad = (lightAngle * Math.PI) / 180;
   const shadowX = Math.cos(lightRad + Math.PI) * depth * 0.25; // Opposite of light
   const shadowY = Math.sin(lightRad + Math.PI) * depth * 0.25; // Opposite of light
-  
+
   // Create multi-layered text shadow for 3D effect
   let shadows = '';
   for (let i = 1; i <= depth; i++) {
     const stepX = shadowX * (i / depth);
     const stepY = shadowY * (i / depth);
-    
+
     // Alternate between light and shadow colors for more realistic depth
     const color = i % 2 === 0 ? lighterColor : darkerColor;
-    
+
     shadows += `${stepX.toFixed(2)}px ${stepY.toFixed(2)}px 0 ${color}`;
     if (i < depth) shadows += ', ';
   }
-  
+
   return cssWithKebabProps`
     color: ${baseColor};
     text-shadow: ${shadows};
@@ -283,21 +273,17 @@ const create3DText = (
 /**
  * Create outlined text effect
  */
-const createOutlinedText = (
-  color: string,
-  outlineColor: string,
-  width: string = '1px'
-): CSSMixin => {
+const createOutlinedText = (color: string, outlineColor: string, width = '1px'): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const textColor = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a})`;
-  
+
   const parsedOutline = parseColorWithAlpha(outlineColor);
   const outline = `rgba(${parsedOutline.r}, ${parsedOutline.g}, ${parsedOutline.b}, ${parsedOutline.a})`;
-  
+
   // Convert width to numeric value for calculations
   const numWidth = parseFloat(width);
   const unit = width.replace(/[\d.-]/g, '') || 'px';
-  
+
   // Create text-shadow outline (more compatible than -webkit-text-stroke)
   return cssWithKebabProps`
     color: ${textColor};
@@ -315,19 +301,20 @@ const createOutlinedText = (
 /**
  * Create neon text effect
  */
-const createNeonText = (
-  color: string,
-  intensity: number = 0.7
-): CSSMixin => {
+const createNeonText = (color: string, intensity = 0.7): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const rgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a})`;
-  
+
   // Create multi-layered glow for neon effect
   const glow1 = `0 0 ${Math.round(intensity * 2)}px ${rgba}`;
   const glow2 = `0 0 ${Math.round(intensity * 4)}px ${rgba}`;
-  const glow3 = `0 0 ${Math.round(intensity * 6)}px rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a * 0.5})`;
-  const glow4 = `0 0 ${Math.round(intensity * 10)}px rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${parsedColor.a * 0.3})`;
-  
+  const glow3 = `0 0 ${Math.round(intensity * 6)}px rgba(${parsedColor.r}, ${parsedColor.g}, ${
+    parsedColor.b
+  }, ${parsedColor.a * 0.5})`;
+  const glow4 = `0 0 ${Math.round(intensity * 10)}px rgba(${parsedColor.r}, ${parsedColor.g}, ${
+    parsedColor.b
+  }, ${parsedColor.a * 0.3})`;
+
   return cssWithKebabProps`
     color: ${rgba};
     text-shadow: ${glow1}, ${glow2}, ${glow3}, ${glow4};
@@ -351,7 +338,7 @@ const createNeonText = (
  */
 const createAnimatedText = (
   type: 'wave' | 'pulse' | 'typing' | 'fade' | 'shimmer',
-  duration: number = 3
+  duration = 3
 ): CSSMixin => {
   switch (type) {
     case 'wave':
@@ -402,7 +389,7 @@ const createAnimatedText = (
           }
         }
       `;
-      
+
     case 'pulse':
       return cssWithKebabProps`
         animation: text-pulse ${duration}s ease-in-out infinite;
@@ -418,7 +405,7 @@ const createAnimatedText = (
           }
         }
       `;
-      
+
     case 'typing':
       return cssWithKebabProps`
         position: relative;
@@ -448,7 +435,7 @@ const createAnimatedText = (
           to { width: 100%; }
         }
       `;
-      
+
     case 'fade':
       return cssWithKebabProps`
         animation: text-fade ${duration}s ease-in-out infinite;
@@ -458,7 +445,7 @@ const createAnimatedText = (
           50% { opacity: 0.3; }
         }
       `;
-      
+
     case 'shimmer':
       return cssWithKebabProps`
         position: relative;
@@ -484,7 +471,7 @@ const createAnimatedText = (
           100% { transform: translateX(100%); }
         }
       `;
-      
+
     default:
       return cssWithKebabProps``;
   }
@@ -517,9 +504,7 @@ const createLiquidText = (): CSSMixin => {
 /**
  * Create masked text effect
  */
-const createMaskedText = (
-  maskImage: string
-): CSSMixin => {
+const createMaskedText = (maskImage: string): CSSMixin => {
   return cssWithKebabProps`
     -webkit-mask-image: url(${maskImage});
     mask-image: url(${maskImage});
@@ -533,9 +518,7 @@ const createMaskedText = (
 /**
  * Create blurred text effect
  */
-const createBlurredText = (
-  amount: number = 2
-): CSSMixin => {
+const createBlurredText = (amount = 2): CSSMixin => {
   return cssWithKebabProps`
     filter: blur(${amount}px);
     
@@ -549,9 +532,7 @@ const createBlurredText = (
 /**
  * Create text clipping effect
  */
-const createClippedText = (
-  lineClamp: number = 2
-): CSSMixin => {
+const createClippedText = (lineClamp = 2): CSSMixin => {
   return cssWithKebabProps`
     overflow: hidden;
     text-overflow: ellipsis;
@@ -576,9 +557,9 @@ export const textEffects = (
   // Merge with default options
   const mergedOptions: TextEffectOptions = {
     ...DEFAULT_TEXT_OPTIONS,
-    ...options
+    ...options,
   };
-  
+
   const {
     color,
     opacity,
@@ -617,18 +598,21 @@ export const textEffects = (
     blurred,
     blurAmount,
     clipping,
-    lineClamp
+    lineClamp,
   } = mergedOptions;
-  
+
   // Get colors from theme or options
-  const textColor = color || (themeContext.getColor ? themeContext.getColor('text.primary', '#000000') : '#000000');
+  const textColor =
+    color || (themeContext.getColor ? themeContext.getColor('text.primary', '#000000') : '#000000');
   const parsedColor = parseColorWithAlpha(textColor);
   const textRgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${opacity})`;
-  
+
   const shadowColorValue = shadowColor || textColor;
   const parsedShadow = parseColorWithAlpha(shadowColorValue);
-  const shadowRgba = `rgba(${parsedShadow.r}, ${parsedShadow.g}, ${parsedShadow.b}, ${opacity * 0.5})`;
-  
+  const shadowRgba = `rgba(${parsedShadow.r}, ${parsedShadow.g}, ${parsedShadow.b}, ${
+    opacity * 0.5
+  })`;
+
   // Build base text styles
   let styles = cssWithKebabProps`
     color: ${textRgba};
@@ -636,9 +620,13 @@ export const textEffects = (
     ${fontWeight ? `font-weight: ${fontWeight};` : ''}
     ${lineHeight ? `line-height: ${lineHeight};` : ''}
     ${letterSpacing ? `letter-spacing: ${letterSpacing};` : ''}
-    ${(shadowBlur || shadowX || shadowY) ? `text-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowRgba};` : ''}
+    ${
+      shadowBlur || shadowX || shadowY
+        ? `text-shadow: ${shadowX}px ${shadowY}px ${shadowBlur}px ${shadowRgba};`
+        : ''
+    }
   `;
-  
+
   // Apply special text effects (in order of visual priority)
   if (gradient && gradientFrom && gradientTo) {
     styles = cssWithKebabProps`
@@ -646,21 +634,21 @@ export const textEffects = (
       ${createGradientText(gradientFrom, gradientTo, gradientAngle)}
     `;
   }
-  
+
   if (enable3D) {
     styles = cssWithKebabProps`
       ${styles}
       ${create3DText(textColor, depth3D, lightAngle)}
     `;
   }
-  
+
   if (outlined && outlineColor) {
     styles = cssWithKebabProps`
       ${styles}
       ${createOutlinedText(textColor, outlineColor, outlineWidth)}
     `;
   }
-  
+
   if (neon) {
     const neonColorValue = neonColor || textColor;
     styles = cssWithKebabProps`
@@ -674,48 +662,48 @@ export const textEffects = (
       ${createGlowingText(glowColorValue, glowIntensity)}
     `;
   }
-  
+
   if (frosted) {
     styles = cssWithKebabProps`
       ${styles}
       ${createFrostedText(textColor, frostedOpacity)}
     `;
   }
-  
+
   if (liquid) {
     styles = cssWithKebabProps`
       ${styles}
       ${createLiquidText()}
     `;
   }
-  
+
   if (mask && maskImage) {
     styles = cssWithKebabProps`
       ${styles}
       ${createMaskedText(maskImage)}
     `;
   }
-  
+
   if (blurred) {
     styles = cssWithKebabProps`
       ${styles}
       ${createBlurredText(blurAmount)}
     `;
   }
-  
+
   if (clipping) {
     styles = cssWithKebabProps`
       ${styles}
       ${createClippedText(lineClamp)}
     `;
   }
-  
+
   if (animated) {
     styles = cssWithKebabProps`
       ${styles}
       ${createAnimatedText(animationType || 'wave', animationDuration || 3)}
     `;
   }
-  
+
   return styles;
 };

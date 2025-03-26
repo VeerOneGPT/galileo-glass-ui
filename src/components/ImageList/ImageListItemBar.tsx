@@ -1,14 +1,16 @@
 /**
  * ImageListItemBar Component
- * 
+ *
  * A title bar for an ImageListItem with glass morphism styling.
  */
 import React, { forwardRef, useState } from 'react';
 import styled from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
-import { ImageListItemBarProps } from './types';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+import { ImageListItemBarProps } from './types';
 
 // Styled components
 const ImageListItemBarRoot = styled.div<{
@@ -19,35 +21,37 @@ const ImageListItemBarRoot = styled.div<{
   $isHovered: boolean;
   $reducedMotion: boolean;
 }>`
-  position: ${props => props.$position === 'below' ? 'relative' : 'absolute'};
+  position: ${props => (props.$position === 'below' ? 'relative' : 'absolute')};
   left: 0;
   right: 0;
-  
+
   /* Position at top or bottom */
-  ${props => props.$position === 'top' ? 'top: 0;' : ''}
-  ${props => props.$position === 'bottom' ? 'bottom: 0;' : ''}
+  ${props => (props.$position === 'top' ? 'top: 0;' : '')}
+  ${props => (props.$position === 'bottom' ? 'bottom: 0;' : '')}
   
   /* Glass styling */
-  ${props => props.$glass && glassSurface({
-    elevation: 1,
-    blurStrength: 'medium',
-    borderOpacity: 'light',
-    themeContext: createThemeContext(props.theme)
-  })}
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'medium',
+      borderOpacity: 'light',
+      themeContext: createThemeContext(props.theme),
+    })}
   
   /* Base styling */
-  background-color: ${props => props.$glass ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.5)'};
+  background-color: ${props => (props.$glass ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.5)')};
   color: rgba(255, 255, 255, 0.9);
   padding: 8px 12px;
   display: flex;
   align-items: center;
-  
+
   /* Action positioning */
-  flex-direction: ${props => props.$actionPosition === 'left' ? 'row-reverse' : 'row'};
-  
+  flex-direction: ${props => (props.$actionPosition === 'left' ? 'row-reverse' : 'row')};
+
   /* Show on hover */
-  opacity: ${props => props.$showOnHover ? (props.$isHovered ? 1 : 0) : 1};
-  transition: ${props => !props.$reducedMotion ? 'opacity 0.3s ease' : 'none'};
+  opacity: ${props => (props.$showOnHover ? (props.$isHovered ? 1 : 0) : 1)};
+  transition: ${props => (!props.$reducedMotion ? 'opacity 0.3s ease' : 'none')};
 `;
 
 const TitleWrapper = styled.div`
@@ -79,7 +83,7 @@ const ActionIconContainer = styled.div<{
 }>`
   display: flex;
   align-items: center;
-  margin: ${props => props.$actionPosition === 'left' ? '0 8px 0 0' : '0 0 0 8px'};
+  margin: ${props => (props.$actionPosition === 'left' ? '0 8px 0 0' : '0 0 0 8px')};
 `;
 
 /**
@@ -102,13 +106,13 @@ function ImageListItemBarComponent(
     showOnHover = false,
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // State for hover
   const [isHovered, setIsHovered] = useState(false);
-  
+
   return (
     <ImageListItemBarRoot
       ref={ref}
@@ -128,13 +132,11 @@ function ImageListItemBarComponent(
         {title && <Title>{title}</Title>}
         {subtitle && <Subtitle>{subtitle}</Subtitle>}
       </TitleWrapper>
-      
+
       {actionIcon && (
-        <ActionIconContainer $actionPosition={actionPosition}>
-          {actionIcon}
-        </ActionIconContainer>
+        <ActionIconContainer $actionPosition={actionPosition}>{actionIcon}</ActionIconContainer>
       )}
-      
+
       {children}
     </ImageListItemBarRoot>
   );
@@ -142,14 +144,14 @@ function ImageListItemBarComponent(
 
 /**
  * ImageListItemBar Component
- * 
+ *
  * A title bar for an ImageListItem.
  */
 const ImageListItemBar = forwardRef(ImageListItemBarComponent);
 
 /**
  * GlassImageListItemBar Component
- * 
+ *
  * Glass variant of the ImageListItemBar component.
  */
 const GlassImageListItemBar = forwardRef<HTMLDivElement, ImageListItemBarProps>((props, ref) => (

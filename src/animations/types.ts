@@ -13,7 +13,7 @@ export enum AnimationComplexity {
   BASIC = 'basic',
   STANDARD = 'standard',
   ENHANCED = 'enhanced',
-  COMPLEX = 'complex'
+  COMPLEX = 'complex',
 }
 
 /**
@@ -24,7 +24,7 @@ export enum MotionSensitivityLevel {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  MAXIMUM = 'maximum'
+  MAXIMUM = 'maximum',
 }
 
 /**
@@ -61,7 +61,7 @@ export enum AnimationIntensity {
   STANDARD = 'standard',
   STRONG = 'strong',
   HIGH = 'high',
-  EXPRESSIVE = 'expressive'
+  EXPRESSIVE = 'expressive',
 }
 
 /**
@@ -182,7 +182,7 @@ export enum GestaltPattern {
   SIMILARITY = 'similarity',
   CONTINUITY = 'continuity',
   CLOSURE = 'closure',
-  COMMON_FATE = 'common-fate'
+  COMMON_FATE = 'common-fate',
 }
 
 /**
@@ -203,6 +203,6 @@ export interface OptimizedAnimationOptions extends AnimationOptions {
 export function createKeyframes(name: string, frames: Keyframes): KeyframeDefinition {
   return {
     name,
-    keyframes: frames
+    keyframes: frames,
   };
 }

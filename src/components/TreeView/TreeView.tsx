@@ -1,12 +1,14 @@
 /**
  * Glass TreeView Component
- * 
+ *
  * A hierarchical list with collapsible items.
  */
 import React, { forwardRef, useState, useCallback, useMemo, createContext } from 'react';
 import styled from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
+
 import { TreeViewProps, TreeViewContextProps } from './types';
 
 // Create context for TreeView state
@@ -24,24 +26,28 @@ const TreeViewRoot = styled.ul<{
   padding: 0;
   outline: 0;
   width: 100%;
-  
+
   /* Glass styling */
-  ${props => props.$glass && glassSurface({
-    elevation: 1,
-    blurStrength: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Glass styling */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     border-radius: 8px;
     padding: 8px;
   `}
   
   /* Color variations */
   ${props => {
-    switch(props.$color) {
+    switch (props.$color) {
       case 'primary':
         return `--tree-view-color: rgba(99, 102, 241, 0.9);`;
       case 'secondary':
@@ -62,7 +68,7 @@ const TreeViewRoot = styled.ul<{
   
   /* Size variations */
   ${props => {
-    switch(props.$size) {
+    switch (props.$size) {
       case 'small':
         return `font-size: 0.8125rem;`;
       case 'large':
@@ -74,7 +80,9 @@ const TreeViewRoot = styled.ul<{
   }}
   
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     opacity: 0.6;
     pointer-events: none;
   `}
@@ -83,10 +91,7 @@ const TreeViewRoot = styled.ul<{
 /**
  * TreeView Component Implementation
  */
-function TreeViewComponent(
-  props: TreeViewProps,
-  ref: React.ForwardedRef<HTMLUListElement>
-) {
+function TreeViewComponent(props: TreeViewProps, ref: React.ForwardedRef<HTMLUListElement>) {
   const {
     defaultExpanded = [],
     defaultSelected = [],
@@ -106,83 +111,108 @@ function TreeViewComponent(
     disabled = false,
     ...rest
   } = props;
-  
+
   // State for uncontrolled component
   const [internalExpanded, setInternalExpanded] = useState<string[]>(defaultExpanded);
   const [internalSelected, setInternalSelected] = useState<string[]>(
     multiSelect ? defaultSelected : defaultSelected.length ? [defaultSelected[0]] : []
   );
   const [internalFocused, setInternalFocused] = useState<string | null>(defaultFocused || null);
-  
+
   // Determine if component is controlled
   const isExpandedControlled = controlledExpanded !== undefined;
   const isSelectedControlled = controlledSelected !== undefined;
-  
+
   // Get values based on controlled/uncontrolled state
   const expanded = isExpandedControlled ? controlledExpanded : internalExpanded;
-  const selected = isSelectedControlled 
-    ? (Array.isArray(controlledSelected) ? controlledSelected : [controlledSelected].filter(Boolean))
+  const selected = isSelectedControlled
+    ? Array.isArray(controlledSelected)
+      ? controlledSelected
+      : [controlledSelected].filter(Boolean)
     : internalSelected;
-  
+
   // Toggle node expansion
-  const toggleNode = useCallback((event: React.SyntheticEvent, nodeId: string) => {
-    const newExpanded = expanded.includes(nodeId)
-      ? expanded.filter(id => id !== nodeId)
-      : [...expanded, nodeId];
-    
-    if (!isExpandedControlled) {
-      setInternalExpanded(newExpanded);
-    }
-    
-    if (onNodeToggle) {
-      onNodeToggle(event, newExpanded);
-    }
-  }, [expanded, isExpandedControlled, onNodeToggle]);
-  
+  const toggleNode = useCallback(
+    (event: React.SyntheticEvent, nodeId: string) => {
+      const newExpanded = expanded.includes(nodeId)
+        ? expanded.filter(id => id !== nodeId)
+        : [...expanded, nodeId];
+
+      if (!isExpandedControlled) {
+        setInternalExpanded(newExpanded);
+      }
+
+      if (onNodeToggle) {
+        onNodeToggle(event, newExpanded);
+      }
+    },
+    [expanded, isExpandedControlled, onNodeToggle]
+  );
+
   // Select node
-  const selectNode = useCallback((event: React.SyntheticEvent, nodeId: string) => {
-    let newSelected: string[];
-    
-    if (multiSelect) {
-      newSelected = selected.includes(nodeId)
-        ? selected.filter(id => id !== nodeId)
-        : [...selected, nodeId];
-    } else {
-      newSelected = [nodeId];
-    }
-    
-    if (!isSelectedControlled) {
-      setInternalSelected(newSelected);
-    }
-    
-    if (onNodeSelect) {
-      onNodeSelect(event, multiSelect ? newSelected : nodeId);
-    }
-  }, [selected, isSelectedControlled, onNodeSelect, multiSelect]);
-  
+  const selectNode = useCallback(
+    (event: React.SyntheticEvent, nodeId: string) => {
+      let newSelected: string[];
+
+      if (multiSelect) {
+        newSelected = selected.includes(nodeId)
+          ? selected.filter(id => id !== nodeId)
+          : [...selected, nodeId];
+      } else {
+        newSelected = [nodeId];
+      }
+
+      if (!isSelectedControlled) {
+        setInternalSelected(newSelected);
+      }
+
+      if (onNodeSelect) {
+        onNodeSelect(event, multiSelect ? newSelected : nodeId);
+      }
+    },
+    [selected, isSelectedControlled, onNodeSelect, multiSelect]
+  );
+
   // Focus node
-  const focusNode = useCallback((event: React.SyntheticEvent, nodeId: string) => {
-    setInternalFocused(nodeId);
-    
-    if (onNodeFocus) {
-      onNodeFocus(event, nodeId);
-    }
-  }, [onNodeFocus]);
-  
+  const focusNode = useCallback(
+    (event: React.SyntheticEvent, nodeId: string) => {
+      setInternalFocused(nodeId);
+
+      if (onNodeFocus) {
+        onNodeFocus(event, nodeId);
+      }
+    },
+    [onNodeFocus]
+  );
+
   // Create context value
-  const contextValue = useMemo<TreeViewContextProps>(() => ({
-    expanded,
-    selected,
-    focused: internalFocused,
-    multiSelect,
-    size,
-    disabled,
-    glass,
-    selectNode,
-    toggleNode,
-    focusNode
-  }), [expanded, selected, internalFocused, multiSelect, size, disabled, glass, selectNode, toggleNode, focusNode]);
-  
+  const contextValue = useMemo<TreeViewContextProps>(
+    () => ({
+      expanded,
+      selected,
+      focused: internalFocused,
+      multiSelect,
+      size,
+      disabled,
+      glass,
+      selectNode,
+      toggleNode,
+      focusNode,
+    }),
+    [
+      expanded,
+      selected,
+      internalFocused,
+      multiSelect,
+      size,
+      disabled,
+      glass,
+      selectNode,
+      toggleNode,
+      focusNode,
+    ]
+  );
+
   return (
     <TreeViewContext.Provider value={contextValue}>
       <TreeViewRoot
@@ -205,14 +235,14 @@ function TreeViewComponent(
 
 /**
  * TreeView Component
- * 
+ *
  * A hierarchical list with collapsible items.
  */
 const TreeView = forwardRef(TreeViewComponent);
 
 /**
  * GlassTreeView Component
- * 
+ *
  * Glass variant of the TreeView component.
  */
 const GlassTreeView = forwardRef<HTMLUListElement, TreeViewProps>((props, ref) => (

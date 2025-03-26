@@ -1,5 +1,4 @@
-import { useContext, useMemo } from 'react';
-import { createContext } from 'react';
+import { useContext, useMemo, createContext } from 'react';
 
 // Define theme types
 export type ColorMode = 'light' | 'dark' | 'system';
@@ -310,14 +309,15 @@ const darkColors: ThemeColors = {
 
 // Create theme for specified color mode and variant
 const createTheme = (colorMode: ColorMode, themeVariant: ThemeVariant): ThemeOptions => {
-  const isDarkMode = colorMode === 'dark' || 
+  const isDarkMode =
+    colorMode === 'dark' ||
     (colorMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  
+
   const baseColors = isDarkMode ? darkColors : lightColors;
-  
+
   // Apply variant-specific adjustments
   let variantColors = { ...baseColors };
-  
+
   switch (themeVariant) {
     case 'dashboard':
       // More saturation for dashboard
@@ -327,7 +327,7 @@ const createTheme = (colorMode: ColorMode, themeVariant: ThemeVariant): ThemeOpt
         background: isDarkMode ? '#0F172A' : '#F8FAFC',
       };
       break;
-      
+
     case 'marketing':
       // More contrast for marketing
       variantColors = {
@@ -336,7 +336,7 @@ const createTheme = (colorMode: ColorMode, themeVariant: ThemeVariant): ThemeOpt
         secondary: isDarkMode ? '#A78BFA' : '#7C3AED',
       };
       break;
-      
+
     case 'minimal':
       // More subtle for minimal
       variantColors = {
@@ -345,7 +345,7 @@ const createTheme = (colorMode: ColorMode, themeVariant: ThemeVariant): ThemeOpt
         background: isDarkMode ? '#111827' : '#FFFFFF',
       };
       break;
-      
+
     case 'immersive':
       // Deeper colors for immersive
       variantColors = {
@@ -355,11 +355,11 @@ const createTheme = (colorMode: ColorMode, themeVariant: ThemeVariant): ThemeOpt
         background: isDarkMode ? '#0F172A' : '#F1F5F9',
       };
       break;
-      
+
     default:
       break;
   }
-  
+
   return {
     colorMode,
     themeVariant,
@@ -385,22 +385,22 @@ export const GlassThemeContext = createContext<GlassThemeContextValue>({
 
 /**
  * Hook to access the current theme
- * 
+ *
  * @returns The current theme and methods to change it
  */
 export const useGlassTheme = (): GlassThemeContextValue => {
   const context = useContext(GlassThemeContext);
-  
+
   if (!context) {
     throw new Error('useGlassTheme must be used within a GlassThemeProvider');
   }
-  
+
   return context;
 };
 
 /**
  * Hook to access a specific theme color
- * 
+ *
  * @param colorKey - The color key to retrieve
  * @returns The color value from the current theme
  */
@@ -408,23 +408,23 @@ export const useThemeColor = (
   colorKey: keyof ThemeColors | 'text.primary' | 'text.secondary' | 'text.disabled'
 ): string => {
   const { theme } = useGlassTheme();
-  
+
   // Handle nested text properties
   if (colorKey === 'text.primary') {
     const primary = theme.colors.text?.primary;
     return typeof primary === 'string' ? primary : (primary as any)?.primary || '#000000';
   }
-  
+
   if (colorKey === 'text.secondary') {
     const secondary = theme.colors.text?.secondary;
     return typeof secondary === 'string' ? secondary : (secondary as any)?.secondary || '#666666';
   }
-  
+
   if (colorKey === 'text.disabled') {
     const disabled = theme.colors.text?.disabled;
     return typeof disabled === 'string' ? disabled : (disabled as any)?.disabled || '#999999';
   }
-  
+
   // Handle regular color properties
   const color = theme.colors[colorKey as keyof ThemeColors];
   return typeof color === 'string' ? color : (color as any)?.main || '#666666';
@@ -432,7 +432,7 @@ export const useThemeColor = (
 
 /**
  * Hook to get all theme color values
- * 
+ *
  * @returns All colors from the current theme
  */
 export const useThemeColors = (): ThemeColors => {
@@ -442,7 +442,7 @@ export const useThemeColors = (): ThemeColors => {
 
 /**
  * Hook to get spacing values from the theme
- * 
+ *
  * @returns The spacing configuration from the current theme
  */
 export const useThemeSpacing = (): ThemeSpacing => {
@@ -452,23 +452,23 @@ export const useThemeSpacing = (): ThemeSpacing => {
 
 /**
  * Hook to get a spacing value by scale
- * 
+ *
  * @param scale - The spacing scale (number will be multiplied by unit)
  * @returns The calculated spacing value in pixels
  */
 export const useSpacing = (scale: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl'): number => {
   const { theme } = useGlassTheme();
-  
+
   if (typeof scale === 'number') {
     return theme.spacing.unit * scale;
   }
-  
+
   return theme.spacing[scale];
 };
 
 /**
  * Hook to get glass effect values
- * 
+ *
  * @returns Glass effect configuration from the current theme
  */
 export const useGlassEffectValues = (): ThemeEffects['glassEffects'] => {
@@ -478,7 +478,7 @@ export const useGlassEffectValues = (): ThemeEffects['glassEffects'] => {
 
 /**
  * Hook to check if dark mode is active
- * 
+ *
  * @returns True if dark mode is active
  */
 export const useIsDarkMode = (): boolean => {

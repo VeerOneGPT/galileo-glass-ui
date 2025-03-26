@@ -1,86 +1,87 @@
 /**
  * Accessible Animation Presets
- * 
+ *
  * A collection of animation presets that respect user's motion preferences
  * and provide sensible fallbacks for reduced motion settings.
  */
 import { keyframes } from 'styled-components';
+
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 // Animation timing presets
 export const animationTimings = {
   /** Fast animation for small UI elements (100-150ms) */
   instant: '0.1s',
-  
+
   /** Quick animation for small UI elements (150-200ms) */
   fast: '0.18s',
-  
+
   /** Standard animation for most UI interactions (250-350ms) */
   normal: '0.3s',
-  
+
   /** Slower animation for emphasized transitions (400-500ms) */
   emphasized: '0.45s',
-  
+
   /** Long animation for page transitions (600-800ms) */
-  pageTransition: '0.7s'
+  pageTransition: '0.7s',
 };
 
 // Animation easing presets
 export const animationEasings = {
   /** Standard easing for most animations */
   standard: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
-  
+
   /** Easing for elements entering the screen */
   enter: 'cubic-bezier(0.0, 0.0, 0.2, 1)',
-  
+
   /** Easing for elements leaving the screen */
   exit: 'cubic-bezier(0.4, 0.0, 1, 1)',
-  
+
   /** Sharp easing for emphasized motions */
   emphasized: 'cubic-bezier(0.4, 0.0, 0.6, 1)',
-  
+
   /** Elastic/bouncy easing for playful elements */
   elastic: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-  
+
   /** Linear progression for constant speed */
-  linear: 'linear'
+  linear: 'linear',
 };
 
 // Animation intensity levels
 export enum AnimationIntensity {
   /** No animation */
   NONE = 'none',
-  
+
   /** Minimal subtle animations */
   SUBTLE = 'subtle',
-  
+
   /** Standard level animations */
   STANDARD = 'standard',
-  
+
   /** Expressive, emphasis animations */
-  EXPRESSIVE = 'expressive'
+  EXPRESSIVE = 'expressive',
 }
 
 // Types for animation presets
 export interface AnimationPreset {
   /** The animation keyframes */
   keyframes: ReturnType<typeof keyframes>;
-  
+
   /** Default animation duration */
   duration: string;
-  
+
   /** Default animation easing */
   easing: string;
-  
+
   /** Default animation delay */
   delay?: string;
-  
+
   /** Default animation fill mode */
   fillMode?: 'none' | 'forwards' | 'backwards' | 'both';
-  
+
   /** Reduced motion alternative */
   reducedMotionAlternative?: AnimationPreset | null;
-  
+
   /** Animation intensity level */
   intensity: AnimationIntensity;
 }
@@ -94,7 +95,7 @@ export const fadeAnimation: AnimationPreset = {
   duration: animationTimings.normal,
   easing: animationEasings.standard,
   fillMode: 'both',
-  intensity: AnimationIntensity.SUBTLE
+  intensity: AnimationIntensity.SUBTLE,
 };
 
 // Fade animation with scale
@@ -113,7 +114,7 @@ export const fadeScaleAnimation: AnimationPreset = {
   easing: animationEasings.standard,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide up animation
@@ -132,7 +133,7 @@ export const slideUpAnimation: AnimationPreset = {
   easing: animationEasings.enter,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide down animation
@@ -151,7 +152,7 @@ export const slideDownAnimation: AnimationPreset = {
   easing: animationEasings.enter,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide left animation
@@ -170,7 +171,7 @@ export const slideLeftAnimation: AnimationPreset = {
   easing: animationEasings.enter,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide right animation
@@ -189,7 +190,7 @@ export const slideRightAnimation: AnimationPreset = {
   easing: animationEasings.enter,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Glass reveal animation
@@ -210,7 +211,7 @@ export const glassRevealAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Scale animation
@@ -223,7 +224,7 @@ export const scaleAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Rotate animation
@@ -236,7 +237,7 @@ export const rotateAnimation: AnimationPreset = {
   easing: animationEasings.elastic,
   fillMode: 'both',
   reducedMotionAlternative: null,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Page transition animation
@@ -262,9 +263,9 @@ export const pageTransitionAnimation: AnimationPreset = {
     duration: '0.2s',
     easing: animationEasings.standard,
     fillMode: 'both',
-    intensity: AnimationIntensity.SUBTLE
+    intensity: AnimationIntensity.SUBTLE,
   },
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Staggered reveal animation
@@ -283,7 +284,7 @@ export const staggeredAnimation: AnimationPreset = {
   easing: animationEasings.standard,
   fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Attention-getting pulse animation
@@ -297,7 +298,7 @@ export const pulseAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'both',
   reducedMotionAlternative: null,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Collection of all animation presets
@@ -313,7 +314,7 @@ export const animationPresets = {
   rotate: rotateAnimation,
   pageTransition: pageTransitionAnimation,
   staggered: staggeredAnimation,
-  pulse: pulseAnimation
+  pulse: pulseAnimation,
 };
 
 /**
@@ -323,20 +324,22 @@ export const animationPresets = {
  */
 export const useAccessibleAnimation = (preset: AnimationPreset): AnimationPreset => {
   const prefersReducedMotion = useReducedMotion();
-  
+
   if (prefersReducedMotion && preset.reducedMotionAlternative !== undefined) {
-    return preset.reducedMotionAlternative || {
-      keyframes: keyframes`
+    return (
+      preset.reducedMotionAlternative || {
+        keyframes: keyframes`
         from { opacity: 0; }
         to { opacity: 1; }
       `,
-      duration: '0.1s',
-      easing: animationEasings.standard,
-      fillMode: 'both',
-      intensity: AnimationIntensity.SUBTLE
-    };
+        duration: '0.1s',
+        easing: animationEasings.standard,
+        fillMode: 'both',
+        intensity: AnimationIntensity.SUBTLE,
+      }
+    );
   }
-  
+
   return preset;
 };
 
@@ -358,20 +361,22 @@ export const getAccessibleAnimation = (
     playState?: 'running' | 'paused';
   }
 ): string => {
-  const prefersReducedMotion = typeof window !== 'undefined' 
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
-    : false;
-  
+  const prefersReducedMotion =
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+
   // Use reduced motion alternative if available and needed
-  const finalPreset = prefersReducedMotion && preset.reducedMotionAlternative !== undefined
-    ? preset.reducedMotionAlternative || fadeAnimation
-    : preset;
-  
+  const finalPreset =
+    prefersReducedMotion && preset.reducedMotionAlternative !== undefined
+      ? preset.reducedMotionAlternative || fadeAnimation
+      : preset;
+
   // No animation if reduced motion preference and no alternative
   if (prefersReducedMotion && preset.reducedMotionAlternative === undefined) {
     return 'none';
   }
-  
+
   // Build the animation string
   return `
     animation-name: ${finalPreset.keyframes.name};

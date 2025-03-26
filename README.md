@@ -99,8 +99,8 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <th>📚 Core Docs</th>
       <th>🎨 Styling</th>
       <th>🔄 Animation</th>
-      <th>📊 Charts</th>
-      <th>🏗️ Structure</th>
+      <th>📊 Advanced Features</th>
+      <th>🏗️ Development</th>
     </tr>
     <tr>
       <td><a href="./docs/GalileoGlass.md">Framework Guide</a></td>
@@ -113,8 +113,15 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/ThemeProvider.md">Theme System</a></td>
       <td><a href="./docs/GalileoGlass.md#z-space-layering">Z-Space Layering</a></td>
       <td><a href="./docs/AnimationSystem.md#physics-animation-system-for-modern-glass-ui">Physics Animations</a></td>
-      <td><a href="./docs/GlassCharts.md#glass-styling-implementation">Chart Styling</a></td>
-      <td><a href="./STRUCTURE.md#component-pattern">Component Patterns</a></td>
+      <td><a href="./docs/SpecializedSurfaces.md">Specialized Surfaces</a></td>
+      <td><a href="./docs/guides/OptimizationTechniques.md">Optimization Techniques</a></td>
+    </tr>
+    <tr>
+      <td><a href="./docs/AdvancedComponents.md">Advanced Components</a></td>
+      <td><a href="./docs/GalileoGlass.md#common-patterns">Common Patterns</a></td>
+      <td><a href="./docs/AnimationSystem.md#advanced-animation-systems">Advanced Animations</a></td>
+      <td><a href="./docs/PhysicsAnimations.md">Physics System</a></td>
+      <td><a href="./docs/guides/MemoizationPatterns.md">Memoization Patterns</a></td>
     </tr>
   </table>
 </div>
@@ -207,6 +214,12 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
           <li>Switch</li>
           <li>Select</li>
           <li>Slider</li>
+          <li>Autocomplete</li>
+          <li>DatePicker</li>
+          <li>TagInput</li>
+          <li>Form Components</li>
+          <li>ToggleButton</li>
+          <li>Rating</li>
         </ul>
       </td>
       <td>
@@ -214,6 +227,14 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
           <li>Tabs, Tab</li>
           <li>Pagination</li>
           <li>BottomNavigation</li>
+          <li>Accordion</li>
+          <li>SpeedDial</li>
+          <li>TreeView</li>
+          <li>Breadcrumbs</li>
+          <li>GlassNavigation</li>
+          <li>ResponsiveNavigation</li>
+          <li>PageTransition</li>
+          <li>ZSpaceAppLayout</li>
         </ul>
       </td>
     </tr>
@@ -221,7 +242,7 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
       <th align="center">📱 Feedback</th>
       <th align="center">📊 Data Display</th>
       <th align="center">🛠️ Utility</th>
-      <th align="center">📈 Charts</th>
+      <th align="center">📈 Charts & Specialized</th>
     </tr>
     <tr valign="top">
       <td>
@@ -230,6 +251,11 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
           <li>Progress</li>
           <li>Snackbar</li>
           <li>Loader</li>
+          <li>VisualFeedback</li>
+          <li>RippleButton</li>
+          <li>FocusIndicator</li>
+          <li>StateIndicator</li>
+          <li>CookieConsent</li>
         </ul>
       </td>
       <td>
@@ -240,6 +266,10 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
           <li>Chip</li>
           <li>Avatar</li>
           <li>Badge</li>
+          <li>ImageList</li>
+          <li>KpiCard</li>
+          <li>PerformanceMetricCard</li>
+          <li>InteractiveKpiCard</li>
         </ul>
       </td>
       <td>
@@ -250,6 +280,10 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
           <li>Tooltip</li>
           <li>Icon</li>
           <li>Fab</li>
+          <li>ThemeComponents</li>
+          <li>PerformanceMonitor</li>
+          <li>OptimizedGlassContainer</li>
+          <li>DynamicAtmosphere</li>
         </ul>
       </td>
       <td>
@@ -258,6 +292,15 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
           <li>LineChart</li>
           <li>AreaChart</li>
           <li>PieChart</li>
+          <li>GlassChart</li>
+          <li>DimensionalGlass</li>
+          <li>HeatGlass</li>
+          <li>FrostedGlass</li>
+          <li>PageGlassContainer</li>
+          <li>WidgetGlass</li>
+          <li>AtmosphericBackground</li>
+          <li>ParticleBackground</li>
+          <li>ContextAwareGlass</li>
         </ul>
       </td>
     </tr>

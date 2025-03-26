@@ -1,13 +1,15 @@
 /**
  * HeatGlass Component
- * 
+ *
  * A glass surface with heat distortion effects.
  */
 import React, { forwardRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { HeatGlassProps } from './types';
 
 // Heat distortion animation
@@ -65,52 +67,68 @@ const HeatGlassContainer = styled.div<{
 }>`
   position: relative;
   display: block;
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
-  height: ${props => props.$fullHeight ? '100%' : 'auto'};
-  border-radius: ${props => typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
-  padding: ${props => typeof props.$padding === 'number' ? `${props.$padding}px` : props.$padding};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
+  height: ${props => (props.$fullHeight ? '100%' : 'auto')};
+  border-radius: ${props =>
+    typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
+  padding: ${props =>
+    typeof props.$padding === 'number' ? `${props.$padding}px` : props.$padding};
   box-sizing: border-box;
   overflow: hidden;
-  
+
   /* Apply glass surface effect */
-  ${props => glassSurface({
-    elevation: props.$elevation,
-    blurStrength: props.$blurStrength,
-    borderOpacity: props.$borderOpacity,
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    glassSurface({
+      elevation: props.$elevation,
+      blurStrength: props.$blurStrength,
+      borderOpacity: props.$borderOpacity,
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Custom background color */
   background-color: ${props => props.$backgroundColor};
-  
+
   /* Border */
   border-width: ${props => props.$borderWidth}px;
   border-style: solid;
   border-color: ${props => {
     switch (props.$borderOpacity) {
-      case 'none': return 'transparent';
-      case 'subtle': return 'rgba(255, 255, 255, 0.1)';
-      case 'light': return 'rgba(255, 255, 255, 0.2)';
-      case 'medium': return 'rgba(255, 255, 255, 0.3)';
-      case 'strong': return 'rgba(255, 255, 255, 0.4)';
+      case 'none':
+        return 'transparent';
+      case 'subtle':
+        return 'rgba(255, 255, 255, 0.1)';
+      case 'light':
+        return 'rgba(255, 255, 255, 0.2)';
+      case 'medium':
+        return 'rgba(255, 255, 255, 0.3)';
+      case 'strong':
+        return 'rgba(255, 255, 255, 0.4)';
     }
   }};
-  
+
   /* Heat effect glow */
-  box-shadow: 0 0 ${props => 10 + props.$intensity * 10}px ${props => props.$intensity * 5}px ${props => props.$heatColor};
-  
+  box-shadow: 0 0 ${props => 10 + props.$intensity * 10}px ${props => props.$intensity * 5}px
+    ${props => props.$heatColor};
+
   /* Heat animation */
-  ${props => props.$animate && !props.$reducedMotion && `
+  ${props =>
+    props.$animate &&
+    !props.$reducedMotion &&
+    `
     animation: ${heatGlow} ${6 / props.$animationSpeed}s infinite;
   `}
-  
+
   /* Hover interactions */
-  ${props => props.$interactive && `
+  ${props =>
+    props.$interactive &&
+    `
     cursor: pointer;
     transition: box-shadow 0.3s ease, transform 0.3s ease;
     
     &:hover {
-      box-shadow: 0 0 ${15 + props.$intensity * 15}px ${props.$intensity * 10}px ${props.$heatColor};
+      box-shadow: 0 0 ${15 + props.$intensity * 15}px ${props.$intensity * 10}px ${
+      props.$heatColor
+    };
       transform: translateY(-2px);
     }
     
@@ -147,9 +165,12 @@ const HeatContent = styled.div<{
 }>`
   position: relative;
   z-index: 1;
-  
+
   /* Heat distortion effect */
-  ${props => props.$animate && !props.$reducedMotion && `
+  ${props =>
+    props.$animate &&
+    !props.$reducedMotion &&
+    `
     animation: ${heatDistort} ${6 / props.$animationSpeed}s infinite ease-in-out;
     animation-delay: ${Math.random() * 2}s;
     will-change: filter;
@@ -183,10 +204,7 @@ const HeatDistortionFilters = () => (
 /**
  * HeatGlass Component Implementation
  */
-function HeatGlassComponent(
-  props: HeatGlassProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+function HeatGlassComponent(props: HeatGlassProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     className,
@@ -209,27 +227,27 @@ function HeatGlassComponent(
     backgroundColor = 'rgba(255, 255, 255, 0.1)',
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // State for hover effects
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // Handle mouse events
   const handleMouseEnter = () => {
     setIsHovered(true);
   };
-  
+
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
-  
+
   return (
     <>
       {/* SVG Filters for heat distortion */}
       {animate && !prefersReducedMotion && <HeatDistortionFilters />}
-      
+
       <HeatGlassContainer
         ref={ref}
         className={className}
@@ -271,7 +289,7 @@ function HeatGlassComponent(
 
 /**
  * HeatGlass Component
- * 
+ *
  * A glass surface with heat distortion effects.
  */
 const HeatGlass = forwardRef(HeatGlassComponent);

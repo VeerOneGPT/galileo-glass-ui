@@ -1,11 +1,12 @@
 /**
  * Visual Feedback Mixin
- * 
+ *
  * Creates visual feedback for better accessibility
  */
 import { css } from 'styled-components';
-import { cssWithKebabProps } from '../../cssUtils';
+
 import { withAlpha } from '../../colorUtils';
+import { cssWithKebabProps } from '../../cssUtils';
 
 /**
  * Visual feedback options
@@ -15,47 +16,47 @@ export interface VisualFeedbackOptions {
    * Type of visual feedback
    */
   type?: 'hover' | 'active' | 'focus' | 'loading' | 'success' | 'error' | 'warning' | 'custom';
-  
+
   /**
    * Intensity of the feedback effect
    */
   intensity?: 'subtle' | 'light' | 'medium' | 'strong' | number;
-  
+
   /**
    * Color of the feedback effect
    */
   color?: string;
-  
+
   /**
    * If true, the feedback will be animated
    */
   animated?: boolean;
-  
+
   /**
    * Duration of the animation in seconds
    */
   duration?: number;
-  
+
   /**
    * If true, includes a secondary indicator for colorblind users
    */
   colorblindFriendly?: boolean;
-  
+
   /**
    * For 'loading' type, the style of loading indicator
    */
   loadingStyle?: 'pulse' | 'spinner' | 'dots' | 'progress';
-  
+
   /**
    * For custom type, a custom CSS snippet
    */
   customCss?: string;
-  
+
   /**
    * If true, reduces motion for accessibility
    */
   reducedMotion?: boolean;
-  
+
   /**
    * Theme context
    */
@@ -65,15 +66,22 @@ export interface VisualFeedbackOptions {
 /**
  * Get intensity value
  */
-const getIntensityValue = (intensity?: 'subtle' | 'light' | 'medium' | 'strong' | number): number => {
+const getIntensityValue = (
+  intensity?: 'subtle' | 'light' | 'medium' | 'strong' | number
+): number => {
   if (typeof intensity === 'number') return Math.min(Math.max(intensity, 0), 1);
-  
+
   switch (intensity) {
-    case 'subtle': return 0.2;
-    case 'light': return 0.4;
-    case 'medium': return 0.6;
-    case 'strong': return 0.8;
-    default: return 0.4;
+    case 'subtle':
+      return 0.2;
+    case 'light':
+      return 0.4;
+    case 'medium':
+      return 0.6;
+    case 'strong':
+      return 0.8;
+    default:
+      return 0.4;
   }
 };
 
@@ -93,13 +101,13 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
     reducedMotion = false,
     themeContext,
   } = options;
-  
+
   // Determine if dark mode
   const isDarkMode = themeContext?.isDarkMode || false;
-  
+
   // Get intensity value
   const intensityValue = getIntensityValue(intensity);
-  
+
   // Determine color based on feedback type and theme
   let feedbackColor = color;
   if (!feedbackColor) {
@@ -129,17 +137,19 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
         feedbackColor = isDarkMode ? '#90caf9' : '#2196f3';
     }
   }
-  
+
   // Build feedback styles based on type
   let feedbackStyles = '';
-  
+
   switch (type) {
     case 'hover':
       feedbackStyles = `
         position: relative;
         
         &:hover {
-          ${colorblindFriendly ? `
+          ${
+            colorblindFriendly
+              ? `
             &::before {
               content: '';
               position: absolute;
@@ -152,24 +162,32 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               pointer-events: none;
               opacity: 0.8;
             }
-          ` : ''}
+          `
+              : ''
+          }
           
           border-color: ${withAlpha(feedbackColor, intensityValue * 0.8)};
           background-color: ${withAlpha(feedbackColor, intensityValue * 0.2)};
           
-          ${animated ? `
+          ${
+            animated
+              ? `
             transition: all ${duration}s ease;
-          ` : ''}
+          `
+              : ''
+          }
         }
       `;
       break;
-      
+
     case 'active':
       feedbackStyles = `
         position: relative;
         
         &:active {
-          ${colorblindFriendly ? `
+          ${
+            colorblindFriendly
+              ? `
             &::before {
               content: '';
               position: absolute;
@@ -182,21 +200,31 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               pointer-events: none;
               opacity: 0.9;
             }
-          ` : ''}
+          `
+              : ''
+          }
           
           background-color: ${withAlpha(feedbackColor, intensityValue * 0.3)};
           
-          ${reducedMotion ? '' : `
+          ${
+            reducedMotion
+              ? ''
+              : `
             transform: scale(0.98);
-          `}
+          `
+          }
           
-          ${animated ? `
+          ${
+            animated
+              ? `
             transition: all ${duration}s ease;
-          ` : ''}
+          `
+              : ''
+          }
         }
       `;
       break;
-      
+
     case 'focus':
       feedbackStyles = `
         position: relative;
@@ -204,7 +232,9 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
         &:focus-visible {
           outline: none;
           
-          ${colorblindFriendly ? `
+          ${
+            colorblindFriendly
+              ? `
             &::before {
               content: '';
               position: absolute;
@@ -216,21 +246,27 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               border-radius: inherit;
               pointer-events: none;
             }
-          ` : ''}
+          `
+              : ''
+          }
           
           box-shadow: 0 0 0 2px ${withAlpha(feedbackColor, intensityValue * 0.7)};
           
-          ${animated ? `
+          ${
+            animated
+              ? `
             transition: box-shadow ${duration}s ease;
-          ` : ''}
+          `
+              : ''
+          }
         }
       `;
       break;
-      
+
     case 'loading':
       // Different loading animations based on style and reduced motion preference
       let loadingAnimation = '';
-      
+
       if (reducedMotion) {
         // Simplified animations for reduced motion
         loadingAnimation = `
@@ -275,7 +311,7 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               }
             `;
             break;
-            
+
           case 'spinner':
             loadingAnimation = `
               position: relative;
@@ -305,7 +341,7 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               }
             `;
             break;
-            
+
           case 'dots':
             loadingAnimation = `
               position: relative;
@@ -367,7 +403,7 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               }
             `;
             break;
-            
+
           case 'progress':
             loadingAnimation = `
               position: relative;
@@ -399,7 +435,7 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               }
             `;
             break;
-            
+
           default:
             loadingAnimation = `
               animation: pulse-feedback ${duration * 4}s infinite ease-in-out;
@@ -417,21 +453,23 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
             `;
         }
       }
-      
+
       feedbackStyles = `
         position: relative;
         ${loadingAnimation}
         cursor: wait;
       `;
       break;
-      
+
     case 'success':
       feedbackStyles = `
         position: relative;
         border-color: ${withAlpha(feedbackColor, intensityValue)};
         background-color: ${withAlpha(feedbackColor, intensityValue * 0.1)};
         
-        ${colorblindFriendly ? `
+        ${
+          colorblindFriendly
+            ? `
           &::before {
             content: '✓';
             display: inline-block;
@@ -439,21 +477,29 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
             color: ${withAlpha(feedbackColor, intensityValue)};
             font-weight: bold;
           }
-        ` : ''}
+        `
+            : ''
+        }
         
-        ${animated ? `
+        ${
+          animated
+            ? `
           transition: all ${duration}s ease;
-        ` : ''}
+        `
+            : ''
+        }
       `;
       break;
-      
+
     case 'error':
       feedbackStyles = `
         position: relative;
         border-color: ${withAlpha(feedbackColor, intensityValue)};
         background-color: ${withAlpha(feedbackColor, intensityValue * 0.1)};
         
-        ${colorblindFriendly ? `
+        ${
+          colorblindFriendly
+            ? `
           &::before {
             content: '!';
             display: inline-block;
@@ -461,9 +507,13 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
             color: ${withAlpha(feedbackColor, intensityValue)};
             font-weight: bold;
           }
-        ` : ''}
+        `
+            : ''
+        }
         
-        ${animated && !reducedMotion ? `
+        ${
+          animated && !reducedMotion
+            ? `
           animation: shake-feedback 0.6s;
           
           @keyframes shake-feedback {
@@ -477,26 +527,34 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               transform: translateX(2px);
             }
           }
-        ` : ''}
+        `
+            : ''
+        }
       `;
       break;
-      
+
     case 'warning':
       feedbackStyles = `
         position: relative;
         border-color: ${withAlpha(feedbackColor, intensityValue)};
         background-color: ${withAlpha(feedbackColor, intensityValue * 0.1)};
         
-        ${colorblindFriendly ? `
+        ${
+          colorblindFriendly
+            ? `
           &::before {
             content: '⚠';
             display: inline-block;
             margin-right: 5px;
             color: ${withAlpha(feedbackColor, intensityValue)};
           }
-        ` : ''}
+        `
+            : ''
+        }
         
-        ${animated && !reducedMotion ? `
+        ${
+          animated && !reducedMotion
+            ? `
           animation: pulse-warning ${duration * 3}s;
           
           @keyframes pulse-warning {
@@ -507,19 +565,21 @@ export const visualFeedback = (options: VisualFeedbackOptions) => {
               background-color: ${withAlpha(feedbackColor, intensityValue * 0.3)};
             }
           }
-        ` : ''}
+        `
+            : ''
+        }
       `;
       break;
-      
+
     case 'custom':
       feedbackStyles = customCss || '';
       break;
-      
+
     default:
       feedbackStyles = '';
       break;
   }
-  
+
   // Combine all styles
   return cssWithKebabProps`
     ${feedbackStyles}

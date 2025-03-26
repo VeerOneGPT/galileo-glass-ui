@@ -1,10 +1,9 @@
 /**
  * Browser Compatibility Utilities
- * 
+ *
  * Utilities for detecting browser features and providing appropriate fallbacks
  */
-// Import CSS type definitions
-import '../types/css';
+// CSS types are globally available via tripledash reference in types/css.d.ts
 
 /**
  * Browser feature detection results
@@ -14,107 +13,107 @@ export interface BrowserFeatures {
    * Whether the browser supports backdrop-filter
    */
   backdropFilter: boolean;
-  
+
   /**
    * Whether the browser supports backdrop-filter with blur
    */
   backdropFilterBlur: boolean;
-  
+
   /**
    * Whether the browser supports CSS Grid
    */
   cssGrid: boolean;
-  
+
   /**
    * Whether the browser supports CSS Variables
    */
   cssVariables: boolean;
-  
+
   /**
    * Whether the browser supports Touch events
    */
   touchEvents: boolean;
-  
+
   /**
    * Whether the browser supports Flexbox
    */
   flexbox: boolean;
-  
+
   /**
    * Whether the browser supports position: sticky
    */
   positionSticky: boolean;
-  
+
   /**
    * Whether the browser supports WebGL
    */
   webGL: boolean;
-  
+
   /**
    * Whether the browser supports WebP image format
    */
   webp: boolean;
-  
+
   /**
    * Whether the browser supports CSS transitions
    */
   cssTransitions: boolean;
-  
+
   /**
    * Whether the browser supports CSS animations
    */
   cssAnimations: boolean;
-  
+
   /**
    * Whether the browser supports smooth scrolling
    */
   smoothScrolling: boolean;
-  
+
   /**
    * Whether the browser supports intersection observer
    */
   intersectionObserver: boolean;
-  
+
   /**
    * Whether the browser supports resize observer
    */
   resizeObserver: boolean;
-  
+
   /**
    * Whether the browser supports passive event listeners
    */
   passiveEvents: boolean;
-  
+
   /**
    * Whether the browser supports the Web Animations API
    */
   webAnimationsAPI: boolean;
-  
+
   /**
    * Whether the device is high-DPI/retina
    */
   highDPI: boolean;
-  
+
   /**
    * Whether the browser supports hardware acceleration
    */
   hardwareAcceleration: boolean;
-  
+
   /**
    * Browser name
    */
   browser: 'chrome' | 'firefox' | 'safari' | 'edge' | 'ie' | 'opera' | 'samsung' | 'unknown';
-  
+
   /**
    * Browser version (major)
    */
   browserVersion: number;
-  
+
   /**
    * Operating system
    */
   os: 'windows' | 'mac' | 'ios' | 'android' | 'linux' | 'unknown';
-  
+
   /**
    * Current color scheme preference
    */
@@ -146,7 +145,7 @@ const DEFAULT_FEATURES: BrowserFeatures = {
   browser: 'unknown',
   browserVersion: 0,
   os: 'unknown',
-  colorScheme: 'light'
+  colorScheme: 'light',
 };
 
 /**
@@ -156,13 +155,13 @@ function detectBrowser(): { browser: BrowserFeatures['browser']; version: number
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return { browser: 'unknown', version: 0 };
   }
-  
+
   const userAgent = navigator.userAgent.toLowerCase();
-  
+
   // Detect browser
   let browser: BrowserFeatures['browser'] = 'unknown';
   let version = 0;
-  
+
   if (userAgent.indexOf('edge') > -1 || userAgent.indexOf('edg/') > -1) {
     browser = 'edge';
     const match = userAgent.match(/edge\/(\d+)|edg\/(\d+)/);
@@ -192,7 +191,7 @@ function detectBrowser(): { browser: BrowserFeatures['browser']; version: number
     const match = userAgent.match(/samsungbrowser\/(\d+)/);
     version = match ? parseInt(match[1], 10) : 0;
   }
-  
+
   return { browser, version };
 }
 
@@ -203,9 +202,9 @@ function detectOS(): BrowserFeatures['os'] {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return 'unknown';
   }
-  
+
   const userAgent = navigator.userAgent.toLowerCase();
-  
+
   if (userAgent.indexOf('windows') > -1) {
     return 'windows';
   } else if (userAgent.indexOf('mac') > -1 && userAgent.indexOf('mobile') === -1) {
@@ -217,7 +216,7 @@ function detectOS(): BrowserFeatures['os'] {
   } else if (userAgent.indexOf('linux') > -1) {
     return 'linux';
   }
-  
+
   return 'unknown';
 }
 
@@ -228,13 +227,13 @@ function detectColorScheme(): BrowserFeatures['colorScheme'] {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return 'light';
   }
-  
+
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark';
   } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
     return 'light';
   }
-  
+
   return 'light';
 }
 
@@ -246,24 +245,25 @@ export function detectFeatures(): BrowserFeatures {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return DEFAULT_FEATURES;
   }
-  
+
   const { browser, version } = detectBrowser();
   const os = detectOS();
   const colorScheme = detectColorScheme();
-  
+
   // CSS Property Detection Helper
   const supportsCSSProperty = (property: string): boolean => {
     return typeof document.body.style[property as any] !== 'undefined';
   };
-  
+
   // Create a test div for feature detection
   const testDiv = document.createElement('div');
-  
+
   // Test for backdrop-filter support with proper casing handling
-  const backdropFilter = supportsCSSProperty('backdropFilter') || 
-                          supportsCSSProperty('WebkitBackdropFilter') ||
-                          supportsCSSProperty('-webkit-backdrop-filter');
-  
+  const backdropFilter =
+    supportsCSSProperty('backdropFilter') ||
+    supportsCSSProperty('WebkitBackdropFilter') ||
+    supportsCSSProperty('-webkit-backdrop-filter');
+
   // Test for backdrop-filter blur specifically
   let backdropFilterBlur = false;
   if (backdropFilter) {
@@ -271,12 +271,12 @@ export function detectFeatures(): BrowserFeatures {
       // Standard property
       testDiv.style.backdropFilter = 'blur(5px)';
       backdropFilterBlur = !!testDiv.style.backdropFilter;
-      
+
       if (!backdropFilterBlur) {
         // Try WebKit prefix with camel case (standard in TypeScript DOM types)
-        testDiv.style.WebkitBackdropFilter = 'blur(5px)';
-        backdropFilterBlur = !!testDiv.style.WebkitBackdropFilter;
-        
+        testDiv.style.webkitBackdropFilter = 'blur(5px)';
+        backdropFilterBlur = !!testDiv.style.webkitBackdropFilter;
+
         if (!backdropFilterBlur) {
           // For older browsers that might need string access with kebab case
           // Use proper casting to avoid TypeScript errors
@@ -289,40 +289,38 @@ export function detectFeatures(): BrowserFeatures {
       backdropFilterBlur = false;
     }
   }
-  
+
   // Test for CSS Grid support
-  const cssGrid = window.CSS && CSS.supports && (
-    CSS.supports('display', 'grid') || 
-    CSS.supports('display', '-ms-grid')
-  );
-  
+  const cssGrid =
+    window.CSS &&
+    CSS.supports &&
+    (CSS.supports('display', 'grid') || CSS.supports('display', '-ms-grid'));
+
   // Test for CSS Variables support
   const cssVariables = window.CSS && CSS.supports && CSS.supports('--custom-prop', 'value');
-  
+
   // Test for touch events
   const touchEvents = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  
+
   // Test for flexbox support
-  const flexbox = CSS.supports && (
-    CSS.supports('display', 'flex') ||
-    CSS.supports('display', '-webkit-flex')
-  );
-  
+  const flexbox =
+    CSS.supports && (CSS.supports('display', 'flex') || CSS.supports('display', '-webkit-flex'));
+
   // Test for position: sticky support
   const positionSticky = CSS.supports && CSS.supports('position', 'sticky');
-  
+
   // Test for WebGL support
   let webGL = false;
   try {
     const canvas = document.createElement('canvas');
     webGL = !!(
-      window.WebGLRenderingContext && 
+      window.WebGLRenderingContext &&
       (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
     );
   } catch (e) {
     webGL = false;
   }
-  
+
   // Test for WebP support
   let webp = false;
   const webpPromise = new Promise<boolean>(resolve => {
@@ -332,55 +330,57 @@ export function detectFeatures(): BrowserFeatures {
     img.src = 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=';
   });
   // We'll set this asynchronously, but initially assume false
-  webpPromise.then(result => { webp = result; });
-  
+  webpPromise.then(result => {
+    webp = result;
+  });
+
   // Test for CSS transitions
-  const cssTransitions = supportsCSSProperty('transition') || 
-                          supportsCSSProperty('webkitTransition');
-  
+  const cssTransitions =
+    supportsCSSProperty('transition') || supportsCSSProperty('webkitTransition');
+
   // Test for CSS animations
-  const cssAnimations = supportsCSSProperty('animation') || 
-                         supportsCSSProperty('webkitAnimation');
-  
+  const cssAnimations = supportsCSSProperty('animation') || supportsCSSProperty('webkitAnimation');
+
   // Test for smooth scrolling
   const smoothScrolling = 'scrollBehavior' in document.documentElement.style;
-  
+
   // Test for Intersection Observer
   const intersectionObserver = 'IntersectionObserver' in window;
-  
+
   // Test for Resize Observer
   const resizeObserver = 'ResizeObserver' in window;
-  
+
   // Test for passive event listeners
   let passiveEvents = false;
   try {
     // Test via a getter in the options object to see if the passive property is accessed
     const opts = Object.defineProperty({}, 'passive', {
-      get: function() {
+      get: function () {
         passiveEvents = true;
         return true;
-      }
+      },
     });
     window.addEventListener('testPassive', null as any, opts);
     window.removeEventListener('testPassive', null as any, opts);
   } catch (e) {
     passiveEvents = false;
   }
-  
+
   // Test for Web Animations API
-  const webAnimationsAPI = typeof Element !== 'undefined' && 
-                           typeof Element.prototype.animate === 'function';
-  
+  const webAnimationsAPI =
+    typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function';
+
   // Check for high-DPI/retina display
   const highDPI = window.devicePixelRatio > 1;
-  
+
   // Check for hardware acceleration (approximation)
-  const hardwareAcceleration = webGL || 
-                              (browser === 'chrome' && version >= 33) || 
-                              (browser === 'firefox' && version >= 57) ||
-                              (browser === 'safari' && version >= 9) ||
-                              (browser === 'edge' && version >= 16);
-  
+  const hardwareAcceleration =
+    webGL ||
+    (browser === 'chrome' && version >= 33) ||
+    (browser === 'firefox' && version >= 57) ||
+    (browser === 'safari' && version >= 9) ||
+    (browser === 'edge' && version >= 16);
+
   return {
     backdropFilter,
     backdropFilterBlur,
@@ -403,7 +403,7 @@ export function detectFeatures(): BrowserFeatures {
     browser,
     browserVersion: version,
     os,
-    colorScheme
+    colorScheme,
   };
 }
 
@@ -415,12 +415,12 @@ export interface FeatureRequirements {
    * Required features that must be present
    */
   required: Array<keyof BrowserFeatures>;
-  
+
   /**
    * Optional features that enhance the component if present
    */
   optional: Array<keyof BrowserFeatures>;
-  
+
   /**
    * Minimum browser versions required
    */
@@ -443,21 +443,21 @@ export enum FeatureLevel {
    * Feature is fully supported
    */
   FULL = 'full',
-  
+
   /**
    * Feature is supported with some visual degradation
    */
   PARTIAL = 'partial',
-  
+
   /**
    * Feature falls back to a simpler alternative
    */
   FALLBACK = 'fallback',
-  
+
   /**
    * Feature is not supported
    */
-  UNSUPPORTED = 'unsupported'
+  UNSUPPORTED = 'unsupported',
 }
 
 /**
@@ -472,17 +472,17 @@ export function getFeatureSupportLevel(
   if (!hasAllRequired) {
     return FeatureLevel.UNSUPPORTED;
   }
-  
+
   // Check browser version requirements
   const { browser, browserVersion } = features;
   const minVersion = requirements.browsers[browser];
   if (minVersion && browserVersion < minVersion) {
     return FeatureLevel.FALLBACK;
   }
-  
+
   // Check optional features
   const hasAllOptional = requirements.optional.every(feature => !!features[feature]);
-  
+
   return hasAllOptional ? FeatureLevel.FULL : FeatureLevel.PARTIAL;
 }
 
@@ -510,8 +510,8 @@ export const GLASS_REQUIREMENTS: FeatureRequirements = {
     safari: 13,
     edge: 79,
     opera: 63,
-    samsung: 12
-  }
+    samsung: 12,
+  },
 };
 
 /**
@@ -526,8 +526,8 @@ export const ANIMATION_REQUIREMENTS: FeatureRequirements = {
     safari: 12,
     edge: 79,
     opera: 60,
-    samsung: 10
-  }
+    samsung: 10,
+  },
 };
 
 /**
@@ -542,8 +542,8 @@ export const ADVANCED_GLASS_REQUIREMENTS: FeatureRequirements = {
     safari: 13,
     edge: 79,
     opera: 63,
-    samsung: 12
-  }
+    samsung: 12,
+  },
 };
 
 /**
@@ -557,10 +557,10 @@ export function getBackdropFilterValue(
   if (!features.backdropFilter) {
     return '';
   }
-  
+
   // Normalize blur value
   const blurPx = typeof blurValue === 'number' ? `${blurValue}px` : blurValue;
-  
+
   // Always include both standard and vendor prefixed versions for maximum compatibility
   return `backdrop-filter: blur(${blurPx}); -webkit-backdrop-filter: blur(${blurPx});`;
 }
@@ -577,34 +577,41 @@ export function getBackdropFilterFallback(
   if (features.backdropFilter) {
     return color;
   }
-  
+
   // If color is already in rgba format, adjust its opacity
   if (color.startsWith('rgba(')) {
-    return color.replace(/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)/, 
-                        (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${Math.min(1, opacity + 0.8)})`);
+    return color.replace(
+      /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)/,
+      (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${Math.min(1, opacity + 0.8)})`
+    );
   }
-  
+
   // If color is rgb format, convert to rgba with adjusted opacity
   if (color.startsWith('rgb(')) {
-    return color.replace(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/, 
-                         (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${Math.min(1, opacity + 0.8)})`);
+    return color.replace(
+      /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/,
+      (_, r, g, b) => `rgba(${r}, ${g}, ${b}, ${Math.min(1, opacity + 0.8)})`
+    );
   }
-  
+
   // If color is hex format, convert to rgba with adjusted opacity
   if (color.startsWith('#')) {
     // Convert hex to rgb
     let hex = color.slice(1);
     if (hex.length === 3) {
-      hex = hex.split('').map(x => x + x).join('');
+      hex = hex
+        .split('')
+        .map(x => x + x)
+        .join('');
     }
-    
+
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
-    
+
     return `rgba(${r}, ${g}, ${b}, ${Math.min(1, opacity + 0.8)})`;
   }
-  
+
   // Default fallback
   return `rgba(255, 255, 255, ${Math.min(1, opacity + 0.8)})`;
 }
@@ -622,17 +629,11 @@ export function createGlassStyle(
   },
   features: BrowserFeatures = detectFeatures()
 ): string {
-  const { 
-    backgroundColor, 
-    backgroundOpacity, 
-    blurStrength, 
-    borderColor, 
-    borderOpacity 
-  } = options;
-  
+  const { backgroundColor, backgroundOpacity, blurStrength, borderColor, borderOpacity } = options;
+
   // Check if advanced glass effects are supported
   const supportLevel = getFeatureSupportLevel(ADVANCED_GLASS_REQUIREMENTS, features);
-  
+
   if (supportLevel === FeatureLevel.FULL || supportLevel === FeatureLevel.PARTIAL) {
     // Full glass effect with backdrop filter
     return `
@@ -645,7 +646,9 @@ export function createGlassStyle(
     // Fallback style without backdrop filter
     return `
       background-color: ${getBackdropFilterFallback(backgroundColor, backgroundOpacity, features)};
-      border: 1px solid ${borderColor.replace(')', `, ${Math.min(borderOpacity + 0.1, 1)})`).replace('rgb', 'rgba')};
+      border: 1px solid ${borderColor
+        .replace(')', `, ${Math.min(borderOpacity + 0.1, 1)})`)
+        .replace('rgb', 'rgba')};
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
     `;
   }

@@ -1,6 +1,6 @@
 /**
  * Theme Constants
- * 
+ *
  * Constants for the Glass UI theme system
  */
 

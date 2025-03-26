@@ -1,13 +1,15 @@
 /**
  * TreeItem Component
- * 
+ *
  * A item component for the TreeView.
  */
 import React, { forwardRef, useContext, useRef, useState } from 'react';
 import styled from 'styled-components';
+
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { TreeViewContext } from './TreeView';
 import { TreeItemProps } from './types';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 // Default icons
 const DefaultExpandIcon = () => (
@@ -49,30 +51,34 @@ const TreeItemContent = styled.div<{
 }>`
   display: flex;
   align-items: center;
-  padding: ${props => props.$size === 'small' ? '4px 8px' : props.$size === 'large' ? '8px 16px' : '6px 12px'};
+  padding: ${props =>
+    props.$size === 'small' ? '4px 8px' : props.$size === 'large' ? '8px 16px' : '6px 12px'};
   border-radius: 4px;
-  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'default' : 'pointer')};
   user-select: none;
   transition: background-color 0.2s ease;
-  color: ${props => 
-    props.$disabled ? 'rgba(255, 255, 255, 0.5)' : 
-    props.$selected ? 'var(--tree-view-color, rgba(255, 255, 255, 0.9))' : 
-    'rgba(255, 255, 255, 0.8)'
-  };
-  
+  color: ${props =>
+    props.$disabled
+      ? 'rgba(255, 255, 255, 0.5)'
+      : props.$selected
+      ? 'var(--tree-view-color, rgba(255, 255, 255, 0.9))'
+      : 'rgba(255, 255, 255, 0.8)'};
+
   /* Selected state */
-  background-color: ${props => 
-    props.$selected ? 'rgba(255, 255, 255, 0.08)' : 
-    'transparent'
-  };
-  
+  background-color: ${props => (props.$selected ? 'rgba(255, 255, 255, 0.08)' : 'transparent')};
+
   /* Focused state */
-  ${props => props.$focused && !props.$disabled && `
+  ${props =>
+    props.$focused &&
+    !props.$disabled &&
+    `
     outline: 1px dashed var(--tree-view-color, rgba(255, 255, 255, 0.9));
   `}
-  
+
   /* Glass hover effect */
-  ${props => !props.$disabled && `
+  ${props =>
+    !props.$disabled &&
+    `
     &:hover {
       background-color: ${props.$glass ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.04)'};
     }
@@ -99,17 +105,14 @@ const TreeItemChildren = styled.ul<{
   margin: 0;
   padding: 0;
   padding-left: 16px;
-  display: ${props => props.$expanded ? 'block' : 'none'};
-  transition: ${props => !props.$reducedMotion ? 'height 0.2s ease' : 'none'};
+  display: ${props => (props.$expanded ? 'block' : 'none')};
+  transition: ${props => (!props.$reducedMotion ? 'height 0.2s ease' : 'none')};
 `;
 
 /**
  * TreeItem Component Implementation
  */
-function TreeItemComponent(
-  props: TreeItemProps,
-  ref: React.ForwardedRef<HTMLLIElement>
-) {
+function TreeItemComponent(props: TreeItemProps, ref: React.ForwardedRef<HTMLLIElement>) {
   const {
     nodeId,
     label,
@@ -125,73 +128,73 @@ function TreeItemComponent(
     disabled = false,
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Refs
   const contentRef = useRef<HTMLDivElement>(null);
-  
+
   // Get TreeView context
   const treeContext = useContext(TreeViewContext);
-  
+
   if (!treeContext) {
     throw new Error('TreeItem must be used within a TreeView');
   }
-  
-  const { 
-    expanded, 
-    selected, 
-    focused, 
-    multiSelect, 
-    size, 
-    disabled: contextDisabled, 
+
+  const {
+    expanded,
+    selected,
+    focused,
+    multiSelect,
+    size,
+    disabled: contextDisabled,
     glass: contextGlass,
     selectNode,
     toggleNode,
-    focusNode
+    focusNode,
   } = treeContext;
-  
+
   // Merge props with context
   const finalGlass = propGlass !== undefined ? propGlass : contextGlass;
   const finalDisabled = disabled || contextDisabled;
-  
+
   // Check if the node has children
   const hasChildren = Boolean(React.Children.count(children) > 0);
-  
+
   // Check if the node is expanded
   const isExpanded = hasChildren && expanded.includes(nodeId);
-  
+
   // Check if the node is selected
   const isSelected = selected.includes(nodeId);
-  
+
   // Check if the node is focused
   const isFocused = focused === nodeId;
-  
+
   // Handle click event
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
-    
+
     // Select the node
     if (!finalDisabled) {
       selectNode(event, nodeId);
     }
   };
-  
+
   // Handle expand/collapse
   const handleToggle = (event: React.MouseEvent<HTMLDivElement>) => {
     event.stopPropagation();
-    
+
     // Toggle the node
     if (!finalDisabled && hasChildren) {
       toggleNode(event, nodeId);
     }
   };
-  
+
   // Handle keyboard events
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (finalDisabled) return;
-    
+
     switch (event.key) {
       case ' ':
       case 'Enter':
@@ -214,27 +217,27 @@ function TreeItemComponent(
         break;
     }
   };
-  
+
   // Handle focus
   const handleFocus = (event: React.FocusEvent<HTMLDivElement>) => {
     if (!finalDisabled) {
       focusNode(event, nodeId);
     }
   };
-  
+
   // Determine which icon to show
   const renderToggleIcon = () => {
     if (!hasChildren) {
       return endIcon || <DefaultEndIcon />;
     }
-    
+
     if (isExpanded) {
       return collapseIcon || <DefaultCollapseIcon />;
     }
-    
+
     return expandIcon || <DefaultExpandIcon />;
   };
-  
+
   return (
     <TreeItemRoot
       ref={ref}
@@ -262,18 +265,14 @@ function TreeItemComponent(
         <IconContainer onClick={hasChildren ? handleToggle : undefined}>
           {renderToggleIcon()}
         </IconContainer>
-        
+
         {icon && <IconContainer>{icon}</IconContainer>}
-        
+
         <ContentLabel>{label}</ContentLabel>
       </TreeItemContent>
-      
+
       {hasChildren && (
-        <TreeItemChildren
-          role="group"
-          $expanded={isExpanded}
-          $reducedMotion={prefersReducedMotion}
-        >
+        <TreeItemChildren role="group" $expanded={isExpanded} $reducedMotion={prefersReducedMotion}>
           {children}
         </TreeItemChildren>
       )}
@@ -283,14 +282,14 @@ function TreeItemComponent(
 
 /**
  * TreeItem Component
- * 
+ *
  * A item component for the TreeView.
  */
 const TreeItem = forwardRef(TreeItemComponent);
 
 /**
  * GlassTreeItem Component
- * 
+ *
  * Glass variant of the TreeItem component.
  */
 const GlassTreeItem = forwardRef<HTMLLIElement, TreeItemProps>((props, ref) => (

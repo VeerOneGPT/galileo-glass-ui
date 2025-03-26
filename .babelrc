@@ -1,0 +1,16 @@
+{
+  "presets": [
+    ["@babel/preset-env", { "modules": false }],
+    "@babel/preset-react",
+    "@babel/preset-typescript"
+  ],
+  "env": {
+    "test": {
+      "presets": [
+        ["@babel/preset-env", { "modules": "auto" }],
+        "@babel/preset-react",
+        "@babel/preset-typescript"
+      ]
+    }
+  }
+}

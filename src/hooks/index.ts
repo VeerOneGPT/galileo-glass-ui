@@ -2,17 +2,13 @@
  * Hooks Export
  */
 export { useAccessibleAnimationOptions } from './useAccessibleAnimationOptions';
-export { 
-  useBreakpoint,
-  type Breakpoint,
-  type ResponsiveValue
-} from './useBreakpoint';
+export { useBreakpoint, type Breakpoint, type ResponsiveValue } from './useBreakpoint';
 export { useGlassEffects } from './useGlassEffects';
-export { 
+export {
   useGlassPerformance,
   type GlassPerformanceMetrics,
   type GlassPerformanceOptions,
-  type PerformanceThresholds
+  type PerformanceThresholds,
 } from './useGlassPerformance';
 export {
   useGlassTheme,
@@ -29,7 +25,7 @@ export {
   type ThemeSpacing,
   type ThemeEffects,
   type ThemeOptions,
-  type GlassThemeContextValue
+  type GlassThemeContextValue,
 } from './useGlassTheme';
 export { useMotionSettings } from './useMotionSettings';
 export {
@@ -37,7 +33,7 @@ export {
   optimizedAnimation,
   accessibleOptimizedAnimation,
   type OptimizedAnimationOptions,
-  AnimationComplexity
+  AnimationComplexity,
 } from './useOptimizedAnimation';
 export {
   useOrchestration,
@@ -47,7 +43,7 @@ export {
   type TimingFunction,
   type GestaltRelationship,
   type GestaltPatternOptions,
-  type Point
+  type Point,
 } from './useOrchestration';
 export {
   usePhysicsInteraction,
@@ -57,19 +53,16 @@ export {
   type PhysicsMaterial,
   type PhysicsVector,
   type CollisionShape,
-  type PhysicsQuality
+  type PhysicsQuality,
 } from './usePhysicsInteraction';
 export { useReducedMotion } from './useReducedMotion';
-export { 
-  useResponsiveValue,
-  createResponsiveValue
-} from './useResponsiveValue';
+export { useResponsiveValue, createResponsiveValue } from './useResponsiveValue';
 export { useScrollScene } from './useScrollScene';
-export { 
+export {
   useZSpaceAnimation,
   type ZPlane,
   type ZSpaceAnimationOptions,
   type ZAnimationPattern,
   type ZAnimationTrigger,
-  type ZElementSize
+  type ZElementSize,
 } from './useZSpaceAnimation';

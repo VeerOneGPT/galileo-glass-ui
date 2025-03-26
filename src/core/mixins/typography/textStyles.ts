@@ -1,11 +1,12 @@
 /**
  * Text Styles Mixin
- * 
+ *
  * Creates glass-specific text styling for components
  */
 import { css } from 'styled-components';
-import { cssWithKebabProps } from '../../cssUtils';
+
 import { withAlpha } from '../../colorUtils';
+import { cssWithKebabProps } from '../../cssUtils';
 
 /**
  * Text styles options
@@ -14,83 +15,94 @@ export interface TextStylesOptions {
   /**
    * The variant of the text
    */
-  variant?: 'title' | 'heading' | 'subheading' | 'body' | 'caption' | 'glassTitle' | 'glassHeading' | 'glassBody' | 'code' | 'quote' | 'custom';
-  
+  variant?:
+    | 'title'
+    | 'heading'
+    | 'subheading'
+    | 'body'
+    | 'caption'
+    | 'glassTitle'
+    | 'glassHeading'
+    | 'glassBody'
+    | 'code'
+    | 'quote'
+    | 'custom';
+
   /**
    * Size of the text
    */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | number;
-  
+
   /**
    * Weight of the text
    */
   weight?: 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | number;
-  
+
   /**
    * Text alignment
    */
   align?: 'left' | 'center' | 'right' | 'justify';
-  
+
   /**
    * Color of the text
    */
   color?: string;
-  
+
   /**
    * Text opacity
    */
   opacity?: number;
-  
+
   /**
    * Line height multiplier
    */
   lineHeight?: number | string;
-  
+
   /**
    * Letter spacing in em
    */
   letterSpacing?: number | string;
-  
+
   /**
    * Text decoration
    */
   decoration?: 'none' | 'underline' | 'line-through';
-  
+
   /**
    * Text transform
    */
   transform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
-  
+
   /**
    * If true, applies a glass-like text effect
    */
   glass?: boolean;
-  
+
   /**
    * If true, applies a shadow to text
    */
   shadow?: boolean | 'light' | 'medium' | 'strong';
-  
+
   /**
    * If true, applies a gradient to text
    */
   gradient?: boolean;
-  
+
   /**
    * Colors to use for gradient (if gradient is true)
    */
   gradientColors?: string[];
-  
+
   /**
    * If true, truncates text with ellipsis
    */
   truncate?: boolean;
-  
+
   /**
    * Number of lines to show before truncating
    */
   lineClamp?: number;
-  
+
   /**
    * Theme context
    */
@@ -102,32 +114,48 @@ export interface TextStylesOptions {
  */
 const getFontSize = (size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | number): string => {
   if (typeof size === 'number') return `${size}px`;
-  
+
   switch (size) {
-    case 'xs': return '0.75rem';
-    case 'sm': return '0.875rem';
-    case 'md': return '1rem';
-    case 'lg': return '1.125rem';
-    case 'xl': return '1.25rem';
-    case '2xl': return '1.5rem';
-    case '3xl': return '1.875rem';
-    default: return '1rem';
+    case 'xs':
+      return '0.75rem';
+    case 'sm':
+      return '0.875rem';
+    case 'md':
+      return '1rem';
+    case 'lg':
+      return '1.125rem';
+    case 'xl':
+      return '1.25rem';
+    case '2xl':
+      return '1.5rem';
+    case '3xl':
+      return '1.875rem';
+    default:
+      return '1rem';
   }
 };
 
 /**
  * Get font weight based on weight prop
  */
-const getFontWeight = (weight?: 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | number): number => {
+const getFontWeight = (
+  weight?: 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | number
+): number => {
   if (typeof weight === 'number') return weight;
-  
+
   switch (weight) {
-    case 'light': return 300;
-    case 'regular': return 400;
-    case 'medium': return 500;
-    case 'semibold': return 600;
-    case 'bold': return 700;
-    default: return 400;
+    case 'light':
+      return 300;
+    case 'regular':
+      return 400;
+    case 'medium':
+      return 500;
+    case 'semibold':
+      return 600;
+    case 'bold':
+      return 700;
+    default:
+      return 400;
   }
 };
 
@@ -152,17 +180,20 @@ const getLetterSpacing = (letterSpacing?: number | string): string => {
 /**
  * Get shadow style based on shadow prop
  */
-const getShadowStyle = (shadow?: boolean | 'light' | 'medium' | 'strong', isDarkMode?: boolean): string => {
+const getShadowStyle = (
+  shadow?: boolean | 'light' | 'medium' | 'strong',
+  isDarkMode?: boolean
+): string => {
   if (!shadow) return '';
-  
+
   const shadowColor = isDarkMode ? '#000000' : '#000000';
   const lightColor = isDarkMode ? '#ffffff' : '#ffffff';
-  
+
   let intensity = 0.5;
   if (shadow === 'light') intensity = 0.3;
   if (shadow === 'medium') intensity = 0.5;
   if (shadow === 'strong') intensity = 0.7;
-  
+
   return `
     text-shadow: 
       0 1px 2px ${withAlpha(shadowColor, intensity * 0.4)},
@@ -173,14 +204,18 @@ const getShadowStyle = (shadow?: boolean | 'light' | 'medium' | 'strong', isDark
 /**
  * Get gradient style based on gradient prop
  */
-const getGradientStyle = (gradient?: boolean, gradientColors?: string[], isDarkMode?: boolean): string => {
+const getGradientStyle = (
+  gradient?: boolean,
+  gradientColors?: string[],
+  isDarkMode?: boolean
+): string => {
   if (!gradient) return '';
-  
+
   const colors = gradientColors || [
     isDarkMode ? '#7dd3fc' : '#0ea5e9',
-    isDarkMode ? '#c084fc' : '#8b5cf6'
+    isDarkMode ? '#c084fc' : '#8b5cf6',
   ];
-  
+
   return `
     background: linear-gradient(135deg, ${colors.join(', ')});
     background-clip: text;
@@ -194,10 +229,10 @@ const getGradientStyle = (gradient?: boolean, gradientColors?: string[], isDarkM
  */
 const getGlassStyle = (glass?: boolean, isDarkMode?: boolean): string => {
   if (!glass) return '';
-  
+
   const shadowColor = isDarkMode ? '#000000' : '#000000';
   const glowColor = isDarkMode ? '#ffffff' : '#ffffff';
-  
+
   return `
     text-shadow: 
       0 0 1px ${withAlpha(glowColor, 0.3)},
@@ -211,7 +246,7 @@ const getGlassStyle = (glass?: boolean, isDarkMode?: boolean): string => {
  */
 const getTruncateStyle = (truncate?: boolean, lineClamp?: number): string => {
   if (!truncate) return '';
-  
+
   if (lineClamp && lineClamp > 1) {
     return `
       display: -webkit-box;
@@ -221,7 +256,7 @@ const getTruncateStyle = (truncate?: boolean, lineClamp?: number): string => {
       text-overflow: ellipsis;
     `;
   }
-  
+
   return `
     white-space: nowrap;
     overflow: hidden;
@@ -339,25 +374,26 @@ export const textStyles = (options: TextStylesOptions) => {
     lineClamp,
     themeContext,
   } = options;
-  
+
   // Determine if dark mode
   const isDarkMode = themeContext?.isDarkMode || false;
-  
+
   // Get base styles from variant
   const variantStyles = getVariantStyles(variant, isDarkMode);
-  
+
   // Get individual style properties
   const fontSize = size !== undefined ? getFontSize(size) : undefined;
   const fontWeight = weight !== undefined ? getFontWeight(weight) : undefined;
   const lineHeightValue = lineHeight !== undefined ? getLineHeight(lineHeight) : undefined;
-  const letterSpacingValue = letterSpacing !== undefined ? getLetterSpacing(letterSpacing) : undefined;
-  
+  const letterSpacingValue =
+    letterSpacing !== undefined ? getLetterSpacing(letterSpacing) : undefined;
+
   // Get special effects
   const shadowStyle = getShadowStyle(shadow, isDarkMode);
   const gradientStyle = getGradientStyle(gradient, gradientColors, isDarkMode);
   const glassStyle = getGlassStyle(glass, isDarkMode);
   const truncateStyle = getTruncateStyle(truncate, lineClamp);
-  
+
   // Combine all styles
   return cssWithKebabProps`
     ${variantStyles}

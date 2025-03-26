@@ -3,12 +3,12 @@
  */
 
 import DimensionalGlass from './DimensionalGlass';
-import HeatGlass from './HeatGlass';
 import FrostedGlass from './FrostedGlass';
+import HeatGlass from './HeatGlass';
 import PageGlassContainer from './PageGlassContainer';
 import WidgetGlass from './WidgetGlass';
 
-export type { 
+export type {
   GlassSurfaceBaseProps,
   DimensionalGlassProps,
   HeatGlassProps,
@@ -16,13 +16,7 @@ export type {
   PageGlassContainerProps,
   WidgetGlassProps,
   AtmosphericBackgroundProps,
-  ParticleBackgroundProps
+  ParticleBackgroundProps,
 } from './types';
 
-export {
-  DimensionalGlass,
-  HeatGlass,
-  FrostedGlass,
-  PageGlassContainer,
-  WidgetGlass
-};
+export { DimensionalGlass, HeatGlass, FrostedGlass, PageGlassContainer, WidgetGlass };

@@ -1,9 +1,10 @@
 /**
  * Core Style Utilities
- * 
+ *
  * Utility functions for styling Glass UI components
  */
 import { css } from 'styled-components';
+
 import { cssWithKebabProps } from './cssUtils';
 
 /**
@@ -16,21 +17,19 @@ export interface StyleMixin {
 /**
  * Spacing size values and aliases
  */
-export type SpacingSize = 
-  'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 
-  number | string;
+export type SpacingSize = 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | number | string;
 
 /**
  * Spacing units mapping (for named sizes)
  */
 export const SPACING_UNITS: Record<string, number> = {
-  'xxs': 4,
-  'xs': 8,
-  'sm': 12, 
-  'md': 16,
-  'lg': 24,
-  'xl': 32,
-  'xxl': 48
+  xxs: 4,
+  xs: 8,
+  sm: 12,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
 };
 
 /**
@@ -46,17 +45,17 @@ export const getSpacing = (size: SpacingSize): string => {
   if (typeof size === 'string' && !SPACING_UNITS[size]) {
     return size;
   }
-  
+
   // If it's a named size, convert using the mapping
   if (typeof size === 'string' && SPACING_UNITS[size]) {
     return `${SPACING_UNITS[size]}px`;
   }
-  
+
   // If it's a number, multiply by the base unit
   if (typeof size === 'number') {
     return `${size * SPACING_BASE_UNIT}px`;
   }
-  
+
   // Default
   return `${SPACING_BASE_UNIT}px`;
 };
@@ -77,7 +76,7 @@ export const padding = (
   if (right === undefined) {
     return cssWithKebabProps`padding: ${getSpacing(top)};`;
   }
-  
+
   if (bottom === undefined) {
     return cssWithKebabProps`
       padding-top: ${getSpacing(top)};
@@ -86,7 +85,7 @@ export const padding = (
       padding-left: ${getSpacing(right)};
     `;
   }
-  
+
   if (left === undefined) {
     return cssWithKebabProps`
       padding-top: ${getSpacing(top)};
@@ -95,7 +94,7 @@ export const padding = (
       padding-left: ${getSpacing(right)};
     `;
   }
-  
+
   return cssWithKebabProps`
     padding-top: ${getSpacing(top)};
     padding-right: ${getSpacing(right)};
@@ -120,7 +119,7 @@ export const margin = (
   if (right === undefined) {
     return cssWithKebabProps`margin: ${getSpacing(top)};`;
   }
-  
+
   if (bottom === undefined) {
     return cssWithKebabProps`
       margin-top: ${getSpacing(top)};
@@ -129,7 +128,7 @@ export const margin = (
       margin-left: ${getSpacing(right)};
     `;
   }
-  
+
   if (left === undefined) {
     return cssWithKebabProps`
       margin-top: ${getSpacing(top)};
@@ -138,7 +137,7 @@ export const margin = (
       margin-left: ${getSpacing(right)};
     `;
   }
-  
+
   return cssWithKebabProps`
     margin-top: ${getSpacing(top)};
     margin-right: ${getSpacing(right)};
@@ -150,21 +149,19 @@ export const margin = (
 /**
  * Border radius values
  */
-export type BorderRadiusSize = 
-  'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full' | 
-  number | string;
+export type BorderRadiusSize = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'full' | number | string;
 
 /**
  * Border radius mapping
  */
 export const BORDER_RADIUS: Record<string, string> = {
-  'none': '0',
-  'xs': '2px',
-  'sm': '4px',
-  'md': '8px',
-  'lg': '12px',
-  'xl': '16px',
-  'full': '9999px'
+  none: '0',
+  xs: '2px',
+  sm: '4px',
+  md: '8px',
+  lg: '12px',
+  xl: '16px',
+  full: '9999px',
 };
 
 /**
@@ -175,17 +172,17 @@ export const getBorderRadius = (size: BorderRadiusSize): string => {
   if (typeof size === 'string' && !BORDER_RADIUS[size]) {
     return size;
   }
-  
+
   // If it's a named size, convert using the mapping
   if (typeof size === 'string' && BORDER_RADIUS[size]) {
     return BORDER_RADIUS[size];
   }
-  
+
   // If it's a number, convert to pixels
   if (typeof size === 'number') {
     return `${size}px`;
   }
-  
+
   // Default
   return BORDER_RADIUS.md;
 };
@@ -203,7 +200,7 @@ export const borderRadius = (
   if (topRight === undefined) {
     return cssWithKebabProps`border-radius: ${getBorderRadius(topLeft)};`;
   }
-  
+
   if (bottomRight === undefined) {
     return cssWithKebabProps`
       border-top-left-radius: ${getBorderRadius(topLeft)};
@@ -212,7 +209,7 @@ export const borderRadius = (
       border-bottom-left-radius: ${getBorderRadius(topLeft)};
     `;
   }
-  
+
   if (bottomLeft === undefined) {
     return cssWithKebabProps`
       border-top-left-radius: ${getBorderRadius(topLeft)};
@@ -221,7 +218,7 @@ export const borderRadius = (
       border-bottom-left-radius: ${getBorderRadius(topRight)};
     `;
   }
-  
+
   return cssWithKebabProps`
     border-top-left-radius: ${getBorderRadius(topLeft)};
     border-top-right-radius: ${getBorderRadius(topRight)};
@@ -233,48 +230,60 @@ export const borderRadius = (
 /**
  * Elevation levels for shadows
  */
-export type ElevationLevel = 
-  'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 
-  0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type ElevationLevel =
+  | 'none'
+  | 'xs'
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | 'xxl'
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6;
 
 /**
  * Shadow values for light mode
  */
 const LIGHT_MODE_SHADOWS: Record<string | number, string> = {
-  'none': 'none',
+  none: 'none',
   0: 'none',
-  'xs': '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04)',
+  xs: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04)',
   1: '0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.04)',
-  'sm': '0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+  sm: '0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
   2: '0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-  'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
   3: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-  'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
   4: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-  'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
   5: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  'xxl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-  6: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+  xxl: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+  6: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
 };
 
 /**
  * Shadow values for dark mode
  */
 const DARK_MODE_SHADOWS: Record<string | number, string> = {
-  'none': 'none',
+  none: 'none',
   0: 'none',
-  'xs': '0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2)',
+  xs: '0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2)',
   1: '0 1px 3px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2)',
-  'sm': '0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2)',
+  sm: '0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2)',
   2: '0 2px 4px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.2)',
-  'md': '0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
+  md: '0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
   3: '0 4px 6px -1px rgba(0, 0, 0, 0.35), 0 2px 4px -1px rgba(0, 0, 0, 0.2)',
-  'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
+  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
   4: '0 10px 15px -3px rgba(0, 0, 0, 0.35), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
-  'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
+  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
   5: '0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 10px 10px -5px rgba(0, 0, 0, 0.2)',
-  'xxl': '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-  6: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+  xxl: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+  6: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
 };
 
 /**
@@ -296,10 +305,21 @@ export const shadow = (elevation: ElevationLevel, isDarkMode = false): ReturnTyp
 /**
  * Typography size values
  */
-export type TypographySize = 
-  'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 
-  'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' |
-  number | string;
+export type TypographySize =
+  | 'xs'
+  | 'sm'
+  | 'md'
+  | 'lg'
+  | 'xl'
+  | 'xxl'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'h4'
+  | 'h5'
+  | 'h6'
+  | number
+  | string;
 
 /**
  * Typography properties by size
@@ -315,72 +335,72 @@ interface TypographyProps {
  * Typography size mapping
  */
 export const TYPOGRAPHY_SIZES: Record<string, TypographyProps> = {
-  'xs': {
-    fontSize: '0.75rem',    // 12px
-    lineHeight: '1rem',     // 16px
-    letterSpacing: '0.03em'
+  xs: {
+    fontSize: '0.75rem', // 12px
+    lineHeight: '1rem', // 16px
+    letterSpacing: '0.03em',
   },
-  'sm': {
-    fontSize: '0.875rem',   // 14px
-    lineHeight: '1.25rem',  // 20px
-    letterSpacing: '0.02em'
+  sm: {
+    fontSize: '0.875rem', // 14px
+    lineHeight: '1.25rem', // 20px
+    letterSpacing: '0.02em',
   },
-  'md': {
-    fontSize: '1rem',       // 16px
-    lineHeight: '1.5rem',   // 24px
-    letterSpacing: '0.01em'
+  md: {
+    fontSize: '1rem', // 16px
+    lineHeight: '1.5rem', // 24px
+    letterSpacing: '0.01em',
   },
-  'lg': {
-    fontSize: '1.125rem',   // 18px
-    lineHeight: '1.75rem',  // 28px
-    letterSpacing: '0'
+  lg: {
+    fontSize: '1.125rem', // 18px
+    lineHeight: '1.75rem', // 28px
+    letterSpacing: '0',
   },
-  'xl': {
-    fontSize: '1.25rem',    // 20px
-    lineHeight: '1.75rem',  // 28px
-    letterSpacing: '-0.01em'
+  xl: {
+    fontSize: '1.25rem', // 20px
+    lineHeight: '1.75rem', // 28px
+    letterSpacing: '-0.01em',
   },
-  'xxl': {
-    fontSize: '1.5rem',     // 24px
-    lineHeight: '2rem',     // 32px
-    letterSpacing: '-0.01em'
+  xxl: {
+    fontSize: '1.5rem', // 24px
+    lineHeight: '2rem', // 32px
+    letterSpacing: '-0.01em',
   },
-  'h1': {
-    fontSize: '2.25rem',    // 36px
-    lineHeight: '2.5rem',   // 40px
+  h1: {
+    fontSize: '2.25rem', // 36px
+    lineHeight: '2.5rem', // 40px
     fontWeight: 700,
-    letterSpacing: '-0.02em'
+    letterSpacing: '-0.02em',
   },
-  'h2': {
-    fontSize: '1.875rem',   // 30px
-    lineHeight: '2.25rem',  // 36px
+  h2: {
+    fontSize: '1.875rem', // 30px
+    lineHeight: '2.25rem', // 36px
     fontWeight: 700,
-    letterSpacing: '-0.02em'
+    letterSpacing: '-0.02em',
   },
-  'h3': {
-    fontSize: '1.5rem',     // 24px
-    lineHeight: '2rem',     // 32px
+  h3: {
+    fontSize: '1.5rem', // 24px
+    lineHeight: '2rem', // 32px
     fontWeight: 600,
-    letterSpacing: '-0.01em'
+    letterSpacing: '-0.01em',
   },
-  'h4': {
-    fontSize: '1.25rem',    // 20px
-    lineHeight: '1.75rem',  // 28px
+  h4: {
+    fontSize: '1.25rem', // 20px
+    lineHeight: '1.75rem', // 28px
     fontWeight: 600,
-    letterSpacing: '-0.01em'
+    letterSpacing: '-0.01em',
   },
-  'h5': {
-    fontSize: '1.125rem',   // 18px
-    lineHeight: '1.75rem',  // 28px
+  h5: {
+    fontSize: '1.125rem', // 18px
+    lineHeight: '1.75rem', // 28px
     fontWeight: 600,
-    letterSpacing: '0'
+    letterSpacing: '0',
   },
-  'h6': {
-    fontSize: '1rem',       // 16px
-    lineHeight: '1.5rem',   // 24px
+  h6: {
+    fontSize: '1rem', // 16px
+    lineHeight: '1.5rem', // 24px
     fontWeight: 600,
-    letterSpacing: '0.01em'
-  }
+    letterSpacing: '0.01em',
+  },
 };
 
 /**
@@ -391,23 +411,23 @@ export const getTypographyProps = (size: TypographySize): TypographyProps => {
   if (typeof size === 'string' && TYPOGRAPHY_SIZES[size]) {
     return TYPOGRAPHY_SIZES[size];
   }
-  
+
   // If it's a number, create custom typography props
   if (typeof size === 'number') {
     return {
       fontSize: `${size / 16}rem`,
-      lineHeight: `${Math.max(Math.round(size * 1.5) / 16, 1)}rem`
+      lineHeight: `${Math.max(Math.round(size * 1.5) / 16, 1)}rem`,
     };
   }
-  
+
   // If it's a string with units
   if (typeof size === 'string') {
     return {
       fontSize: size,
-      lineHeight: '1.5'
+      lineHeight: '1.5',
     };
   }
-  
+
   // Default
   return TYPOGRAPHY_SIZES.md;
 };
@@ -417,7 +437,7 @@ export const getTypographyProps = (size: TypographySize): TypographyProps => {
  */
 export const typography = (size: TypographySize): ReturnType<typeof css> => {
   const props = getTypographyProps(size);
-  
+
   return cssWithKebabProps`
     font-size: ${props.fontSize};
     line-height: ${props.lineHeight};
@@ -429,11 +449,17 @@ export const typography = (size: TypographySize): ReturnType<typeof css> => {
 /**
  * Flexbox alignment values
  */
-export type FlexAlignment = 
-  'start' | 'center' | 'end' | 
-  'flex-start' | 'flex-end' | 
-  'space-between' | 'space-around' | 'space-evenly' | 
-  'stretch' | 'baseline';
+export type FlexAlignment =
+  | 'start'
+  | 'center'
+  | 'end'
+  | 'flex-start'
+  | 'flex-end'
+  | 'space-between'
+  | 'space-around'
+  | 'space-evenly'
+  | 'stretch'
+  | 'baseline';
 
 /**
  * Create flexbox CSS
@@ -461,10 +487,8 @@ export const grid = (
   gap: SpacingSize = 'md'
 ): ReturnType<typeof css> => {
   // Convert columns to CSS grid template
-  const columnsTemplate = typeof columns === 'number' 
-    ? `repeat(${columns}, 1fr)`
-    : columns;
-  
+  const columnsTemplate = typeof columns === 'number' ? `repeat(${columns}, 1fr)` : columns;
+
   return cssWithKebabProps`
     display: grid;
     grid-template-columns: ${columnsTemplate};
@@ -475,7 +499,7 @@ export const grid = (
 /**
  * Create a truncated text CSS
  */
-export const truncate = (lines: number = 1): ReturnType<typeof css> => {
+export const truncate = (lines = 1): ReturnType<typeof css> => {
   if (lines === 1) {
     return cssWithKebabProps`
       overflow: hidden;
@@ -483,7 +507,7 @@ export const truncate = (lines: number = 1): ReturnType<typeof css> => {
       white-space: nowrap;
     `;
   }
-  
+
   return cssWithKebabProps`
     display: -webkit-box;
     -webkit-line-clamp: ${lines};
@@ -502,16 +526,16 @@ export const responsive = (
     md: '768px',
     lg: '992px',
     xl: '1200px',
-    xxl: '1400px'
+    xxl: '1400px',
   }
 ): ReturnType<typeof css> => {
   let result = '';
-  
+
   // Add base styles (if any)
   if (styles.base) {
     result += styles.base;
   }
-  
+
   // Add responsive styles
   Object.entries(styles)
     .filter(([key]) => key !== 'base' && breakpoints[key])
@@ -522,8 +546,10 @@ export const responsive = (
         }
       `;
     });
-  
-  return css`${result}`;
+
+  return css`
+    ${result}
+  `;
 };
 
 /**
@@ -548,6 +574,8 @@ export const visuallyHidden = (): ReturnType<typeof css> => {
  */
 export const composeStyles = (...mixins: StyleMixin[]): StyleMixin => {
   return (props?: any) => {
-    return css`${mixins.map(mixin => mixin(props)).join('')}`;
+    return css`
+      ${mixins.map(mixin => mixin(props)).join('')}
+    `;
   };
 };

@@ -1,10 +1,11 @@
 /**
  * Divider Component
- * 
+ *
  * A divider line that separates content vertically or horizontally
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { createThemeContext } from '../../core/themeUtils';
 
@@ -101,7 +102,10 @@ export interface DividerProps {
 /**
  * Get width or height based on orientation
  */
-const getWidthOrHeight = (orientation: 'horizontal' | 'vertical', thickness?: number | string): string => {
+const getWidthOrHeight = (
+  orientation: 'horizontal' | 'vertical',
+  thickness?: number | string
+): string => {
   if (thickness === undefined) {
     return orientation === 'horizontal' ? '1px' : '1px';
   }
@@ -143,9 +147,9 @@ const DividerRoot = styled.hr<DividerProps & { theme: any }>`
     const textAlign = props.textAlign || 'center';
     const thickness = getWidthOrHeight(orientation, props.thickness);
     const color = props.color || (isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)');
-    const opacity = props.opacity !== undefined ? props.opacity : (props.glass ? 0.2 : 1);
+    const opacity = props.opacity !== undefined ? props.opacity : props.glass ? 0.2 : 1;
     const lightOpacity = props.lightOpacity || 0.05;
-    
+
     return cssWithKebabProps`
       margin: 0;
       flex-shrink: 0;
@@ -153,40 +157,54 @@ const DividerRoot = styled.hr<DividerProps & { theme: any }>`
       position: ${props.absolute ? 'absolute' : 'relative'};
       
       /* Glass effect */
-      ${props.glass ? `
-        background-color: ${isDarkMode 
-          ? `rgba(255, 255, 255, ${lightOpacity})`
-          : `rgba(255, 255, 255, ${lightOpacity + 0.3})`};
+      ${
+        props.glass
+          ? `
+        background-color: ${
+          isDarkMode
+            ? `rgba(255, 255, 255, ${lightOpacity})`
+            : `rgba(255, 255, 255, ${lightOpacity + 0.3})`
+        };
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
-      ` : `
-        background-color: ${props.gradient 
-          ? 'transparent' 
-          : color};
+      `
+          : `
+        background-color: ${props.gradient ? 'transparent' : color};
         ${props.gradient ? `background-image: ${getGradientStyle(color, isDarkMode)};` : ''}
-      `}
+      `
+      }
       
       /* Base styles based on orientation */
-      ${orientation === 'horizontal' ? `
+      ${
+        orientation === 'horizontal'
+          ? `
         height: ${thickness};
         margin: ${getInsetMargin(variant)};
         width: 100%;
         opacity: ${opacity};
-      ` : `
+      `
+          : `
         height: 100%;
         width: ${thickness};
         margin: ${variant === 'inset' ? '0 16px' : '0'};
         opacity: ${opacity};
-      `}
+      `
+      }
       
       /* If flexItem is true */
-      ${props.flexItem ? `
+      ${
+        props.flexItem
+          ? `
         align-self: stretch;
         height: auto;
-      ` : ''}
+      `
+          : ''
+      }
       
       /* If has children (text divider) */
-      ${props.children ? `
+      ${
+        props.children
+          ? `
         display: flex;
         align-items: center;
         
@@ -206,12 +224,18 @@ const DividerRoot = styled.hr<DividerProps & { theme: any }>`
           margin-left: 16px;
           ${textAlign === 'right' ? 'flex: 0' : textAlign === 'left' ? 'flex: 9' : 'flex: 1'};
         }
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Animation */
-      ${props.animated ? `
+      ${
+        props.animated
+          ? `
         transition: opacity 0.3s ease, transform 0.3s ease;
-        ${orientation === 'horizontal' ? `
+        ${
+          orientation === 'horizontal'
+            ? `
           transform-origin: center left;
           animation: dividerExpand 0.5s ease forwards;
           
@@ -225,7 +249,8 @@ const DividerRoot = styled.hr<DividerProps & { theme: any }>`
               opacity: ${opacity};
             }
           }
-        ` : `
+        `
+            : `
           transform-origin: top center;
           animation: dividerExpandVertical 0.5s ease forwards;
           
@@ -239,8 +264,11 @@ const DividerRoot = styled.hr<DividerProps & { theme: any }>`
               opacity: ${opacity};
             }
           }
-        `}
-      ` : ''}
+        `
+        }
+      `
+          : ''
+      }
     `;
   }}
 `;

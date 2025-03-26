@@ -1,9 +1,10 @@
 /**
  * Magnetic Effect System
- * 
+ *
  * Physics-based magnetic attraction/repulsion effects for interactive elements
  */
 import { css } from 'styled-components';
+
 import { cssWithKebabProps } from '../../core/cssUtils';
 
 /**
@@ -14,67 +15,67 @@ export interface MagneticEffectOptions {
    * Strength of the magnetic effect (higher = stronger)
    */
   strength?: number;
-  
+
   /**
    * Distance at which the effect starts to be noticeable
    */
   radius?: number;
-  
+
   /**
    * Type of magnetic effect
    */
   type?: 'attract' | 'repel' | 'follow' | 'orbit' | 'custom';
-  
+
   /**
    * Ease factor for smoothing the movement (0-1, lower = more smoothing)
    */
   easeFactor?: number;
-  
+
   /**
    * Maximum displacement in pixels
    */
   maxDisplacement?: number;
-  
+
   /**
    * If true, applies magnetic effect to rotation as well
    */
   affectsRotation?: boolean;
-  
+
   /**
    * If true, applies magnetic effect to scale as well
    */
   affectsScale?: boolean;
-  
+
   /**
    * Rotation amplitude in degrees (if affectsRotation is true)
    */
   rotationAmplitude?: number;
-  
+
   /**
    * Scale amplitude (if affectsScale is true)
    */
   scaleAmplitude?: number;
-  
+
   /**
    * For custom type, a custom animation function
    */
   customFunction?: string;
-  
+
   /**
    * If true, applies transition to movement for smoother effect
    */
   smooth?: boolean;
-  
+
   /**
    * Smoothing duration in milliseconds
    */
   smoothingDuration?: number;
-  
+
   /**
    * If true, will optimize for GPU acceleration
    */
   gpuAccelerated?: boolean;
-  
+
   /**
    * If true, reduces the effect for accessibility
    */
@@ -100,21 +101,23 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
     smoothingDuration = 200,
     reducedMotion = false,
   } = options;
-  
+
   // If custom function is provided, use that
   if (customFunction) {
     return customFunction;
   }
-  
+
   // Reduced motion handling - much more subtle effect
   const adjustedStrength = reducedMotion ? Math.min(strength * 0.3, 0.1) : strength;
-  const adjustedMaxDisplacement = reducedMotion ? Math.min(maxDisplacement * 0.3, 10) : maxDisplacement;
+  const adjustedMaxDisplacement = reducedMotion
+    ? Math.min(maxDisplacement * 0.3, 10)
+    : maxDisplacement;
   const adjustedRotationAmplitude = reducedMotion ? 0 : rotationAmplitude;
   const adjustedScaleAmplitude = reducedMotion ? 0 : scaleAmplitude;
-  
+
   // Create magnetic effect function based on type
   let magneticEffect = '';
-  
+
   switch (type) {
     case 'attract':
       magneticEffect = `
@@ -234,7 +237,7 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
         }
       `;
       break;
-      
+
     case 'repel':
       magneticEffect = `
         function applyMagneticEffect(element) {
@@ -353,7 +356,7 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
         }
       `;
       break;
-      
+
     case 'follow':
       magneticEffect = `
         function applyMagneticEffect(element) {
@@ -448,7 +451,7 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
         }
       `;
       break;
-      
+
     case 'orbit':
       magneticEffect = `
         function applyMagneticEffect(element) {
@@ -551,12 +554,12 @@ const generateMagneticScript = (options: MagneticEffectOptions): string => {
         }
       `;
       break;
-      
+
     default:
       // Default to attract if type is not recognized
       return generateMagneticScript({ ...options, type: 'attract' });
   }
-  
+
   return magneticEffect;
 };
 
@@ -571,19 +574,21 @@ export const magneticEffect = (options: MagneticEffectOptions = {}) => {
     gpuAccelerated = true,
     reducedMotion = false,
   } = options;
-  
+
   // Generate the JavaScript for the magnetic effect
   const magneticScript = generateMagneticScript({ ...options, reducedMotion });
-  
+
   // Generate a unique ID for the effect
   const effectId = Math.random().toString(36).substring(2, 9);
-  
+
   // Add GPU acceleration if requested
-  const gpuStyles = gpuAccelerated ? `
+  const gpuStyles = gpuAccelerated
+    ? `
     will-change: transform;
     backface-visibility: hidden;
-  ` : '';
-  
+  `
+    : '';
+
   // Return CSS and JS to apply the magnetic effect
   return cssWithKebabProps`
     ${gpuStyles}
@@ -602,7 +607,8 @@ export const magneticEffect = (options: MagneticEffectOptions = {}) => {
       height: 0;
       pointer-events: none;
       visibility: hidden;
-      background: url("data:text/javascript;base64,${Buffer.from(`
+      background: url("data:text/javascript;base64,${Buffer.from(
+        `
         (() => {
           // Wait for the element to be rendered
           setTimeout(() => {
@@ -615,7 +621,8 @@ export const magneticEffect = (options: MagneticEffectOptions = {}) => {
             applyMagneticEffect(element);
           }, 100);
         })();
-      `).toString('base64')}");
+      `
+      ).toString('base64')}");
     }
     
     /* Add data attribute for JavaScript targeting */

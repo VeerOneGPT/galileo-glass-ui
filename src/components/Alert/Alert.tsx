@@ -1,62 +1,63 @@
 import React, { forwardRef, useState } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassGlow } from '../../core/mixins/glowEffects';
+
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { fadeIn, slideRight } from '../../animations/keyframes/basic';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface AlertProps {
   /**
    * The content of the alert
    */
   children: React.ReactNode;
-  
+
   /**
    * The severity of the alert
    */
   severity?: 'success' | 'info' | 'warning' | 'error';
-  
+
   /**
    * The variant of the alert
    */
   variant?: 'standard' | 'filled' | 'outlined' | 'glass';
-  
+
   /**
    * The title of the alert
    */
   title?: string;
-  
+
   /**
    * The icon to display
    */
   icon?: React.ReactNode;
-  
+
   /**
    * If true, the alert will take up the full width of its container
    */
   fullWidth?: boolean;
-  
+
   /**
    * If true, the alert will be closable
    */
   closable?: boolean;
-  
+
   /**
    * Callback fired when the alert is closed
    */
   onClose?: () => void;
-  
+
   /**
    * The size of the alert
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * Additional CSS class
    */
   className?: string;
-  
+
   /**
    * If true, adds a subtle animation
    */
@@ -81,7 +82,9 @@ const getSeverityColor = (severity: string): string => {
 
 // Get color with opacity
 const getColorWithOpacity = (color: string, opacity: number): string => {
-  return `${color}${Math.round(opacity * 255).toString(16).padStart(2, '0')}`;
+  return `${color}${Math.round(opacity * 255)
+    .toString(16)
+    .padStart(2, '0')}`;
 };
 
 // Default icons for each severity
@@ -109,11 +112,11 @@ const AlertRoot = styled.div<{
   $animated: boolean;
 }>`
   display: flex;
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
   position: relative;
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
-  
+
   /* Size styles */
   ${props => {
     switch (props.$size) {
@@ -137,11 +140,11 @@ const AlertRoot = styled.div<{
         `;
     }
   }}
-  
+
   /* Variant styles */
   ${props => {
     const color = getSeverityColor(props.$severity);
-    
+
     switch (props.$variant) {
       case 'filled':
         return `
@@ -171,27 +174,33 @@ const AlertRoot = styled.div<{
   }}
   
   /* Glass effect for glass variant */
-  ${props => props.$variant === 'glass' && glassSurface({
-    elevation: 2,
-    blurStrength: 'standard',
-    backgroundOpacity: 'subtle',
-    borderOpacity: 'medium',
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    glassSurface({
+      elevation: 2,
+      blurStrength: 'standard',
+      backgroundOpacity: 'subtle',
+      borderOpacity: 'medium',
+      themeContext: createThemeContext({}),
+    })}
   
   /* Subtle glow for filled and glass variants */
-  ${props => (props.$variant === 'filled' || props.$variant === 'glass') && glassGlow({
-    glowIntensity: 'light',
-    glowColor: getSeverityColor(props.$severity),
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    (props.$variant === 'filled' || props.$variant === 'glass') &&
+    glassGlow({
+      glowIntensity: 'light',
+      glowColor: getSeverityColor(props.$severity),
+      themeContext: createThemeContext({}),
+    })}
   
   /* Animation if enabled */
-  ${props => props.$animated && accessibleAnimation({
-    animation: fadeIn,
-    duration: '0.3s',
-    easing: 'ease-out'
-  })}
+  ${props =>
+    props.$animated &&
+    accessibleAnimation({
+      animation: fadeIn,
+      duration: '0.3s',
+      easing: 'ease-out',
+    })}
 `;
 
 const AlertIcon = styled.div<{ $severity: string; $variant: string }>`
@@ -199,7 +208,7 @@ const AlertIcon = styled.div<{ $severity: string; $variant: string }>`
   align-items: center;
   font-size: 1.25em;
   margin-right: 12px;
-  color: ${props => props.$variant === 'filled' ? 'white' : getSeverityColor(props.$severity)};
+  color: ${props => (props.$variant === 'filled' ? 'white' : getSeverityColor(props.$severity))};
 `;
 
 const AlertContent = styled.div`
@@ -209,7 +218,7 @@ const AlertContent = styled.div`
 
 const AlertTitle = styled.div<{ $hasChildren: boolean }>`
   font-weight: 600;
-  margin-bottom: ${props => props.$hasChildren ? '4px' : '0'};
+  margin-bottom: ${props => (props.$hasChildren ? '4px' : '0')};
 `;
 
 const AlertMessage = styled.div`
@@ -228,16 +237,16 @@ const AlertCloseButton = styled.button<{ $variant: string; $severity: string }>`
   justify-content: center;
   margin-left: 12px;
   font-size: 1.2em;
-  color: ${props => props.$variant === 'filled' ? 'white' : getSeverityColor(props.$severity)};
+  color: ${props => (props.$variant === 'filled' ? 'white' : getSeverityColor(props.$severity))};
   opacity: 0.7;
   border-radius: 50%;
   transition: opacity 0.2s ease, background-color 0.2s ease;
-  
+
   &:hover {
     opacity: 1;
     background-color: rgba(0, 0, 0, 0.08);
   }
-  
+
   &:focus {
     outline: none;
     box-shadow: 0 0 0 2px ${props => getColorWithOpacity(getSeverityColor(props.$severity), 0.4)};
@@ -246,7 +255,7 @@ const AlertCloseButton = styled.button<{ $variant: string; $severity: string }>`
 
 /**
  * Alert Component
- * 
+ *
  * Component for displaying alert messages with different severities.
  */
 export const Alert = forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
@@ -264,26 +273,26 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
     animated = true,
     ...rest
   } = props;
-  
+
   const [visible, setVisible] = useState(true);
-  
+
   // Handle close button click
   const handleClose = () => {
     setVisible(false);
-    
+
     if (onClose) {
       onClose();
     }
   };
-  
+
   // If alert has been closed, don't render anything
   if (!visible) {
     return null;
   }
-  
+
   // Determine which icon to show
   const alertIcon = icon ?? getDefaultIcon(severity);
-  
+
   return (
     <AlertRoot
       ref={ref}
@@ -299,21 +308,15 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
       <AlertIcon $severity={severity} $variant={variant}>
         {alertIcon}
       </AlertIcon>
-      
+
       <AlertContent>
-        {title && (
-          <AlertTitle $hasChildren={!!children}>
-            {title}
-          </AlertTitle>
-        )}
-        
-        {children && (
-          <AlertMessage>{children}</AlertMessage>
-        )}
+        {title && <AlertTitle $hasChildren={!!children}>{title}</AlertTitle>}
+
+        {children && <AlertMessage>{children}</AlertMessage>}
       </AlertContent>
-      
+
       {closable && (
-        <AlertCloseButton 
+        <AlertCloseButton
           onClick={handleClose}
           $variant={variant}
           $severity={severity}
@@ -330,23 +333,14 @@ Alert.displayName = 'Alert';
 
 /**
  * GlassAlert Component
- * 
+ *
  * Alert component with glass morphism styling.
  */
 export const GlassAlert = forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
-  const {
-    className,
-    variant = 'glass',
-    ...rest
-  } = props;
-  
+  const { className, variant = 'glass', ...rest } = props;
+
   return (
-    <Alert
-      ref={ref}
-      className={`glass-alert ${className || ''}`}
-      variant={variant}
-      {...rest}
-    />
+    <Alert ref={ref} className={`glass-alert ${className || ''}`} variant={variant} {...rest} />
   );
 });
 

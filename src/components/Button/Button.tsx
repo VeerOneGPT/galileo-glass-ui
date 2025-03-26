@@ -1,8 +1,9 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 // Button props interface
 export interface ButtonProps {
@@ -10,32 +11,32 @@ export interface ButtonProps {
    * The content of the button
    */
   children: React.ReactNode;
-  
+
   /**
    * The variant of the button
    */
   variant?: 'contained' | 'outlined' | 'text';
-  
+
   /**
    * The color of the button
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
-  
+
   /**
    * If true, the button will be disabled
    */
   disabled?: boolean;
-  
+
   /**
    * The size of the button
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * Click handler
    */
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  
+
   /**
    * Additional CSS class name
    */
@@ -57,14 +58,14 @@ const StyledButton = styled.button<{
   box-sizing: border-box;
   outline: 0;
   border: 0;
-  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'default' : 'pointer')};
   user-select: none;
   vertical-align: middle;
   text-decoration: none;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
   border-radius: 4px;
-  
+
   /* Size styles */
   ${props => {
     switch (props.$size) {
@@ -88,18 +89,23 @@ const StyledButton = styled.button<{
         `;
     }
   }}
-  
+
   /* Glass effect styles for contained variant */
-  ${props => props.$variant === 'contained' && !props.$disabled && glassSurface({
-    elevation: 2,
-    blurStrength: 'standard',
-    backgroundOpacity: 'medium',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({}) // In real usage, this would use props.theme
-  })}
+  ${props =>
+    props.$variant === 'contained' &&
+    !props.$disabled &&
+    glassSurface({
+      elevation: 2,
+      blurStrength: 'standard',
+      backgroundOpacity: 'medium',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}), // In real usage, this would use props.theme
+    })}
   
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     opacity: 0.5;
     pointer-events: none;
   `}
@@ -189,7 +195,8 @@ const StyledButton = styled.button<{
             background-color: transparent;
           `;
       }
-    } else { // text variant
+    } else {
+      // text variant
       switch (props.$color) {
         case 'primary':
           return `
@@ -231,7 +238,9 @@ const StyledButton = styled.button<{
   }}
   
   /* Hover styles */
-  ${props => !props.$disabled && `
+  ${props =>
+    !props.$disabled &&
+    `
     transition: all 0.2s ease-in-out;
     
     &:hover {
@@ -246,7 +255,7 @@ const StyledButton = styled.button<{
 
 /**
  * Button Component
- * 
+ *
  * A flexible button component with multiple variants and colors.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
@@ -260,7 +269,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
     className,
     ...rest
   } = props;
-  
+
   return (
     <StyledButton
       ref={ref}
@@ -282,7 +291,7 @@ Button.displayName = 'Button';
 
 /**
  * GlassButton Component
- * 
+ *
  * A button component with glass morphism styling.
  */
 export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
@@ -296,7 +305,7 @@ export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>((props, re
     className,
     ...rest
   } = props;
-  
+
   // Add glass styling to the base button
   return (
     <Button

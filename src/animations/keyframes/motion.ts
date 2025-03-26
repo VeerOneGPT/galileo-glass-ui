@@ -1,6 +1,6 @@
 /**
  * Motion Animation Keyframes
- * 
+ *
  * Motion-based animation keyframes with reduced motion alternatives
  */
 import { keyframes } from 'styled-components';
@@ -606,7 +606,7 @@ export const REDUCED_MOTION_MAP = {
   slideInRight: reducedSlideInRight,
   zoomIn: reducedZoomIn,
   zoomOut: reducedZoomOut,
-  
+
   // Motion animations
   spin: reducedSpin,
   pulse: reducedPulse,
@@ -622,5 +622,5 @@ export const REDUCED_MOTION_MAP = {
   typing: reducedTyping,
   focusRingPulse: reducedFocusRing,
   contentFadeIn: reducedContentFadeIn,
-  scaleFade: reducedScaleFade
+  scaleFade: reducedScaleFade,
 };

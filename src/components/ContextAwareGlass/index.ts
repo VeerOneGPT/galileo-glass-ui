@@ -2,9 +2,9 @@
  * ContextAwareGlass Component Export
  */
 export { ContextAwareGlass } from './ContextAwareGlass';
-export type { 
+export type {
   ContextAwareGlassProps,
   AdaptationMode,
   ContentType,
-  BackgroundType 
+  BackgroundType,
 } from './ContextAwareGlass';

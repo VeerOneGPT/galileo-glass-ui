@@ -1,6 +1,6 @@
 /**
  * Galileo Glass UI - Examples
- * 
+ *
  * Export all example components that demonstrate features of the Galileo Glass UI system
  */
 

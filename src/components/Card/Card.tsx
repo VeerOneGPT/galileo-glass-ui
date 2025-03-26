@@ -1,8 +1,9 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
+
 import { glassGlow } from '../../core/mixins/effects/glowEffects';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
 
 // Card props interface
 export interface CardProps {
@@ -10,37 +11,37 @@ export interface CardProps {
    * The content of the card
    */
   children: React.ReactNode;
-  
+
   /**
    * The variant of the card
    */
   variant?: 'elevation' | 'outlined';
-  
+
   /**
    * The elevation level of the card
    */
   elevation?: 0 | 1 | 2 | 3 | 4 | 5;
-  
+
   /**
    * If true, the card will have a hover effect
    */
   hover?: boolean;
-  
+
   /**
    * If true, the card will have a glow effect
    */
   glow?: 'none' | 'subtle' | 'medium' | 'strong';
-  
+
   /**
    * The color of the glow effect
    */
   glowColor?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
-  
+
   /**
    * Additional CSS class name
    */
   className?: string;
-  
+
   /**
    * Click handler
    */
@@ -65,7 +66,7 @@ const StyledCard = styled.div<{
   border-radius: 8px;
   overflow: hidden;
   transition: all 0.2s ease-in-out;
-  
+
   /* Variant styles */
   ${props => {
     if (props.$variant === 'outlined') {
@@ -74,19 +75,21 @@ const StyledCard = styled.div<{
         background-color: transparent;
       `;
     }
-    
+
     // For elevation variant, use glassSurface mixin
     return glassSurface({
       elevation: props.$elevation,
       blurStrength: 'standard',
       backgroundOpacity: 'light',
       borderOpacity: 'subtle',
-      themeContext: createThemeContext({}) // In real usage, this would use props.theme
+      themeContext: createThemeContext({}), // In real usage, this would use props.theme
     });
   }}
-  
+
   /* Hover effect */
-  ${props => props.$hover && `
+  ${props =>
+    props.$hover &&
+    `
     cursor: pointer;
     
     &:hover {
@@ -95,16 +98,18 @@ const StyledCard = styled.div<{
   `}
   
   /* Glow effect */
-  ${props => props.$glow !== 'none' && glassGlow({
-    intensity: props.$glow,
-    color: props.$glowColor,
-    themeContext: createThemeContext({}) // In real usage, this would use props.theme
-  })}
+  ${props =>
+    props.$glow !== 'none' &&
+    glassGlow({
+      intensity: props.$glow,
+      color: props.$glowColor,
+      themeContext: createThemeContext({}), // In real usage, this would use props.theme
+    })}
 `;
 
 /**
  * Card Component
- * 
+ *
  * A flexible card component for content containers.
  */
 export const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
@@ -119,7 +124,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
     onClick,
     ...rest
   } = props;
-  
+
   return (
     <StyledCard
       ref={ref}
@@ -141,7 +146,7 @@ Card.displayName = 'Card';
 
 /**
  * GlassCard Component
- * 
+ *
  * A card component with glass morphism styling.
  */
 export const GlassCard = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
@@ -156,7 +161,7 @@ export const GlassCard = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
     onClick,
     ...rest
   } = props;
-  
+
   // Add glass styling to the base card
   return (
     <Card

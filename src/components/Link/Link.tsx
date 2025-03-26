@@ -1,10 +1,11 @@
 /**
  * Link Component
- * 
+ *
  * A styled anchor element with glass effects
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { createThemeContext } from '../../core/themeUtils';
 
@@ -71,7 +72,7 @@ export interface LinkProps {
    * If true, the component will have focus visible styles
    */
   focusVisible?: boolean;
-  
+
   /**
    * CSS class name
    */
@@ -135,7 +136,7 @@ const LinkRoot = styled.a<LinkProps & { theme: any }>`
     const color = getColor(props.color, isDarkMode);
     const fontSize = getFontSize(props.size);
     const fontWeight = getFontWeight(props.weight);
-    
+
     return cssWithKebabProps`
       margin: 0;
       color: ${color};
@@ -145,87 +146,135 @@ const LinkRoot = styled.a<LinkProps & { theme: any }>`
       cursor: ${props.disabled ? 'default' : 'pointer'};
       display: inline-flex;
       align-items: center;
-      justify-content: ${props.align === 'center' ? 'center' : props.align === 'right' ? 'flex-end' : 'flex-start'};
+      justify-content: ${
+        props.align === 'center' ? 'center' : props.align === 'right' ? 'flex-end' : 'flex-start'
+      };
       opacity: ${props.disabled ? 0.5 : 1};
       pointer-events: ${props.disabled ? 'none' : 'auto'};
       position: relative;
       transition: all 0.2s ease-in-out;
       
       /* Glass effect for button and outline variants */
-      ${(props.glass && props.variant !== 'text') ? `
+      ${
+        props.glass && props.variant !== 'text'
+          ? `
         padding: ${props.variant === 'button' ? '0.5rem 1rem' : '0.4rem 0.8rem'};
         border-radius: 4px;
         
-        ${props.variant === 'button' ? `
+        ${
+          props.variant === 'button'
+            ? `
           background-color: ${isDarkMode ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'};
           backdrop-filter: blur(4px);
           -webkit-backdrop-filter: blur(4px);
           border: 1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'};
-        ` : props.variant === 'outline' ? `
+        `
+            : props.variant === 'outline'
+            ? `
           background-color: transparent;
           border: 1px solid ${isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.12)'};
-        ` : ''}
-      ` : ''}
+        `
+            : ''
+        }
+      `
+          : ''
+      }
       
       /* Default text variant with no glass effect */
-      ${(props.variant === 'text' || !props.variant) && !props.glass ? `
+      ${
+        (props.variant === 'text' || !props.variant) && !props.glass
+          ? `
         padding: 0;
         background-color: transparent;
         border: none;
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Focus styles */
       &:focus {
         outline: none;
-        ${props.focusVisible ? `
+        ${
+          props.focusVisible
+            ? `
           box-shadow: 0 0 0 3px ${isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)'};
           border-radius: 4px;
-        ` : ''}
+        `
+            : ''
+        }
       }
       
       /* Hover styles */
       &:hover {
         ${props.underlineOnHover ? 'text-decoration: underline;' : ''}
-        ${props.animated ? `
+        ${
+          props.animated
+            ? `
           transform: translateY(-2px);
-          ${props.glass && props.variant === 'button' ? `
-            box-shadow: 0 4px 12px ${isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)'};
-          ` : ''}
-        ` : ''}
+          ${
+            props.glass && props.variant === 'button'
+              ? `
+            box-shadow: 0 4px 12px ${
+              isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)'
+            };
+          `
+              : ''
+          }
+        `
+            : ''
+        }
         
-        ${props.variant === 'button' && props.glass ? `
+        ${
+          props.variant === 'button' && props.glass
+            ? `
           background-color: ${isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'};
-        ` : props.variant === 'outline' && props.glass ? `
+        `
+            : props.variant === 'outline' && props.glass
+            ? `
           background-color: ${isDarkMode ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)'};
-        ` : ''}
+        `
+            : ''
+        }
       }
       
       /* Active styles */
       &:active {
         ${props.animated ? 'transform: translateY(0);' : ''}
-        ${props.glass && props.variant === 'button' ? `
+        ${
+          props.glass && props.variant === 'button'
+            ? `
           box-shadow: 0 1px 3px ${isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)'};
-        ` : ''}
+        `
+            : ''
+        }
       }
       
       /* Custom icon spacing if children include icons (assumed to be the first or last child) */
       & > svg {
-        ${props.variant === 'text' ? `
+        ${
+          props.variant === 'text'
+            ? `
           margin-right: ${props.children && typeof props.children !== 'string' ? '0.5rem' : '0'};
-        ` : `
+        `
+            : `
           margin-right: ${props.children && typeof props.children !== 'string' ? '0.5rem' : '0'};
-        `}
+        `
+        }
       }
       
       /* External link indicator */
-      ${props.external ? `
+      ${
+        props.external
+          ? `
         &::after {
           content: '↗';
           font-size: 0.8em;
           margin-left: 0.3em;
           vertical-align: super;
         }
-      ` : ''}
+      `
+          : ''
+      }
     `;
   }}
 `;
@@ -255,10 +304,12 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(props
   } = props;
 
   // Additional props for external links
-  const externalProps = external ? {
-    target: '_blank',
-    rel: 'noopener noreferrer',
-  } : {};
+  const externalProps = external
+    ? {
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      }
+    : {};
 
   return (
     <LinkRoot

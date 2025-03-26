@@ -1,10 +1,11 @@
 /**
  * Core Utilities Demo
- * 
+ *
  * A demonstration of the core utilities in Glass UI
  */
 import React from 'react';
 import styled from 'styled-components';
+
 import {
   // Style utilities
   padding,
@@ -17,22 +18,22 @@ import {
   truncate,
   responsive,
   visuallyHidden,
-  
+
   // Theme utilities
   colorModeAware,
   getColorWithOpacity,
   withTheme,
-  
+
   // Glass mixins
   glassSurface,
   glassGlow,
   innerGlow,
   edgeHighlight,
-  
+
   // Z-Space system
   ZLayer,
   ZDepth,
-  zLayer
+  zLayer,
 } from '../core';
 
 // Create a theme context for the demo
@@ -74,7 +75,7 @@ const DemoSection = styled.section`
   ${margin(0, 0, 'lg')}
   ${borderRadius('md')}
   background-color: rgba(30, 41, 59, 0.5);
-  
+
   /* Apply shadow utility */
   ${props => shadow('md', true)}
 `;
@@ -90,7 +91,7 @@ const DemoBox = styled.div`
   ${margin('sm')}
   ${borderRadius('md')}
   background-color: rgba(255, 255, 255, 0.1);
-  
+
   /* Use the flex utility */
   ${flex('row', 'space-between', 'center')}
 `;
@@ -100,21 +101,24 @@ const ElevationDemo = styled.div<{ level: 'low' | 'medium' | 'high' }>`
   ${borderRadius('md')}
   
   /* Apply glass surface based on prop */
-  ${props => glassSurface({
-    elevation: props.level,
-    blurStrength: props.level === 'high' ? 'enhanced' : props.level === 'medium' ? 'standard' : 'light',
-    backgroundOpacity: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext(props.theme, true)
-  })}
+  ${props =>
+    glassSurface({
+      elevation: props.level,
+      blurStrength:
+        props.level === 'high' ? 'enhanced' : props.level === 'medium' ? 'standard' : 'light',
+      backgroundOpacity: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext(props.theme, true),
+    })}
   
   /* Add margin based on elevation to create 3D effect */
-  ${props => margin(
-    props.level === 'high' ? 'xs' : 0,
-    props.level === 'high' ? 'xs' : 0,
-    props.level === 'low' ? 'xs' : 0,
-    props.level === 'low' ? 'xs' : 0
-  )}
+  ${props =>
+    margin(
+      props.level === 'high' ? 'xs' : 0,
+      props.level === 'high' ? 'xs' : 0,
+      props.level === 'low' ? 'xs' : 0,
+      props.level === 'low' ? 'xs' : 0
+    )}
 `;
 
 const GlowDemo = styled.div<{ color: string; interactive?: boolean }>`
@@ -126,23 +130,27 @@ const GlowDemo = styled.div<{ color: string; interactive?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* Apply glass surface with glow based on props */
-  ${props => glassSurface({
-    blurStrength: 'standard',
-    backgroundOpacity: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext(props.theme, true)
-  })}
-  
-  ${props => glassGlow.glassGlow({
-    color: props.color,
-    intensity: 'medium',
-    themeContext: createThemeContext(props.theme, true)
-  })}
+  ${props =>
+    glassSurface({
+      blurStrength: 'standard',
+      backgroundOpacity: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext(props.theme, true),
+    })}
+
+  ${props =>
+    glassGlow.glassGlow({
+      color: props.color,
+      intensity: 'medium',
+      themeContext: createThemeContext(props.theme, true),
+    })}
   
   /* Apply hover effects for interactive elements */
-  ${props => props.interactive && `
+  ${props =>
+    props.interactive &&
+    `
     cursor: pointer;
     transition: transform 0.2s ease-out;
     
@@ -165,26 +173,28 @@ const InnerGlowDemo = styled.div<{ color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* Apply glass surface with inner glow */
-  ${props => glassSurface({
-    blurStrength: 'standard',
-    backgroundOpacity: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext(props.theme, true)
-  })}
-  
-  ${props => innerGlow({
-    color: props.color,
-    intensity: 'medium',
-    spread: 15,
-    themeContext: createThemeContext(props.theme, true)
-  })}
+  ${props =>
+    glassSurface({
+      blurStrength: 'standard',
+      backgroundOpacity: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext(props.theme, true),
+    })}
+
+  ${props =>
+    innerGlow({
+      color: props.color,
+      intensity: 'medium',
+      spread: 15,
+      themeContext: createThemeContext(props.theme, true),
+    })}
 `;
 
-const EdgeHighlightDemo = styled.div<{ 
-  color: string; 
-  position: 'top' | 'right' | 'bottom' | 'left' | 'all' 
+const EdgeHighlightDemo = styled.div<{
+  color: string;
+  position: 'top' | 'right' | 'bottom' | 'left' | 'all';
 }>`
   ${padding('lg')}
   ${borderRadius('md')}
@@ -194,37 +204,39 @@ const EdgeHighlightDemo = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   /* Apply glass surface with edge highlight */
-  ${props => glassSurface({
-    blurStrength: 'standard',
-    backgroundOpacity: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext(props.theme, true)
-  })}
-  
-  ${props => edgeHighlight({
-    color: props.color,
-    position: props.position,
-    thickness: 2,
-    opacity: 0.8,
-    themeContext: createThemeContext(props.theme, true)
-  })}
+  ${props =>
+    glassSurface({
+      blurStrength: 'standard',
+      backgroundOpacity: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext(props.theme, true),
+    })}
+
+  ${props =>
+    edgeHighlight({
+      color: props.color,
+      position: props.position,
+      thickness: 2,
+      opacity: 0.8,
+      themeContext: createThemeContext(props.theme, true),
+    })}
 `;
 
 const ZSpaceDemo = styled.div<{ layer: ZLayer; depth?: ZDepth }>`
   ${padding('md')}
   ${borderRadius('md')}
   ${margin('sm')}
-  background-color: ${props => 
-    getColorWithOpacity(props.color || '#6366F1', 0.2)
-  };
-  
+  background-color: ${props => getColorWithOpacity(props.color || '#6366F1', 0.2)};
+
   /* Apply Z-layer and depth */
   ${props => zLayer(props.layer, props.depth)}
-  
+
   /* Add visual indicator of depth */
-  ${props => props.depth && `
+  ${props =>
+    props.depth &&
+    `
     transform-style: preserve-3d;
     perspective: 1000px;
   `}
@@ -235,17 +247,17 @@ const ResponsiveDemo = styled.div`
     base: padding('sm'),
     sm: padding('md'),
     md: padding('lg'),
-    lg: padding('xl')
+    lg: padding('xl'),
   })}
-  
+
   ${borderRadius('md')}
   background-color: rgba(255, 255, 255, 0.1);
-  
+
   /* Use the responsive utility for typography */
   ${responsive({
     base: typography('sm'),
     md: typography('md'),
-    lg: typography('lg')
+    lg: typography('lg'),
   })}
 `;
 
@@ -273,7 +285,7 @@ const TruncateDemo = styled.div`
   width: 200px;
   background-color: rgba(255, 255, 255, 0.1);
   ${borderRadius('md')}
-  
+
   /* Apply truncate for single line */
   ${truncate(1)}
 `;
@@ -283,7 +295,7 @@ const TruncateMultilineDemo = styled.div`
   width: 200px;
   background-color: rgba(255, 255, 255, 0.1);
   ${borderRadius('md')}
-  
+
   /* Apply truncate for multiple lines */
   ${truncate(2)}
 `;
@@ -298,7 +310,7 @@ const FlexDemo = styled.div`
   ${borderRadius('md')}
   background-color: rgba(255, 255, 255, 0.1);
   height: 150px;
-  
+
   /* Apply flex utility */
   ${flex('row', 'space-between', 'center', 'wrap')}
 `;
@@ -313,7 +325,7 @@ const GridDemo = styled.div`
   ${padding('md')}
   ${borderRadius('md')}
   background-color: rgba(255, 255, 255, 0.1);
-  
+
   /* Apply grid utility */
   ${grid(3, 'md')}
 `;
@@ -333,35 +345,36 @@ export const CoreUtilitiesDemo: React.FC = () => {
     <Container>
       <Title>Glass UI Core Utilities</Title>
       <Description>
-        A demonstration of the core styling utilities and mixins available in the Glass UI framework.
+        A demonstration of the core styling utilities and mixins available in the Glass UI
+        framework.
       </Description>
-      
+
       <Grid>
         {/* Style Utilities Demo */}
         <DemoSection>
           <SectionTitle>Style Utilities</SectionTitle>
-          
+
           <DemoBox>
             <div>
               <h3>Padding & Margin</h3>
               <p>Utilities for consistent spacing</p>
             </div>
           </DemoBox>
-          
+
           <DemoBox>
             <div>
               <h3>Border Radius</h3>
               <p>Consistent border radius values</p>
             </div>
           </DemoBox>
-          
+
           <DemoBox>
             <div>
               <h3>Typography</h3>
               <p>Typography scale and utilities</p>
             </div>
           </DemoBox>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Flex Layout</h4>
             <FlexDemo>
@@ -370,7 +383,7 @@ export const CoreUtilitiesDemo: React.FC = () => {
               <FlexItem>Flex Item 3</FlexItem>
             </FlexDemo>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Grid Layout</h4>
             <GridDemo>
@@ -382,18 +395,20 @@ export const CoreUtilitiesDemo: React.FC = () => {
               <GridItem>Grid Item 6</GridItem>
             </GridDemo>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Text Truncation</h4>
             <TruncateDemo>
-              This is a long text that will be truncated to a single line with an ellipsis at the end.
+              This is a long text that will be truncated to a single line with an ellipsis at the
+              end.
             </TruncateDemo>
-            
+
             <TruncateMultilineDemo style={{ marginTop: '10px' }}>
-              This is a long text that will be truncated to exactly two lines. Any content beyond the second line will be cut off with an ellipsis.
+              This is a long text that will be truncated to exactly two lines. Any content beyond
+              the second line will be cut off with an ellipsis.
             </TruncateMultilineDemo>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Responsive Styling</h4>
             <ResponsiveDemo>
@@ -401,37 +416,33 @@ export const CoreUtilitiesDemo: React.FC = () => {
               Resize your window to see the changes.
             </ResponsiveDemo>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Visually Hidden</h4>
             <div>
               <VisuallyHiddenDemo>
                 This text is hidden visually but accessible to screen readers.
               </VisuallyHiddenDemo>
-              <span>The label for this field is hidden visually but accessible to screen readers.</span>
+              <span>
+                The label for this field is hidden visually but accessible to screen readers.
+              </span>
             </div>
           </div>
         </DemoSection>
-        
+
         {/* Glass Mixins Demo */}
         <DemoSection>
           <SectionTitle>Glass Mixins</SectionTitle>
-          
+
           <div>
             <h4>Glass Surface with Elevation</h4>
             <div style={{ position: 'relative', perspective: '1000px' }}>
-              <ElevationDemo level="high">
-                High Elevation
-              </ElevationDemo>
-              <ElevationDemo level="medium">
-                Medium Elevation
-              </ElevationDemo>
-              <ElevationDemo level="low">
-                Low Elevation
-              </ElevationDemo>
+              <ElevationDemo level="high">High Elevation</ElevationDemo>
+              <ElevationDemo level="medium">Medium Elevation</ElevationDemo>
+              <ElevationDemo level="low">Low Elevation</ElevationDemo>
             </div>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Glass Glow Effects</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -449,19 +460,15 @@ export const CoreUtilitiesDemo: React.FC = () => {
               </GlowDemo>
             </div>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Inner Glow Effects</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-              <InnerGlowDemo color="primary">
-                Primary
-              </InnerGlowDemo>
-              <InnerGlowDemo color="secondary">
-                Secondary
-              </InnerGlowDemo>
+              <InnerGlowDemo color="primary">Primary</InnerGlowDemo>
+              <InnerGlowDemo color="secondary">Secondary</InnerGlowDemo>
             </div>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Edge Highlight Effects</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -482,12 +489,12 @@ export const CoreUtilitiesDemo: React.FC = () => {
               </EdgeHighlightDemo>
             </div>
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Z-Space System</h4>
             <ZSpaceGrid />
           </div>
-          
+
           <div style={{ marginTop: '20px' }}>
             <h4>Color Mode Aware</h4>
             <ColorModeDemo>
@@ -505,23 +512,23 @@ const ZSpaceGrid = () => (
     <ZSpaceDemo layer={ZLayer.Background} color="#6366F1">
       Background Layer
     </ZSpaceDemo>
-    
+
     <ZSpaceDemo layer={ZLayer.Content} color="#8B5CF6">
       Content Layer
     </ZSpaceDemo>
-    
+
     <ZSpaceDemo layer={ZLayer.Surface} color="#10B981">
       Surface Layer
     </ZSpaceDemo>
-    
+
     <ZSpaceDemo layer={ZLayer.Backdrop} color="#EC4899">
       Overlay Layer
     </ZSpaceDemo>
-    
+
     <ZSpaceDemo layer={ZLayer.Modal} color="#F59E0B">
       Modal Layer
     </ZSpaceDemo>
-    
+
     <ZSpaceDemo layer={ZLayer.TopLayer} color="#EF4444">
       Top Layer
     </ZSpaceDemo>

@@ -1,20 +1,22 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { GlobalCookieConsentProps, CookieCategory } from './types';
+
+import { glowEffects } from '../../core/mixins/effects/glowEffects';
+import { glassBorder } from '../../core/mixins/glassBorder';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Box } from '../Box';
 import { Button } from '../Button';
-import { Typography } from '../Typography';
 import { Checkbox } from '../Checkbox';
 import { Link } from '../Link';
 import { Modal } from '../Modal';
+import { Typography } from '../Typography';
 // Dialog component may need to be implemented or imported from the correct path
 // import { Dialog } from '../Dialog';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassBorder } from '../../core/mixins/glassBorder';
 // Import correct path for glowEffects
-import { glowEffects } from '../../core/mixins/effects/glowEffects';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+import { GlobalCookieConsentProps, CookieCategory } from './types';
 
 // Cookie management utilities
 const setCookie = (name: string, value: string, days: number): void => {
@@ -49,7 +51,7 @@ const StyledGlobalCookieConsent = styled.div<{
   box-sizing: border-box;
   transition: all 0.3s ease;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  
+
   ${({ $position }) => {
     switch ($position) {
       case 'bottom':
@@ -92,14 +94,14 @@ const StyledGlobalCookieConsent = styled.div<{
         `;
     }
   }}
-  
+
   ${({ theme, $glassIntensity }) => {
     const themeContext = createThemeContext(theme);
     return glassSurface({
       elevation: 2,
       backgroundOpacity: 'medium',
       blurStrength: 'medium',
-      themeContext
+      themeContext,
     });
   }}
   
@@ -108,7 +110,7 @@ const StyledGlobalCookieConsent = styled.div<{
     return glassBorder({
       width: '1px',
       opacity: 0.35,
-      themeContext
+      themeContext,
     });
   }}
   
@@ -116,25 +118,31 @@ const StyledGlobalCookieConsent = styled.div<{
     const themeContext = createThemeContext(theme);
     return glowEffects.glassGlow({
       intensity: $glassIntensity * 0.4,
-      themeContext
+      themeContext,
     });
   }}
   
-  ${({ $animate, $position }) => $animate && `
+  ${({ $animate, $position }) =>
+    $animate &&
+    `
     animation: slideIn 0.6s ease forwards;
     
     @keyframes slideIn {
       0% {
         opacity: 0;
-        transform: ${$position?.includes('top') 
-          ? 'translateY(-30px)' 
-          : $position?.includes('bottom') 
-            ? 'translateY(30px)' 
-            : 'translateY(30px)'} ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
+        transform: ${
+          $position?.includes('top')
+            ? 'translateY(-30px)'
+            : $position?.includes('bottom')
+            ? 'translateY(30px)'
+            : 'translateY(30px)'
+        } ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
       }
       100% {
         opacity: 1;
-        transform: translateY(0) ${$position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''};
+        transform: translateY(0) ${
+          $position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''
+        };
       }
     }
   `}
@@ -145,15 +153,15 @@ const StyledGlobalCookieConsent = styled.div<{
     left: 20px;
     right: 20px;
     transform: none;
-    
-    ${({ $position }) => 
-      ($position === 'top' || $position === 'bottom') && `
+
+    ${({ $position }) =>
+      ($position === 'top' || $position === 'bottom') &&
+      `
         left: 20px;
         right: 20px;
         width: calc(100% - 40px);
         transform: none;
-      `
-    }
+      `}
   }
 `;
 
@@ -163,10 +171,10 @@ const ButtonContainer = styled.div`
   gap: 1rem;
   margin-top: 1.25rem;
   justify-content: flex-end;
-  
+
   @media (max-width: 540px) {
     flex-direction: column;
-    
+
     & > button {
       width: 100%;
     }
@@ -203,7 +211,7 @@ const CategoryItem = styled.div`
   border-radius: 8px;
   margin-bottom: 0.75rem;
   background: rgba(255, 255, 255, 0.07);
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -242,7 +250,7 @@ const DetailsToggle = styled.button`
   margin-top: 0.5rem;
   display: block;
   margin-left: 2rem;
-  
+
   &:hover {
     opacity: 1;
   }
@@ -291,11 +299,11 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const prefersReducedMotion = useReducedMotion();
     const shouldAnimate = animate && !prefersReducedMotion;
-    
+
     // Set initial selected categories
     useEffect(() => {
       const initialCategories = [...defaultSelectedCategories];
-      
+
       // Always include required categories
       cookieCategories
         .filter(category => category.required)
@@ -304,10 +312,10 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
             initialCategories.push(category.id);
           }
         });
-      
+
       setSelectedCategories(initialCategories);
     }, [cookieCategories, defaultSelectedCategories]);
-    
+
     // Check if consent was previously given
     useEffect(() => {
       const consentValue = getCookie('cookie-consent');
@@ -315,11 +323,11 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
         const timer = setTimeout(() => {
           setVisible(true);
         }, delay);
-        
+
         return () => clearTimeout(timer);
       }
     }, [delay]);
-    
+
     // Handle timeout
     useEffect(() => {
       if (visible && timeout > 0) {
@@ -329,67 +337,67 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
             onTimeout();
           }
         }, timeout);
-        
+
         return () => clearTimeout(timer);
       }
     }, [visible, timeout, onTimeout]);
-    
+
     const handleToggleCategory = (categoryId: string, required = false) => {
       if (required) return; // Can't toggle required categories
-      
+
       setSelectedCategories(prevSelected => {
         const newSelected = prevSelected.includes(categoryId)
           ? prevSelected.filter(id => id !== categoryId)
           : [...prevSelected, categoryId];
-          
+
         if (onCategoryChange) {
           onCategoryChange(newSelected);
         }
-        
+
         return newSelected;
       });
     };
-    
+
     const handleAcceptAll = () => {
       const allCategoryIds = cookieCategories.map(category => category.id);
       setCookie('cookie-consent', 'accepted', cookieExpiration);
       setCookie('cookie-categories', JSON.stringify(allCategoryIds), cookieExpiration);
       setVisible(false);
-      
+
       if (onAccept) {
         onAccept();
       }
     };
-    
+
     const handleDeclineAll = () => {
       // Only include required categories when declining all
       const requiredCategoryIds = cookieCategories
         .filter(category => category.required)
         .map(category => category.id);
-        
+
       setCookie('cookie-consent', 'declined', cookieExpiration);
       setCookie('cookie-categories', JSON.stringify(requiredCategoryIds), cookieExpiration);
       setVisible(false);
-      
+
       if (onDecline) {
         onDecline();
       }
     };
-    
+
     const handleSavePreferences = () => {
       setCookie('cookie-consent', 'customized', cookieExpiration);
       setCookie('cookie-categories', JSON.stringify(selectedCategories), cookieExpiration);
       setVisible(false);
-      
+
       if (onSave) {
         onSave(selectedCategories);
       }
     };
-    
+
     const toggleExpanded = () => {
       setExpanded(!expanded);
     };
-    
+
     const handleShowDetails = () => {
       if (useModalForDetails) {
         setShowDetailsModal(true);
@@ -397,15 +405,15 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
         setExpanded(true);
       }
     };
-    
+
     if (!visible) {
       return null;
     }
-    
+
     // Create the categories section
     const renderCategories = () => (
       <CategoryContainer>
-        {cookieCategories.map((category) => (
+        {cookieCategories.map(category => (
           <CategoryItem key={category.id}>
             <CategoryHeader>
               <Checkbox
@@ -417,11 +425,11 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
                 {category.name} {category.required && <em>(Required)</em>}
               </Typography>
             </CategoryHeader>
-            
+
             <CategoryDescription>
               <Typography variant="body2">{category.description}</Typography>
             </CategoryDescription>
-            
+
             {category.cookies && category.cookies.length > 0 && (
               <>
                 <DetailsToggle
@@ -431,7 +439,7 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
                 >
                   Show cookie details
                 </DetailsToggle>
-                
+
                 {/* Cookie details could be expanded here */}
               </>
             )}
@@ -439,7 +447,7 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
         ))}
       </CategoryContainer>
     );
-    
+
     return (
       <>
         <StyledGlobalCookieConsent
@@ -455,7 +463,7 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
             <Typography variant="h6" style={{ marginBottom: '8px', fontWeight: 600 }}>
               {title}
             </Typography>
-            
+
             <Typography variant="body2">
               {message}
               {privacyPolicyUrl && (
@@ -467,64 +475,53 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
                 </>
               )}
             </Typography>
-            
-            {customContent && (
-              <Box mt={1.5}>
-                {customContent}
-              </Box>
-            )}
-            
+
+            {customContent && <Box mt={1.5}>{customContent}</Box>}
+
             {!expanded && cookieCategories.length > 0 && (
-              <Button 
-                variant="text" 
-                onClick={handleShowDetails}
-                size="small"
-              >
+              <Button variant="text" onClick={handleShowDetails} size="small">
                 Customize settings
               </Button>
             )}
-            
+
             {(expanded || initiallyExpanded) && cookieCategories.length > 0 && renderCategories()}
-            
+
             <ButtonContainer>
               {dismissible && (
                 <Button variant="outlined" onClick={handleDeclineAll} size="small">
                   {declineButtonText}
                 </Button>
               )}
-              
+
               {expanded && enableSettings && (
                 <Button variant="outlined" onClick={handleSavePreferences} size="small">
                   {settingsButtonText}
                 </Button>
               )}
-              
+
               <Button variant="contained" onClick={handleAcceptAll} size="small">
                 {acceptButtonText}
               </Button>
             </ButtonContainer>
           </Box>
         </StyledGlobalCookieConsent>
-        
+
         {useModalForDetails && (
-          <Modal
-            open={showDetailsModal}
-            onClose={() => setShowDetailsModal(false)}
-          >
+          <Modal open={showDetailsModal} onClose={() => setShowDetailsModal(false)}>
             <div className="dialog-container">
               <div className="dialog-header">
                 <Typography variant="h6">Cookie Settings</Typography>
-                <Button variant="text" onClick={() => setShowDetailsModal(false)}>×</Button>
+                <Button variant="text" onClick={() => setShowDetailsModal(false)}>
+                  ×
+                </Button>
               </div>
-              <div className="dialog-content">
-                {renderCategories()}
-              </div>
+              <div className="dialog-content">{renderCategories()}</div>
               <div className="dialog-actions">
                 <Button variant="outlined" onClick={() => setShowDetailsModal(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   onClick={() => {
                     handleSavePreferences();
                     setShowDetailsModal(false);
@@ -546,11 +543,7 @@ GlobalCookieConsent.displayName = 'GlobalCookieConsent';
 // Glass version of the GlobalCookieConsent
 export const GlassGlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsentProps>(
   (props: GlobalCookieConsentProps, ref) => (
-    <GlobalCookieConsent
-      ref={ref}
-      glassIntensity={0.9}
-      {...props}
-    />
+    <GlobalCookieConsent ref={ref} glassIntensity={0.9} {...props} />
   )
 );
 

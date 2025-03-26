@@ -1,12 +1,14 @@
 /**
  * Glass ImageList Component
- * 
+ *
  * A grid of images with glass morphism styling.
  */
 import React, { forwardRef, createContext, useMemo } from 'react';
 import styled from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
+
 import { ImageListProps } from './types';
 
 // Create ImageList context
@@ -44,27 +46,40 @@ const ImageListRoot = styled.ul<{
   margin: 0;
   list-style: none;
   box-sizing: border-box;
-  
+
   /* Standard, quilted, and woven variants use CSS grid */
-  ${props => props.$variant !== 'masonry' && `
+  ${props =>
+    props.$variant !== 'masonry' &&
+    `
     grid-template-columns: repeat(${props.$cols}, 1fr);
     gap: ${props.$gap}px;
     
-    ${props.$variant === 'standard' && `
+    ${
+      props.$variant === 'standard' &&
+      `
       grid-auto-rows: ${typeof props.$rowHeight === 'number' ? `${props.$rowHeight}px` : 'auto'};
-    `}
+    `
+    }
     
-    ${props.$variant === 'quilted' && `
+    ${
+      props.$variant === 'quilted' &&
+      `
       /* Quilted layout has more complex sizing handled by the items */
-    `}
+    `
+    }
     
-    ${props.$variant === 'woven' && `
+    ${
+      props.$variant === 'woven' &&
+      `
       /* Woven layout alternates items */
-    `}
+    `
+    }
   `}
-  
+
   /* Masonry variant uses column-count */
-  ${props => props.$variant === 'masonry' && `
+  ${props =>
+    props.$variant === 'masonry' &&
+    `
     column-count: ${props.$cols};
     column-gap: ${props.$gap}px;
     
@@ -75,21 +90,27 @@ const ImageListRoot = styled.ul<{
   `}
   
   /* Glass styling */
-  ${props => props.$glass && glassSurface({
-    elevation: 1,
-    blurStrength: 'light',
-    borderOpacity: 'light',
-    themeContext: createThemeContext(props.theme)
-  })}
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'light',
+      borderOpacity: 'light',
+      themeContext: createThemeContext(props.theme),
+    })}
   
   /* Glass styling */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     background-color: rgba(255, 255, 255, 0.03);
     padding: ${props.$gap}px;
   `}
   
   /* Rounded corners */
-  ${props => props.$rounded && `
+  ${props =>
+    props.$rounded &&
+    `
     border-radius: 12px;
     overflow: hidden;
   `}
@@ -98,10 +119,7 @@ const ImageListRoot = styled.ul<{
 /**
  * ImageList Component Implementation
  */
-function ImageListComponent(
-  props: ImageListProps,
-  ref: React.ForwardedRef<HTMLUListElement>
-) {
+function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLUListElement>) {
   const {
     children,
     className,
@@ -115,18 +133,21 @@ function ImageListComponent(
     variableSize = false,
     ...rest
   } = props;
-  
+
   // Create context value
-  const contextValue = useMemo<ImageListContextProps>(() => ({
-    variant,
-    rowHeight,
-    gap,
-    cols,
-    glass,
-    variableSize,
-    rounded,
-  }), [variant, rowHeight, gap, cols, glass, variableSize, rounded]);
-  
+  const contextValue = useMemo<ImageListContextProps>(
+    () => ({
+      variant,
+      rowHeight,
+      gap,
+      cols,
+      glass,
+      variableSize,
+      rounded,
+    }),
+    [variant, rowHeight, gap, cols, glass, variableSize, rounded]
+  );
+
   return (
     <ImageListContext.Provider value={contextValue}>
       <ImageListRoot
@@ -149,14 +170,14 @@ function ImageListComponent(
 
 /**
  * ImageList Component
- * 
+ *
  * A grid of images.
  */
 const ImageList = forwardRef(ImageListComponent);
 
 /**
  * GlassImageList Component
- * 
+ *
  * Glass variant of the ImageList component.
  */
 const GlassImageList = forwardRef<HTMLUListElement, ImageListProps>((props, ref) => (

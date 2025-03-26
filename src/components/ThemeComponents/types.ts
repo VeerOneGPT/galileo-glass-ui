@@ -1,5 +1,6 @@
 import { ReactNode, CSSProperties } from 'react';
 import { DefaultTheme } from 'styled-components';
+
 import { ColorMode, ThemeVariant } from '../../hooks/useGlassTheme';
 
 /**

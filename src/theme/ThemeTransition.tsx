@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
+
 import { useTheme } from './ThemeProvider';
 
 interface ThemeTransitionProps {
@@ -7,37 +8,37 @@ interface ThemeTransitionProps {
    * Children to render
    */
   children: React.ReactNode;
-  
+
   /**
    * Duration of the transition in ms
    */
   duration?: number;
-  
+
   /**
    * Easing function for the transition
    */
   easing?: string;
-  
+
   /**
    * If true, only transition when theme variant changes (not color mode)
    */
   onlyThemeChanges?: boolean;
-  
+
   /**
    * If true, only transition when color mode changes (not theme variant)
    */
   onlyColorModeChanges?: boolean;
-  
+
   /**
    * Type of transition animation
    */
   transitionType?: 'fade' | 'crossfade' | 'slide' | 'zoom';
-  
+
   /**
    * Direction for slide transitions
    */
   slideDirection?: 'up' | 'down' | 'left' | 'right';
-  
+
   /**
    * If true, will disable transitions for users with reduced motion preference
    */
@@ -53,12 +54,12 @@ const FadeContainer = styled.div<{
 }>`
   width: 100%;
   height: 100%;
-  
+
   /* Transition properties based on state */
   transition-property: opacity, transform;
   transition-duration: ${props => props.duration}ms;
   transition-timing-function: ${props => props.easing};
-  
+
   /* Different animations based on transition type */
   ${props => {
     if (props.transitionType === 'fade') {
@@ -66,24 +67,26 @@ const FadeContainer = styled.div<{
         opacity: ${props.state === 'entered' ? 1 : 0};
       `;
     }
-    
+
     if (props.transitionType === 'crossfade') {
       return `
         opacity: ${props.state === 'entered' || props.state === 'entering' ? 1 : 0};
       `;
     }
-    
+
     if (props.transitionType === 'zoom') {
       return `
         opacity: ${props.state === 'entered' ? 1 : 0};
-        transform: scale(${props.state === 'entered' ? 1 : props.state === 'exiting' ? 0.95 : 1.05});
+        transform: scale(${
+          props.state === 'entered' ? 1 : props.state === 'exiting' ? 0.95 : 1.05
+        });
       `;
     }
-    
+
     if (props.transitionType === 'slide') {
       const getTransform = () => {
         if (props.state === 'entered') return 'translate(0, 0)';
-        
+
         const distance = '20px';
         if (props.slideDirection === 'up') {
           return props.state === 'exiting' ? `translateY(${distance})` : `translateY(-${distance})`;
@@ -99,16 +102,16 @@ const FadeContainer = styled.div<{
         }
         return 'translate(0, 0)';
       };
-      
+
       return `
         opacity: ${props.state === 'entered' ? 1 : 0};
         transform: ${getTransform()};
       `;
     }
-    
+
     return '';
   }}
-  
+
   @media (prefers-reduced-motion: reduce) {
     transition-duration: 0.01ms;
     transform: none !important;
@@ -117,7 +120,7 @@ const FadeContainer = styled.div<{
 
 /**
  * ThemeTransition Component
- * 
+ *
  * Adds smooth transitions when theme or color mode changes.
  */
 const ThemeTransition: React.FC<ThemeTransitionProps> = ({
@@ -128,27 +131,31 @@ const ThemeTransition: React.FC<ThemeTransitionProps> = ({
   onlyColorModeChanges = false,
   transitionType = 'fade',
   slideDirection = 'up',
-  respectReducedMotion = true
+  respectReducedMotion = true,
 }) => {
   const { isDark, currentTheme } = useTheme();
-  
+
   // Generate a unique key for the current theme state
-  const themeKey = onlyColorModeChanges 
-    ? isDark ? 'dark' : 'light'
+  const themeKey = onlyColorModeChanges
+    ? isDark
+      ? 'dark'
+      : 'light'
     : onlyThemeChanges
-      ? currentTheme
-      : `${currentTheme}-${isDark ? 'dark' : 'light'}`;
-  
+    ? currentTheme
+    : `${currentTheme}-${isDark ? 'dark' : 'light'}`;
+
   // Current content reference
   const [currentContent, setCurrentContent] = useState<React.ReactNode>(children);
   const [currentKey, setCurrentKey] = useState<string>(themeKey);
-  const [transitionState, setTransitionState] = useState<'entering' | 'entered' | 'exiting' | 'exited'>('entered');
-  
+  const [transitionState, setTransitionState] = useState<
+    'entering' | 'entered' | 'exiting' | 'exited'
+  >('entered');
+
   // Handle theme changes with transition
   useEffect(() => {
     // Skip if key hasn't changed
     if (themeKey === currentKey) return;
-    
+
     // Check for reduced motion preference
     if (respectReducedMotion && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       // No transition for users who prefer reduced motion
@@ -156,27 +163,27 @@ const ThemeTransition: React.FC<ThemeTransitionProps> = ({
       setCurrentKey(themeKey);
       return;
     }
-    
+
     // Start exit transition
     setTransitionState('exiting');
-    
+
     // After exit transition completes, switch content and start enter transition
     const exitTimer = setTimeout(() => {
       setCurrentContent(children);
       setCurrentKey(themeKey);
       setTransitionState('entering');
-      
+
       // After enter transition completes, set state to entered
       const enterTimer = setTimeout(() => {
         setTransitionState('entered');
       }, duration);
-      
+
       return () => clearTimeout(enterTimer);
     }, duration);
-    
+
     return () => clearTimeout(exitTimer);
   }, [themeKey, currentKey, children, duration, respectReducedMotion]);
-  
+
   return (
     <FadeContainer
       state={transitionState}

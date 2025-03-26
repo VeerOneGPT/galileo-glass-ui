@@ -1,57 +1,58 @@
 import React, { useState, useEffect, useRef, Children, forwardRef } from 'react';
 import styled from 'styled-components';
+
+import { accessibleAnimation } from '../../animations/accessibleAnimation';
+import { fadeIn, slideRight } from '../../animations/keyframes/basic';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
-import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { fadeIn, slideRight } from '../../animations/keyframes/basic';
 
 export interface TabsProps {
   /**
    * The currently selected tab index
    */
   value?: number;
-  
+
   /**
    * Callback fired when the value changes
    */
   onChange?: (event: React.SyntheticEvent, value: number) => void;
-  
+
   /**
    * The content of the component - should be Tab components
    */
   children: React.ReactNode;
-  
+
   /**
    * The variant of the tabs
    */
   variant?: 'standard' | 'fullWidth' | 'scrollable';
-  
+
   /**
    * The orientation of the tabs
    */
   orientation?: 'horizontal' | 'vertical';
-  
+
   /**
    * The color of the tabs
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
-  
+
   /**
    * The appearance of the tabs
    */
   appearance?: 'default' | 'glass' | 'elevated' | 'minimal';
-  
+
   /**
    * The size of the tabs
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * If true, adds animation to the tab indicator
    */
   animated?: boolean;
-  
+
   /**
    * Additional CSS class
    */
@@ -63,27 +64,27 @@ export interface TabProps {
    * The label of the tab
    */
   label: string | React.ReactNode;
-  
+
   /**
    * If true, the tab will be disabled
    */
   disabled?: boolean;
-  
+
   /**
    * Icon element shown before the label
    */
   icon?: React.ReactNode;
-  
+
   /**
    * Additional CSS class
    */
   className?: string;
-  
+
   /**
    * Callback fired when the tab is clicked
    */
   onClick?: (event: React.MouseEvent) => void;
-  
+
   /**
    * The content of the tab panel
    */
@@ -116,32 +117,40 @@ const TabsContainer = styled.div<{
   $appearance: 'default' | 'glass' | 'elevated' | 'minimal';
 }>`
   display: flex;
-  flex-direction: ${props => props.$orientation === 'horizontal' ? 'column' : 'row'};
+  flex-direction: ${props => (props.$orientation === 'horizontal' ? 'column' : 'row')};
   width: 100%;
-  
+
   /* Glass appearance styling */
-  ${props => props.$appearance === 'glass' && glassSurface({
-    elevation: 1,
-    blurStrength: 'standard',
-    backgroundOpacity: 'subtle',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({})
-  })}
-  
+  ${props =>
+    props.$appearance === 'glass' &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'standard',
+      backgroundOpacity: 'subtle',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}),
+    })}
+
   /* Elevated appearance styling */
-  ${props => props.$appearance === 'elevated' && `
+  ${props =>
+    props.$appearance === 'elevated' &&
+    `
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
     border-radius: 8px;
     overflow: hidden;
   `}
   
   /* Minimal appearance styling */
-  ${props => props.$appearance === 'minimal' && `
+  ${props =>
+    props.$appearance === 'minimal' &&
+    `
     background: transparent;
   `}
   
   /* Default appearance styling */
-  ${props => props.$appearance === 'default' && `
+  ${props =>
+    props.$appearance === 'default' &&
+    `
     background-color: #F9FAFB;
     border-radius: 8px;
     border: 1px solid rgba(0, 0, 0, 0.1);
@@ -153,15 +162,21 @@ const TabListContainer = styled.div<{
   $variant: 'standard' | 'fullWidth' | 'scrollable';
 }>`
   display: flex;
-  flex-direction: ${props => props.$orientation === 'horizontal' ? 'row' : 'column'};
-  
-  ${props => props.$variant === 'fullWidth' && props.$orientation === 'horizontal' && `
+  flex-direction: ${props => (props.$orientation === 'horizontal' ? 'row' : 'column')};
+
+  ${props =>
+    props.$variant === 'fullWidth' &&
+    props.$orientation === 'horizontal' &&
+    `
     > * {
       flex: 1;
     }
   `}
-  
-  ${props => props.$variant === 'scrollable' && props.$orientation === 'horizontal' && `
+
+  ${props =>
+    props.$variant === 'scrollable' &&
+    props.$orientation === 'horizontal' &&
+    `
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -187,7 +202,7 @@ const StyledTab = styled.button<{
   justify-content: center;
   text-align: center;
   white-space: nowrap;
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'not-allowed' : 'pointer')};
   user-select: none;
   text-decoration: none;
   outline: 0;
@@ -197,9 +212,9 @@ const StyledTab = styled.button<{
   font-weight: 500;
   transition: color 0.2s ease, background-color 0.2s ease;
   position: relative;
-  opacity: ${props => props.$disabled ? 0.5 : 1};
+  opacity: ${props => (props.$disabled ? 0.5 : 1)};
   overflow: hidden;
-  
+
   /* Size styles */
   ${props => {
     switch (props.$size) {
@@ -223,39 +238,47 @@ const StyledTab = styled.button<{
         `;
     }
   }}
-  
+
   /* Selected state styling */
-  color: ${props => props.$selected 
-    ? getColorByName(props.$color)
-    : 'rgba(0, 0, 0, 0.6)'
-  };
-  
+  color: ${props => (props.$selected ? getColorByName(props.$color) : 'rgba(0, 0, 0, 0.6)')};
+
   /* Hover state */
   &:hover {
-    ${props => !props.$disabled && !props.$selected && `
+    ${props =>
+      !props.$disabled &&
+      !props.$selected &&
+      `
       color: rgba(0, 0, 0, 0.87);
       background-color: rgba(0, 0, 0, 0.04);
     `}
   }
-  
+
   /* Glass appearance styling for selected tab */
-  ${props => props.$appearance === 'glass' && props.$selected && glassSurface({
-    elevation: 1,
-    blurStrength: 'minimal',
-    backgroundOpacity: 'subtle',
-    borderOpacity: 'medium',
-    themeContext: createThemeContext({})
-  })}
-  
+  ${props =>
+    props.$appearance === 'glass' &&
+    props.$selected &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'minimal',
+      backgroundOpacity: 'subtle',
+      borderOpacity: 'medium',
+      themeContext: createThemeContext({}),
+    })}
+
   /* Selected tab glow effect */
-  ${props => props.$selected && !props.$disabled && glassGlow({
-    intensity: 'low',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$selected &&
+    !props.$disabled &&
+    glassGlow({
+      intensity: 'low',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
   
   /* Orientation-specific styles */
-  ${props => props.$orientation === 'vertical' && `
+  ${props =>
+    props.$orientation === 'vertical' &&
+    `
     justify-content: flex-start;
     width: 100%;
   `}
@@ -281,26 +304,26 @@ const TabIndicator = styled.span<{
 }>`
   position: absolute;
   background-color: ${props => getColorByName(props.$color)};
-  transition: ${props => props.$animated 
-    ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    : 'none'
-  };
-  
-  ${props => props.$orientation === 'horizontal' 
-    ? `
+  transition: ${props =>
+    props.$animated
+      ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      : 'none'};
+
+  ${props =>
+    props.$orientation === 'horizontal'
+      ? `
       bottom: 0;
       left: ${props.$left}px;
       width: ${props.$width}px;
       height: 2px;
     `
-    : `
+      : `
       left: 0;
       top: ${props.$top}px;
       width: 2px;
       height: ${props.$height}px;
-    `
-  }
-  
+    `}
+
   border-radius: 1px;
   box-shadow: 0 0 4px ${props => getColorByName(props.$color)}80;
 `;
@@ -309,38 +332,26 @@ const TabPanelsContainer = styled.div<{
   $animated: boolean;
 }>`
   margin-top: 16px;
-  
-  ${props => props.$animated && accessibleAnimation({
-    animation: fadeIn,
-    duration: 0.3,
-    easing: 'ease-out'
-  })}
+
+  ${props =>
+    props.$animated &&
+    accessibleAnimation({
+      animation: fadeIn,
+      duration: 0.3,
+      easing: 'ease-out',
+    })}
 `;
 
 /**
  * Tab Component
- * 
+ *
  * Individual tab within a Tabs component
  */
 export const Tab = forwardRef<HTMLButtonElement, TabProps>((props, ref) => {
-  const {
-    label,
-    disabled = false,
-    icon,
-    className,
-    onClick,
-    children,
-    ...rest
-  } = props;
-  
+  const { label, disabled = false, icon, className, onClick, children, ...rest } = props;
+
   return (
-    <button
-      ref={ref}
-      className={className}
-      disabled={disabled}
-      onClick={onClick}
-      {...rest}
-    >
+    <button ref={ref} className={className} disabled={disabled} onClick={onClick} {...rest}>
       {icon && <TabIcon>{icon}</TabIcon>}
       <TabLabel>{label}</TabLabel>
     </button>
@@ -351,17 +362,20 @@ Tab.displayName = 'Tab';
 
 /**
  * TabPanel Component
- * 
+ *
  * Content associated with a tab
  */
-export const TabPanel = forwardRef<HTMLDivElement, {
-  children: React.ReactNode;
-  value: number;
-  index: number;
-  className?: string;
-}>((props, ref) => {
+export const TabPanel = forwardRef<
+  HTMLDivElement,
+  {
+    children: React.ReactNode;
+    value: number;
+    index: number;
+    className?: string;
+  }
+>((props, ref) => {
   const { children, value, index, className, ...rest } = props;
-  
+
   return (
     <div
       ref={ref}
@@ -381,7 +395,7 @@ TabPanel.displayName = 'TabPanel';
 
 /**
  * Tabs Component
- * 
+ *
  * Container for a set of tabs and tab panels
  */
 export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
@@ -398,64 +412,64 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
     className,
     ...rest
   } = props;
-  
+
   const [tabRefs, setTabRefs] = useState<Map<number, HTMLElement>>(new Map());
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const tabListRef = useRef<HTMLDivElement>(null);
-  
+
   // Update indicator position when selected tab changes
   useEffect(() => {
     const selectedTabElement = tabRefs.get(value);
     if (selectedTabElement && tabListRef.current) {
       const tabRect = selectedTabElement.getBoundingClientRect();
       const tabListRect = tabListRef.current.getBoundingClientRect();
-      
+
       if (orientation === 'horizontal') {
         setIndicatorStyle({
           left: selectedTabElement.offsetLeft,
           top: 0,
           width: tabRect.width,
-          height: 2
+          height: 2,
         });
       } else {
         setIndicatorStyle({
           left: 0,
           top: selectedTabElement.offsetTop,
           width: 2,
-          height: tabRect.height
+          height: tabRect.height,
         });
       }
     }
   }, [value, tabRefs, orientation]);
-  
+
   // Handle tab selection
   const handleTabClick = (index: number, event: React.MouseEvent) => {
     if (onChange) {
       onChange(event, index);
     }
   };
-  
+
   // Collect tab elements and properties
   const tabs: React.ReactElement[] = [];
   const tabPanels: React.ReactElement[] = [];
-  
+
   Children.forEach(children, (child: React.ReactElement | null, index) => {
     if (!React.isValidElement(child)) return;
-    
+
     // Check if component type is Tab using proper type guards
-    const isTabComponent = 
-      typeof child.type === 'function' && 
+    const isTabComponent =
+      typeof child.type === 'function' &&
       (child.type === Tab || (child.type as any).displayName === 'Tab');
-    
+
     // Check if component type is TabPanel using proper type guards
-    const isTabPanelComponent = 
-      typeof child.type === 'function' && 
+    const isTabPanelComponent =
+      typeof child.type === 'function' &&
       (child.type === TabPanel || (child.type as any).displayName === 'TabPanel');
-    
+
     if (isTabComponent) {
       // Type assertion for props to handle them safely with TypeScript
       const childProps = child.props as TabProps;
-      
+
       const tabProps = {
         key: `tab-${index}`,
         ref: (node: HTMLElement | null) => {
@@ -476,11 +490,11 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
         label: childProps.label,
         disabled: childProps.disabled,
         icon: childProps.icon,
-        className: childProps.className
+        className: childProps.className,
       };
-      
+
       tabs.push(React.cloneElement(child, tabProps));
-      
+
       // Check if children exist with type guard
       if (childProps.children) {
         tabPanels.push(
@@ -495,13 +509,13 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
         key: `tabpanel-${index}`,
         value,
         index,
-        children: (child.props as {children?: React.ReactNode}).children
+        children: (child.props as { children?: React.ReactNode }).children,
       };
-      
+
       tabPanels.push(React.cloneElement(child, panelProps));
     }
   });
-  
+
   return (
     <TabsContainer
       ref={ref}
@@ -510,7 +524,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
       $appearance={appearance}
       {...rest}
     >
-      <TabListContainer 
+      <TabListContainer
         ref={tabListRef}
         role="tablist"
         $orientation={orientation}
@@ -531,7 +545,7 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
             <TabLabel>{tab.props.label}</TabLabel>
           </StyledTab>
         ))}
-        
+
         <TabIndicator
           $left={indicatorStyle.left}
           $top={indicatorStyle.top}
@@ -542,10 +556,8 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
           $animated={animated}
         />
       </TabListContainer>
-      
-      <TabPanelsContainer $animated={animated}>
-        {tabPanels}
-      </TabPanelsContainer>
+
+      <TabPanelsContainer $animated={animated}>{tabPanels}</TabPanelsContainer>
     </TabsContainer>
   );
 });
@@ -554,23 +566,14 @@ Tabs.displayName = 'Tabs';
 
 /**
  * GlassTabs Component
- * 
+ *
  * A tabs component with glass morphism styling
  */
 export const GlassTabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
-  const {
-    className,
-    appearance = 'glass',
-    ...rest
-  } = props;
-  
+  const { className, appearance = 'glass', ...rest } = props;
+
   return (
-    <Tabs
-      ref={ref}
-      className={`glass-tabs ${className || ''}`}
-      appearance={appearance}
-      {...rest}
-    />
+    <Tabs ref={ref} className={`glass-tabs ${className || ''}`} appearance={appearance} {...rest} />
   );
 });
 
@@ -578,22 +581,13 @@ GlassTabs.displayName = 'GlassTabs';
 
 /**
  * GlassTab Component
- * 
+ *
  * A tab component with glass morphism styling
  */
 export const GlassTab = forwardRef<HTMLButtonElement, TabProps>((props, ref) => {
-  const {
-    className,
-    ...rest
-  } = props;
-  
-  return (
-    <Tab
-      ref={ref}
-      className={`glass-tab ${className || ''}`}
-      {...rest}
-    />
-  );
+  const { className, ...rest } = props;
+
+  return <Tab ref={ref} className={`glass-tab ${className || ''}`} {...rest} />;
 });
 
 GlassTab.displayName = 'GlassTab';

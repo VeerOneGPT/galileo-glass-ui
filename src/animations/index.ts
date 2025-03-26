@@ -1,6 +1,6 @@
 /**
  * Galileo Glass UI - Animations
- * 
+ *
  * Animation system for Glass UI components.
  */
 
@@ -17,12 +17,12 @@ export { particleSystem, type ParticleSystemOptions } from './physics/particleSy
 export { magneticEffect, type MagneticEffectOptions } from './physics/magneticEffect';
 
 // Physics animations - Advanced
-export { 
+export {
   advancedPhysicsAnimation,
   generatePhysicsKeyframes,
   calculateSpringParameters,
   PhysicsAnimationMode,
-  type AdvancedPhysicsOptions
+  type AdvancedPhysicsOptions,
 } from './physics/advancedPhysicsAnimations';
 
 // Export animateWithPhysics for backward compatibility
@@ -53,32 +53,32 @@ export {
   applyNoise,
   type Vector2D,
   type SpringParams,
-  type ParticleState
+  type ParticleState,
 } from './physics/physicsCalculations';
 
 // Animation hooks
-export { 
+export {
   useMouseCursorEffect,
   usePhysicsInteraction,
-  useMouseMagneticEffect,  // Legacy alias for backward compatibility
-  useMagneticButton,       // Legacy alias for backward compatibility
+  useMouseMagneticEffect, // Legacy alias for backward compatibility
+  useMagneticButton, // Legacy alias for backward compatibility
   type MouseCursorEffectOptions,
   type CursorEffectType,
   type PhysicsInteractionOptions,
-  type PhysicsInteractionType
+  type PhysicsInteractionType,
 } from './hooks';
 
 // Reduced motion
 export { useReducedMotion } from '../hooks/useReducedMotion';
 
 // Animation presets
-export { 
+export {
   presets,
   animationTimings,
   animationEasings,
   AnimationIntensity,
   useAccessibleAnimation,
-  getAccessibleAnimation
+  getAccessibleAnimation,
 } from './presets';
 
 // Export the AnimationPreset type from styled.d.ts
@@ -96,7 +96,7 @@ export {
   accessibleAnimation as accessibleAnimationCss,
   useAccessibleAnimation as useAccessibleAnimationCss,
   conditionalAnimation,
-  getAccessibleKeyframes
+  getAccessibleKeyframes,
 } from './accessibility';
 
 // Animation orchestration
@@ -106,15 +106,11 @@ export {
   createAnimationSequence,
   coordinatedAnimations,
   animationOrchestrator,
-  withOrchestration
+  withOrchestration,
 } from './orchestration';
 
 // Z-Space animations
-export {
-  ZSpaceAnimator,
-  useZSpaceAnimation,
-  type ZSpaceAnimationOptions
-} from './dimensional';
+export { ZSpaceAnimator, useZSpaceAnimation, type ZSpaceAnimationOptions } from './dimensional';
 
 // Performance optimizations
 export {
@@ -125,7 +121,7 @@ export {
   optimizeKeyframes,
   isGPUAcceleratedProperty,
   createGPUAcceleratedClass,
-  type GPUAccelerationOptions
+  type GPUAccelerationOptions,
 } from './performance';
 
 // Version

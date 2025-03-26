@@ -1,6 +1,6 @@
 /**
  * Menu Component (Placeholder)
- * 
+ *
  * A menu component that displays a list of options.
  */
 import React, { forwardRef } from 'react';
@@ -11,17 +11,17 @@ export interface MenuProps {
    * If true, the menu is open
    */
   open: boolean;
-  
+
   /**
    * Callback fired when the menu requests to be closed
    */
   onClose: () => void;
-  
+
   /**
    * The DOM element used to set the position of the menu
    */
   anchorEl?: HTMLElement | null;
-  
+
   /**
    * Menu content
    */

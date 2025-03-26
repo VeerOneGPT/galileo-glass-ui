@@ -1,15 +1,16 @@
 /**
  * Button Animations
- * 
+ *
  * Animation presets specifically designed for button components
  */
 import { keyframes } from 'styled-components';
-import { 
-  animationTimings, 
-  animationEasings, 
-  AnimationIntensity, 
-  AnimationPreset, 
-  fadeAnimation 
+
+import {
+  animationTimings,
+  animationEasings,
+  AnimationIntensity,
+  AnimationPreset,
+  fadeAnimation,
 } from '../accessibleAnimations';
 
 // Click ripple effect for buttons
@@ -28,7 +29,7 @@ export const rippleAnimation: AnimationPreset = {
   easing: animationEasings.standard,
   fillMode: 'forwards',
   reducedMotionAlternative: null, // No alternative needed as this is purely decorative
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Button hover effect
@@ -41,7 +42,7 @@ export const buttonHoverAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: null, // No movement for reduced motion
-  intensity: AnimationIntensity.SUBTLE
+  intensity: AnimationIntensity.SUBTLE,
 };
 
 // Button press/active effect
@@ -54,7 +55,7 @@ export const buttonPressAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: null, // No movement for reduced motion
-  intensity: AnimationIntensity.SUBTLE
+  intensity: AnimationIntensity.SUBTLE,
 };
 
 // Loading spinner for buttons
@@ -75,9 +76,9 @@ export const buttonLoadingAnimation: AnimationPreset = {
     duration: '1.5s', // Slightly slower for reduced motion
     easing: animationEasings.linear,
     fillMode: 'none',
-    intensity: AnimationIntensity.STANDARD
+    intensity: AnimationIntensity.STANDARD,
   },
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Glass button reveal animation
@@ -98,7 +99,7 @@ export const glassButtonRevealAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Button success animation
@@ -112,7 +113,7 @@ export const buttonSuccessAnimation: AnimationPreset = {
   easing: animationEasings.elastic,
   fillMode: 'forwards',
   reducedMotionAlternative: null,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Button shake animation (for error states)
@@ -128,7 +129,7 @@ export const buttonShakeAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'both',
   reducedMotionAlternative: null,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Export all button animations
@@ -139,5 +140,5 @@ export const buttonAnimations = {
   loading: buttonLoadingAnimation,
   glassReveal: glassButtonRevealAnimation,
   success: buttonSuccessAnimation,
-  shake: buttonShakeAnimation
+  shake: buttonShakeAnimation,
 };

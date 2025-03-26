@@ -1,10 +1,11 @@
 /**
  * Glass FormHelperText Component
- * 
+ *
  * A helper text component for form controls with enhanced glass styling.
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { FormHelperTextProps } from './types';
 
 // Styled components
@@ -19,7 +20,7 @@ const FormHelperTextRoot = styled.p<{
   $margin: 'none' | 'dense' | 'normal';
 }>`
   margin: ${props => {
-    switch(props.$margin) {
+    switch (props.$margin) {
       case 'dense':
         return '2px 0 0 0';
       case 'normal':
@@ -30,7 +31,7 @@ const FormHelperTextRoot = styled.p<{
     }
   }};
   font-size: ${props => {
-    switch(props.$variant) {
+    switch (props.$variant) {
       case 'small':
         return '0.7rem';
       case 'medium':
@@ -42,7 +43,7 @@ const FormHelperTextRoot = styled.p<{
   }};
   line-height: 1.4;
   letter-spacing: 0.01em;
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
   min-height: 18px;
   color: ${props => {
     if (props.$disabled) return 'rgba(255, 255, 255, 0.5)';
@@ -59,18 +60,22 @@ const FormHelperTextRoot = styled.p<{
     return 'rgba(255, 255, 255, 0.6)';
   }};
   transition: color 0.2s ease;
-  
+
   /* Glass styling */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     padding: 2px 6px;
     border-radius: 4px;
     background-color: rgba(255, 255, 255, 0.02);
   `}
-  
+
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     cursor: not-allowed;
   `}
 `;
@@ -96,7 +101,7 @@ function FormHelperTextComponent(
     margin = 'none',
     ...rest
   } = props;
-  
+
   return (
     <FormHelperTextRoot
       ref={ref}
@@ -119,14 +124,14 @@ function FormHelperTextComponent(
 
 /**
  * FormHelperText Component
- * 
+ *
  * A helper text component for form controls with enhanced glass styling.
  */
 const FormHelperText = forwardRef(FormHelperTextComponent);
 
 /**
  * GlassFormHelperText Component
- * 
+ *
  * Glass variant of the FormHelperText component with enhanced styling.
  */
 const GlassFormHelperText = forwardRef<HTMLParagraphElement, FormHelperTextProps>((props, ref) => (

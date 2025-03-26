@@ -1,18 +1,18 @@
 /**
  * Z-Space Layering System Export
  */
-export { 
-  ZLayer, 
-  ZDepth, 
-  zLayer, 
-  zDepth, 
+export {
+  ZLayer,
+  ZDepth,
+  zLayer,
+  zDepth,
   zPerspective,
-  type ZSpaceContextValue
+  type ZSpaceContextValue,
 } from './ZSpaceSystem';
 
 export {
   ZSpaceContext,
   ZSpaceProvider,
   useZSpace,
-  type ZSpaceProviderProps
+  type ZSpaceProviderProps,
 } from './ZSpaceContext';

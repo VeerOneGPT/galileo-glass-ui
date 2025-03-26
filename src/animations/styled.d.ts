@@ -11,6 +11,9 @@ declare module 'styled-components' {
     rules: string;
     toString: () => string;
   }
+  
+  export type FlattenSimpleInterpolation = any;
+  export type DefaultTheme = any;
 }
 
 // Define proper animation preset type to solve type compatibility issues
@@ -18,31 +21,31 @@ export interface AnimationPreset {
   /** The animation keyframes or direct reference to a keyframe animation */
   keyframes?: Keyframes;
   animation?: Keyframes;
-  
+
   /** Default animation duration */
   duration: string | number;
-  
+
   /** Default animation easing */
   easing: string;
-  
+
   /** Default animation delay */
   delay?: string | number;
-  
+
   /** Default animation fill mode */
   fillMode?: 'none' | 'forwards' | 'backwards' | 'both';
-  
+
   /** Reduced motion alternative */
   reducedMotionAlternative?: AnimationPreset | null;
-  
+
   /** Animation intensity level */
   intensity?: AnimationIntensity;
-  
+
   /** Iterations count */
   iterations?: number | string;
-  
+
   /** Animation direction */
   direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
-  
+
   /** Animation play state */
   playState?: 'running' | 'paused';
 }

@@ -1,10 +1,11 @@
 import React, { forwardRef, useState } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { innerGlow } from '../../core/mixins/effects/innerEffects';
+
 import { accessibleAnimation } from '../../animations/animationUtils';
 import { fadeIn } from '../../animations/keyframes/basic';
+import { innerGlow } from '../../core/mixins/effects/innerEffects';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
 
 // Radio props interface
 export interface RadioProps {
@@ -12,62 +13,62 @@ export interface RadioProps {
    * If true, the radio is checked
    */
   checked?: boolean;
-  
+
   /**
    * The default checked state
    */
   defaultChecked?: boolean;
-  
+
   /**
    * If true, the radio is disabled
    */
   disabled?: boolean;
-  
+
   /**
    * The id for the input
    */
   id?: string;
-  
+
   /**
    * The name for the input
    */
   name?: string;
-  
+
   /**
    * Change handler
    */
   onChange?: (event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => void;
-  
+
   /**
    * The size of the radio
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * The color of the radio
    */
   color?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success';
-  
+
   /**
    * The value of the radio
    */
   value?: string;
-  
+
   /**
    * The label for the radio
    */
   label?: string;
-  
+
   /**
    * The position of the label
    */
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
-  
+
   /**
    * If true, the radio will have a glass effect
    */
   glass?: boolean;
-  
+
   /**
    * Additional CSS class name
    */
@@ -77,22 +78,32 @@ export interface RadioProps {
 // Get the radio color
 const getRadioColor = (color: string): string => {
   switch (color) {
-    case 'primary': return '#6366F1';
-    case 'secondary': return '#8B5CF6';
-    case 'error': return '#EF4444';
-    case 'warning': return '#F59E0B';
-    case 'info': return '#3B82F6';
-    case 'success': return '#10B981';
-    default: return '#6366F1';
+    case 'primary':
+      return '#6366F1';
+    case 'secondary':
+      return '#8B5CF6';
+    case 'error':
+      return '#EF4444';
+    case 'warning':
+      return '#F59E0B';
+    case 'info':
+      return '#3B82F6';
+    case 'success':
+      return '#10B981';
+    default:
+      return '#6366F1';
   }
 };
 
 // Get the radio size
 const getRadioSize = (size: string): number => {
   switch (size) {
-    case 'small': return 16;
-    case 'large': return 24;
-    default: return 20;
+    case 'small':
+      return 16;
+    case 'large':
+      return 24;
+    default:
+      return 20;
   }
 };
 
@@ -104,11 +115,11 @@ const RadioContainer = styled.label<{
   /* Base styles */
   display: inline-flex;
   align-items: center;
-  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'default' : 'pointer')};
   user-select: none;
   vertical-align: middle;
   -webkit-tap-highlight-color: transparent;
-  
+
   /* Label placement */
   ${props => {
     switch (props.$labelPlacement) {
@@ -143,9 +154,11 @@ const RadioContainer = styled.label<{
         `;
     }
   }}
-  
+
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     opacity: 0.5;
     pointer-events: none;
   `}
@@ -154,7 +167,7 @@ const RadioContainer = styled.label<{
   ${accessibleAnimation({
     animation: fadeIn,
     duration: 0.3,
-    easing: 'ease-out'
+    easing: 'ease-out',
   })}
 `;
 
@@ -183,13 +196,12 @@ const RadioControl = styled.span<{
   justify-content: center;
   width: ${props => `${getRadioSize(props.$size)}px`};
   height: ${props => `${getRadioSize(props.$size)}px`};
-  color: ${props => props.$checked ? 'white' : 'rgba(255, 255, 255, 0.7)'};
+  color: ${props => (props.$checked ? 'white' : 'rgba(255, 255, 255, 0.7)')};
   border-radius: 50%;
   transition: all 0.2s ease;
-  border: 2px solid ${props => props.$checked 
-    ? getRadioColor(props.$color) 
-    : 'rgba(255, 255, 255, 0.5)'};
-  
+  border: 2px solid
+    ${props => (props.$checked ? getRadioColor(props.$color) : 'rgba(255, 255, 255, 0.5)')};
+
   /* Inner circle */
   &::after {
     content: '';
@@ -198,27 +210,30 @@ const RadioControl = styled.span<{
     height: ${props => `${getRadioSize(props.$size) / 2}px`};
     border-radius: 50%;
     background-color: ${props => getRadioColor(props.$color)};
-    transform: ${props => props.$checked ? 'scale(1)' : 'scale(0)'};
+    transform: ${props => (props.$checked ? 'scale(1)' : 'scale(0)')};
     transition: transform 0.2s ease;
   }
-  
+
   /* Glass effect */
-  ${props => props.$glass && props.$checked && innerGlow({
-    color: props.$color,
-    intensity: 'subtle',
-    spread: 3,
-    themeContext: createThemeContext({}) // In real usage, this would use props.theme
-  })}
-  
+  ${props =>
+    props.$glass &&
+    props.$checked &&
+    innerGlow({
+      color: props.$color,
+      intensity: 'subtle',
+      spread: 3,
+      themeContext: createThemeContext({}), // In real usage, this would use props.theme
+    })}
+
   /* Hover effect */
-  ${props => !props.$disabled && `
+  ${props =>
+    !props.$disabled &&
+    `
     &:hover {
-      background-color: ${props.$checked 
-        ? 'rgba(255, 255, 255, 0.1)' 
-        : 'rgba(255, 255, 255, 0.08)'};
-      border-color: ${props.$checked 
-        ? getRadioColor(props.$color) 
-        : 'rgba(255, 255, 255, 0.7)'};
+      background-color: ${
+        props.$checked ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.08)'
+      };
+      border-color: ${props.$checked ? getRadioColor(props.$color) : 'rgba(255, 255, 255, 0.7)'};
     }
   `}
   
@@ -236,7 +251,7 @@ const LabelText = styled.span`
 
 /**
  * Radio Component
- * 
+ *
  * A radio input component.
  */
 export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
@@ -256,29 +271,29 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
     className,
     ...rest
   } = props;
-  
+
   // Internal state for uncontrolled component
   const [internalChecked, setInternalChecked] = useState(defaultChecked || false);
-  
+
   // Determine if radio is checked (controlled or uncontrolled)
   const isChecked = checked !== undefined ? checked : internalChecked;
-  
+
   // Handle change
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     // For uncontrolled component
     if (checked === undefined) {
       setInternalChecked(event.target.checked);
     }
-    
+
     // Call onChange handler
     if (onChange) {
       onChange(event, event.target.checked);
     }
   };
-  
+
   // Generate a unique ID for the input if not provided
   const inputId = id || `radio-${Math.random().toString(36).substring(2, 9)}`;
-  
+
   return (
     <RadioContainer
       htmlFor={inputId}
@@ -297,7 +312,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
         value={value}
         {...rest}
       />
-      
+
       <RadioControl
         $checked={isChecked}
         $disabled={disabled}
@@ -305,7 +320,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
         $color={color}
         $glass={glass}
       />
-      
+
       {label && <LabelText>{label}</LabelText>}
     </RadioContainer>
   );
@@ -315,25 +330,14 @@ Radio.displayName = 'Radio';
 
 /**
  * GlassRadio Component
- * 
+ *
  * A radio component with glass morphism styling.
  */
 export const GlassRadio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
-  const {
-    glass = true,
-    className,
-    ...rest
-  } = props;
-  
+  const { glass = true, className, ...rest } = props;
+
   // Add glass styling to the base radio
-  return (
-    <Radio
-      ref={ref}
-      glass={glass}
-      className={`glass-radio ${className || ''}`}
-      {...rest}
-    />
-  );
+  return <Radio ref={ref} glass={glass} className={`glass-radio ${className || ''}`} {...rest} />;
 });
 
 GlassRadio.displayName = 'GlassRadio';

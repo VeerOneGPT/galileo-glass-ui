@@ -1,8 +1,9 @@
 import React, { forwardRef, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 // Progress component props interface
 export interface ProgressProps {
@@ -10,52 +11,52 @@ export interface ProgressProps {
    * The value of the progress indicator (0-100)
    */
   value?: number;
-  
+
   /**
    * The variant of the progress indicator
    */
   variant?: 'determinate' | 'indeterminate' | 'buffer';
-  
+
   /**
    * The color of the progress indicator
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
-  
+
   /**
    * The thickness of the progress bar
    */
   thickness?: number;
-  
+
   /**
    * The shape of the progress indicator
    */
   shape?: 'linear' | 'circular';
-  
+
   /**
    * The size of the circular progress indicator
    */
   size?: 'small' | 'medium' | 'large' | number;
-  
+
   /**
    * If true, the component will use glass styling
    */
   glassEffect?: boolean;
-  
+
   /**
    * Label to display with the progress indicator
    */
   label?: string;
-  
+
   /**
    * If true, shows the value as a percentage
    */
   showValue?: boolean;
-  
+
   /**
    * The buffer value (0-100) for buffer variant
    */
   bufferValue?: number;
-  
+
   /**
    * Additional CSS class
    */
@@ -87,7 +88,7 @@ const getSizeValue = (size: 'small' | 'medium' | 'large' | number): number => {
   if (typeof size === 'number') {
     return size;
   }
-  
+
   switch (size) {
     case 'small':
       return 24;
@@ -202,16 +203,18 @@ const LinearProgressBar = styled.div<{
   $value: number;
   $glassEffect: boolean;
 }>`
-  width: ${props => props.$variant === 'determinate' ? `${props.$value}%` : '100%'};
+  width: ${props => (props.$variant === 'determinate' ? `${props.$value}%` : '100%')};
   position: absolute;
   left: 0;
   bottom: 0;
   top: 0;
   background-color: ${props => getColorByName(props.$color)};
-  transition: ${props => props.$variant === 'determinate' ? 'width 0.4s ease-in-out' : 'none'};
-  
+  transition: ${props => (props.$variant === 'determinate' ? 'width 0.4s ease-in-out' : 'none')};
+
   /* Indeterminate animation */
-  ${props => props.$variant === 'indeterminate' && `
+  ${props =>
+    props.$variant === 'indeterminate' &&
+    `
     width: auto;
     animation: ${indeterminateAnimation1} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
     
@@ -226,22 +229,26 @@ const LinearProgressBar = styled.div<{
       animation: ${indeterminateAnimation2} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
     }
   `}
-  
+
   /* Glass effect styling */
-  ${props => props.$glassEffect && glassSurface({
-    elevation: 1,
-    blurStrength: 'subtle',
-    backgroundOpacity: 'strong',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glassEffect &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'subtle',
+      backgroundOpacity: 'strong',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}),
+    })}
   
   /* Glow effect for glass */
-  ${props => props.$glassEffect && glassGlow({
-    intensity: 'low',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glassEffect &&
+    glassGlow({
+      intensity: 'low',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const BufferProgressBar = styled.div<{
@@ -258,7 +265,7 @@ const BufferProgressBar = styled.div<{
     const color = getColorByName(props.$color);
     return `${color}40`; // Adding 25% opacity
   }};
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -304,18 +311,22 @@ const CircularProgressCircle = styled.circle<{
   $glassEffect: boolean;
 }>`
   stroke: ${props => getColorByName(props.$color)};
-  stroke-dasharray: ${props => props.$variant === 'determinate' ? '1, 500' : '1, 200'};
+  stroke-dasharray: ${props => (props.$variant === 'determinate' ? '1, 500' : '1, 200')};
   stroke-dashoffset: 0;
   stroke-linecap: round;
   transition: stroke-dasharray 0.4s ease-in-out;
-  
+
   /* Indeterminate animation */
-  ${props => props.$variant === 'indeterminate' && `
+  ${props =>
+    props.$variant === 'indeterminate' &&
+    `
     animation: ${circularDashAnimation} 1.5s ease-in-out infinite;
   `}
-  
+
   /* Glass effect highlight */
-  ${props => props.$glassEffect && `
+  ${props =>
+    props.$glassEffect &&
+    `
     filter: drop-shadow(0 0 2px ${getColorByName(props.$color)});
   `}
 `;
@@ -333,17 +344,17 @@ const CircularProgressOverlay = styled.div<{
   align-items: center;
   justify-content: center;
   font-family: 'Inter', sans-serif;
-  font-size: ${props => props.$size < 40 ? props.$size / 4 : props.$size / 3}px;
+  font-size: ${props => (props.$size < 40 ? props.$size / 4 : props.$size / 3)}px;
   color: rgba(0, 0, 0, 0.87);
   user-select: none;
-  
+
   /* Hide for indeterminate */
-  opacity: ${props => props.$variant === 'indeterminate' ? 0 : 1};
+  opacity: ${props => (props.$variant === 'indeterminate' ? 0 : 1)};
 `;
 
 /**
  * Progress Component
- * 
+ *
  * A component for displaying progress indicators.
  */
 export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) => {
@@ -361,36 +372,33 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) =
     className,
     ...rest
   } = props;
-  
+
   // Clamp value between 0 and 100
   const normalizedValue = Math.min(Math.max(value, 0), 100);
   const normalizedBufferValue = Math.min(Math.max(bufferValue, 0), 100);
   const sizeValue = getSizeValue(size);
-  
+
   // References for calculations
   const circleRef = useRef<SVGCircleElement>(null);
-  
+
   // Calculate circle parameters
   useEffect(() => {
     if (circleRef.current && shape === 'circular' && variant === 'determinate') {
       const circle = circleRef.current;
       const radius = circle.r.baseVal.value;
       const circumference = 2 * Math.PI * radius;
-      
+
       // Calculate stroke dasharray for determinate mode
       const strokeDasharray = `${(normalizedValue / 100) * circumference}, ${circumference}`;
       circle.style.strokeDasharray = strokeDasharray;
     }
   }, [normalizedValue, shape, variant]);
-  
+
   // Render linear progress
   const renderLinearProgress = () => (
     <LinearProgressRoot $thickness={thickness}>
       {variant === 'buffer' && (
-        <BufferProgressBar
-          $color={color}
-          $bufferValue={normalizedBufferValue}
-        />
+        <BufferProgressBar $color={color} $bufferValue={normalizedBufferValue} />
       )}
       <LinearProgressBar
         $color={color}
@@ -400,13 +408,13 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) =
       />
     </LinearProgressRoot>
   );
-  
+
   // Render circular progress
   const renderCircularProgress = () => {
     const svgSize = sizeValue;
     const radius = (svgSize - thickness) / 2;
     const circumference = 2 * Math.PI * radius;
-    
+
     return (
       <CircularProgressRoot $size={svgSize}>
         <CircularProgressSvg $size={svgSize}>
@@ -419,7 +427,7 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) =
             stroke="rgba(0, 0, 0, 0.1)"
             strokeWidth={thickness}
           />
-          
+
           {/* Progress circle */}
           <CircularProgressCircle
             ref={circleRef}
@@ -439,32 +447,25 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) =
             }}
           />
         </CircularProgressSvg>
-        
+
         {showValue && (
-          <CircularProgressOverlay
-            $size={svgSize}
-            $variant={variant}
-          >
+          <CircularProgressOverlay $size={svgSize} $variant={variant}>
             {`${Math.round(normalizedValue)}%`}
           </CircularProgressOverlay>
         )}
       </CircularProgressRoot>
     );
   };
-  
+
   return (
-    <ProgressContainer
-      ref={ref}
-      className={className}
-      {...rest}
-    >
+    <ProgressContainer ref={ref} className={className} {...rest}>
       {(label || showValue) && shape === 'linear' && (
         <ProgressLabel>
           {label && <span>{label}</span>}
           {showValue && <span>{`${Math.round(normalizedValue)}%`}</span>}
         </ProgressLabel>
       )}
-      
+
       {shape === 'linear' ? renderLinearProgress() : renderCircularProgress()}
     </ProgressContainer>
   );
@@ -474,16 +475,12 @@ Progress.displayName = 'Progress';
 
 /**
  * GlassProgress Component
- * 
+ *
  * A progress indicator with glass morphism styling.
  */
 export const GlassProgress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) => {
-  const {
-    className,
-    glassEffect = true,
-    ...rest
-  } = props;
-  
+  const { className, glassEffect = true, ...rest } = props;
+
   return (
     <Progress
       ref={ref}

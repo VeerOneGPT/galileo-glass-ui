@@ -1,16 +1,18 @@
 import React, { forwardRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { GlassThemeSwitcherProps } from './types';
+
+import { glassBorder } from '../../core/mixins/glassBorder';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
+import { ColorMode, ThemeVariant } from '../../hooks/useGlassTheme';
+import { useTheme, useColorMode, useThemeVariant } from '../../theme';
 import { Box } from '../Box';
-import { Typography } from '../Typography';
 import { Button } from '../Button';
 import { Card } from '../Card';
 import { Icon } from '../Icon';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassBorder } from '../../core/mixins/glassBorder';
-import { ColorMode, ThemeVariant } from '../../hooks/useGlassTheme';
-import { useTheme, useColorMode, useThemeVariant } from '../../theme';
+import { Typography } from '../Typography';
+
+import { GlassThemeSwitcherProps } from './types';
 
 // Styled components
 const StyledSwitcher = styled.div<{
@@ -19,28 +21,28 @@ const StyledSwitcher = styled.div<{
   $glassIntensity: number;
 }>`
   display: flex;
-  flex-direction: ${({ $vertical }) => $vertical ? 'column' : 'row'};
-  gap: ${({ $compact }) => $compact ? '0.75rem' : '1.5rem'};
-  padding: ${({ $compact }) => $compact ? '0.75rem' : '1rem'};
+  flex-direction: ${({ $vertical }) => ($vertical ? 'column' : 'row')};
+  gap: ${({ $compact }) => ($compact ? '0.75rem' : '1.5rem')};
+  padding: ${({ $compact }) => ($compact ? '0.75rem' : '1rem')};
   border-radius: 8px;
-  width: ${({ $compact }) => $compact ? 'auto' : '100%'};
-  
+  width: ${({ $compact }) => ($compact ? 'auto' : '100%')};
+
   ${({ theme, $glassIntensity }) => {
     const themeContext = createThemeContext(theme);
     return glassSurface({
       elevation: $glassIntensity,
       backgroundOpacity: 0.5,
       blurStrength: '8px',
-      themeContext
+      themeContext,
     });
   }}
-  
+
   ${({ theme }) => {
     const themeContext = createThemeContext(theme);
     return glassBorder({
       width: '1px',
       opacity: 0.3,
-      themeContext
+      themeContext,
     });
   }}
 `;
@@ -50,15 +52,19 @@ const Section = styled.div<{
   $vertical: boolean;
 }>`
   flex: 1;
-  
-  ${({ $vertical }) => !$vertical && `
+
+  ${({ $vertical }) =>
+    !$vertical &&
+    `
     &:not(:last-child) {
       border-right: 1px solid rgba(255, 255, 255, 0.1);
       padding-right: 1rem;
     }
   `}
-  
-  ${({ $vertical }) => $vertical && `
+
+  ${({ $vertical }) =>
+    $vertical &&
+    `
     &:not(:last-child) {
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 1rem;
@@ -70,11 +76,13 @@ const OptionButton = styled(Button)<{
   $isActive: boolean;
 }>`
   margin: 0.25rem;
-  opacity: ${({ $isActive }) => $isActive ? 1 : 0.7};
-  transform: scale(${({ $isActive }) => $isActive ? 1 : 0.95});
+  opacity: ${({ $isActive }) => ($isActive ? 1 : 0.7)};
+  transform: scale(${({ $isActive }) => ($isActive ? 1 : 0.95)});
   transition: all 0.2s ease;
-  
-  ${({ $isActive, theme }) => $isActive && `
+
+  ${({ $isActive, theme }) =>
+    $isActive &&
+    `
     box-shadow: 0 0 0 2px ${theme.palette?.primary?.main || '#1976d2'};
   `}
 `;
@@ -134,11 +142,11 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
     const colorModeContext = useColorMode();
     const colorMode = colorModeContext[0];
     const setColorMode = colorModeContext[1];
-    
+
     const themeVariantContext = useThemeVariant();
     const themeVariant = themeVariantContext[0];
     const setThemeVariant = themeVariantContext[1];
-    
+
     // Local state for controlled component usage
     const [localColorMode, setLocalColorMode] = useState<ColorMode>(
       initialColorMode || colorMode || 'system'
@@ -146,18 +154,25 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
     const [localThemeVariant, setLocalThemeVariant] = useState<ThemeVariant>(
       initialThemeVariant || themeVariant || 'default'
     );
-    
+
     // Handle initialization from the theme context
     useEffect(() => {
       if (!initialColorMode && colorMode && localColorMode !== colorMode) {
         setLocalColorMode(colorMode);
       }
-      
+
       if (!initialThemeVariant && themeVariant && localThemeVariant !== themeVariant) {
         setLocalThemeVariant(themeVariant);
       }
-    }, [colorMode, themeVariant, initialColorMode, initialThemeVariant, localColorMode, localThemeVariant]);
-    
+    }, [
+      colorMode,
+      themeVariant,
+      initialColorMode,
+      initialThemeVariant,
+      localColorMode,
+      localThemeVariant,
+    ]);
+
     // Load saved preferences
     useEffect(() => {
       if (persistSelection) {
@@ -165,13 +180,13 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
           const savedPreferences = localStorage.getItem(storageKey);
           if (savedPreferences) {
             const { colorMode, themeVariant } = JSON.parse(savedPreferences);
-            
+
             if (colorMode && !initialColorMode) {
               setLocalColorMode(colorMode);
               if (setColorMode) setColorMode(colorMode);
               if (onColorModeChange) onColorModeChange(colorMode);
             }
-            
+
             if (themeVariant && !initialThemeVariant) {
               setLocalThemeVariant(themeVariant);
               if (setThemeVariant) setThemeVariant(themeVariant);
@@ -183,70 +198,73 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
         }
       }
     }, [
-      persistSelection, 
-      storageKey, 
-      initialColorMode, 
-      initialThemeVariant, 
-      setColorMode, 
-      setThemeVariant, 
-      onColorModeChange, 
-      onThemeVariantChange
+      persistSelection,
+      storageKey,
+      initialColorMode,
+      initialThemeVariant,
+      setColorMode,
+      setThemeVariant,
+      onColorModeChange,
+      onThemeVariantChange,
     ]);
-    
+
     // Save preferences when they change
     useEffect(() => {
       if (persistSelection) {
         try {
-          localStorage.setItem(storageKey, JSON.stringify({
-            colorMode: localColorMode,
-            themeVariant: localThemeVariant
-          }));
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              colorMode: localColorMode,
+              themeVariant: localThemeVariant,
+            })
+          );
         } catch (error) {
           console.error('Error saving theme preferences', error);
         }
       }
     }, [persistSelection, storageKey, localColorMode, localThemeVariant]);
-    
+
     // Handle color mode change
     const handleColorModeChange = (mode: ColorMode) => {
       setLocalColorMode(mode);
-      
+
       if (setColorMode) {
         setColorMode(mode);
       }
-      
+
       if (onColorModeChange) {
         onColorModeChange(mode);
       }
     };
-    
+
     // Handle theme variant change
     const handleThemeVariantChange = (variant: ThemeVariant) => {
       setLocalThemeVariant(variant);
-      
+
       if (setThemeVariant) {
         setThemeVariant(variant);
       }
-      
+
       if (onThemeVariantChange) {
         onThemeVariantChange(variant);
       }
     };
-    
+
     // Handle reset
     const handleReset = () => {
       const defaultColorMode: ColorMode = 'system';
       const defaultThemeVariant: ThemeVariant = 'default';
-      
+
       setLocalColorMode(defaultColorMode);
       setLocalThemeVariant(defaultThemeVariant);
-      
+
       if (setColorMode) setColorMode(defaultColorMode);
       if (setThemeVariant) setThemeVariant(defaultThemeVariant);
-      
+
       if (onColorModeChange) onColorModeChange(defaultColorMode);
       if (onThemeVariantChange) onThemeVariantChange(defaultThemeVariant);
-      
+
       if (persistSelection) {
         try {
           localStorage.removeItem(storageKey);
@@ -255,7 +273,7 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
         }
       }
     };
-    
+
     // Get icon for color mode
     const getColorModeIcon = (mode: ColorMode) => {
       switch (mode) {
@@ -269,7 +287,7 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
           return 'settings';
       }
     };
-    
+
     // Get label for color mode
     const getColorModeLabel = (mode: ColorMode) => {
       switch (mode) {
@@ -283,7 +301,7 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
           return mode;
       }
     };
-    
+
     // Get icon for theme variant
     const getThemeVariantIcon = (variant: ThemeVariant) => {
       switch (variant) {
@@ -301,7 +319,7 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
           return 'palette';
       }
     };
-    
+
     // Get label for theme variant
     const getThemeVariantLabel = (variant: ThemeVariant) => {
       switch (variant) {
@@ -319,7 +337,7 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
           return variant;
       }
     };
-    
+
     return (
       <StyledSwitcher
         ref={ref}
@@ -335,7 +353,7 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
           <Section $compact={compact} $vertical={vertical}>
             <SectionLabel variant="subtitle2">{colorModeLabel}</SectionLabel>
             <OptionsContainer>
-              {availableColorModes.map((mode) => (
+              {availableColorModes.map(mode => (
                 <OptionButton
                   key={mode}
                   variant={localColorMode === mode ? 'contained' : 'outlined'}
@@ -350,13 +368,13 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
             </OptionsContainer>
           </Section>
         )}
-        
+
         {/* Theme variant section */}
         {showVariants && (
           <Section $compact={compact} $vertical={vertical}>
             <SectionLabel variant="subtitle2">{themeVariantLabel}</SectionLabel>
             <OptionsContainer>
-              {availableThemeVariants.map((variant) => (
+              {availableThemeVariants.map(variant => (
                 <OptionButton
                   key={variant}
                   variant={localThemeVariant === variant ? 'contained' : 'outlined'}
@@ -371,28 +389,19 @@ export const GlassThemeSwitcher = forwardRef<HTMLDivElement, GlassThemeSwitcherP
             </OptionsContainer>
           </Section>
         )}
-        
+
         {/* Reset button */}
         {showReset && (
           <Box mt={vertical ? 2 : 0} ml={vertical ? 0 : 2} alignSelf="center">
-            <Button
-              variant="text"
-              size="small"
-              color="secondary"
-              onClick={handleReset}
-            >
+            <Button variant="text" size="small" color="secondary" onClick={handleReset}>
               {useIcons && <Icon>refresh</Icon>}
               {compact ? '' : 'Reset'}
             </Button>
           </Box>
         )}
-        
+
         {/* Preview area */}
-        {preview && (
-          <PreviewContainer>
-            {preview}
-          </PreviewContainer>
-        )}
+        {preview && <PreviewContainer>{preview}</PreviewContainer>}
       </StyledSwitcher>
     );
   }

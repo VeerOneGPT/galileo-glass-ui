@@ -1,6 +1,6 @@
 /**
  * Motion Sensitivity Configuration
- * 
+ *
  * Defines motion sensitivity levels and utilities for accessibility.
  */
 
@@ -10,18 +10,18 @@
 export enum MotionSensitivityLevel {
   /** No motion limitations */
   NONE = 'none',
-  
+
   /** Low sensitivity - only limit the most intense animations */
   LOW = 'low',
-  
+
   /** Medium sensitivity - reduce most animations */
   MEDIUM = 'medium',
-  
+
   /** High sensitivity - minimal animations */
   HIGH = 'high',
-  
+
   /** No animations at all */
-  MAXIMUM = 'maximum'
+  MAXIMUM = 'maximum',
 }
 
 /**
@@ -30,21 +30,21 @@ export enum MotionSensitivityLevel {
 export enum AnimationComplexity {
   /** No animations */
   NONE = 'none',
-  
+
   /** Simple opacity changes */
   MINIMAL = 'minimal',
-  
+
   /** Basic transitions (opacity, simple position changes) */
   BASIC = 'basic',
-  
+
   /** Standard animations (opacity, position, scale) */
   STANDARD = 'standard',
-  
+
   /** Enhanced animations (transforms, multiple properties) */
   ENHANCED = 'enhanced',
-  
+
   /** Complex animations (physics, particles, 3D effects) */
-  COMPLEX = 'complex'
+  COMPLEX = 'complex',
 }
 
 /**
@@ -53,25 +53,25 @@ export enum AnimationComplexity {
 export interface MotionSensitivityConfig {
   /** The user's motion sensitivity level */
   level: MotionSensitivityLevel;
-  
+
   /** Whether to respect the prefers-reduced-motion setting */
   respectPrefersReducedMotion: boolean;
-  
+
   /** Maximum allowed animation complexity */
   maxAllowedComplexity: AnimationComplexity;
-  
+
   /** Maximum allowed animation duration in ms */
   maxAllowedDuration: number;
-  
+
   /** Whether to disable parallax effects */
   disableParallax: boolean;
-  
+
   /** Whether to disable auto-playing animations */
   disableAutoPlay: boolean;
-  
+
   /** Whether to disable background animations */
   disableBackgroundAnimations: boolean;
-  
+
   /** Whether to disable hover animations */
   disableHoverAnimations: boolean;
 }
@@ -88,9 +88,9 @@ export const MOTION_SENSITIVITY_CONFIGS: Record<MotionSensitivityLevel, MotionSe
     disableParallax: false,
     disableAutoPlay: false,
     disableBackgroundAnimations: false,
-    disableHoverAnimations: false
+    disableHoverAnimations: false,
   },
-  
+
   [MotionSensitivityLevel.LOW]: {
     level: MotionSensitivityLevel.LOW,
     respectPrefersReducedMotion: true,
@@ -99,9 +99,9 @@ export const MOTION_SENSITIVITY_CONFIGS: Record<MotionSensitivityLevel, MotionSe
     disableParallax: false,
     disableAutoPlay: false,
     disableBackgroundAnimations: false,
-    disableHoverAnimations: false
+    disableHoverAnimations: false,
   },
-  
+
   [MotionSensitivityLevel.MEDIUM]: {
     level: MotionSensitivityLevel.MEDIUM,
     respectPrefersReducedMotion: true,
@@ -110,9 +110,9 @@ export const MOTION_SENSITIVITY_CONFIGS: Record<MotionSensitivityLevel, MotionSe
     disableParallax: true,
     disableAutoPlay: false,
     disableBackgroundAnimations: true,
-    disableHoverAnimations: false
+    disableHoverAnimations: false,
   },
-  
+
   [MotionSensitivityLevel.HIGH]: {
     level: MotionSensitivityLevel.HIGH,
     respectPrefersReducedMotion: true,
@@ -121,9 +121,9 @@ export const MOTION_SENSITIVITY_CONFIGS: Record<MotionSensitivityLevel, MotionSe
     disableParallax: true,
     disableAutoPlay: true,
     disableBackgroundAnimations: true,
-    disableHoverAnimations: true
+    disableHoverAnimations: true,
   },
-  
+
   [MotionSensitivityLevel.MAXIMUM]: {
     level: MotionSensitivityLevel.MAXIMUM,
     respectPrefersReducedMotion: true,
@@ -132,8 +132,8 @@ export const MOTION_SENSITIVITY_CONFIGS: Record<MotionSensitivityLevel, MotionSe
     disableParallax: true,
     disableAutoPlay: true,
     disableBackgroundAnimations: true,
-    disableHoverAnimations: true
-  }
+    disableHoverAnimations: true,
+  },
 };
 
 /**
@@ -145,15 +145,16 @@ export const getMotionSensitivity = (
   userLevel?: MotionSensitivityLevel
 ): MotionSensitivityConfig => {
   // Check if prefers-reduced-motion is enabled
-  const prefersReducedMotion = typeof window !== 'undefined' 
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
-    : false;
-  
+  const prefersReducedMotion =
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+
   // If user hasn't specified a level but prefers reduced motion, use MEDIUM
   if (!userLevel && prefersReducedMotion) {
     return MOTION_SENSITIVITY_CONFIGS[MotionSensitivityLevel.MEDIUM];
   }
-  
+
   // Use user level or default to NONE
   return MOTION_SENSITIVITY_CONFIGS[userLevel || MotionSensitivityLevel.NONE];
 };
@@ -170,8 +171,10 @@ export const isAnimationComplexityAllowed = (
 ): boolean => {
   // Convert enum values to numbers for comparison
   const complexityValue = Object.values(AnimationComplexity).indexOf(complexity);
-  const maxAllowedValue = Object.values(AnimationComplexity).indexOf(sensitivity.maxAllowedComplexity);
-  
+  const maxAllowedValue = Object.values(AnimationComplexity).indexOf(
+    sensitivity.maxAllowedComplexity
+  );
+
   return complexityValue <= maxAllowedValue;
 };
 
@@ -214,9 +217,9 @@ export const getAdjustedAnimation = (
     autoPlay = false,
     isBackground = false,
     isHover = false,
-    isParallax = false
+    isParallax = false,
   } = options;
-  
+
   // Check if this type of animation should be disabled
   if (
     (sensitivity.disableAutoPlay && autoPlay) ||
@@ -226,24 +229,24 @@ export const getAdjustedAnimation = (
   ) {
     return {
       duration: 0,
-      shouldAnimate: false
+      shouldAnimate: false,
     };
   }
-  
+
   // Check if complexity is allowed
   const complexityAllowed = isAnimationComplexityAllowed(complexity, sensitivity);
   if (!complexityAllowed) {
     return {
       duration: 0,
-      shouldAnimate: false
+      shouldAnimate: false,
     };
   }
-  
+
   // Adjust duration if needed
   const adjustedDuration = Math.min(duration, sensitivity.maxAllowedDuration);
-  
+
   return {
     duration: adjustedDuration,
-    shouldAnimate: true
+    shouldAnimate: true,
   };
 };

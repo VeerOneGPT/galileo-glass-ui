@@ -1,14 +1,16 @@
 /**
  * Advanced Interactive Effects
- * 
+ *
  * Enhanced interactive effects for glass UI elements with advanced animation and feedback features.
  */
 import { css } from 'styled-components';
-import { ThemeContext } from '../themeContext';
-import { cssWithKebabProps } from '../cssUtils';
+
 import { hexToRGBA, parseColorWithAlpha } from '../colorUtils';
-import { hoverEffects, HoverEffectsOptions } from './interactions/hoverEffects';
+import { cssWithKebabProps } from '../cssUtils';
+import { ThemeContext } from '../themeContext';
+
 import { focusEffects, FocusEffectsOptions } from './interactions/focusEffects';
+import { hoverEffects, HoverEffectsOptions } from './interactions/hoverEffects';
 
 /**
  * Interactive effect options
@@ -16,82 +18,82 @@ import { focusEffects, FocusEffectsOptions } from './interactions/focusEffects';
 export interface InteractiveEffectOptions {
   /** Base color for interactive effects */
   color?: string;
-  
+
   /** Effect intensity (0-1) */
   intensity?: number;
-  
+
   /** Interaction timing in milliseconds */
   timing?: number;
-  
+
   /** Whether to include hover effects */
   hover?: boolean;
-  
+
   /** Whether to include focus effects */
   focus?: boolean;
-  
+
   /** Whether to include active/pressed effects */
   active?: boolean;
-  
+
   /** Whether to include disabled state */
   disabled?: boolean;
-  
+
   /** Whether to add magnetic effects */
   magnetic?: boolean;
-  
+
   /** Magnetic effect strength (0-1) */
   magneticStrength?: number;
-  
+
   /** Whether to add parallax effects */
   parallax?: boolean;
-  
+
   /** Parallax depth in pixels */
   parallaxDepth?: number;
-  
+
   /** Whether to enhance with 3D effects */
   enable3D?: boolean;
-  
+
   /** 3D rotation amount in degrees */
   rotation3D?: number;
-  
+
   /** Whether to include ripple effects */
   ripple?: boolean;
-  
+
   /** Ripple color */
   rippleColor?: string;
-  
+
   /** Ripple opacity (0-1) */
   rippleOpacity?: number;
-  
+
   /** Whether to include state transitions */
   stateTransitions?: boolean;
-  
+
   /** Whether to include elastic press effect */
   elasticPress?: boolean;
-  
+
   /** Elastic press scale factor (0-1) */
   elasticScale?: number;
-  
+
   /** Whether to include glow on interaction */
   glow?: boolean;
-  
+
   /** Glow color */
   glowColor?: string;
-  
+
   /** Glow radius in pixels */
   glowRadius?: number;
-  
+
   /** Whether to include border highlight on interaction */
   borderHighlight?: boolean;
-  
+
   /** Border highlight color */
   borderHighlightColor?: string;
-  
+
   /** Whether to include sound feedback */
   sound?: boolean;
-  
+
   /** Sound effect URL */
   soundUrl?: string;
-  
+
   /** Whether to include haptic feedback if available */
   haptic?: boolean;
 }
@@ -102,10 +104,10 @@ export interface InteractiveEffectOptions {
 export interface HoverEffectOptions {
   /** Effect color */
   color?: string;
-  
+
   /** Effect intensity (0-1) */
   intensity?: number;
-  
+
   /** Theme context */
   themeContext?: ThemeContext;
 }
@@ -116,10 +118,10 @@ export interface HoverEffectOptions {
 export interface FocusEffectOptions {
   /** Effect color */
   color?: string;
-  
+
   /** Effect intensity (0-1) */
   intensity?: number;
-  
+
   /** Theme context */
   themeContext?: ThemeContext;
 }
@@ -149,19 +151,16 @@ const DEFAULT_INTERACTIVE_OPTIONS: InteractiveEffectOptions = {
   glowRadius: 10,
   borderHighlight: false,
   sound: false,
-  haptic: false
+  haptic: false,
 };
 
 /**
  * Create ripple effect styles
  */
-const createRippleEffect = (
-  color: string,
-  opacity: number = 0.2
-): CSSMixin => {
+const createRippleEffect = (color: string, opacity = 0.2): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const rgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, ${opacity})`;
-  
+
   return cssWithKebabProps`
     position: relative;
     overflow: hidden;
@@ -209,9 +208,7 @@ const createRippleEffect = (
 /**
  * Create 3D transform hover effect
  */
-const create3DEffect = (
-  rotationAmount: number = 5
-): CSSMixin => {
+const create3DEffect = (rotationAmount = 5): CSSMixin => {
   return cssWithKebabProps`
     transform-style: preserve-3d;
     perspective: 800px;
@@ -225,9 +222,7 @@ const create3DEffect = (
 /**
  * Create parallax effect
  */
-const createParallaxEffect = (
-  depth: number = 5
-): CSSMixin => {
+const createParallaxEffect = (depth = 5): CSSMixin => {
   return cssWithKebabProps`
     transform-style: preserve-3d;
     transform: translateZ(0);
@@ -242,9 +237,7 @@ const createParallaxEffect = (
 /**
  * Create elastic press effect
  */
-const createElasticPressEffect = (
-  scale: number = 0.95
-): CSSMixin => {
+const createElasticPressEffect = (scale = 0.95): CSSMixin => {
   return cssWithKebabProps`
     &:active {
       transform: scale(${scale});
@@ -255,13 +248,10 @@ const createElasticPressEffect = (
 /**
  * Create glow effect on interaction
  */
-const createInteractiveGlow = (
-  color: string,
-  radius: number = 10
-): CSSMixin => {
+const createInteractiveGlow = (color: string, radius = 10): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const rgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, 0.5)`;
-  
+
   return cssWithKebabProps`
     transition: box-shadow 0.2s ease;
     
@@ -278,12 +268,10 @@ const createInteractiveGlow = (
 /**
  * Create border highlight effect
  */
-const createBorderHighlight = (
-  color: string
-): CSSMixin => {
+const createBorderHighlight = (color: string): CSSMixin => {
   const parsedColor = parseColorWithAlpha(color);
   const rgba = `rgba(${parsedColor.r}, ${parsedColor.g}, ${parsedColor.b}, 0.7)`;
-  
+
   return cssWithKebabProps`
     transition: border-color 0.2s ease;
     
@@ -298,9 +286,7 @@ const createBorderHighlight = (
 /**
  * Create magnetic effect
  */
-const createMagneticEffect = (
-  strength: number = 0.3
-): CSSMixin => {
+const createMagneticEffect = (strength = 0.3): CSSMixin => {
   return cssWithKebabProps`
     transform: translate(0, 0);
     transition: transform 0.1s ease-out;
@@ -358,9 +344,9 @@ export const interactiveEffects = (
   // Merge with default options
   const mergedOptions: InteractiveEffectOptions = {
     ...DEFAULT_INTERACTIVE_OPTIONS,
-    ...options
+    ...options,
   };
-  
+
   const {
     color,
     intensity,
@@ -388,28 +374,35 @@ export const interactiveEffects = (
     borderHighlightColor,
     sound,
     soundUrl,
-    haptic
+    haptic,
   } = mergedOptions;
-  
+
   // Get colors from theme or options
-  const interactionColor = color || (themeContext.getColor ? themeContext.getColor('primary', '#4B66EA') : '#4B66EA');
+  const interactionColor =
+    color || (themeContext.getColor ? themeContext.getColor('primary', '#4B66EA') : '#4B66EA');
   const rippleColorValue = rippleColor || interactionColor;
   const glowColorValue = glowColor || interactionColor;
   const borderColorValue = borderHighlightColor || interactionColor;
-  
+
   // Build base interactive styles
   let interactiveStyles = cssWithKebabProps`
     position: relative;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     
-    ${stateTransitions ? `
+    ${
+      stateTransitions
+        ? `
       transition-property: transform, box-shadow, border-color, background-color, opacity;
       transition-duration: ${timing}ms;
       transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    ` : ''}
+    `
+        : ''
+    }
     
-    ${disabled ? `
+    ${
+      disabled
+        ? `
       &:disabled,
       &[disabled],
       &.disabled {
@@ -417,82 +410,84 @@ export const interactiveEffects = (
         cursor: not-allowed;
         pointer-events: none;
       }
-    ` : ''}
+    `
+        : ''
+    }
   `;
-  
+
   // Apply special interactive effects
   if (hover) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
-      ${hoverEffects({ 
-        color: interactionColor, 
-        themeContext, 
+      ${hoverEffects({
+        color: interactionColor,
+        themeContext,
         type: 'glow',
-        intensity: intensity as any
+        intensity: intensity as any,
       })}
     `;
   }
-  
+
   if (focus) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
-      ${focusEffects({ 
-        color: interactionColor, 
+      ${focusEffects({
+        color: interactionColor,
         themeContext,
-        type: 'outline'
+        type: 'outline',
       })}
     `;
   }
-  
+
   if (ripple) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${createRippleEffect(rippleColorValue, rippleOpacity)}
     `;
   }
-  
+
   if (enable3D) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${create3DEffect(rotation3D)}
     `;
   }
-  
+
   if (parallax) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${createParallaxEffect(parallaxDepth)}
     `;
   }
-  
+
   if (elasticPress && active) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${createElasticPressEffect(elasticScale)}
     `;
   }
-  
+
   if (glow) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${createInteractiveGlow(glowColorValue, glowRadius)}
     `;
   }
-  
+
   if (borderHighlight) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${createBorderHighlight(borderColorValue)}
     `;
   }
-  
+
   if (magnetic) {
     interactiveStyles = cssWithKebabProps`
       ${interactiveStyles}
       ${createMagneticEffect(magneticStrength)}
     `;
   }
-  
+
   // Add JavaScript-based effects
   if (sound && soundUrl) {
     const soundScript = createSoundEffect(soundUrl);
@@ -510,7 +505,7 @@ export const interactiveEffects = (
       }
     `;
   }
-  
+
   if (haptic) {
     const hapticScript = createHapticFeedback();
     interactiveStyles = cssWithKebabProps`
@@ -527,6 +522,6 @@ export const interactiveEffects = (
       }
     `;
   }
-  
+
   return interactiveStyles;
 };

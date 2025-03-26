@@ -1,6 +1,6 @@
 /**
  * CSS Utilities for Glass UI
- * 
+ *
  * Utilities for working with CSS in styled-components
  */
 
@@ -9,7 +9,7 @@ import { css } from 'styled-components';
 /**
  * Utility to ensure kebab-case is used for CSS properties in styled-components template literals
  * This is critical for proper runtime behavior
- * 
+ *
  * @jest-mock This function is mocked in tests
  */
 export const cssWithKebabProps = (strings: TemplateStringsArray, ...values: any[]) => {

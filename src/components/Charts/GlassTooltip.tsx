@@ -1,18 +1,19 @@
 /**
  * GlassTooltip Component
- * 
+ *
  * An enhanced tooltip component with glass morphism styling for chart visualizations.
  * Provides a consistent look and feel across all chart types.
  */
 import React from 'react';
 import styled from 'styled-components';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassGlow } from '../../core/mixins/effects/glowEffects';
-import { edgeHighlight } from '../../core/mixins/effects/edgeEffects';
-import { innerGlow } from '../../core/mixins/depth/innerEffects';
-import { createThemeContext } from '../../core/themeUtils';
+
 import { accessibleAnimation } from '../../animations/animationUtils';
 import { fadeIn } from '../../animations/keyframes/basic';
+import { innerGlow } from '../../core/mixins/depth/innerEffects';
+import { edgeHighlight } from '../../core/mixins/effects/edgeEffects';
+import { glassGlow } from '../../core/mixins/effects/glowEffects';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeUtils';
 
 /**
  * GlassTooltip props interface
@@ -22,57 +23,57 @@ export interface GlassTooltipProps {
    * X position of the tooltip
    */
   x: number;
-  
+
   /**
    * Y position of the tooltip
    */
   y: number;
-  
+
   /**
    * Content of the tooltip
    */
   children: React.ReactNode;
-  
+
   /**
    * Position of the tooltip relative to the trigger point
    */
   position?: 'top' | 'right' | 'bottom' | 'left';
-  
+
   /**
    * Accent color for the tooltip
    */
   accentColor?: string;
-  
+
   /**
    * Glass blur intensity
    */
   blurIntensity?: 'light' | 'medium' | 'strong';
-  
+
   /**
    * Whether to apply a glow effect
    */
   glow?: boolean;
-  
+
   /**
    * Glow intensity
    */
   glowIntensity?: 'subtle' | 'medium' | 'strong';
-  
+
   /**
    * Whether to show pointer
    */
   showPointer?: boolean;
-  
+
   /**
    * Z-index of the tooltip
    */
   zIndex?: number;
-  
+
   /**
    * Additional CSS class name
    */
   className?: string;
-  
+
   /**
    * Inline styles
    */
@@ -89,39 +90,39 @@ const getPositionStyles = (position: 'top' | 'right' | 'bottom' | 'left', x: num
         tooltip: {
           left: `${x}px`,
           top: `${y}px`,
-          transform: 'translate(10px, -50%)'
+          transform: 'translate(10px, -50%)',
         },
         pointer: {
           left: '0',
           top: '50%',
-          transform: 'translate(-50%, -50%) rotate(-90deg)'
-        }
+          transform: 'translate(-50%, -50%) rotate(-90deg)',
+        },
       };
     case 'bottom':
       return {
         tooltip: {
           left: `${x}px`,
           top: `${y}px`,
-          transform: 'translate(-50%, 10px)'
+          transform: 'translate(-50%, 10px)',
         },
         pointer: {
           left: '50%',
           top: '0',
-          transform: 'translate(-50%, -50%) rotate(180deg)'
-        }
+          transform: 'translate(-50%, -50%) rotate(180deg)',
+        },
       };
     case 'left':
       return {
         tooltip: {
           left: `${x}px`,
           top: `${y}px`,
-          transform: 'translate(-100%, -50%) translateX(-10px)'
+          transform: 'translate(-100%, -50%) translateX(-10px)',
         },
         pointer: {
           right: '0',
           top: '50%',
-          transform: 'translate(50%, -50%) rotate(90deg)'
-        }
+          transform: 'translate(50%, -50%) rotate(90deg)',
+        },
       };
     case 'top':
     default:
@@ -129,13 +130,13 @@ const getPositionStyles = (position: 'top' | 'right' | 'bottom' | 'left', x: num
         tooltip: {
           left: `${x}px`,
           top: `${y}px`,
-          transform: 'translate(-50%, -100%) translateY(-10px)'
+          transform: 'translate(-50%, -100%) translateY(-10px)',
         },
         pointer: {
           left: '50%',
           bottom: '0',
-          transform: 'translate(-50%, 50%)'
-        }
+          transform: 'translate(-50%, 50%)',
+        },
       };
   }
 };
@@ -145,9 +146,12 @@ const getPositionStyles = (position: 'top' | 'right' | 'bottom' | 'left', x: num
  */
 const getBlurValue = (intensity?: 'light' | 'medium' | 'strong') => {
   switch (intensity) {
-    case 'light': return '4px';
-    case 'strong': return '12px';
-    default: return '8px'; // medium
+    case 'light':
+      return '4px';
+    case 'strong':
+      return '12px';
+    default:
+      return '8px'; // medium
   }
 };
 
@@ -172,7 +176,7 @@ const TooltipContainer = styled.div<{
   min-width: 120px;
   max-width: 300px;
   z-index: ${props => props.zIndex};
-  
+
   ${props => {
     const posStyles = getPositionStyles(props.position, props.x, props.y);
     return `
@@ -181,39 +185,44 @@ const TooltipContainer = styled.div<{
       transform: ${posStyles.tooltip.transform};
     `;
   }}
+
+  ${props =>
+    glassSurface({
+      elevation: 3,
+      blurStrength: props.blurIntensity,
+      borderOpacity: 'medium',
+      themeContext: createThemeContext(props.theme || {}),
+    })}
   
-  ${props => glassSurface({
-    elevation: 3,
-    blurStrength: props.blurIntensity,
-    borderOpacity: 'medium',
-    themeContext: createThemeContext(props.theme || {})
-  })}
+  ${props =>
+    innerGlow({
+      color: props.accentColor,
+      intensity: 'subtle',
+      spread: 5,
+      themeContext: createThemeContext(props.theme || {}),
+    })}
   
-  ${props => innerGlow({
-    color: props.accentColor,
-    intensity: 'subtle',
-    spread: 5,
-    themeContext: createThemeContext(props.theme || {})
-  })}
+  ${props =>
+    edgeHighlight({
+      position: 'bottom',
+      thickness: 2,
+      opacity: 0.8,
+      color: props.accentColor,
+      themeContext: createThemeContext(props.theme || {}),
+    })}
   
-  ${props => edgeHighlight({
-    position: 'bottom',
-    thickness: 2,
-    opacity: 0.8,
-    color: props.accentColor,
-    themeContext: createThemeContext(props.theme || {})
-  })}
-  
-  ${props => props.applyGlow && glassGlow({
-    intensity: props.glowIntensity,
-    color: props.accentColor,
-    themeContext: createThemeContext(props.theme || {})
-  })}
+  ${props =>
+    props.applyGlow &&
+    glassGlow({
+      intensity: props.glowIntensity,
+      color: props.accentColor,
+      themeContext: createThemeContext(props.theme || {}),
+    })}
   
   ${accessibleAnimation({
     animation: fadeIn,
     duration: 0.2,
-    easing: 'ease-out'
+    easing: 'ease-out',
   })}
 `;
 
@@ -229,7 +238,7 @@ const TooltipPointer = styled.div<{
   width: 12px;
   height: 12px;
   transform-origin: center;
-  
+
   ${props => {
     const posStyles = getPositionStyles(props.position, 0, 0);
     return `
@@ -240,7 +249,7 @@ const TooltipPointer = styled.div<{
       transform: ${posStyles.pointer.transform};
     `;
   }}
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -250,7 +259,8 @@ const TooltipPointer = styled.div<{
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-top: 6px solid ${props => props.theme.isDarkMode ? 'rgba(30, 30, 34, 0.8)' : 'rgba(255, 255, 255, 0.8)'};
+    border-top: 6px solid
+      ${props => (props.theme.isDarkMode ? 'rgba(30, 30, 34, 0.8)' : 'rgba(255, 255, 255, 0.8)')};
     filter: drop-shadow(0 0 2px ${props => props.accentColor}80);
   }
 `;
@@ -270,7 +280,7 @@ const TooltipTitle = styled.div<{ color?: string }>`
  */
 const TooltipContent = styled.div`
   font-size: 12px;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)')};
 `;
 
 /**
@@ -288,7 +298,7 @@ export const GlassTooltip: React.FC<GlassTooltipProps> = ({
   showPointer = true,
   zIndex = 1000,
   className,
-  style
+  style,
 }) => {
   return (
     <TooltipContainer
@@ -302,14 +312,14 @@ export const GlassTooltip: React.FC<GlassTooltipProps> = ({
       zIndex={zIndex}
       className={className}
       style={style}
-      theme={{isDarkMode: false}} // Provide minimal theme with isDarkMode property
+      theme={{ isDarkMode: false }} // Provide minimal theme with isDarkMode property
     >
       {children}
       {showPointer && (
-        <TooltipPointer 
-          position={position} 
+        <TooltipPointer
+          position={position}
           accentColor={accentColor}
-          theme={{isDarkMode: false}}
+          theme={{ isDarkMode: false }}
         />
       )}
     </TooltipContainer>

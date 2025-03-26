@@ -1,19 +1,20 @@
 /**
  * ChartsDemo Component
- * 
+ *
  * Demonstrates the enhanced chart components with Glass UI styling,
  * physics-based interactions, and Z-Space layering.
  */
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { 
-  GlassChart, 
-  SimpleChart, 
-  EnhancedGlassTabs, 
-  GlassTooltip, 
-  GlassTooltipContent 
-} from '../components/Charts';
+
 import { usePhysicsInteraction, useMouseMagneticEffect } from '../animations/hooks';
+import {
+  GlassChart,
+  SimpleChart,
+  EnhancedGlassTabs,
+  GlassTooltip,
+  GlassTooltipContent,
+} from '../components/Charts';
 import { useReducedMotion } from '../hooks';
 
 // Styled container for the demo
@@ -33,7 +34,7 @@ const Description = styled.p`
   margin-bottom: 32px;
   font-size: 16px;
   line-height: 1.6;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)')};
 `;
 
 const ChartGrid = styled.div`
@@ -57,18 +58,18 @@ const DemoDescription = styled.p`
   margin-bottom: 24px;
   font-size: 14px;
   line-height: 1.5;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')};
 `;
 
 const FeatureList = styled.ul`
   margin-bottom: 24px;
   padding-left: 24px;
-  
+
   li {
     margin-bottom: 8px;
     font-size: 14px;
     line-height: 1.5;
-    color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+    color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')};
   }
 `;
 
@@ -89,7 +90,7 @@ const barChartData = [
 ];
 
 const lineChartData = [
-  { 
+  {
     name: 'Series 1',
     color: '#4B66EA',
     data: [
@@ -100,7 +101,7 @@ const lineChartData = [
       { label: 'May', value: 56 },
       { label: 'Jun', value: 55 },
       { label: 'Jul', value: 40 },
-    ]
+    ],
   },
   {
     name: 'Series 2',
@@ -113,8 +114,8 @@ const lineChartData = [
       { label: 'May', value: 86 },
       { label: 'Jun', value: 27 },
       { label: 'Jul', value: 90 },
-    ]
-  }
+    ],
+  },
 ];
 
 const pieChartData = [
@@ -130,47 +131,47 @@ const pieChartData = [
 const ChartsDemo: React.FC = () => {
   // Check for reduced motion preference
   const prefersReducedMotion = useReducedMotion();
-  
+
   // State for active tab
   const [activeTab, setActiveTab] = useState('overview');
-  
+
   // State for tooltip demo
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  
+
   // Tabs for the demo
   const demoTabs = [
     { id: 'overview', label: 'Overview', badgeCount: 3 },
     { id: 'details', label: 'Details' },
     { id: 'analysis', label: 'Analysis' },
-    { id: 'settings', label: 'Settings', disabled: true }
+    { id: 'settings', label: 'Settings', disabled: true },
   ];
-  
+
   // Tabs for chart
   const chartTabs = [
     { id: 'daily', label: 'Daily' },
     { id: 'weekly', label: 'Weekly' },
     { id: 'monthly', label: 'Monthly' },
-    { id: 'yearly', label: 'Yearly' }
+    { id: 'yearly', label: 'Yearly' },
   ];
-  
+
   // Handle mouse move for tooltip demo
   const handleMouseMove = (e: React.MouseEvent) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltipPosition({
       x: e.clientX - rect.left,
-      y: e.clientY - rect.top
+      y: e.clientY - rect.top,
     });
   };
-  
+
   return (
     <DemoContainer>
       <SectionTitle>Glass UI Charts Demo</SectionTitle>
       <Description>
-        This demo showcases the enhanced chart components with Glass UI styling,
-        physics-based interactions, and Z-Space layering.
+        This demo showcases the enhanced chart components with Glass UI styling, physics-based
+        interactions, and Z-Space layering.
       </Description>
-      
+
       {/* Main charts showcase */}
       <ChartGrid>
         <GlassChart
@@ -186,10 +187,10 @@ const ChartsDemo: React.FC = () => {
           allowTypeSwitch={true}
           chartProps={{
             showValues: true,
-            cornerRadius: 4
+            cornerRadius: 4,
           }}
         />
-        
+
         <GlassChart
           type="line"
           data={lineChartData}
@@ -204,10 +205,10 @@ const ChartsDemo: React.FC = () => {
           allowDownload={true}
           chartProps={{
             showPoints: true,
-            curve: 'smooth'
+            curve: 'smooth',
           }}
         />
-        
+
         <GlassChart
           type="area"
           data={lineChartData}
@@ -220,10 +221,10 @@ const ChartsDemo: React.FC = () => {
           chartProps={{
             fillArea: true,
             showPoints: true,
-            gradient: true
+            gradient: true,
           }}
         />
-        
+
         <GlassChart
           type="pie"
           data={pieChartData}
@@ -236,17 +237,17 @@ const ChartsDemo: React.FC = () => {
           chartProps={{
             innerRadius: 60,
             showLabels: true,
-            labelType: 'percent'
+            labelType: 'percent',
           }}
         />
       </ChartGrid>
-      
+
       {/* SimpleChart Demo */}
       <DemoCard>
         <DemoHeader>SimpleChart Component</DemoHeader>
         <DemoDescription>
-          The SimpleChart component provides a lightweight rendering option for performance-constrained environments
-          or as a fallback when main chart rendering fails.
+          The SimpleChart component provides a lightweight rendering option for
+          performance-constrained environments or as a fallback when main chart rendering fails.
         </DemoDescription>
         <FeatureList>
           <li>Optimized for performance with minimal DOM elements</li>
@@ -254,7 +255,7 @@ const ChartsDemo: React.FC = () => {
           <li>Supports all chart types with simplified rendering</li>
           <li>Minimal JavaScript execution for better performance</li>
         </FeatureList>
-        
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
           <SimpleChart
             type="bar"
@@ -263,7 +264,7 @@ const ChartsDemo: React.FC = () => {
             width={400}
             height={300}
           />
-          
+
           <SimpleChart
             type="line"
             data={lineChartData}
@@ -272,7 +273,7 @@ const ChartsDemo: React.FC = () => {
             height={300}
             showPoints={true}
           />
-          
+
           <SimpleChart
             type="area"
             data={lineChartData}
@@ -281,7 +282,7 @@ const ChartsDemo: React.FC = () => {
             height={300}
             fillArea={true}
           />
-          
+
           <SimpleChart
             type="pie"
             data={pieChartData}
@@ -292,13 +293,13 @@ const ChartsDemo: React.FC = () => {
           />
         </div>
       </DemoCard>
-      
+
       {/* EnhancedGlassTabs Demo */}
       <DemoCard>
         <DemoHeader>EnhancedGlassTabs Component</DemoHeader>
         <DemoDescription>
-          High-contrast, accessibility-focused tab component for chart navigation with glass morphism styling
-          and physics-based interaction effects.
+          High-contrast, accessibility-focused tab component for chart navigation with glass
+          morphism styling and physics-based interaction effects.
         </DemoDescription>
         <FeatureList>
           <li>Physics-based interaction with subtle magnetic effect</li>
@@ -306,7 +307,7 @@ const ChartsDemo: React.FC = () => {
           <li>Support for badges, icons, and disabled states</li>
           <li>Customizable animation and styling options</li>
         </FeatureList>
-        
+
         <TabsContainer>
           <EnhancedGlassTabs
             tabs={demoTabs}
@@ -318,7 +319,7 @@ const ChartsDemo: React.FC = () => {
             physicsEnabled={!prefersReducedMotion}
           />
         </TabsContainer>
-        
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', marginBottom: '24px' }}>
           <div>
             <DemoDescription>Default Style</DemoDescription>
@@ -329,7 +330,7 @@ const ChartsDemo: React.FC = () => {
               color="primary"
             />
           </div>
-          
+
           <div>
             <DemoDescription>Elevated Style</DemoDescription>
             <EnhancedGlassTabs
@@ -339,7 +340,7 @@ const ChartsDemo: React.FC = () => {
               color="secondary"
             />
           </div>
-          
+
           <div>
             <DemoDescription>Text Style</DemoDescription>
             <EnhancedGlassTabs
@@ -349,7 +350,7 @@ const ChartsDemo: React.FC = () => {
               color="accent"
             />
           </div>
-          
+
           <div>
             <DemoDescription>High Contrast</DemoDescription>
             <EnhancedGlassTabs
@@ -362,7 +363,7 @@ const ChartsDemo: React.FC = () => {
           </div>
         </div>
       </DemoCard>
-      
+
       {/* GlassTooltip Demo */}
       <DemoCard>
         <DemoHeader>GlassTooltip Component</DemoHeader>
@@ -375,25 +376,25 @@ const ChartsDemo: React.FC = () => {
           <li>Structured content formatting with title and data points</li>
           <li>Smooth fade-in animation with accessibility support</li>
         </FeatureList>
-        
-        <div 
-          style={{ 
-            position: 'relative', 
-            height: '300px', 
-            border: '1px dashed rgba(255, 255, 255, 0.2)', 
+
+        <div
+          style={{
+            position: 'relative',
+            height: '300px',
+            border: '1px dashed rgba(255, 255, 255, 0.2)',
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '24px',
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
           onMouseEnter={() => setTooltipVisible(true)}
           onMouseLeave={() => setTooltipVisible(false)}
           onMouseMove={handleMouseMove}
         >
           <div>Move mouse to see the tooltip follow your cursor</div>
-          
+
           {tooltipVisible && (
             <GlassTooltip
               x={tooltipPosition.x}
@@ -409,44 +410,26 @@ const ChartsDemo: React.FC = () => {
                 items={[
                   { label: 'Value', value: '$12,345', color: '#4B66EA' },
                   { label: 'Change', value: '+15%', color: '#10B981' },
-                  { label: 'Period', value: 'Last 30 days' }
+                  { label: 'Period', value: 'Last 30 days' },
                 ]}
               />
             </GlassTooltip>
           )}
         </div>
-        
+
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
           <div style={{ position: 'relative', padding: '24px' }}>
-            <GlassTooltip
-              x={100}
-              y={50}
-              position="top"
-              glow={true}
-              accentColor="primary"
-            >
-              <GlassTooltipContent
-                title="Top Position"
-                items={[{ label: 'Value', value: 87 }]}
-              />
+            <GlassTooltip x={100} y={50} position="top" glow={true} accentColor="primary">
+              <GlassTooltipContent title="Top Position" items={[{ label: 'Value', value: 87 }]} />
             </GlassTooltip>
           </div>
-          
+
           <div style={{ position: 'relative', padding: '24px' }}>
-            <GlassTooltip
-              x={100}
-              y={50}
-              position="right"
-              glow={false}
-              accentColor="secondary"
-            >
-              <GlassTooltipContent
-                title="Right Position"
-                items={[{ label: 'Value', value: 65 }]}
-              />
+            <GlassTooltip x={100} y={50} position="right" glow={false} accentColor="secondary">
+              <GlassTooltipContent title="Right Position" items={[{ label: 'Value', value: 65 }]} />
             </GlassTooltip>
           </div>
-          
+
           <div style={{ position: 'relative', padding: '24px' }}>
             <GlassTooltip
               x={100}
@@ -462,7 +445,7 @@ const ChartsDemo: React.FC = () => {
               />
             </GlassTooltip>
           </div>
-          
+
           <div style={{ position: 'relative', padding: '24px' }}>
             <GlassTooltip
               x={100}
@@ -472,10 +455,7 @@ const ChartsDemo: React.FC = () => {
               accentColor="primary"
               blurIntensity="light"
             >
-              <GlassTooltipContent
-                title="Left Position"
-                items={[{ label: 'Value', value: 23 }]}
-              />
+              <GlassTooltipContent title="Left Position" items={[{ label: 'Value', value: 23 }]} />
             </GlassTooltip>
           </div>
         </div>

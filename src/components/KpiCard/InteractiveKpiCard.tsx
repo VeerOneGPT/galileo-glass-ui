@@ -1,14 +1,16 @@
 /**
  * Interactive KPI Card Component
- * 
+ *
  * A KPI card with an interactive mini chart for data visualization.
  */
 import React, { forwardRef, useState, useRef, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
-import { InteractiveKpiCardProps } from './types';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+import { InteractiveKpiCardProps } from './types';
 
 // Animation keyframes
 const fadeIn = keyframes`
@@ -33,7 +35,7 @@ const getColorValues = (
         border: 'rgba(99, 102, 241, 0.4)',
         text: 'rgba(99, 102, 241, 1)',
         accent: 'rgba(99, 102, 241, 0.8)',
-        chart: 'rgba(99, 102, 241, 0.7)'
+        chart: 'rgba(99, 102, 241, 0.7)',
       };
     case 'secondary':
       return {
@@ -41,7 +43,7 @@ const getColorValues = (
         border: 'rgba(156, 39, 176, 0.4)',
         text: 'rgba(156, 39, 176, 1)',
         accent: 'rgba(156, 39, 176, 0.8)',
-        chart: 'rgba(156, 39, 176, 0.7)'
+        chart: 'rgba(156, 39, 176, 0.7)',
       };
     case 'error':
       return {
@@ -49,7 +51,7 @@ const getColorValues = (
         border: 'rgba(240, 82, 82, 0.4)',
         text: 'rgba(240, 82, 82, 1)',
         accent: 'rgba(240, 82, 82, 0.8)',
-        chart: 'rgba(240, 82, 82, 0.7)'
+        chart: 'rgba(240, 82, 82, 0.7)',
       };
     case 'info':
       return {
@@ -57,7 +59,7 @@ const getColorValues = (
         border: 'rgba(3, 169, 244, 0.4)',
         text: 'rgba(3, 169, 244, 1)',
         accent: 'rgba(3, 169, 244, 0.8)',
-        chart: 'rgba(3, 169, 244, 0.7)'
+        chart: 'rgba(3, 169, 244, 0.7)',
       };
     case 'success':
       return {
@@ -65,7 +67,7 @@ const getColorValues = (
         border: 'rgba(76, 175, 80, 0.4)',
         text: 'rgba(76, 175, 80, 1)',
         accent: 'rgba(76, 175, 80, 0.8)',
-        chart: 'rgba(76, 175, 80, 0.7)'
+        chart: 'rgba(76, 175, 80, 0.7)',
       };
     case 'warning':
       return {
@@ -73,7 +75,7 @@ const getColorValues = (
         border: 'rgba(255, 152, 0, 0.4)',
         text: 'rgba(255, 152, 0, 1)',
         accent: 'rgba(255, 152, 0, 0.8)',
-        chart: 'rgba(255, 152, 0, 0.7)'
+        chart: 'rgba(255, 152, 0, 0.7)',
       };
     case 'default':
     default:
@@ -82,7 +84,7 @@ const getColorValues = (
         border: 'rgba(255, 255, 255, 0.2)',
         text: 'rgba(255, 255, 255, 0.9)',
         accent: 'rgba(255, 255, 255, 0.6)',
-        chart: 'rgba(255, 255, 255, 0.7)'
+        chart: 'rgba(255, 255, 255, 0.7)',
       };
   }
 };
@@ -105,66 +107,82 @@ const CardRoot = styled.div<{
 }>`
   display: flex;
   flex-direction: column;
-  padding: ${props => 
-    props.$size === 'small' ? '12px 16px' : 
-    props.$size === 'large' ? '24px 32px' : 
-    '16px 24px'
-  };
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
-  min-width: ${props => 
-    props.$size === 'small' ? '240px' : 
-    props.$size === 'large' ? '360px' : 
-    '280px'
-  };
+  padding: ${props =>
+    props.$size === 'small' ? '12px 16px' : props.$size === 'large' ? '24px 32px' : '16px 24px'};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
+  min-width: ${props =>
+    props.$size === 'small' ? '240px' : props.$size === 'large' ? '360px' : '280px'};
   height: auto;
-  border-radius: ${props => typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
+  border-radius: ${props =>
+    typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
   text-align: ${props => props.$align};
-  cursor: ${props => props.$clickable ? 'pointer' : 'default'};
+  cursor: ${props => (props.$clickable ? 'pointer' : 'default')};
   transition: all 0.3s ease;
   color: rgba(255, 255, 255, 0.9);
   position: relative;
   overflow: hidden;
-  
+
   /* Glass styling */
-  ${props => props.$glass && glassSurface({
-    elevation: props.$elevation,
-    blurStrength: 'standard',
-    borderOpacity: 'medium',
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: props.$elevation,
+      blurStrength: 'standard',
+      borderOpacity: 'medium',
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Non-glass styling */
-  ${props => !props.$glass && `
+  ${props =>
+    !props.$glass &&
+    `
     background-color: ${props.$colorValues.bg};
     border: 1px solid ${props.$colorValues.border};
     box-shadow: ${
-      props.$elevation === 0 ? 'none' :
-      props.$elevation === 1 ? '0 2px 4px rgba(0, 0, 0, 0.1)' :
-      props.$elevation === 2 ? '0 3px 6px rgba(0, 0, 0, 0.15)' :
-      props.$elevation === 3 ? '0 5px 10px rgba(0, 0, 0, 0.2)' :
-      props.$elevation === 4 ? '0 8px 16px rgba(0, 0, 0, 0.25)' :
-      '0 12px 24px rgba(0, 0, 0, 0.3)'
+      props.$elevation === 0
+        ? 'none'
+        : props.$elevation === 1
+        ? '0 2px 4px rgba(0, 0, 0, 0.1)'
+        : props.$elevation === 2
+        ? '0 3px 6px rgba(0, 0, 0, 0.15)'
+        : props.$elevation === 3
+        ? '0 5px 10px rgba(0, 0, 0, 0.2)'
+        : props.$elevation === 4
+        ? '0 8px 16px rgba(0, 0, 0, 0.25)'
+        : '0 12px 24px rgba(0, 0, 0, 0.3)'
     };
   `}
   
   /* Hover effect */
-  ${props => props.$hover && `
+  ${props =>
+    props.$hover &&
+    `
     &:hover {
       transform: translateY(-4px);
       box-shadow: ${
-        props.$glass ? '' :
-        props.$elevation === 0 ? '0 2px 4px rgba(0, 0, 0, 0.1)' :
-        props.$elevation === 1 ? '0 4px 8px rgba(0, 0, 0, 0.15)' :
-        props.$elevation === 2 ? '0 6px 12px rgba(0, 0, 0, 0.2)' :
-        props.$elevation === 3 ? '0 8px 16px rgba(0, 0, 0, 0.25)' :
-        props.$elevation === 4 ? '0 12px 24px rgba(0, 0, 0, 0.3)' :
-        '0 16px 32px rgba(0, 0, 0, 0.35)'
+        props.$glass
+          ? ''
+          : props.$elevation === 0
+          ? '0 2px 4px rgba(0, 0, 0, 0.1)'
+          : props.$elevation === 1
+          ? '0 4px 8px rgba(0, 0, 0, 0.15)'
+          : props.$elevation === 2
+          ? '0 6px 12px rgba(0, 0, 0, 0.2)'
+          : props.$elevation === 3
+          ? '0 8px 16px rgba(0, 0, 0, 0.25)'
+          : props.$elevation === 4
+          ? '0 12px 24px rgba(0, 0, 0, 0.3)'
+          : '0 16px 32px rgba(0, 0, 0, 0.35)'
       };
     }
   `}
   
   /* Interactive hover effect */
-  ${props => props.$interactive && props.$isHovered && !props.$reducedMotion && `
+  ${props =>
+    props.$interactive &&
+    props.$isHovered &&
+    !props.$reducedMotion &&
+    `
     animation: ${breathe} 2s ease-in-out infinite;
   `}
   
@@ -190,24 +208,18 @@ const IconContainer = styled.div<{
   justify-content: center;
   margin-bottom: 12px;
   color: ${props => props.$colorValues.text};
-  
+
   /* Size variations */
-  font-size: ${props => 
-    props.$size === 'small' ? '1.5rem' : 
-    props.$size === 'large' ? '2.5rem' : 
-    '2rem'
-  };
+  font-size: ${props =>
+    props.$size === 'small' ? '1.5rem' : props.$size === 'large' ? '2.5rem' : '2rem'};
 `;
 
 const Title = styled.h3<{
   $size: 'small' | 'medium' | 'large';
 }>`
   margin: 0;
-  font-size: ${props => 
-    props.$size === 'small' ? '0.875rem' : 
-    props.$size === 'large' ? '1.25rem' : 
-    '1rem'
-  };
+  font-size: ${props =>
+    props.$size === 'small' ? '0.875rem' : props.$size === 'large' ? '1.25rem' : '1rem'};
   font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
   margin-bottom: 8px;
@@ -219,11 +231,8 @@ const ValueContainer = styled.div<{
 }>`
   display: flex;
   align-items: baseline;
-  justify-content: ${props => 
-    props.$align === 'left' ? 'flex-start' : 
-    props.$align === 'right' ? 'flex-end' : 
-    'center'
-  };
+  justify-content: ${props =>
+    props.$align === 'left' ? 'flex-start' : props.$align === 'right' ? 'flex-end' : 'center'};
   margin-bottom: 4px;
 `;
 
@@ -232,11 +241,8 @@ const Value = styled.div<{
   $color: string;
   $colorValues: { bg: string; border: string; text: string; accent: string; chart: string };
 }>`
-  font-size: ${props => 
-    props.$size === 'small' ? '1.5rem' : 
-    props.$size === 'large' ? '2.5rem' : 
-    '2rem'
-  };
+  font-size: ${props =>
+    props.$size === 'small' ? '1.5rem' : props.$size === 'large' ? '2.5rem' : '2rem'};
   font-weight: 600;
   color: ${props => props.$colorValues.text};
   line-height: 1.2;
@@ -252,11 +258,8 @@ const Unit = styled.span`
 const Subtitle = styled.div<{
   $size: 'small' | 'medium' | 'large';
 }>`
-  font-size: ${props => 
-    props.$size === 'small' ? '0.75rem' : 
-    props.$size === 'large' ? '0.875rem' : 
-    '0.8125rem'
-  };
+  font-size: ${props =>
+    props.$size === 'small' ? '0.75rem' : props.$size === 'large' ? '0.875rem' : '0.8125rem'};
   color: rgba(255, 255, 255, 0.6);
   margin-bottom: 12px;
 `;
@@ -275,13 +278,10 @@ const ChangeValue = styled.div<{
 }>`
   display: flex;
   align-items: center;
-  font-size: ${props => 
-    props.$size === 'small' ? '0.75rem' : 
-    props.$size === 'large' ? '0.875rem' : 
-    '0.8125rem'
-  };
+  font-size: ${props =>
+    props.$size === 'small' ? '0.75rem' : props.$size === 'large' ? '0.875rem' : '0.8125rem'};
   font-weight: 500;
-  
+
   /* Color based on value */
   color: ${props => {
     const isPositive = props.$value >= 0;
@@ -291,7 +291,7 @@ const ChangeValue = styled.div<{
       return isPositive ? 'rgba(240, 82, 82, 1)' : 'rgba(76, 175, 80, 1)';
     }
   }};
-  
+
   /* Icon for change direction */
   &::before {
     content: '${props => {
@@ -306,11 +306,8 @@ const ChangeValue = styled.div<{
 const Period = styled.div<{
   $size: 'small' | 'medium' | 'large';
 }>`
-  font-size: ${props => 
-    props.$size === 'small' ? '0.75rem' : 
-    props.$size === 'large' ? '0.875rem' : 
-    '0.8125rem'
-  };
+  font-size: ${props =>
+    props.$size === 'small' ? '0.75rem' : props.$size === 'large' ? '0.875rem' : '0.8125rem'};
   color: rgba(255, 255, 255, 0.5);
 `;
 
@@ -323,16 +320,17 @@ const ChartContainer = styled.div<{
 }>`
   position: relative;
   width: 100%;
-  height: ${props => 
-    props.$size === 'small' ? '40px' : 
-    props.$size === 'large' ? '80px' : 
-    '60px'
-  };
+  height: ${props =>
+    props.$size === 'small' ? '40px' : props.$size === 'large' ? '80px' : '60px'};
   margin-top: 16px;
   overflow: hidden;
-  
+
   /* Animation on hover */
-  ${props => props.$animateOnHover && props.$isHovered && !props.$reducedMotion && `
+  ${props =>
+    props.$animateOnHover &&
+    props.$isHovered &&
+    !props.$reducedMotion &&
+    `
     & > * {
       animation: ${fadeIn} 0.5s ease-out;
     }
@@ -345,7 +343,7 @@ const LineChart = styled.svg<{
 }>`
   width: 100%;
   height: 100%;
-  
+
   & path {
     stroke: ${props => props.$colorValues.chart};
     stroke-width: 2px;
@@ -359,13 +357,13 @@ const AreaChart = styled.svg<{
 }>`
   width: 100%;
   height: 100%;
-  
+
   & path.line {
     stroke: ${props => props.$colorValues.chart};
     stroke-width: 2px;
     fill: none;
   }
-  
+
   & path.area {
     fill: ${props => props.$colorValues.chart};
     opacity: 0.2;
@@ -378,7 +376,7 @@ const BarChart = styled.svg<{
 }>`
   width: 100%;
   height: 100%;
-  
+
   & rect {
     fill: ${props => props.$colorValues.chart};
   }
@@ -390,13 +388,13 @@ const SparklineChart = styled.svg<{
 }>`
   width: 100%;
   height: 100%;
-  
+
   & path {
     stroke: ${props => props.$colorValues.chart};
     stroke-width: 1.5px;
     fill: none;
   }
-  
+
   & circle {
     fill: ${props => props.$colorValues.chart};
   }
@@ -418,7 +416,7 @@ const Tooltip = styled.div<{
   font-size: 0.75rem;
   pointer-events: none;
   white-space: nowrap;
-  opacity: ${props => props.$visible ? 1 : 0};
+  opacity: ${props => (props.$visible ? 1 : 0)};
   transition: opacity 0.2s ease;
   z-index: 10;
 `;
@@ -434,19 +432,19 @@ const Footer = styled.div`
  */
 const formatValue = (value: number, format?: string): string => {
   if (!format) return value.toString();
-  
+
   // Handle percentage format
   if (format.includes('%')) {
     const precision = format.match(/\.(\d+)/)?.[1]?.length || 0;
     return `${(value * 100).toFixed(precision)}%`;
   }
-  
+
   // Handle currency format
   if (format.includes('$')) {
     const precision = format.match(/\.(\d+)/)?.[1]?.length || 0;
     return `$${value.toFixed(precision)}`;
   }
-  
+
   // Handle general number format
   const precision = format.match(/\.(\d+)/)?.[1]?.length || 0;
   return value.toFixed(precision);
@@ -455,7 +453,9 @@ const formatValue = (value: number, format?: string): string => {
 /**
  * Normalize chart data to a standard format
  */
-const normalizeChartData = (chartData: Array<number | { x: number | string; y: number }>): { x: number | string; y: number }[] => {
+const normalizeChartData = (
+  chartData: Array<number | { x: number | string; y: number }>
+): { x: number | string; y: number }[] => {
   return chartData.map((data, index) => {
     if (typeof data === 'number') {
       return { x: index, y: data };
@@ -504,74 +504,87 @@ function InteractiveKpiCardComponent(
     animateOnHover = true,
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Refs
   const chartRef = useRef<SVGSVGElement>(null);
-  
+
   // State
   const [isHovered, setIsHovered] = useState(false);
-  const [tooltipInfo, setTooltipInfo] = useState<{ x: number; y: number; value: string; visible: boolean }>({
-    x: 0, y: 0, value: '', visible: false
+  const [tooltipInfo, setTooltipInfo] = useState<{
+    x: number;
+    y: number;
+    value: string;
+    visible: boolean;
+  }>({
+    x: 0,
+    y: 0,
+    value: '',
+    visible: false,
   });
-  
+
   // Get color values
   const colorValues = getColorValues(color);
-  
+
   // Format the value
   const formattedValue = typeof value === 'number' ? formatValue(value, valueFormat) : value;
-  
+
   // Format the change
-  const formattedChange = change !== undefined ? formatValue(change, changeFormat || '+0.0%') : undefined;
-  
+  const formattedChange =
+    change !== undefined ? formatValue(change, changeFormat || '+0.0%') : undefined;
+
   // Normalize chart data
   const normalizedData = normalizeChartData(chartData);
-  
+
   // Find min/max values for scaling
   let minValue = Number.MAX_VALUE;
   let maxValue = Number.MIN_VALUE;
-  
+
   normalizedData.forEach(data => {
     if (data.y < minValue) minValue = data.y;
     if (data.y > maxValue) maxValue = data.y;
   });
-  
+
   // Ensure we have valid min/max values
   if (minValue === Number.MAX_VALUE) minValue = 0;
   if (maxValue === Number.MIN_VALUE) maxValue = 100;
-  
+
   // Add padding to min/max
   const range = maxValue - minValue;
   minValue = Math.max(0, minValue - range * 0.1);
   maxValue = maxValue + range * 0.1;
-  
+
   // Render the chart based on type
   const renderChart = () => {
     if (normalizedData.length === 0) return null;
-    
+
     // Chart dimensions
     const height = size === 'small' ? 40 : size === 'large' ? 80 : 60;
     const width = chartRef.current?.clientWidth || 300;
-    
+
     // Scales for x and y
     const xScale = (index: number) => (width / (normalizedData.length - 1)) * index;
-    const yScale = (value: number) => height - ((value - minValue) / (maxValue - minValue)) * height;
-    
+    const yScale = (value: number) =>
+      height - ((value - minValue) / (maxValue - minValue)) * height;
+
     switch (chartType) {
       case 'area': {
         // Generate area path
         let areaPath = `M0,${height} `;
         areaPath += normalizedData.map((data, i) => `L${xScale(i)},${yScale(data.y)}`).join(' ');
         areaPath += ` L${width},${height} Z`;
-        
+
         // Generate line path
         let linePath = `M${xScale(0)},${yScale(normalizedData[0].y)} `;
-        linePath += normalizedData.slice(1).map((data, i) => `L${xScale(i+1)},${yScale(data.y)}`).join(' ');
-        
+        linePath += normalizedData
+          .slice(1)
+          .map((data, i) => `L${xScale(i + 1)},${yScale(data.y)}`)
+          .join(' ');
+
         return (
-          <AreaChart 
+          <AreaChart
             ref={chartRef}
             $color={color}
             $colorValues={colorValues}
@@ -583,13 +596,13 @@ function InteractiveKpiCardComponent(
           </AreaChart>
         );
       }
-      
+
       case 'bar': {
         const barWidth = Math.max(1, (width / normalizedData.length) * 0.8);
         const barGap = width / normalizedData.length - barWidth;
-        
+
         return (
-          <BarChart 
+          <BarChart
             ref={chartRef}
             $color={color}
             $colorValues={colorValues}
@@ -610,14 +623,17 @@ function InteractiveKpiCardComponent(
           </BarChart>
         );
       }
-      
+
       case 'sparkline': {
         // Generate line path
         let path = `M${xScale(0)},${yScale(normalizedData[0].y)} `;
-        path += normalizedData.slice(1).map((data, i) => `L${xScale(i+1)},${yScale(data.y)}`).join(' ');
-        
+        path += normalizedData
+          .slice(1)
+          .map((data, i) => `L${xScale(i + 1)},${yScale(data.y)}`)
+          .join(' ');
+
         return (
-          <SparklineChart 
+          <SparklineChart
             ref={chartRef}
             $color={color}
             $colorValues={colorValues}
@@ -625,23 +641,26 @@ function InteractiveKpiCardComponent(
             onMouseLeave={handleChartMouseLeave}
           >
             <path d={path} />
-            <circle 
-              cx={xScale(normalizedData.length - 1)} 
-              cy={yScale(normalizedData[normalizedData.length - 1].y)} 
-              r="3" 
+            <circle
+              cx={xScale(normalizedData.length - 1)}
+              cy={yScale(normalizedData[normalizedData.length - 1].y)}
+              r="3"
             />
           </SparklineChart>
         );
       }
-      
+
       case 'line':
       default: {
         // Generate line path
         let path = `M${xScale(0)},${yScale(normalizedData[0].y)} `;
-        path += normalizedData.slice(1).map((data, i) => `L${xScale(i+1)},${yScale(data.y)}`).join(' ');
-        
+        path += normalizedData
+          .slice(1)
+          .map((data, i) => `L${xScale(i + 1)},${yScale(data.y)}`)
+          .join(' ');
+
         return (
-          <LineChart 
+          <LineChart
             ref={chartRef}
             $color={color}
             $colorValues={colorValues}
@@ -654,51 +673,52 @@ function InteractiveKpiCardComponent(
       }
     }
   };
-  
+
   // Handle mouse interactions
   const handleMouseEnter = () => {
     setIsHovered(true);
   };
-  
+
   const handleMouseLeave = () => {
     setIsHovered(false);
     setTooltipInfo(prev => ({ ...prev, visible: false }));
   };
-  
+
   const handleChartMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!chartRef.current || !showTooltip) return;
-    
+
     // Get mouse position relative to chart
     const rect = chartRef.current.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
-    
+
     // Find closest data point
     const width = rect.width;
     const pointIndex = Math.min(
       normalizedData.length - 1,
       Math.max(0, Math.round((mouseX / width) * (normalizedData.length - 1)))
     );
-    
+
     const dataPoint = normalizedData[pointIndex];
-    const displayValue = typeof value === 'number' ? formatValue(dataPoint.y, valueFormat) : dataPoint.y.toString();
-    
+    const displayValue =
+      typeof value === 'number' ? formatValue(dataPoint.y, valueFormat) : dataPoint.y.toString();
+
     // Calculate point position
     const xPos = (width / (normalizedData.length - 1)) * pointIndex;
     const height = rect.height;
     const yPos = height - ((dataPoint.y - minValue) / (maxValue - minValue)) * height;
-    
+
     setTooltipInfo({
       x: xPos,
       y: yPos,
       value: `${displayValue}${unit ? ` ${unit}` : ''}`,
-      visible: true
+      visible: true,
     });
   };
-  
+
   const handleChartMouseLeave = () => {
     setTooltipInfo(prev => ({ ...prev, visible: false }));
   };
-  
+
   return (
     <CardRoot
       ref={ref}
@@ -724,58 +744,36 @@ function InteractiveKpiCardComponent(
     >
       <CardContent>
         {icon && (
-          <IconContainer 
-            $size={size}
-            $color={color}
-            $colorValues={colorValues}
-          >
+          <IconContainer $size={size} $color={color} $colorValues={colorValues}>
             {icon}
           </IconContainer>
         )}
-        
-        <Title $size={size}>
-          {title}
-        </Title>
-        
+
+        <Title $size={size}>{title}</Title>
+
         <ValueContainer $size={size} $align={align}>
-          <Value 
-            $size={size}
-            $color={color}
-            $colorValues={colorValues}
-          >
+          <Value $size={size} $color={color} $colorValues={colorValues}>
             {formattedValue}
             {unit && <Unit>{unit}</Unit>}
           </Value>
         </ValueContainer>
-        
-        {subtitle && (
-          <Subtitle $size={size}>
-            {subtitle}
-          </Subtitle>
-        )}
-        
+
+        {subtitle && <Subtitle $size={size}>{subtitle}</Subtitle>}
+
         {(change !== undefined || period) && (
           <ChangePeriodContainer>
             {change !== undefined && (
-              <ChangeValue 
-                $value={change}
-                $positiveIsGood={positiveIsGood}
-                $size={size}
-              >
+              <ChangeValue $value={change} $positiveIsGood={positiveIsGood} $size={size}>
                 {formattedChange}
               </ChangeValue>
             )}
-            
-            {period && (
-              <Period $size={size}>
-                {period}
-              </Period>
-            )}
+
+            {period && <Period $size={size}>{period}</Period>}
           </ChangePeriodContainer>
         )}
-        
+
         {chartData.length > 0 && (
-          <ChartContainer 
+          <ChartContainer
             $size={size}
             $chartType={chartType}
             $animateOnHover={animateOnHover}
@@ -783,24 +781,16 @@ function InteractiveKpiCardComponent(
             $reducedMotion={prefersReducedMotion}
           >
             {renderChart()}
-            
+
             {tooltipInfo.visible && (
-              <Tooltip 
-                $x={tooltipInfo.x}
-                $y={tooltipInfo.y}
-                $visible={tooltipInfo.visible}
-              >
+              <Tooltip $x={tooltipInfo.x} $y={tooltipInfo.y} $visible={tooltipInfo.visible}>
                 {tooltipInfo.value}
               </Tooltip>
             )}
           </ChartContainer>
         )}
-        
-        {(footer || children) && (
-          <Footer>
-            {footer || children}
-          </Footer>
-        )}
+
+        {(footer || children) && <Footer>{footer || children}</Footer>}
       </CardContent>
     </CardRoot>
   );
@@ -808,19 +798,19 @@ function InteractiveKpiCardComponent(
 
 /**
  * InteractiveKpiCard Component
- * 
+ *
  * A KPI card with an interactive mini chart for data visualization.
  */
 const InteractiveKpiCard = forwardRef(InteractiveKpiCardComponent);
 
 /**
  * GlassInteractiveKpiCard Component
- * 
+ *
  * Glass variant of the InteractiveKpiCard component.
  */
-const GlassInteractiveKpiCard = forwardRef<HTMLDivElement, InteractiveKpiCardProps>((props, ref) => (
-  <InteractiveKpiCard {...props} glass={true} ref={ref} />
-));
+const GlassInteractiveKpiCard = forwardRef<HTMLDivElement, InteractiveKpiCardProps>(
+  (props, ref) => <InteractiveKpiCard {...props} glass={true} ref={ref} />
+);
 
 GlassInteractiveKpiCard.displayName = 'GlassInteractiveKpiCard';
 

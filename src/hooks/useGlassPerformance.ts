@@ -1,9 +1,10 @@
 /**
  * useGlassPerformance Hook
- * 
+ *
  * A hook for monitoring and optimizing the performance of glass UI effects
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+
 import { DeviceCapabilityTier, getDeviceCapabilityTier } from '../utils/deviceCapabilities';
 
 /**
@@ -14,47 +15,47 @@ export interface GlassPerformanceMetrics {
    * Frames per second
    */
   fps: number;
-  
+
   /**
    * Frame timing in milliseconds
    */
   frameTiming: number;
-  
+
   /**
    * Count of Recalculate Style operations triggered
    */
   recalculateStyleCount: number;
-  
+
   /**
    * Count of Layout operations triggered
    */
   layoutCount: number;
-  
+
   /**
    * Time spent on style calculation in milliseconds
    */
   styleCalculationTime: number;
-  
+
   /**
    * Jank score (higher means more stuttering)
    */
   jankScore: number;
-  
+
   /**
    * Indicates if the UI is currently performing poorly
    */
   isPoorPerformance: boolean;
-  
+
   /**
    * Detected capability tier of the device
    */
   deviceCapabilityTier: DeviceCapabilityTier;
-  
+
   /**
    * Indicates if the UI is currently throttled
    */
   isThrottled: boolean;
-  
+
   /**
    * Timestamp of last update
    */
@@ -69,22 +70,22 @@ export interface PerformanceThresholds {
    * Minimum acceptable FPS
    */
   minFps: number;
-  
+
   /**
    * Maximum acceptable frame timing in ms
    */
   maxFrameTiming: number;
-  
+
   /**
    * Maximum acceptable style recalculations per second
    */
   maxRecalculateStyleCountPerSecond: number;
-  
+
   /**
    * Maximum acceptable layout operations per second
    */
   maxLayoutCountPerSecond: number;
-  
+
   /**
    * Maximum acceptable jank score
    */
@@ -99,7 +100,7 @@ const DEFAULT_THRESHOLDS: PerformanceThresholds = {
   maxFrameTiming: 22, // ~45 fps
   maxRecalculateStyleCountPerSecond: 200,
   maxLayoutCountPerSecond: 30,
-  maxJankScore: 5
+  maxJankScore: 5,
 };
 
 /**
@@ -110,32 +111,32 @@ export interface GlassPerformanceOptions {
    * Whether to enable monitoring
    */
   enabled?: boolean;
-  
+
   /**
    * How frequently to update metrics in milliseconds
    */
   updateInterval?: number;
-  
+
   /**
    * Custom performance thresholds
    */
   thresholds?: Partial<PerformanceThresholds>;
-  
+
   /**
    * Whether to attempt automatic optimizations
    */
   autoOptimize?: boolean;
-  
+
   /**
    * Whether to log performance issues to console
    */
   logPerformanceIssues?: boolean;
-  
+
   /**
    * The element to monitor (defaults to document.body)
    */
   targetElement?: HTMLElement | null;
-  
+
   /**
    * Custom identifier for this monitoring instance
    */
@@ -167,7 +168,7 @@ const DEFAULT_METRICS: GlassPerformanceMetrics = {
   isPoorPerformance: false,
   deviceCapabilityTier: DeviceCapabilityTier.MEDIUM,
   isThrottled: false,
-  lastUpdated: 0
+  lastUpdated: 0,
 };
 
 /**
@@ -182,23 +183,24 @@ const calculateFPS = (frameTime: number): number => {
  */
 const calculateJankScore = (frameTimings: number[]): number => {
   if (frameTimings.length < 10) return 0;
-  
+
   // Get last 10 timings
   const recentTimings = frameTimings.slice(-10);
-  
+
   // Calculate variance in frame times
   const average = recentTimings.reduce((sum, val) => sum + val, 0) / recentTimings.length;
   const squaredDifferences = recentTimings.map(val => Math.pow(val - average, 2));
-  const variance = squaredDifferences.reduce((sum, val) => sum + val, 0) / squaredDifferences.length;
-  
+  const variance =
+    squaredDifferences.reduce((sum, val) => sum + val, 0) / squaredDifferences.length;
+
   // Calculate jank score (normalized against 16.67ms target)
   const normalizedVariance = variance / (16.67 * 16.67);
   const baseJank = Math.sqrt(normalizedVariance) * 10;
-  
+
   // Penalize long frames
   const longFrameCount = recentTimings.filter(t => t > 33.33).length;
   const longFramePenalty = longFrameCount * 2;
-  
+
   // Combine scores
   return Math.min(Math.round(baseJank + longFramePenalty), 10);
 };
@@ -214,48 +216,48 @@ const usePerformanceObserver = (
     if (!enabled || typeof window === 'undefined' || !('PerformanceObserver' in window)) {
       return;
     }
-    
+
     let recalculateStyleCount = 0;
     let layoutCount = 0;
     let styleCalculationTime = 0;
-    
+
     // Create observers for different entry types
     try {
-      const layoutObserver = new PerformanceObserver((list) => {
-        list.getEntries().forEach((entry) => {
+      const layoutObserver = new PerformanceObserver(list => {
+        list.getEntries().forEach(entry => {
           if (entry.entryType === 'layout-shift') {
             layoutCount++;
           }
         });
-        
+
         onMetrics(recalculateStyleCount, layoutCount, styleCalculationTime);
       });
-      
-      const paintObserver = new PerformanceObserver((list) => {
+
+      const paintObserver = new PerformanceObserver(list => {
         list.getEntries().forEach((entry: any) => {
           if (entry.name === 'style-recalculation') {
             recalculateStyleCount++;
             styleCalculationTime += entry.duration || 0;
           }
         });
-        
+
         onMetrics(recalculateStyleCount, layoutCount, styleCalculationTime);
       });
-      
+
       // Observe relevant performance events
       layoutObserver.observe({ type: 'layout-shift', buffered: true });
-      
+
       if ('layout' in PerformanceObserver.supportedEntryTypes) {
         paintObserver.observe({ entryTypes: ['layout'], buffered: true });
       }
-      
+
       // Reset counts periodically to measure per-second metrics
       const resetInterval = setInterval(() => {
         recalculateStyleCount = 0;
         layoutCount = 0;
         styleCalculationTime = 0;
       }, 1000);
-      
+
       // Clean up
       return () => {
         layoutObserver.disconnect();
@@ -280,26 +282,26 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
     autoOptimize = true,
     logPerformanceIssues = false,
     targetElement = null,
-    id = 'glass-ui'
+    id = 'glass-ui',
   } = options;
-  
+
   // Merge with default thresholds
   const mergedThresholds: PerformanceThresholds = {
     ...DEFAULT_THRESHOLDS,
-    ...thresholds
+    ...thresholds,
   };
-  
+
   // State for performance metrics
   const [metrics, setMetrics] = useState<GlassPerformanceMetrics>(DEFAULT_METRICS);
-  
+
   // State for optimization level (0=none, 1=light, 2=medium, 3=aggressive)
   const [optimizationLevel, setOptimizationLevel] = useState<number>(0);
-  
+
   // Refs for tracking frame timing
   const lastFrameTime = useRef<number>(0);
   const frameTimings = useRef<number[]>([]);
   const animationFrameId = useRef<number | null>(null);
-  
+
   // Refs for performance history
   const history = useRef<PerformanceHistory>({
     fpsHistory: [],
@@ -307,87 +309,82 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
     styleCalcHistory: [],
     layoutHistory: [],
     jankHistory: [],
-    timestamps: []
+    timestamps: [],
   });
-  
+
   // Refs for observer metrics
   const observerMetrics = useRef({
     recalculateStyleCount: 0,
     layoutCount: 0,
-    styleCalculationTime: 0
+    styleCalculationTime: 0,
   });
-  
+
   // Track whether performance is currently poor
   const isPoorPerformance = useRef<boolean>(false);
-  
+
   // Update observer metrics
-  const handleObserverMetrics = useCallback((
-    recalculateStyleCount: number,
-    layoutCount: number,
-    styleTime: number
-  ) => {
-    observerMetrics.current = {
-      recalculateStyleCount,
-      layoutCount,
-      styleCalculationTime: styleTime
-    };
-  }, []);
-  
+  const handleObserverMetrics = useCallback(
+    (recalculateStyleCount: number, layoutCount: number, styleTime: number) => {
+      observerMetrics.current = {
+        recalculateStyleCount,
+        layoutCount,
+        styleCalculationTime: styleTime,
+      };
+    },
+    []
+  );
+
   // Setup performance observer
   usePerformanceObserver(enabled, handleObserverMetrics);
-  
+
   // Measure frame timing
   const measureFrameTiming = useCallback(() => {
     if (!enabled) return;
-    
+
     const now = performance.now();
-    
+
     if (lastFrameTime.current > 0) {
       const frameTiming = now - lastFrameTime.current;
       frameTimings.current.push(frameTiming);
-      
+
       // Keep frame history limited to 60 frames
       if (frameTimings.current.length > 60) {
         frameTimings.current.shift();
       }
     }
-    
+
     lastFrameTime.current = now;
     animationFrameId.current = requestAnimationFrame(measureFrameTiming);
   }, [enabled]);
-  
+
   // Calculate current metrics
   const calculateMetrics = useCallback(() => {
     if (!enabled || frameTimings.current.length === 0) {
       return DEFAULT_METRICS;
     }
-    
+
     // Calculate average frame timing from the last 30 frames
     const recentFrames = frameTimings.current.slice(-30);
     const avgFrameTiming = recentFrames.reduce((sum, time) => sum + time, 0) / recentFrames.length;
-    
+
     // Calculate FPS from average frame timing
     const fps = calculateFPS(avgFrameTiming);
-    
+
     // Calculate jank score
     const jankScore = calculateJankScore(frameTimings.current);
-    
+
     // Get observer metrics
-    const {
-      recalculateStyleCount,
-      layoutCount,
-      styleCalculationTime
-    } = observerMetrics.current;
-    
+    const { recalculateStyleCount, layoutCount, styleCalculationTime } = observerMetrics.current;
+
     // Check if performance is poor based on thresholds
-    const newIsPoorPerformance = 
+    const newIsPoorPerformance =
       fps < mergedThresholds.minFps ||
       avgFrameTiming > mergedThresholds.maxFrameTiming ||
       jankScore > mergedThresholds.maxJankScore;
-    
+
     // Update poor performance ref
     isPoorPerformance.current = newIsPoorPerformance;
-    
+
     // Log performance issues if enabled
     if (logPerformanceIssues && newIsPoorPerformance) {
       console.warn(`[Glass UI Performance] Poor performance detected in ${id}:`, {
@@ -396,16 +393,16 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
         jankScore,
         recalculateStyleCount,
         layoutCount,
-        styleCalculationTime
+        styleCalculationTime,
       });
     }
-    
+
     // Check if device is being throttled
     const isThrottled = avgFrameTiming > 20 && fps < 40 && frameTimings.current.some(t => t > 50);
-    
+
     // Detect device capability tier
     const deviceCapabilityTier = getDeviceCapabilityTier();
-    
+
     return {
       fps,
       frameTiming: avgFrameTiming,
@@ -416,22 +413,22 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
       isPoorPerformance: newIsPoorPerformance,
       deviceCapabilityTier,
       isThrottled,
-      lastUpdated: Date.now()
+      lastUpdated: Date.now(),
     };
   }, [enabled, id, logPerformanceIssues, mergedThresholds]);
-  
+
   // Update metrics periodically
   useEffect(() => {
     if (!enabled) return;
-    
+
     // Start measuring frame timing
     measureFrameTiming();
-    
+
     // Update metrics at the specified interval
     const intervalId = setInterval(() => {
       const newMetrics = calculateMetrics();
       setMetrics(newMetrics);
-      
+
       // Update history
       history.current.fpsHistory.push(newMetrics.fps);
       history.current.frameTimingHistory.push(newMetrics.frameTiming);
@@ -439,7 +436,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
       history.current.layoutHistory.push(newMetrics.layoutCount);
       history.current.jankHistory.push(newMetrics.jankScore);
       history.current.timestamps.push(Date.now());
-      
+
       // Keep history limited to 60 data points
       if (history.current.timestamps.length > 60) {
         history.current.fpsHistory.shift();
@@ -449,7 +446,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
         history.current.jankHistory.shift();
         history.current.timestamps.shift();
       }
-      
+
       // Auto-optimize if enabled and performance is poor
       if (autoOptimize && newMetrics.isPoorPerformance) {
         // Gradually increase optimization level when performance is poor
@@ -459,7 +456,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
         setOptimizationLevel(level => Math.max(level - 0.5, 0));
       }
     }, updateInterval);
-    
+
     // Cleanup
     return () => {
       clearInterval(intervalId);
@@ -473,29 +470,29 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
     measureFrameTiming,
     calculateMetrics,
     autoOptimize,
-    optimizationLevel
+    optimizationLevel,
   ]);
-  
+
   // Apply optimizations to the target element
   useEffect(() => {
     if (!enabled || !autoOptimize || !targetElement) {
       return;
     }
-    
+
     // Apply different optimization levels
     switch (Math.floor(optimizationLevel)) {
       case 1: // Light optimizations
         targetElement.style.willChange = 'transform';
         targetElement.style.transform = 'translateZ(0)';
         break;
-      
+
       case 2: // Medium optimizations
         targetElement.style.willChange = 'transform';
         targetElement.style.transform = 'translateZ(0)';
         targetElement.style.backfaceVisibility = 'hidden';
         // Reduce blur strength
-        const currentBlur = targetElement.style.backdropFilter || 
-                            targetElement.style.webkitBackdropFilter || '';
+        const currentBlur =
+          targetElement.style.backdropFilter || targetElement.style.webkitBackdropFilter || '';
         if (currentBlur.includes('blur')) {
           const blurValue = parseInt(currentBlur.match(/blur\((\d+)px\)/)?.[1] || '0', 10);
           if (blurValue > 5) {
@@ -508,19 +505,16 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
           }
         }
         break;
-      
+
       case 3: // Aggressive optimizations
         targetElement.style.willChange = 'transform, opacity';
         targetElement.style.transform = 'translateZ(0)';
         targetElement.style.backfaceVisibility = 'hidden';
         // Significantly reduce blur and effects
-        const aggressiveBlur = targetElement.style.backdropFilter || 
-                               targetElement.style.webkitBackdropFilter || '';
+        const aggressiveBlur =
+          targetElement.style.backdropFilter || targetElement.style.webkitBackdropFilter || '';
         if (aggressiveBlur.includes('blur')) {
-          const minimalBlur = aggressiveBlur.replace(
-            /blur\(\d+px\)/,
-            'blur(3px)'
-          );
+          const minimalBlur = aggressiveBlur.replace(/blur\(\d+px\)/, 'blur(3px)');
           targetElement.style.backdropFilter = minimalBlur;
           targetElement.style.webkitBackdropFilter = minimalBlur;
         }
@@ -535,7 +529,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
           }
         }
         break;
-      
+
       default: // No optimizations
         if (targetElement.style.willChange) targetElement.style.willChange = '';
         if (targetElement.style.transform === 'translateZ(0)') targetElement.style.transform = '';
@@ -543,37 +537,37 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
         break;
     }
   }, [enabled, autoOptimize, optimizationLevel, targetElement]);
-  
+
   // Get suggestions for optimization
   const getSuggestions = useCallback(() => {
     if (!metrics.isPoorPerformance) {
       return [];
     }
-    
+
     const suggestions: string[] = [];
-    
+
     if (metrics.fps < mergedThresholds.minFps) {
       suggestions.push('Reduce animation complexity or disable animations');
     }
-    
+
     if (metrics.recalculateStyleCount > mergedThresholds.maxRecalculateStyleCountPerSecond) {
       suggestions.push('Reduce CSS complexity and minimize style changes');
     }
-    
+
     if (metrics.layoutCount > mergedThresholds.maxLayoutCountPerSecond) {
       suggestions.push('Avoid layout thrashing by batching DOM operations');
     }
-    
+
     if (metrics.jankScore > mergedThresholds.maxJankScore) {
       suggestions.push('Optimize main thread usage and reduce heavy calculations');
     }
-    
+
     // Add glass-specific recommendations
     suggestions.push('Reduce blur strength for backdrop-filter effects');
     suggestions.push('Increase background opacity to reduce transparent rendering');
     suggestions.push('Use GPU-accelerated properties (transform, opacity) for animations');
     suggestions.push('Apply will-change property to elements with glass effects');
-    
+
     return suggestions;
   }, [
     metrics.fps,
@@ -581,54 +575,57 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
     metrics.jankScore,
     metrics.layoutCount,
     metrics.recalculateStyleCount,
-    mergedThresholds
+    mergedThresholds,
   ]);
-  
+
   // Get performance history
   const getHistory = useCallback(() => {
     return history.current;
   }, []);
-  
+
   // Get optimization recommendations for a specific element
-  const getElementOptimizations = useCallback((element: HTMLElement) => {
-    if (!element || !metrics.isPoorPerformance) {
-      return {};
-    }
-    
-    const style = window.getComputedStyle(element);
-    const optimizations: Record<string, any> = {};
-    
-    // Check for backdrop filter
-    if (style.backdropFilter || style.webkitBackdropFilter) {
-      const filterStr = style.backdropFilter || style.webkitBackdropFilter;
-      const blurMatch = filterStr.match(/blur\((\d+)px\)/);
-      
-      if (blurMatch && parseInt(blurMatch[1], 10) > 5) {
-        optimizations.backdropFilter = filterStr.replace(
-          /blur\(\d+px\)/,
-          `blur(${Math.max(parseInt(blurMatch[1], 10) - 3, 5)}px)`
-        );
+  const getElementOptimizations = useCallback(
+    (element: HTMLElement) => {
+      if (!element || !metrics.isPoorPerformance) {
+        return {};
       }
-    }
-    
-    // Check for transparent background
-    if (style.backgroundColor.includes('rgba')) {
-      const bgMatch = style.backgroundColor.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
-      if (bgMatch && parseFloat(bgMatch[4]) < 0.7) {
-        const alpha = Math.min(parseFloat(bgMatch[4]) + 0.15, 0.85);
-        optimizations.backgroundColor = `rgba(${bgMatch[1]}, ${bgMatch[2]}, ${bgMatch[3]}, ${alpha})`;
+
+      const style = window.getComputedStyle(element);
+      const optimizations: Record<string, any> = {};
+
+      // Check for backdrop filter
+      if (style.backdropFilter || style.webkitBackdropFilter) {
+        const filterStr = style.backdropFilter || style.webkitBackdropFilter;
+        const blurMatch = filterStr.match(/blur\((\d+)px\)/);
+
+        if (blurMatch && parseInt(blurMatch[1], 10) > 5) {
+          optimizations.backdropFilter = filterStr.replace(
+            /blur\(\d+px\)/,
+            `blur(${Math.max(parseInt(blurMatch[1], 10) - 3, 5)}px)`
+          );
+        }
       }
-    }
-    
-    // Check for hardware acceleration
-    if (!style.transform.includes('translateZ') && !style.willChange) {
-      optimizations.willChange = 'transform';
-      optimizations.transform = 'translateZ(0)';
-    }
-    
-    return optimizations;
-  }, [metrics.isPoorPerformance]);
-  
+
+      // Check for transparent background
+      if (style.backgroundColor.includes('rgba')) {
+        const bgMatch = style.backgroundColor.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+        if (bgMatch && parseFloat(bgMatch[4]) < 0.7) {
+          const alpha = Math.min(parseFloat(bgMatch[4]) + 0.15, 0.85);
+          optimizations.backgroundColor = `rgba(${bgMatch[1]}, ${bgMatch[2]}, ${bgMatch[3]}, ${alpha})`;
+        }
+      }
+
+      // Check for hardware acceleration
+      if (!style.transform.includes('translateZ') && !style.willChange) {
+        optimizations.willChange = 'transform';
+        optimizations.transform = 'translateZ(0)';
+      }
+
+      return optimizations;
+    },
+    [metrics.isPoorPerformance]
+  );
+
   /**
    * Get recommended glass UI settings based on current performance metrics
    * and device capabilities
@@ -636,7 +633,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
   const getRecommendedGlassSettings = useCallback(() => {
     const { deviceCapabilityTier, isPoorPerformance, fps, jankScore } = metrics;
     const currentOptLevel = Math.floor(optimizationLevel);
-    
+
     // Default settings (high quality)
     const settings = {
       blurStrength: 10,
@@ -651,9 +648,9 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
       enableParticles: true,
       maxParticles: 100,
       shadowQuality: 'high',
-      useCachedBackgrounds: false
+      useCachedBackgrounds: false,
     };
-    
+
     // Adjust based on device capability
     if (deviceCapabilityTier === DeviceCapabilityTier.LOW) {
       settings.blurStrength = 5;
@@ -677,16 +674,19 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
       settings.maxParticles = 50;
       settings.shadowQuality = 'medium';
     }
-    
+
     // Further adjust based on current performance
     if (isPoorPerformance || currentOptLevel > 0) {
       // Reduce quality based on optimization level
       const reductionFactor = 0.25 * currentOptLevel;
-      
-      settings.blurStrength = Math.max(3, Math.floor(settings.blurStrength * (1 - reductionFactor)));
-      settings.transparency = Math.min(0.95, settings.transparency + (reductionFactor * 0.2));
-      settings.reflectionOpacity = Math.max(0, settings.reflectionOpacity - (reductionFactor * 0.1));
-      
+
+      settings.blurStrength = Math.max(
+        3,
+        Math.floor(settings.blurStrength * (1 - reductionFactor))
+      );
+      settings.transparency = Math.min(0.95, settings.transparency + reductionFactor * 0.2);
+      settings.reflectionOpacity = Math.max(0, settings.reflectionOpacity - reductionFactor * 0.1);
+
       if (fps < 30 || jankScore > 7 || currentOptLevel >= 2) {
         settings.enableReflections = false;
         settings.enableParallax = false;
@@ -701,7 +701,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
         settings.shadowQuality = 'medium';
       }
     }
-    
+
     return settings;
   }, [metrics, optimizationLevel]);
 
@@ -720,9 +720,9 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
       observerMetrics.current = {
         recalculateStyleCount: 0,
         layoutCount: 0,
-        styleCalculationTime: 0
+        styleCalculationTime: 0,
       };
       setOptimizationLevel(0);
-    }
+    },
   };
 };

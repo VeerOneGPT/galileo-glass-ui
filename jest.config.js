@@ -1,7 +1,7 @@
 /**
  * Jest configuration file for Galileo Glass UI
  */
-module.exports = {
+export default {
   testEnvironment: 'jsdom',
   roots: ['<rootDir>/src'],
   transform: {

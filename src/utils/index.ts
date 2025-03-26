@@ -1,6 +1,6 @@
 /**
  * Utility Functions
- * 
+ *
  * Common utility functions for the Galileo Glass UI library.
  */
 

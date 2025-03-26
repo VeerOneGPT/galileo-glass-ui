@@ -1,39 +1,40 @@
 import React, { forwardRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface LoaderProps {
   /**
    * The variant of the loader
    */
   variant?: 'circular' | 'linear' | 'dots' | 'pulse';
-  
+
   /**
    * The size of the loader
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * The color of the loader
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info';
-  
+
   /**
    * The thickness of the loader (for circular and linear variants)
    */
   thickness?: number;
-  
+
   /**
    * If true, apply glass styling
    */
   glass?: boolean;
-  
+
   /**
    * Optional label for accessibility
    */
   label?: string;
-  
+
   /**
    * Additional CSS class
    */
@@ -147,36 +148,41 @@ const CircularLoaderContainer = styled.div<{
   position: relative;
   width: ${props => props.$size}px;
   height: ${props => props.$size}px;
-  
+
   svg {
     animation: ${rotate} 2s linear infinite;
     width: 100%;
     height: 100%;
-    
+
     circle {
       stroke: ${props => props.$color};
       stroke-width: ${props => props.$thickness};
       stroke-linecap: round;
       fill: none;
       animation: ${dash} 1.5s ease-in-out infinite;
-      
+
       /* Glass effect for circle */
       ${props => {
         // Store the color value before using it in nested template
         const colorValue = props.$color;
-        return props.$glass && css`
-          filter: drop-shadow(0 0 3px ${colorValue}40);
-        `;
+        return (
+          props.$glass &&
+          css`
+            filter: drop-shadow(0 0 3px ${colorValue}40);
+          `
+        );
       }}
     }
   }
-  
+
   /* Glass glow effect */
-  ${props => props.$glass && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glass &&
+    glassGlow({
+      intensity: 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const LinearLoaderContainer = styled.div<{
@@ -190,7 +196,7 @@ const LinearLoaderContainer = styled.div<{
   width: 100%;
   background-color: ${props => `${props.$color}22`};
   border-radius: ${props => props.$height}px;
-  
+
   &::before {
     content: '';
     position: absolute;
@@ -200,20 +206,24 @@ const LinearLoaderContainer = styled.div<{
     animation: ${linearProgress} 2s infinite ease-in-out;
     border-radius: ${props => props.$height}px;
   }
-  
+
   /* Glass effect */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     &::before {
       box-shadow: 0 0 8px ${props.$color + '80'};
     }
   `}
-  
+
   /* Glass glow effect */
-  ${props => props.$glass && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glass &&
+    glassGlow({
+      intensity: 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const DotsLoaderContainer = styled.div<{
@@ -223,7 +233,7 @@ const DotsLoaderContainer = styled.div<{
 }>`
   display: inline-flex;
   align-items: center;
-  
+
   span {
     width: ${props => props.$size / 3}px;
     height: ${props => props.$size / 3}px;
@@ -232,27 +242,31 @@ const DotsLoaderContainer = styled.div<{
     border-radius: 50%;
     display: inline-block;
     animation: ${bounce} 1.4s infinite ease-in-out both;
-    
+
     &:nth-child(1) {
       animation-delay: -0.32s;
     }
-    
+
     &:nth-child(2) {
       animation-delay: -0.16s;
     }
-    
+
     /* Glass effect */
-    ${props => props.$glass && `
+    ${props =>
+      props.$glass &&
+      `
       box-shadow: 0 0 6px ${props.$color + '80'};
     `}
   }
-  
+
   /* Glass glow effect */
-  ${props => props.$glass && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glass &&
+    glassGlow({
+      intensity: 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const PulseLoaderContainer = styled.div<{
@@ -266,25 +280,29 @@ const PulseLoaderContainer = styled.div<{
   border-radius: 50%;
   display: inline-block;
   animation: ${pulse} 1.5s ease-in-out infinite;
-  
+
   /* Glass effect */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     background-color: ${props.$color + 'CC'};
     box-shadow: 0 0 10px ${props.$color + '80'};
     backdrop-filter: blur(4px);
   `}
-  
+
   /* Glass glow effect */
-  ${props => props.$glass && glassGlow({
-    intensity: props.$glass ? 'medium' : 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glass &&
+    glassGlow({
+      intensity: props.$glass ? 'medium' : 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 /**
  * Loader Component
- * 
+ *
  * Component for displaying loading states
  */
 export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
@@ -298,10 +316,10 @@ export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
     className,
     ...rest
   } = props;
-  
+
   const colorValue = getColorByName(color);
   const sizeValue = getSizeValue(size);
-  
+
   // Determine which loader to render based on variant
   const renderLoader = () => {
     switch (variant) {
@@ -323,7 +341,7 @@ export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
             </svg>
           </CircularLoaderContainer>
         );
-        
+
       case 'linear':
         return (
           <LinearLoaderContainer
@@ -337,7 +355,7 @@ export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
             {...rest}
           />
         );
-        
+
       case 'dots':
         return (
           <DotsLoaderContainer
@@ -355,7 +373,7 @@ export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
             <span></span>
           </DotsLoaderContainer>
         );
-        
+
       case 'pulse':
         return (
           <PulseLoaderContainer
@@ -369,7 +387,7 @@ export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
             {...rest}
           />
         );
-        
+
       default:
         return (
           <CircularLoaderContainer
@@ -390,7 +408,7 @@ export const Loader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
         );
     }
   };
-  
+
   return renderLoader();
 });
 
@@ -398,24 +416,13 @@ Loader.displayName = 'Loader';
 
 /**
  * GlassLoader Component
- * 
+ *
  * A loader component with glass morphism styling.
  */
 export const GlassLoader = forwardRef<HTMLDivElement, LoaderProps>((props, ref) => {
-  const {
-    className,
-    glass = true,
-    ...rest
-  } = props;
-  
-  return (
-    <Loader
-      ref={ref}
-      className={`glass-loader ${className || ''}`}
-      glass={glass}
-      {...rest}
-    />
-  );
+  const { className, glass = true, ...rest } = props;
+
+  return <Loader ref={ref} className={`glass-loader ${className || ''}`} glass={glass} {...rest} />;
 });
 
 GlassLoader.displayName = 'GlassLoader';

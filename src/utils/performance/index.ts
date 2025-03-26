@@ -1,6 +1,6 @@
 /**
  * Performance Utilities
- * 
+ *
  * Utilities for measuring and optimizing performance.
  */
 

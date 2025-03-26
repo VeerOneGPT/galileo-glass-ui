@@ -1,7 +1,7 @@
 /**
  * Glass Presets Export
  */
-export { 
+export {
   CleanGlassContainer,
   FrostedGlassContainer,
   TexturedGlassContainer,
@@ -10,7 +10,7 @@ export {
   ImmersiveGlassContainer,
   DashboardGlassContainer,
   FormGlassContainer,
-  ModalGlassContainer
+  ModalGlassContainer,
 } from './GlassPresets';
 
 export type { CleanGlassContainerProps } from './GlassPresets';

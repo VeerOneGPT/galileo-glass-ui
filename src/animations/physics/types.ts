@@ -45,7 +45,7 @@ export enum PhysicsInteractionType {
   MAGNETIC = 'magnetic',
   ADVANCED = 'advanced',
   DRAG = 'drag',
-  INERTIA = 'inertia'
+  INERTIA = 'inertia',
 }
 
 /**
@@ -56,7 +56,7 @@ export enum PhysicsAnimationMode {
   REALISTIC = 'realistic',
   EXAGGERATED = 'exaggerated',
   RESPONSIVE = 'responsive',
-  SMOOTH = 'smooth'
+  SMOOTH = 'smooth',
 }
 
 /**
@@ -67,7 +67,7 @@ export enum PhysicsQuality {
   MEDIUM = 'medium',
   HIGH = 'high',
   ULTRA = 'ultra',
-  ADAPTIVE = 'adaptive'
+  ADAPTIVE = 'adaptive',
 }
 
 /**
@@ -87,7 +87,7 @@ export enum CollisionShape {
   CIRCLE = 'circle',
   RECTANGLE = 'rectangle',
   POLYGON = 'polygon',
-  POINT = 'point'
+  POINT = 'point',
 }
 
 /**
@@ -157,7 +157,7 @@ export enum ForceFieldType {
   DIRECTIONAL = 'directional',
   RADIAL = 'radial',
   VORTEX = 'vortex',
-  NOISE = 'noise'
+  NOISE = 'noise',
 }
 
 /**

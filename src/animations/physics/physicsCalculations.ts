@@ -1,6 +1,6 @@
 /**
  * Optimized Physics Calculations
- * 
+ *
  * High-performance utility functions for physics-based animations.
  */
 
@@ -18,10 +18,10 @@ export interface Vector2D {
 export interface SpringParams {
   /** Mass of the object */
   mass: number;
-  
+
   /** Spring stiffness */
   stiffness: number;
-  
+
   /** Damping coefficient */
   damping: number;
 }
@@ -32,28 +32,28 @@ export interface SpringParams {
 export interface ParticleState {
   /** Position vector */
   position: Vector2D;
-  
+
   /** Velocity vector */
   velocity: Vector2D;
-  
+
   /** Acceleration vector */
   acceleration: Vector2D;
-  
+
   /** Mass of the particle */
   mass: number;
-  
+
   /** Rotation angle in radians */
   rotation: number;
-  
+
   /** Angular velocity in radians/sec */
   angularVelocity: number;
-  
+
   /** Scale factor */
   scale: number;
-  
+
   /** Lifetime in seconds */
   lifetime: number;
-  
+
   /** Current age in seconds */
   age: number;
 }
@@ -64,7 +64,7 @@ export interface ParticleState {
  * @param y Y component
  * @returns Vector2D object
  */
-export const createVector = (x: number = 0, y: number = 0): Vector2D => {
+export const createVector = (x = 0, y = 0): Vector2D => {
   return { x, y };
 };
 
@@ -77,7 +77,7 @@ export const createVector = (x: number = 0, y: number = 0): Vector2D => {
 export const addVectors = (v1: Vector2D, v2: Vector2D): Vector2D => {
   return {
     x: v1.x + v2.x,
-    y: v1.y + v2.y
+    y: v1.y + v2.y,
   };
 };
 
@@ -90,7 +90,7 @@ export const addVectors = (v1: Vector2D, v2: Vector2D): Vector2D => {
 export const subtractVectors = (v1: Vector2D, v2: Vector2D): Vector2D => {
   return {
     x: v1.x - v2.x,
-    y: v1.y - v2.y
+    y: v1.y - v2.y,
   };
 };
 
@@ -103,7 +103,7 @@ export const subtractVectors = (v1: Vector2D, v2: Vector2D): Vector2D => {
 export const multiplyVector = (v: Vector2D, scalar: number): Vector2D => {
   return {
     x: v.x * scalar,
-    y: v.y * scalar
+    y: v.y * scalar,
   };
 };
 
@@ -124,10 +124,10 @@ export const vectorMagnitude = (v: Vector2D): number => {
 export const normalizeVector = (v: Vector2D): Vector2D => {
   const mag = vectorMagnitude(v);
   if (mag === 0) return { x: 0, y: 0 };
-  
+
   return {
     x: v.x / mag,
-    y: v.y / mag
+    y: v.y / mag,
   };
 };
 
@@ -139,9 +139,9 @@ export const normalizeVector = (v: Vector2D): Vector2D => {
  */
 export const limitVector = (v: Vector2D, max: number): Vector2D => {
   const mag = vectorMagnitude(v);
-  
+
   if (mag <= max) return { ...v };
-  
+
   const normalized = normalizeVector(v);
   return multiplyVector(normalized, max);
 };
@@ -182,10 +182,10 @@ export const calculateSpringForce = (
 ): Vector2D => {
   // Calculate displacement vector
   const displacement = subtractVectors(target, position);
-  
+
   // Calculate spring force (F = k * x) where k is stiffness and x is displacement
   const springForce = multiplyVector(displacement, springParams.stiffness);
-  
+
   return springForce;
 };
 
@@ -195,10 +195,7 @@ export const calculateSpringForce = (
  * @param damping Damping coefficient
  * @returns Damping force vector
  */
-export const calculateDampingForce = (
-  velocity: Vector2D,
-  damping: number
-): Vector2D => {
+export const calculateDampingForce = (velocity: Vector2D, damping: number): Vector2D => {
   // Damping force (F = -c * v) where c is damping coefficient and v is velocity
   return multiplyVector(velocity, -damping);
 };
@@ -217,26 +214,26 @@ export const updateParticle = (
 ): ParticleState => {
   // Calculate acceleration (F = m * a, so a = F / m)
   const acceleration = multiplyVector(forces, 1 / state.mass);
-  
+
   // Update velocity (v = v0 + a * dt)
   const newVelocity = addVectors(state.velocity, multiplyVector(acceleration, dt));
-  
+
   // Update position (p = p0 + v * dt)
   const newPosition = addVectors(state.position, multiplyVector(newVelocity, dt));
-  
+
   // Update rotation (r = r0 + ω * dt)
   const newRotation = state.rotation + state.angularVelocity * dt;
-  
+
   // Update age
   const newAge = state.age + dt;
-  
+
   return {
     ...state,
     position: newPosition,
     velocity: newVelocity,
     acceleration,
     rotation: newRotation,
-    age: newAge
+    age: newAge,
   };
 };
 
@@ -246,10 +243,7 @@ export const updateParticle = (
  * @param gravity Gravity constant (default: 9.8 m/s²)
  * @returns Gravity force vector
  */
-export const calculateGravity = (
-  mass: number,
-  gravity: number = 9.8
-): Vector2D => {
+export const calculateGravity = (mass: number, gravity = 9.8): Vector2D => {
   return { x: 0, y: mass * gravity };
 };
 
@@ -259,17 +253,14 @@ export const calculateGravity = (
  * @param coefficient Friction coefficient (0-1)
  * @returns Friction force vector
  */
-export const calculateFriction = (
-  velocity: Vector2D,
-  coefficient: number
-): Vector2D => {
+export const calculateFriction = (velocity: Vector2D, coefficient: number): Vector2D => {
   // Friction should be in opposite direction of velocity
   const direction = normalizeVector(velocity);
   const magnitude = vectorMagnitude(velocity) * coefficient;
-  
+
   return {
     x: -direction.x * magnitude,
-    y: -direction.y * magnitude
+    y: -direction.y * magnitude,
   };
 };
 
@@ -285,19 +276,19 @@ export const calculateMagneticForce = (
   position: Vector2D,
   center: Vector2D,
   strength: number,
-  falloff: number = 2
+  falloff = 2
 ): Vector2D => {
   // Calculate direction to center
   const direction = subtractVectors(center, position);
   const distance = vectorMagnitude(direction);
-  
+
   // Avoid division by zero
   if (distance === 0) return { x: 0, y: 0 };
-  
+
   // Magnetic force decreases with distance squared (inverse square law)
   const forceMagnitude = strength / Math.pow(distance, falloff);
   const normalized = normalizeVector(direction);
-  
+
   return multiplyVector(normalized, forceMagnitude);
 };
 
@@ -309,14 +300,9 @@ export const calculateMagneticForce = (
  * @param r2 Radius of second object
  * @returns Whether objects are colliding
  */
-export const detectCollision = (
-  p1: Vector2D,
-  r1: number,
-  p2: Vector2D,
-  r2: number
-): boolean => {
+export const detectCollision = (p1: Vector2D, r1: number, p2: Vector2D, r2: number): boolean => {
   const distance = vectorDistance(p1, p2);
-  return distance < (r1 + r2);
+  return distance < r1 + r2;
 };
 
 /**
@@ -337,33 +323,33 @@ export const resolveCollision = (
   p2: Vector2D,
   v2: Vector2D,
   m2: number,
-  restitution: number = 0.8
+  restitution = 0.8
 ): { v1: Vector2D; v2: Vector2D } => {
   // Calculate collision normal
   const normal = normalizeVector(subtractVectors(p2, p1));
-  
+
   // Calculate relative velocity
   const relativeVelocity = subtractVectors(v2, v1);
-  
+
   // Calculate velocity along normal
   const velocityAlongNormal = dotProduct(relativeVelocity, normal);
-  
+
   // No collision if objects are moving away from each other
   if (velocityAlongNormal > 0) {
     return { v1, v2 };
   }
-  
+
   // Calculate impulse scalar
   const impulseScalar = -(1 + restitution) * velocityAlongNormal;
-  const impulseScalar2 = impulseScalar / (1/m1 + 1/m2);
-  
+  const impulseScalar2 = impulseScalar / (1 / m1 + 1 / m2);
+
   // Apply impulse
   const impulse = multiplyVector(normal, impulseScalar2);
-  
+
   // Calculate new velocities
-  const newV1 = subtractVectors(v1, multiplyVector(impulse, 1/m1));
-  const newV2 = addVectors(v2, multiplyVector(impulse, 1/m2));
-  
+  const newV1 = subtractVectors(v1, multiplyVector(impulse, 1 / m1));
+  const newV2 = addVectors(v2, multiplyVector(impulse, 1 / m2));
+
   return { v1: newV1, v2: newV2 };
 };
 
@@ -374,23 +360,20 @@ export const resolveCollision = (
  * @param overshoot Allowed overshoot (0-1)
  * @returns Spring parameters
  */
-export const designSpring = (
-  mass: number = 1,
-  settlingTime: number = 1,
-  overshoot: number = 0.02
-): SpringParams => {
+export const designSpring = (mass = 1, settlingTime = 1, overshoot = 0.02): SpringParams => {
   // Calculate damping ratio based on allowed overshoot
-  const dampingRatio = -Math.log(overshoot) / Math.sqrt(Math.PI * Math.PI + Math.log(overshoot) * Math.log(overshoot));
-  
+  const dampingRatio =
+    -Math.log(overshoot) / Math.sqrt(Math.PI * Math.PI + Math.log(overshoot) * Math.log(overshoot));
+
   // Calculate natural frequency based on settling time
   const naturalFrequency = 4 / (settlingTime * dampingRatio);
-  
+
   // Calculate spring stiffness
   const stiffness = Math.pow(naturalFrequency, 2) * mass;
-  
+
   // Calculate damping coefficient
   const damping = 2 * dampingRatio * Math.sqrt(mass * stiffness);
-  
+
   return { mass, stiffness, damping };
 };
 
@@ -411,10 +394,10 @@ export const oscillateAround = (
   time: number
 ): Vector2D => {
   const angle = time * frequency * Math.PI * 2 + phase;
-  
+
   return {
     x: center.x + Math.cos(angle) * radius,
-    y: center.y + Math.sin(angle) * radius
+    y: center.y + Math.sin(angle) * radius,
   };
 };
 
@@ -428,7 +411,7 @@ export const oscillateAround = (
 export const noise = (x: number, y: number, t: number): number => {
   // Simplified Perlin-like noise function
   const p = (x + y * 57 + t * 131) * 15731;
-  return (((Math.sin(p) * 43758.5453) % 1) * 2 - 1);
+  return ((Math.sin(p) * 43758.5453) % 1) * 2 - 1;
 };
 
 /**
@@ -438,13 +421,9 @@ export const noise = (x: number, y: number, t: number): number => {
  * @param time Current time
  * @returns Vector with applied noise
  */
-export const applyNoise = (
-  v: Vector2D,
-  amplitude: number,
-  time: number
-): Vector2D => {
+export const applyNoise = (v: Vector2D, amplitude: number, time: number): Vector2D => {
   return {
     x: v.x + noise(v.x, v.y, time) * amplitude,
-    y: v.y + noise(v.y, v.x, time + 100) * amplitude
+    y: v.y + noise(v.y, v.x, time + 100) * amplitude,
   };
 };

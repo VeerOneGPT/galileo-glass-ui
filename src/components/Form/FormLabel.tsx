@@ -1,10 +1,11 @@
 /**
  * Glass FormLabel Component
- * 
+ *
  * A form label component with enhanced glass styling.
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { FormLabelProps } from './types';
 
 // Styled components
@@ -37,17 +38,21 @@ const FormLabelRoot = styled.label<{
     return 'rgba(255, 255, 255, 0.8)';
   }};
   transition: color 0.2s ease;
-  
+
   /* Required indicator */
-  ${props => props.$required && `
+  ${props =>
+    props.$required &&
+    `
     &::after {
       content: ' *';
       color: ${props.$error ? 'rgba(240, 82, 82, 0.9)' : 'rgba(240, 82, 82, 0.7)'};
     }
   `}
-  
+
   /* Glass styling */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     padding: 4px 8px;
@@ -58,7 +63,9 @@ const FormLabelRoot = styled.label<{
   `}
   
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     cursor: not-allowed;
   `}
 `;
@@ -66,10 +73,7 @@ const FormLabelRoot = styled.label<{
 /**
  * FormLabel Component Implementation
  */
-function FormLabelComponent(
-  props: FormLabelProps,
-  ref: React.ForwardedRef<HTMLLabelElement>
-) {
+function FormLabelComponent(props: FormLabelProps, ref: React.ForwardedRef<HTMLLabelElement>) {
   const {
     children,
     className,
@@ -83,9 +87,9 @@ function FormLabelComponent(
     component = 'label',
     ...rest
   } = props;
-  
+
   const Root = FormLabelRoot as unknown as React.ElementType;
-  
+
   return (
     <Root
       as={component}
@@ -107,14 +111,14 @@ function FormLabelComponent(
 
 /**
  * FormLabel Component
- * 
+ *
  * A form label component with enhanced glass styling.
  */
 const FormLabel = forwardRef(FormLabelComponent);
 
 /**
  * GlassFormLabel Component
- * 
+ *
  * Glass variant of the FormLabel component with enhanced styling.
  */
 const GlassFormLabel = forwardRef<HTMLLabelElement, FormLabelProps>((props, ref) => (

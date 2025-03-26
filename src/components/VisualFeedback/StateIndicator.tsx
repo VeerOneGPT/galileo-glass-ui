@@ -1,11 +1,13 @@
 /**
  * StateIndicator Component
- * 
+ *
  * A component that visually indicates the current state of a UI element.
  */
 import React, { forwardRef } from 'react';
 import styled, { keyframes } from 'styled-components';
+
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { StateIndicatorProps } from './types';
 
 // Animation keyframes
@@ -44,7 +46,7 @@ const colorToRgb = (color: string): string => {
 // Get color for each state
 const getStateColor = (state: string, color: string): string => {
   const userColor = colorToRgb(color);
-  
+
   switch (state) {
     case 'hover':
       return `rgba(${userColor}, 0.15)`;
@@ -91,21 +93,28 @@ const StateOverlay = styled.div<{
   z-index: 1;
   background-color: ${props => getStateColor(props.$state, props.$color)};
   opacity: ${props => props.$intensity};
-  mix-blend-mode: ${props => props.$blend ? 'overlay' : 'normal'};
-  
+  mix-blend-mode: ${props => (props.$blend ? 'overlay' : 'normal')};
+
   /* Apply glass effect */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
   `}
-  
+
   /* Animate loading state */
-  ${props => props.$state === 'loading' && !props.$reducedMotion && `
+  ${props =>
+    props.$state === 'loading' &&
+    !props.$reducedMotion &&
+    `
     animation: ${pulseAnimation} ${props.$duration}ms infinite;
   `}
   
   /* Ensure proper stacking */
-  ${props => props.$state === 'disabled' && `
+  ${props =>
+    props.$state === 'disabled' &&
+    `
     z-index: 5;
   `}
 `;
@@ -129,19 +138,14 @@ function StateIndicatorComponent(
     style,
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   return (
-    <IndicatorContainer
-      ref={ref}
-      className={className}
-      style={style}
-      {...rest}
-    >
+    <IndicatorContainer ref={ref} className={className} style={style} {...rest}>
       {children}
-      
+
       {state !== 'default' && (
         <StateOverlay
           $state={state}
@@ -159,7 +163,7 @@ function StateIndicatorComponent(
 
 /**
  * StateIndicator Component
- * 
+ *
  * A component that visually indicates the current state of a UI element.
  */
 const StateIndicator = forwardRef(StateIndicatorComponent);

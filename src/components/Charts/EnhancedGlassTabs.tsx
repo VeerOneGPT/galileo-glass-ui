@@ -1,18 +1,19 @@
 /**
  * EnhancedGlassTabs Component
- * 
+ *
  * High-contrast, accessibility-focused tab component for chart navigation
  * with glass morphism styling.
  */
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+
+import { useMagneticButton } from '../../animations/hooks';
+import { cssWithKebabProps } from '../../core/cssUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow, GlowEffectProps } from '../../core/mixins/glowEffects';
 import { interactiveGlass } from '../../core/mixins/interactions/interactiveGlass';
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { cssWithKebabProps } from '../../core/cssUtils';
-import { useMagneticButton } from '../../animations/hooks';
 import { asCoreThemeContext } from '../../utils/themeHelpers';
 
 /**
@@ -23,22 +24,22 @@ export interface TabItem {
    * Unique ID for the tab
    */
   id: string;
-  
+
   /**
    * Display label for the tab
    */
   label: string;
-  
+
   /**
    * Optional badge count to display
    */
   badgeCount?: number;
-  
+
   /**
    * Whether the tab is disabled
    */
   disabled?: boolean;
-  
+
   /**
    * Optional icon component
    */
@@ -53,72 +54,72 @@ export interface EnhancedGlassTabsProps {
    * Array of tab items
    */
   tabs: TabItem[];
-  
+
   /**
    * Currently active tab ID
    */
   activeTab?: string;
-  
+
   /**
    * Callback when tab changes
    */
   onChange?: (tabId: string) => void;
-  
+
   /**
    * Visual variant of the tabs
    */
   variant?: 'default' | 'elevated' | 'outlined' | 'text';
-  
+
   /**
    * Size of the tabs
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * Color scheme for the tabs
    */
   color?: 'primary' | 'secondary' | 'accent' | 'light' | 'dark';
-  
+
   /**
    * Whether to use high contrast mode
    */
   highContrast?: boolean;
-  
+
   /**
    * Animation behavior of the indicator
    */
   indicatorAnimation?: 'slide' | 'fade' | 'none';
-  
+
   /**
    * Whether to stretch tabs to fill width
    */
   fullWidth?: boolean;
-  
+
   /**
    * Default tab to select if none provided
    */
   defaultTab?: string;
-  
+
   /**
    * Whether to apply physics motion effects
    */
   physicsEnabled?: boolean;
-  
+
   /**
    * Whether to show the active indicator
    */
   showIndicator?: boolean;
-  
+
   /**
    * Text alignment within tabs
    */
   textAlign?: 'center' | 'left' | 'right';
-  
+
   /**
    * Additional CSS class name
    */
   className?: string;
-  
+
   /**
    * Inline styles
    */
@@ -138,15 +139,19 @@ const StyledTabsContainer = styled.div<{
   overflow: hidden;
   width: 100%;
   border-radius: 8px;
-  
-  ${props => props.variant !== 'text' && glassSurface({
-    elevation: props.variant === 'elevated' ? 2 : 1,
-    blurStrength: props.highContrast ? 'minimal' : 'light',
-    borderOpacity: props.variant === 'outlined' ? 'medium' : 'subtle',
-    themeContext: asCoreThemeContext(createThemeContext(props.theme))
-  })}
-  
-  ${props => props.variant === 'text' && `
+
+  ${props =>
+    props.variant !== 'text' &&
+    glassSurface({
+      elevation: props.variant === 'elevated' ? 2 : 1,
+      blurStrength: props.highContrast ? 'minimal' : 'light',
+      borderOpacity: props.variant === 'outlined' ? 'medium' : 'subtle',
+      themeContext: asCoreThemeContext(createThemeContext(props.theme)),
+    })}
+
+  ${props =>
+    props.variant === 'text' &&
+    `
     background: transparent;
   `}
 `;
@@ -160,9 +165,9 @@ const StyledTabsList = styled.div<{
   display: flex;
   width: 100%;
   position: relative;
-  
+
   & > * {
-    flex: ${props => props.fullWidth ? 1 : 'none'};
+    flex: ${props => (props.fullWidth ? 1 : 'none')};
   }
 `;
 
@@ -179,28 +184,24 @@ const getTabColors = (
     secondary: { light: '#8B5CF6', dark: '#A855F7' },
     accent: { light: '#EC4899', dark: '#F472B6' },
     light: { light: '#F9FAFB', dark: '#F3F4F6' },
-    dark: { light: '#1F2937', dark: '#111827' }
+    dark: { light: '#1F2937', dark: '#111827' },
   };
-  
+
   const selectedColor = baseColors[color || 'primary'][isDarkMode ? 'dark' : 'light'];
-  
+
   return {
     activeColor: selectedColor,
-    activeBg: isDarkMode 
-      ? `${selectedColor}22`
-      : `${selectedColor}11`,
-    activeText: highContrast
-      ? isDarkMode ? '#FFFFFF' : '#000000'
-      : selectedColor,
+    activeBg: isDarkMode ? `${selectedColor}22` : `${selectedColor}11`,
+    activeText: highContrast ? (isDarkMode ? '#FFFFFF' : '#000000') : selectedColor,
     inactiveText: isDarkMode
-      ? highContrast ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.6)'
-      : highContrast ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)',
-    hoverBg: isDarkMode
-      ? 'rgba(255, 255, 255, 0.05)'
-      : 'rgba(0, 0, 0, 0.03)',
-    disabledText: isDarkMode
-      ? 'rgba(255, 255, 255, 0.3)'
-      : 'rgba(0, 0, 0, 0.3)'
+      ? highContrast
+        ? 'rgba(255, 255, 255, 0.8)'
+        : 'rgba(255, 255, 255, 0.6)'
+      : highContrast
+      ? 'rgba(0, 0, 0, 0.8)'
+      : 'rgba(0, 0, 0, 0.6)',
+    hoverBg: isDarkMode ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+    disabledText: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
   };
 };
 
@@ -222,43 +223,54 @@ const StyledTab = styled.button<{
   align-items: center;
   justify-content: ${props => {
     switch (props.textAlign) {
-      case 'left': return 'flex-start';
-      case 'right': return 'flex-end';
-      default: return 'center';
+      case 'left':
+        return 'flex-start';
+      case 'right':
+        return 'flex-end';
+      default:
+        return 'center';
     }
   }};
   gap: 8px;
   white-space: nowrap;
   border: none;
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${props => (props.disabled ? 'not-allowed' : 'pointer')};
   padding: ${props => {
     switch (props.size) {
-      case 'small': return '8px 16px';
-      case 'large': return '16px 24px';
-      default: return '12px 20px';
+      case 'small':
+        return '8px 16px';
+      case 'large':
+        return '16px 24px';
+      default:
+        return '12px 20px';
     }
   }};
   font-size: ${props => {
     switch (props.size) {
-      case 'small': return '14px';
-      case 'large': return '16px';
-      default: return '15px';
+      case 'small':
+        return '14px';
+      case 'large':
+        return '16px';
+      default:
+        return '15px';
     }
   }};
-  font-weight: ${props => props.active ? 600 : 500};
+  font-weight: ${props => (props.active ? 600 : 500)};
   outline: none;
   background: transparent;
   transition: background-color 0.2s ease, color 0.2s ease;
-  
+
   ${props => {
     const colors = getTabColors(props.color, props.theme.isDarkMode, props.highContrast);
-    
+
     return cssWithKebabProps`
-      color: ${props.disabled 
-        ? colors.disabledText 
-        : props.active 
-          ? colors.activeText 
-          : colors.inactiveText};
+      color: ${
+        props.disabled
+          ? colors.disabledText
+          : props.active
+          ? colors.activeText
+          : colors.inactiveText
+      };
       
       backgroundColor: ${props.active ? colors.activeBg : 'transparent'};
       
@@ -272,17 +284,23 @@ const StyledTab = styled.button<{
       }
     `;
   }}
+
+  ${props =>
+    !props.disabled &&
+    !props.active &&
+    interactiveGlass({
+      hoverEffect: 'brighten',
+      themeContext: asCoreThemeContext(createThemeContext(props.theme)),
+    })}
   
-  ${props => !props.disabled && !props.active && interactiveGlass({
-    hoverEffect: 'brighten',
-    themeContext: asCoreThemeContext(createThemeContext(props.theme))
-  })}
-  
-  ${props => props.active && props.variant !== 'text' && glassGlow({
-    glowIntensity: 'subtle',
-    glowColor: props.color || 'primary',
-    themeContext: asCoreThemeContext(createThemeContext(props.theme))
-  })}
+  ${props =>
+    props.active &&
+    props.variant !== 'text' &&
+    glassGlow({
+      glowIntensity: 'subtle',
+      glowColor: props.color || 'primary',
+      themeContext: asCoreThemeContext(createThemeContext(props.theme)),
+    })}
 `;
 
 /**
@@ -306,30 +324,37 @@ const StyledTabIndicator = styled.div<{
     return colors.activeColor;
   }};
   border-radius: ${props => props.height / 2}px;
-  
-  ${props => props.animation === 'slide' && `
+
+  ${props =>
+    props.animation === 'slide' &&
+    `
     transition: left 0.3s ease, width 0.3s ease;
     left: ${props.left}px;
     width: ${props.width}px;
   `}
-  
-  ${props => props.animation === 'fade' && `
+
+  ${props =>
+    props.animation === 'fade' &&
+    `
     transition: opacity 0.2s ease;
     left: ${props.left}px;
     width: ${props.width}px;
     opacity: 1;
   `}
   
-  ${props => props.animation === 'none' && `
+  ${props =>
+    props.animation === 'none' &&
+    `
     left: ${props.left}px;
     width: ${props.width}px;
   `}
   
-  ${props => glassGlow({
-    intensity: 'subtle',
-    color: props.color || 'primary',
-    themeContext: asCoreThemeContext(createThemeContext(props.theme))
-  })}
+  ${props =>
+    glassGlow({
+      intensity: 'subtle',
+      color: props.color || 'primary',
+      themeContext: asCoreThemeContext(createThemeContext(props.theme)),
+    })}
 `;
 
 /**
@@ -373,14 +398,16 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
   showIndicator = true,
   textAlign = 'center',
   className,
-  style
+  style,
 }) => {
   // State for currently active tab
-  const [currentTab, setCurrentTab] = useState(activeTab || defaultTab || (tabs.length > 0 ? tabs[0].id : ''));
-  
+  const [currentTab, setCurrentTab] = useState(
+    activeTab || defaultTab || (tabs.length > 0 ? tabs[0].id : '')
+  );
+
   // Refs for tab elements
   const [tabRefs, setTabRefs] = useState<Record<string, HTMLButtonElement | null>>({});
-  
+
   // State for indicator position
   const [indicatorStyle, setIndicatorStyle] = useState<{
     left: number;
@@ -391,35 +418,35 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
     left: 0,
     width: 0,
     height: 2,
-    bottom: 0
+    bottom: 0,
   });
-  
+
   // Check for reduced motion preference
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Update active tab when controlled prop changes
   useEffect(() => {
     if (activeTab !== undefined && activeTab !== currentTab) {
       setCurrentTab(activeTab);
     }
   }, [activeTab]);
-  
+
   // Update indicator position when active tab changes
   useEffect(() => {
     const activeTabElement = tabRefs[currentTab];
     if (activeTabElement) {
       const { left, width } = activeTabElement.getBoundingClientRect();
       const containerLeft = activeTabElement.parentElement?.getBoundingClientRect().left || 0;
-      
+
       setIndicatorStyle({
         left: left - containerLeft,
         width,
         height: size === 'small' ? 2 : size === 'large' ? 4 : 3,
-        bottom: 0
+        bottom: 0,
       });
     }
   }, [currentTab, tabRefs, size]);
-  
+
   // Handle tab change
   const handleTabChange = (tabId: string) => {
     if (currentTab !== tabId) {
@@ -429,15 +456,15 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
       }
     }
   };
-  
+
   // Set ref for a tab
   const setTabRef = (tabId: string, ref: HTMLButtonElement | null) => {
     setTabRefs(prev => ({
       ...prev,
-      [tabId]: ref
+      [tabId]: ref,
     }));
   };
-  
+
   return (
     <StyledTabsContainer
       variant={variant}
@@ -449,15 +476,16 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
       <StyledTabsList fullWidth={fullWidth}>
         {tabs.map(tab => {
           // Use magnetic button effect if enabled with proper typing
-          const magneticProps = physicsEnabled && !prefersReducedMotion
-            ? useMagneticButton<HTMLButtonElement>({
-                strength: 0.3,
-                maxDisplacement: 5,
-                stiffness: 80,  // springBack replacement
-                dampingRatio: 0.6  // controls oscillation
-              })
-            : null;
-          
+          const magneticProps =
+            physicsEnabled && !prefersReducedMotion
+              ? useMagneticButton<HTMLButtonElement>({
+                  strength: 0.3,
+                  maxDisplacement: 5,
+                  stiffness: 80, // springBack replacement
+                  dampingRatio: 0.6, // controls oscillation
+                })
+              : null;
+
           // Create a ref callback that handles both the tab ref and magnetic ref
           const handleRef = (element: HTMLButtonElement | null) => {
             setTabRef(tab.id, element);
@@ -466,7 +494,7 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
               Object.assign(magneticProps.ref, { current: element });
             }
           };
-            
+
           return (
             <StyledTab
               key={tab.id}
@@ -496,7 +524,7 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
           );
         })}
       </StyledTabsList>
-      
+
       {showIndicator && currentTab && (
         <StyledTabIndicator
           left={indicatorStyle.left}

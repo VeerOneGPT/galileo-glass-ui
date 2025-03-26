@@ -1,14 +1,16 @@
 /**
  * useGlassEffects Hook
- * 
+ *
  * Hook for creating and managing glass effects
  */
 import { useMemo } from 'react';
-import { glassSurface } from '../core/mixins/glassSurface';
+
+import { edgeHighlight } from '../core/mixins/effects/edgeEffects';
 import { glassGlow } from '../core/mixins/effects/glowEffects';
 import { innerGlow } from '../core/mixins/effects/innerEffects';
-import { edgeHighlight } from '../core/mixins/effects/edgeEffects';
+import { glassSurface } from '../core/mixins/glassSurface';
 import { createThemeContext } from '../core/themeContext';
+
 import { useReducedMotion } from './useReducedMotion';
 
 /**
@@ -19,27 +21,27 @@ export interface GlassEffectsOptions {
    * The strength of the blur effect
    */
   blurStrength?: 'minimal' | 'light' | 'standard' | 'enhanced';
-  
+
   /**
    * The elevation of the glass surface
    */
   elevation?: 0 | 1 | 2 | 3 | 4 | 5;
-  
+
   /**
    * The color of glow effects
    */
   glowColor?: 'primary' | 'secondary' | 'error' | 'success' | 'warning' | 'info';
-  
+
   /**
    * Whether the component is interactive
    */
   isInteractive?: boolean;
-  
+
   /**
    * Whether the component is selected
    */
   isSelected?: boolean;
-  
+
   /**
    * Whether to force dark mode
    */
@@ -52,7 +54,7 @@ export interface GlassEffectsOptions {
 export const useGlassEffects = () => {
   // Get reduced motion preference
   const prefersReducedMotion = useReducedMotion();
-  
+
   /**
    * Creates glass surface CSS
    */
@@ -64,17 +66,19 @@ export const useGlassEffects = () => {
       isInteractive = false,
       isSelected = false,
     } = options;
-    
+
     // Reduce blur strength if user prefers reduced motion
     const adjustedBlurStrength = prefersReducedMotion
-      ? blurStrength === 'enhanced' ? 'standard'
-        : blurStrength === 'standard' ? 'light'
+      ? blurStrength === 'enhanced'
+        ? 'standard'
+        : blurStrength === 'standard'
+        ? 'light'
         : blurStrength
       : blurStrength;
-    
+
     // Create theme context
     const themeContext = createThemeContext({}, forceDarkMode);
-    
+
     // Create glass surface CSS
     return glassSurface({
       blurStrength: adjustedBlurStrength,
@@ -84,7 +88,7 @@ export const useGlassEffects = () => {
       themeContext,
     });
   };
-  
+
   /**
    * Creates glass glow CSS
    */
@@ -95,10 +99,10 @@ export const useGlassEffects = () => {
       isInteractive = false,
       isSelected = false,
     } = options;
-    
+
     // Create theme context
     const themeContext = createThemeContext({}, forceDarkMode);
-    
+
     // Create glass glow CSS
     return glassGlow({
       intensity: isSelected ? 'medium' : 'subtle',
@@ -107,20 +111,16 @@ export const useGlassEffects = () => {
       themeContext,
     });
   };
-  
+
   /**
    * Creates inner glow CSS
    */
   const createInnerGlow = (options: GlassEffectsOptions = {}) => {
-    const {
-      glowColor = 'primary',
-      forceDarkMode = false,
-      isSelected = false,
-    } = options;
-    
+    const { glowColor = 'primary', forceDarkMode = false, isSelected = false } = options;
+
     // Create theme context
     const themeContext = createThemeContext({}, forceDarkMode);
-    
+
     // Create inner glow CSS
     return innerGlow({
       intensity: isSelected ? 'medium' : 'subtle',
@@ -129,20 +129,16 @@ export const useGlassEffects = () => {
       themeContext,
     });
   };
-  
+
   /**
    * Creates edge highlight CSS
    */
   const createEdgeHighlight = (options: GlassEffectsOptions = {}) => {
-    const {
-      glowColor = 'primary',
-      forceDarkMode = false,
-      isSelected = false,
-    } = options;
-    
+    const { glowColor = 'primary', forceDarkMode = false, isSelected = false } = options;
+
     // Create theme context
     const themeContext = createThemeContext({}, forceDarkMode);
-    
+
     // Create edge highlight CSS
     return edgeHighlight({
       thickness: 1,
@@ -152,13 +148,16 @@ export const useGlassEffects = () => {
       themeContext,
     });
   };
-  
+
   // Memoize the functions to avoid unnecessary re-creation
-  return useMemo(() => ({
-    createGlassSurface,
-    createGlassGlow,
-    createInnerGlow,
-    createEdgeHighlight,
-    prefersReducedMotion,
-  }), [prefersReducedMotion]);
+  return useMemo(
+    () => ({
+      createGlassSurface,
+      createGlassGlow,
+      createInnerGlow,
+      createEdgeHighlight,
+      prefersReducedMotion,
+    }),
+    [prefersReducedMotion]
+  );
 };

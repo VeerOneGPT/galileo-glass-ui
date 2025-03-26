@@ -1,18 +1,20 @@
 import React, { forwardRef, useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
-import { PerformanceMonitorProps } from './types';
-import { Box } from '../Box';
-import { Typography } from '../Typography';
-import { Button } from '../Button';
-import { Icon } from '../Icon';
-import { Divider } from '../Divider';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
+
 import { glassBorder } from '../../core/mixins/glassBorder';
-import { DeviceCapabilityTier, getDeviceCapabilityTier } from '../../utils/deviceCapabilities';
-import { detectFeatures, GLASS_REQUIREMENTS } from '../../utils/browserCompatibility';
-import { OptimizationLevel } from '../../utils/performanceOptimizations';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
 import { useGlassPerformance } from '../../hooks/useGlassPerformance';
+import { detectFeatures, GLASS_REQUIREMENTS } from '../../utils/browserCompatibility';
+import { DeviceCapabilityTier, getDeviceCapabilityTier } from '../../utils/deviceCapabilities';
+import { OptimizationLevel } from '../../utils/performanceOptimizations';
+import { Box } from '../Box';
+import { Button } from '../Button';
+import { Divider } from '../Divider';
+import { Icon } from '../Icon';
+import { Typography } from '../Typography';
+
+import { PerformanceMonitorProps } from './types';
 
 // Performance metrics interface
 interface PerformanceMetrics {
@@ -35,22 +37,27 @@ interface PerformanceMetrics {
 // Helper to format bytes to readable format
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
 // Function to get a human-readable device tier label
 const getDeviceTierLabel = (tier: DeviceCapabilityTier): string => {
-  if (typeof tier === 'string' && tier !== DeviceCapabilityTier.ULTRA && 
-      tier !== DeviceCapabilityTier.HIGH && tier !== DeviceCapabilityTier.MEDIUM && 
-      tier !== DeviceCapabilityTier.LOW && tier !== DeviceCapabilityTier.MINIMAL) {
+  if (
+    typeof tier === 'string' &&
+    tier !== DeviceCapabilityTier.ULTRA &&
+    tier !== DeviceCapabilityTier.HIGH &&
+    tier !== DeviceCapabilityTier.MEDIUM &&
+    tier !== DeviceCapabilityTier.LOW &&
+    tier !== DeviceCapabilityTier.MINIMAL
+  ) {
     return 'Unknown';
   }
-  
+
   switch (tier) {
     case DeviceCapabilityTier.ULTRA:
       return 'Ultra High';
@@ -76,14 +83,14 @@ const MonitorContainer = styled.div<{
 }>`
   position: fixed;
   z-index: 9999;
-  padding: ${({ $isMinimized }) => $isMinimized ? '0.5rem' : '0.75rem 1rem'};
+  padding: ${({ $isMinimized }) => ($isMinimized ? '0.5rem' : '0.75rem 1rem')};
   border-radius: 8px;
-  width: ${({ $isMinimized }) => $isMinimized ? 'auto' : '300px'};
+  width: ${({ $isMinimized }) => ($isMinimized ? 'auto' : '300px')};
   transition: all 0.3s ease;
   overflow: hidden;
-  max-height: ${({ $isMinimized }) => $isMinimized ? '40px' : '80vh'};
+  max-height: ${({ $isMinimized }) => ($isMinimized ? '40px' : '80vh')};
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  
+
   ${({ $position }) => {
     switch ($position) {
       case 'top-left':
@@ -109,7 +116,7 @@ const MonitorContainer = styled.div<{
         `;
     }
   }}
-  
+
   ${({ theme, $glassIntensity, $transparent }) => {
     if (!$transparent) {
       const themeContext = createThemeContext(theme);
@@ -117,7 +124,7 @@ const MonitorContainer = styled.div<{
         elevation: $glassIntensity,
         backgroundOpacity: 0.7,
         blurStrength: '8px',
-        themeContext
+        themeContext,
       });
     }
     return `
@@ -131,7 +138,7 @@ const MonitorContainer = styled.div<{
     return glassBorder({
       width: '1px',
       opacity: 0.3,
-      themeContext
+      themeContext,
     });
   }}
 `;
@@ -140,7 +147,7 @@ const MonitorHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: ${({ children }) => children === null ? '0' : '0.75rem'};
+  margin-bottom: ${({ children }) => (children === null ? '0' : '0.75rem')};
 `;
 
 const MetricRow = styled.div`
@@ -156,7 +163,9 @@ const MetricLabel = styled.span`
 
 const MetricValue = styled.span<{ $warning?: boolean }>`
   font-family: monospace;
-  ${({ $warning }) => $warning && `
+  ${({ $warning }) =>
+    $warning &&
+    `
     color: #ffcc00;
     font-weight: bold;
   `}
@@ -185,11 +194,8 @@ const StatusIndicator = styled.div<{ $status: 'good' | 'warning' | 'critical' }>
   height: 10px;
   border-radius: 50%;
   margin-right: 0.5rem;
-  background-color: ${({ $status }) => 
-    $status === 'good' ? '#4caf50' : 
-    $status === 'warning' ? '#ff9800' : 
-    '#f44336'
-  };
+  background-color: ${({ $status }) =>
+    $status === 'good' ? '#4caf50' : $status === 'warning' ? '#ff9800' : '#f44336'};
 `;
 
 // Create styled components for buttons with compact styling
@@ -243,43 +249,44 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
       layoutTime: 0,
       paintTime: 0,
       jankScore: 0,
-      deviceTier: DeviceCapabilityTier.MEDIUM
+      deviceTier: DeviceCapabilityTier.MEDIUM,
     });
     const [fpsHistory, setFpsHistory] = useState<number[]>([]);
     const [optimization, setOptimization] = useState<OptimizationLevel>(OptimizationLevel.NONE);
-    
+
     // Refs
     const frameCountRef = useRef(0);
     const lastTimeRef = useRef(performance.now());
     const animFrameRef = useRef<number | null>(null);
     const lastRenderTimeRef = useRef(0);
-    
+
     // Get glass performance metrics - remove unsupported properties
-    const glassPerformance = useGlassPerformance({
-    });
-    
+    const glassPerformance = useGlassPerformance({});
+
     // Function to measure FPS
     const measurePerformance = useCallback(() => {
       const now = performance.now();
       const elapsed = now - lastTimeRef.current;
-      
+
       if (elapsed >= 1000) {
         // Calculate FPS
         const fps = Math.round((frameCountRef.current * 1000) / elapsed);
-        
+
         // Get memory info if available
-        const memory = (performance as any).memory ? {
-          usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
-          totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
-          jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit
-        } : null;
-        
+        const memory = (performance as any).memory
+          ? {
+              usedJSHeapSize: (performance as any).memory.usedJSHeapSize,
+              totalJSHeapSize: (performance as any).memory.totalJSHeapSize,
+              jsHeapSizeLimit: (performance as any).memory.jsHeapSizeLimit,
+            }
+          : null;
+
         // Calculate render time
         const renderTime = lastRenderTimeRef.current;
-        
+
         // Get device tier
         const deviceTier = getDeviceCapabilityTier();
-        
+
         // Create updated metrics
         const updatedMetrics: PerformanceMetrics = {
           fps,
@@ -291,12 +298,12 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
           layoutTime: 0, // TODO: Track layout time
           paintTime: 0, // TODO: Track paint time
           jankScore: glassPerformance?.metrics?.jankScore || 0,
-          deviceTier
+          deviceTier,
         };
-        
+
         // Update state
         setMetrics(updatedMetrics);
-        
+
         // Update FPS history
         setFpsHistory(prev => {
           // Only keep enough history for historyDuration
@@ -304,25 +311,21 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
           const newHistory = [...prev, fps].slice(-maxEntries);
           return newHistory;
         });
-        
+
         // Adapt optimization level if needed
         if (autoAdapt && fps < 30) {
-          const newLevel = fps < 20 
-            ? OptimizationLevel.AGGRESSIVE
-            : OptimizationLevel.MODERATE;
-            
+          const newLevel = fps < 20 ? OptimizationLevel.AGGRESSIVE : OptimizationLevel.MODERATE;
+
           setOptimization(newLevel);
         } else if (autoAdapt && fps > 55 && optimization !== OptimizationLevel.NONE) {
-          setOptimization(fps > 58 
-            ? OptimizationLevel.NONE
-            : OptimizationLevel.LIGHT);
+          setOptimization(fps > 58 ? OptimizationLevel.NONE : OptimizationLevel.LIGHT);
         }
-        
+
         // Log to console if enabled
         if (logToConsole) {
           console.log('[Performance Monitor]', updatedMetrics);
         }
-        
+
         // Reset counters
         frameCountRef.current = 0;
         lastTimeRef.current = now;
@@ -330,25 +333,33 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
       } else {
         // Increment frame counter
         frameCountRef.current++;
-        
+
         // Track render time
         const renderTime = performance.now() - now;
         lastRenderTimeRef.current = (lastRenderTimeRef.current + renderTime) / 2;
       }
-      
+
       // Schedule next measurement
       animFrameRef.current = requestAnimationFrame(measurePerformance);
-    }, [refreshInterval, monitorMemory, historyDuration, autoAdapt, optimization, logToConsole, glassPerformance]);
-    
+    }, [
+      refreshInterval,
+      monitorMemory,
+      historyDuration,
+      autoAdapt,
+      optimization,
+      logToConsole,
+      glassPerformance,
+    ]);
+
     // Start/stop performance measurement
     useEffect(() => {
       // Initialize
       frameCountRef.current = 0;
       lastTimeRef.current = performance.now();
-      
+
       // Start measurement loop
       animFrameRef.current = requestAnimationFrame(measurePerformance);
-      
+
       // Cleanup
       return () => {
         if (animFrameRef.current !== null) {
@@ -356,39 +367,39 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
         }
       };
     }, [measurePerformance]);
-    
+
     // Toggle minimized state
     const toggleMinimized = () => {
       setIsMinimized(prev => !prev);
     };
-    
+
     // Toggle advanced metrics
     const toggleAdvancedMetrics = () => {
       setShowAdvancedMetrics(prev => !prev);
     };
-    
+
     // Get status based on FPS
     const getStatus = (fps: number): 'good' | 'warning' | 'critical' => {
       if (fps >= 55) return 'good';
       if (fps >= 30) return 'warning';
       return 'critical';
     };
-    
+
     // Get color for chart bars
     const getChartColor = (fps: number): string => {
       if (fps >= 55) return '#4caf50';
       if (fps >= 30) return '#ff9800';
       return '#f44336';
     };
-    
-    const deviceTierLabel = typeof metrics.deviceTier === 'string' ? 
-      metrics.deviceTier : 
-      'unknown';
-    
+
+    const deviceTierLabel = typeof metrics.deviceTier === 'string' ? metrics.deviceTier : 'unknown';
+
     // Use type assertion for browser feature check
     const browserFeatures = detectFeatures();
-    const browserSupport = (browserFeatures as any)?.meetsRequirements?.((GLASS_REQUIREMENTS as any)?.MINIMAL);
-    
+    const browserSupport = (browserFeatures as any)?.meetsRequirements?.(
+      (GLASS_REQUIREMENTS as any)?.MINIMAL
+    );
+
     return (
       <MonitorContainer
         ref={ref}
@@ -403,18 +414,14 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
         <MonitorHeader>
           <Box display="flex" alignItems="center">
             <StatusIndicator $status={getStatus(metrics.fps)} />
-            {!isMinimized && (
-              <Typography variant="subtitle2">Performance Monitor</Typography>
-            )}
-            {isMinimized && (
-              <Typography variant="subtitle2">{`${metrics.fps} FPS`}</Typography>
-            )}
+            {!isMinimized && <Typography variant="subtitle2">Performance Monitor</Typography>}
+            {isMinimized && <Typography variant="subtitle2">{`${metrics.fps} FPS`}</Typography>}
           </Box>
-          
+
           <ButtonsContainer>
             {!isMinimized && (
-              <CompactButton 
-                variant="text" 
+              <CompactButton
+                variant="text"
                 size="small"
                 onClick={toggleAdvancedMetrics}
                 aria-label={showAdvancedMetrics ? 'Hide advanced' : 'Show advanced'}
@@ -422,9 +429,9 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
                 <Icon>{showAdvancedMetrics ? 'expand_less' : 'expand_more'}</Icon>
               </CompactButton>
             )}
-            
-            <CompactButton 
-              variant="text" 
+
+            <CompactButton
+              variant="text"
               size="small"
               onClick={toggleMinimized}
               aria-label={isMinimized ? 'Expand' : 'Minimize'}
@@ -433,52 +440,53 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
             </CompactButton>
           </ButtonsContainer>
         </MonitorHeader>
-        
+
         {!isMinimized && (
           <>
             {/* FPS Chart */}
             {showChart && (
               <ChartContainer>
                 {fpsHistory.map((fps, index) => (
-                  <ChartBar 
+                  <ChartBar
                     key={index}
                     $height={Math.min((fps / 60) * 100, 100)}
                     $color={getChartColor(fps)}
                     style={{
                       left: `${(index / fpsHistory.length) * 100}%`,
-                      width: `${100 / Math.max(fpsHistory.length, 1)}%`
+                      width: `${100 / Math.max(fpsHistory.length, 1)}%`,
                     }}
                   />
                 ))}
               </ChartContainer>
             )}
-            
+
             {/* Basic Metrics */}
             <Box mt={1}>
               <MetricRow>
                 <MetricLabel>FPS</MetricLabel>
                 <MetricValue $warning={metrics.fps < 30}>{metrics.fps}</MetricValue>
               </MetricRow>
-              
+
               <MetricRow>
                 <MetricLabel>Device Tier</MetricLabel>
                 <MetricValue>{getDeviceTierLabel(metrics.deviceTier)}</MetricValue>
               </MetricRow>
-              
+
               <MetricRow>
                 <MetricLabel>Optimization</MetricLabel>
                 <MetricValue>{optimization}</MetricValue>
               </MetricRow>
-              
+
               {metrics.memory && (
                 <MetricRow>
                   <MetricLabel>Memory Usage</MetricLabel>
                   <MetricValue>
-                    {formatBytes(metrics.memory.usedJSHeapSize)} / {formatBytes(metrics.memory.totalJSHeapSize)}
+                    {formatBytes(metrics.memory.usedJSHeapSize)} /{' '}
+                    {formatBytes(metrics.memory.totalJSHeapSize)}
                   </MetricValue>
                 </MetricRow>
               )}
-              
+
               {showBudget && (
                 <MetricRow>
                   <MetricLabel>Jank Score</MetricLabel>
@@ -488,49 +496,49 @@ export const PerformanceMonitor = forwardRef<HTMLDivElement, PerformanceMonitorP
                 </MetricRow>
               )}
             </Box>
-            
+
             {/* Advanced Metrics */}
             {showAdvancedMetrics && (
               <>
                 <Divider style={{ margin: '0.75rem 0' }} />
-                
+
                 <Box>
-                  <Typography variant="caption" style={{ opacity: 0.7 }}>Advanced Metrics</Typography>
-                  
+                  <Typography variant="caption" style={{ opacity: 0.7 }}>
+                    Advanced Metrics
+                  </Typography>
+
                   <MetricRow>
                     <MetricLabel>Glass Render Time</MetricLabel>
                     <MetricValue>{metrics.glassEffectsRenderTime.toFixed(2)} ms</MetricValue>
                   </MetricRow>
-                  
+
                   <MetricRow>
                     <MetricLabel>Render Time</MetricLabel>
                     <MetricValue>{metrics.renderTime.toFixed(2)} ms</MetricValue>
                   </MetricRow>
-                  
+
                   {glassPerformance?.metrics?.recalculateStyleCount !== undefined && (
                     <MetricRow>
                       <MetricLabel>Style Recalculations</MetricLabel>
                       <MetricValue>{glassPerformance.metrics.recalculateStyleCount}</MetricValue>
                     </MetricRow>
                   )}
-                  
+
                   {glassPerformance?.metrics?.layoutCount !== undefined && (
                     <MetricRow>
                       <MetricLabel>Layout Operations</MetricLabel>
                       <MetricValue>{glassPerformance.metrics.layoutCount}</MetricValue>
                     </MetricRow>
                   )}
-                  
+
                   <MetricRow>
                     <MetricLabel>Browser Support</MetricLabel>
-                    <MetricValue>
-                      {browserSupport ? 'Compatible' : 'Limited'}
-                    </MetricValue>
+                    <MetricValue>{browserSupport ? 'Compatible' : 'Limited'}</MetricValue>
                   </MetricRow>
                 </Box>
               </>
             )}
-            
+
             {/* Footer */}
             {footer && (
               <>

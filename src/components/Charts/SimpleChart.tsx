@@ -1,17 +1,19 @@
 /**
  * SimpleChart Component
- * 
+ *
  * A lightweight, simplified chart component that provides a fallback
  * for performance-constrained environments while still maintaining
  * the Glass UI visual identity.
  */
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
-import { useGlassTheme, useReducedMotion } from '../../hooks';
-import { BaseChartProps } from './types';
+
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeUtils';
+import { useGlassTheme, useReducedMotion } from '../../hooks';
+
+import { BaseChartProps } from './types';
 
 /**
  * SimpleChart props interface
@@ -21,44 +23,46 @@ export interface SimpleChartProps extends BaseChartProps {
    * The type of chart to render
    */
   type: 'bar' | 'line' | 'area' | 'pie' | 'scatter';
-  
+
   /**
    * Data for the chart
    */
-  data: Array<{
-    label?: string;
-    value: number;
-    color?: string;
-  }> | Array<{
-    name: string;
-    data: Array<{
-      label?: string;
-      value: number;
-      color?: string;
-    }>;
-    color?: string;
-  }>;
-  
+  data:
+    | Array<{
+        label?: string;
+        value: number;
+        color?: string;
+      }>
+    | Array<{
+        name: string;
+        data: Array<{
+          label?: string;
+          value: number;
+          color?: string;
+        }>;
+        color?: string;
+      }>;
+
   /**
    * Whether to show data values
    */
   showValues?: boolean;
-  
+
   /**
    * Whether to fill the area under line charts
    */
   fillArea?: boolean;
-  
+
   /**
    * Whether to show points on line charts
    */
   showPoints?: boolean;
-  
+
   /**
    * Inner radius for donut charts (0 for pie charts)
    */
   innerRadius?: number;
-  
+
   /**
    * Theme object for Glass UI styling
    */
@@ -68,19 +72,24 @@ export interface SimpleChartProps extends BaseChartProps {
 /**
  * Styled components for SimpleChart
  */
-const ChartContainer = styled.div<{ width?: string | number; height?: string | number; theme: any }>`
-  width: ${({ width }) => typeof width === 'number' ? `${width}px` : width || '100%'};
-  height: ${({ height }) => typeof height === 'number' ? `${height}px` : height || '300px'};
+const ChartContainer = styled.div<{
+  width?: string | number;
+  height?: string | number;
+  theme: any;
+}>`
+  width: ${({ width }) => (typeof width === 'number' ? `${width}px` : width || '100%')};
+  height: ${({ height }) => (typeof height === 'number' ? `${height}px` : height || '300px')};
   position: relative;
   border-radius: 8px;
   overflow: hidden;
-  
-  ${props => glassSurface({
-    elevation: 1,
-    blurStrength: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext(props.theme)
-  })}
+
+  ${props =>
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext(props.theme),
+    })}
 `;
 
 const ChartInner = styled.div`
@@ -95,7 +104,7 @@ const ChartTitle = styled.div`
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)')};
 `;
 
 const ChartContent = styled.div`
@@ -119,8 +128,8 @@ const SimpleBar = styled.div<{ height: string; color: string; animate: boolean }
   height: ${props => props.height};
   background-color: ${props => props.color};
   border-radius: 4px 4px 0 0;
-  transition: ${props => props.animate ? 'height 0.5s ease-out' : 'none'};
-  
+  transition: ${props => (props.animate ? 'height 0.5s ease-out' : 'none')};
+
   ${cssWithKebabProps`
     boxShadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   `}
@@ -128,7 +137,7 @@ const SimpleBar = styled.div<{ height: string; color: string; animate: boolean }
 
 const BarLabel = styled.div`
   font-size: 10px;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')};
   text-align: center;
   margin-top: 4px;
   width: 100%;
@@ -139,7 +148,7 @@ const BarLabel = styled.div`
 
 const BarValue = styled.div`
   font-size: 10px;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)')};
   text-align: center;
   margin-bottom: 4px;
 `;
@@ -158,13 +167,15 @@ const SimpleLine = styled.svg`
 `;
 
 const LinePath = styled.path<{ color: string; animate: boolean; filled?: boolean }>`
-  fill: ${props => props.filled ? `${props.color}30` : 'none'};
+  fill: ${props => (props.filled ? `${props.color}30` : 'none')};
   stroke: ${props => props.color};
   stroke-width: 2px;
   stroke-linecap: round;
   stroke-linejoin: round;
-  
-  ${props => props.animate && `
+
+  ${props =>
+    props.animate &&
+    `
     stroke-dasharray: 1000;
     stroke-dashoffset: 1000;
     animation: dashSimple 1.5s ease-out forwards;
@@ -182,8 +193,10 @@ const LinePoint = styled.circle<{ color: string; animate: boolean; index: number
   stroke: ${props => props.color};
   stroke-width: 2px;
   r: 3;
-  
-  ${props => props.animate && `
+
+  ${props =>
+    props.animate &&
+    `
     opacity: 0;
     animation: pointAppearSimple 0.3s ease-out ${0.5 + (props.index / props.total) * 0.5}s forwards;
     
@@ -221,7 +234,7 @@ const LegendItem = styled.div`
   align-items: center;
   gap: 4px;
   font-size: 10px;
-  color: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'};
+  color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')};
 `;
 
 const LegendColor = styled.div<{ color: string }>`
@@ -260,22 +273,22 @@ function calculatePieSlice(
 ): string {
   const startRadians = (startAngle - 90) * (Math.PI / 180);
   const endRadians = (endAngle - 90) * (Math.PI / 180);
-  
+
   const startX = centerX + radius * Math.cos(startRadians);
   const startY = centerY + radius * Math.sin(startRadians);
   const endX = centerX + radius * Math.cos(endRadians);
   const endY = centerY + radius * Math.sin(endRadians);
-  
+
   const innerStartX = centerX + innerRadius * Math.cos(startRadians);
   const innerStartY = centerY + innerRadius * Math.sin(startRadians);
   const innerEndX = centerX + innerRadius * Math.cos(endRadians);
   const innerEndY = centerY + innerRadius * Math.sin(endRadians);
-  
+
   const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-  
+
   let path = `M ${startX} ${startY} `;
   path += `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY} `;
-  
+
   if (innerRadius > 0) {
     // For donut charts
     path += `L ${innerEndX} ${innerEndY} `;
@@ -286,7 +299,7 @@ function calculatePieSlice(
     path += `L ${centerX} ${centerY} `;
     path += `L ${startX} ${startY}`;
   }
-  
+
   return path;
 }
 
@@ -296,10 +309,10 @@ function calculatePieSlice(
 function processChartData(data: SimpleChartProps['data']) {
   // Check if data is in series format or simple format
   const isSeriesData = data.length > 0 && 'data' in data[0];
-  
+
   let processedData;
   let maxValue = 0;
-  
+
   if (isSeriesData) {
     // Data is already in series format
     processedData = data as Array<{
@@ -311,7 +324,7 @@ function processChartData(data: SimpleChartProps['data']) {
       }>;
       color?: string;
     }>;
-    
+
     // Find max value across all series
     processedData.forEach(series => {
       series.data.forEach(point => {
@@ -322,15 +335,17 @@ function processChartData(data: SimpleChartProps['data']) {
     });
   } else {
     // Convert simple data to series format
-    processedData = [{
-      name: 'Default',
-      data: data as Array<{
-        label?: string;
-        value: number;
-        color?: string;
-      }>
-    }];
-    
+    processedData = [
+      {
+        name: 'Default',
+        data: data as Array<{
+          label?: string;
+          value: number;
+          color?: string;
+        }>,
+      },
+    ];
+
     // Find max value
     (data as Array<{ value: number }>).forEach(point => {
       if (point.value > maxValue) {
@@ -338,13 +353,13 @@ function processChartData(data: SimpleChartProps['data']) {
       }
     });
   }
-  
+
   return { processedData, maxValue, isSeriesData };
 }
 
 /**
  * SimpleChart Component
- * 
+ *
  * A performance-optimized chart component with glass UI styling.
  */
 export const SimpleChart: React.FC<SimpleChartProps> = ({
@@ -355,8 +370,16 @@ export const SimpleChart: React.FC<SimpleChartProps> = ({
   glass = true,
   title,
   colors = [
-    '#6366F1', '#8B5CF6', '#EC4899', '#F43F5E', '#F59E0B',
-    '#10B981', '#3B82F6', '#F97316', '#6B7280', '#D946EF'
+    '#6366F1',
+    '#8B5CF6',
+    '#EC4899',
+    '#F43F5E',
+    '#F59E0B',
+    '#10B981',
+    '#3B82F6',
+    '#F97316',
+    '#6B7280',
+    '#D946EF',
   ],
   showValues = false,
   fillArea = false,
@@ -364,21 +387,18 @@ export const SimpleChart: React.FC<SimpleChartProps> = ({
   innerRadius = 0,
   theme: propTheme,
   className,
-  style
+  style,
 }) => {
   // Get theme context
   const { isDarkMode, theme: contextTheme } = useGlassTheme();
   const theme = propTheme || contextTheme || { isDarkMode };
-  
+
   // Check for reduced motion preference
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Process chart data
-  const { processedData, maxValue, isSeriesData } = useMemo(
-    () => processChartData(data),
-    [data]
-  );
-  
+  const { processedData, maxValue, isSeriesData } = useMemo(() => processChartData(data), [data]);
+
   // Render chart based on type
   const renderChart = () => {
     switch (type) {
@@ -395,72 +415,73 @@ export const SimpleChart: React.FC<SimpleChartProps> = ({
         return <div>Unsupported chart type</div>;
     }
   };
-  
+
   // Render bar chart
   const renderBarChart = () => {
     // For simplicity, only render the first series in a multi-series dataset
-    const dataToRender = isSeriesData
-      ? processedData[0].data
-      : processedData[0].data;
-    
+    const dataToRender = isSeriesData ? processedData[0].data : processedData[0].data;
+
     return (
       <BarContainer>
         {dataToRender.map((point, index) => {
           const heightPercentage = (point.value / maxValue) * 100;
           const barColor = point.color || colors[index % colors.length];
-          
+
           return (
-            <div key={index} style={{ width: `${100 / dataToRender.length}%`, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              {showValues && (
-                <BarValue>{formatNumber(point.value)}</BarValue>
-              )}
+            <div
+              key={index}
+              style={{
+                width: `${100 / dataToRender.length}%`,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
+              {showValues && <BarValue>{formatNumber(point.value)}</BarValue>}
               <SimpleBar
                 height={`${heightPercentage}%`}
                 color={barColor}
                 animate={!prefersReducedMotion}
               />
-              {point.label && (
-                <BarLabel>{point.label}</BarLabel>
-              )}
+              {point.label && <BarLabel>{point.label}</BarLabel>}
             </div>
           );
         })}
       </BarContainer>
     );
   };
-  
+
   // Render line chart
   const renderLineChart = () => {
     // For simplicity, only render up to 3 series in a multi-series dataset
-    const seriesToRender = isSeriesData
-      ? processedData.slice(0, 3)
-      : [processedData[0]];
-    
+    const seriesToRender = isSeriesData ? processedData.slice(0, 3) : [processedData[0]];
+
     return (
       <SimpleLineContainer>
         <SimpleLine>
           {seriesToRender.map((series, seriesIndex) => {
             if (series.data.length === 0) return null;
-            
+
             const seriesColor = series.color || colors[seriesIndex % colors.length];
             const points = series.data.map((point, index) => ({
               x: (index / (series.data.length - 1 || 1)) * 100,
               y: 100 - (point.value / maxValue) * 100,
               value: point.value,
-              label: point.label
+              label: point.label,
             }));
-            
-            const pathData = points.map((point, index) => 
-              index === 0 
-                ? `M ${point.x} ${point.y}` 
-                : `L ${point.x} ${point.y}`
-            ).join(' ');
-            
+
+            const pathData = points
+              .map((point, index) =>
+                index === 0 ? `M ${point.x} ${point.y}` : `L ${point.x} ${point.y}`
+              )
+              .join(' ');
+
             // Create a closed path for filled area charts
-            const areaPathData = type === 'area' && fillArea
-              ? `${pathData} L ${points[points.length - 1].x} 100 L 0 100 Z`
-              : pathData;
-            
+            const areaPathData =
+              type === 'area' && fillArea
+                ? `${pathData} L ${points[points.length - 1].x} 100 L 0 100 Z`
+                : pathData;
+
             return (
               <React.Fragment key={seriesIndex}>
                 <LinePath
@@ -469,18 +490,19 @@ export const SimpleChart: React.FC<SimpleChartProps> = ({
                   animate={!prefersReducedMotion}
                   filled={type === 'area' && fillArea}
                 />
-                
-                {showPoints && points.map((point, index) => (
-                  <LinePoint
-                    key={index}
-                    cx={point.x}
-                    cy={point.y}
-                    color={seriesColor}
-                    animate={!prefersReducedMotion}
-                    index={index}
-                    total={points.length}
-                  />
-                ))}
+
+                {showPoints &&
+                  points.map((point, index) => (
+                    <LinePoint
+                      key={index}
+                      cx={point.x}
+                      cy={point.y}
+                      color={seriesColor}
+                      animate={!prefersReducedMotion}
+                      index={index}
+                      total={points.length}
+                    />
+                  ))}
               </React.Fragment>
             );
           })}
@@ -488,51 +510,54 @@ export const SimpleChart: React.FC<SimpleChartProps> = ({
       </SimpleLineContainer>
     );
   };
-  
+
   // Render pie chart
   const renderPieChart = () => {
     // For pie charts, we use the flat data structure
     const dataToRender = isSeriesData
       ? processedData.reduce((acc, series) => {
           // Convert series to flat data with series name as label
-          return acc.concat(series.data.map(point => ({
-            ...point,
-            label: series.name
-          })));
+          return acc.concat(
+            series.data.map(point => ({
+              ...point,
+              label: series.name,
+            }))
+          );
         }, [] as Array<{ label?: string; value: number; color?: string }>)
       : processedData[0].data;
-    
+
     // Calculate total value for percentage
     const total = dataToRender.reduce((sum, point) => sum + point.value, 0);
-    
+
     // Generate pie slices
     const pieSlices = [];
     let currentAngle = 0;
-    
+
     for (let i = 0; i < dataToRender.length; i++) {
       const point = dataToRender[i];
       const sliceAngle = (point.value / total) * 360;
       const sliceColor = point.color || colors[i % colors.length];
-      
+
       const path = calculatePieSlice(
-        50, 50, // center coordinates (SVG viewBox is 100x100)
+        50,
+        50, // center coordinates (SVG viewBox is 100x100)
         50, // outer radius
         innerRadius, // inner radius (0 for pie, >0 for donut)
         currentAngle,
         currentAngle + sliceAngle
       );
-      
+
       pieSlices.push({
         path,
         color: sliceColor,
         value: point.value,
         percentage: (point.value / total) * 100,
-        label: point.label || `Slice ${i + 1}`
+        label: point.label || `Slice ${i + 1}`,
       });
-      
+
       currentAngle += sliceAngle;
     }
-    
+
     return (
       <>
         <SimplePieContainer>
@@ -548,32 +573,27 @@ export const SimpleChart: React.FC<SimpleChartProps> = ({
             ))}
           </SimplePie>
         </SimplePieContainer>
-        
+
         <SimpleLegend>
           {pieSlices.map((slice, index) => (
             <LegendItem key={index}>
               <LegendColor color={slice.color} />
-              <span>{slice.label}: {showValues ? `${formatNumber(slice.value)} (${slice.percentage.toFixed(1)}%)` : ''}</span>
+              <span>
+                {slice.label}:{' '}
+                {showValues ? `${formatNumber(slice.value)} (${slice.percentage.toFixed(1)}%)` : ''}
+              </span>
             </LegendItem>
           ))}
         </SimpleLegend>
       </>
     );
   };
-  
+
   return (
-    <ChartContainer 
-      width={width} 
-      height={height} 
-      theme={theme}
-      className={className}
-      style={style}
-    >
+    <ChartContainer width={width} height={height} theme={theme} className={className} style={style}>
       <ChartInner>
         {title && <ChartTitle>{title}</ChartTitle>}
-        <ChartContent>
-          {renderChart()}
-        </ChartContent>
+        <ChartContent>{renderChart()}</ChartContent>
       </ChartInner>
     </ChartContainer>
   );

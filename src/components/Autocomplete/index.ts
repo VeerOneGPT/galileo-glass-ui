@@ -1,6 +1,6 @@
 /**
  * Glass Autocomplete Component
- * 
+ *
  * A comprehensive autocomplete component with glass morphism styling.
  */
 import { Autocomplete, GlassAutocomplete } from './Autocomplete';

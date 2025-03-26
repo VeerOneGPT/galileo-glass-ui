@@ -1,6 +1,6 @@
 /**
  * Charts Module
- * 
+ *
  * Export all chart components and utilities
  */
 
@@ -25,22 +25,22 @@ export type {
   AreaChartProps,
   PieChartProps,
   ScatterChartProps,
-  
+
   // Common chart types
   BaseChartProps,
   DataPoint,
   SeriesDataPoint,
   ChartSeries,
-  
+
   // Chart configuration types
   AxisConfig,
   LegendConfig,
   TooltipConfig,
   AnimationConfig,
   ChartGlassStyles,
-  
+
   // Renderer types
-  ChartRenderStatus
+  ChartRenderStatus,
 } from './types';
 
 // Export enhanced component props

@@ -1,11 +1,11 @@
 /**
  * Galileo Glass UI - Theme
- * 
+ *
  * Comprehensive theme system for Glass UI.
  */
 
 // Main theme provider with context architecture
-export { 
+export {
   ThemeProvider,
   // Export ThemeProvider as GlassThemeProvider for backwards compatibility
   ThemeProvider as GlassThemeProvider,
@@ -17,7 +17,7 @@ export {
   usePreferences,
   useResponsive,
   useThemeObserver,
-  useThemeProviderPresence
+  useThemeProviderPresence,
 } from './ThemeProvider';
 
 // Legacy Glass Context (for backward compatibility)
@@ -30,24 +30,16 @@ export { default as ThemeTransition } from './ThemeTransition';
 export { default as ThemePerformanceMonitor } from './ThemePerformanceMonitor';
 
 // Theme tokens
-export { 
-  colors, 
-  typography, 
-  spacing, 
-  shadows,
-  borderRadius,
-  zIndex,
-  breakpoints
-} from './tokens';
+export { colors, typography, spacing, shadows, borderRadius, zIndex, breakpoints } from './tokens';
 
 // Theme constants
-export { 
-  THEME_NAMES, 
+export {
+  THEME_NAMES,
   THEME_VARIANTS,
   GLASS_QUALITY_TIERS,
   BLUR_STRENGTHS,
   GLOW_INTENSITIES,
-  ANIMATION_PRESETS
+  ANIMATION_PRESETS,
 } from './constants';
 
 // Version

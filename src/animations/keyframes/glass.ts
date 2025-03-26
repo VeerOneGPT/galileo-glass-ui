@@ -1,6 +1,6 @@
 /**
  * Glass Animation Keyframes
- * 
+ *
  * Animation keyframes specifically for glass effects
  */
 import { keyframes } from 'styled-components';

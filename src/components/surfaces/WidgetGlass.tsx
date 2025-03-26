@@ -1,13 +1,15 @@
 /**
  * WidgetGlass Component
- * 
+ *
  * A specialized glass component for UI widgets with enhanced effects.
  */
 import React, { forwardRef, useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { WidgetGlassProps } from './types';
 
 // Animation keyframes
@@ -43,7 +45,7 @@ const getBoxShadow = (
 ): string => {
   // Base shadow based on widget type
   let baseShadow = '';
-  
+
   switch (widgetType) {
     case 'card':
       baseShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
@@ -60,27 +62,27 @@ const getBoxShadow = (
     default:
       baseShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
   }
-  
+
   // Enhance shadow based on priority
   if (priority === 'high') {
     baseShadow = baseShadow.replace('rgba(0, 0, 0,', 'rgba(0, 0, 0,').replace(')', ')');
-    baseShadow = baseShadow.replace(/\d+px/g, (match) => {
+    baseShadow = baseShadow.replace(/\d+px/g, match => {
       const value = parseInt(match, 10);
       return `${value * 1.5}px`;
     });
   } else if (priority === 'low') {
     baseShadow = baseShadow.replace('rgba(0, 0, 0,', 'rgba(0, 0, 0,').replace(')', ')');
-    baseShadow = baseShadow.replace(/\d+px/g, (match) => {
+    baseShadow = baseShadow.replace(/\d+px/g, match => {
       const value = parseInt(match, 10);
       return `${Math.max(1, Math.floor(value * 0.7))}px`;
     });
   }
-  
+
   // Add highlight on hover
   if (isHovered && highlightOnHover) {
     return `${baseShadow}, 0 0 15px rgba(99, 102, 241, 0.3)`;
   }
-  
+
   return baseShadow;
 };
 
@@ -106,54 +108,63 @@ const WidgetContainer = styled.div<{
   $reducedMotion: boolean;
 }>`
   position: relative;
-  display: ${props => props.$isVisible ? 'block' : 'none'};
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
-  height: ${props => props.$fullHeight ? '100%' : 'auto'};
-  border-radius: ${props => typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
-  padding: ${props => typeof props.$padding === 'number' ? `${props.$padding}px` : props.$padding};
+  display: ${props => (props.$isVisible ? 'block' : 'none')};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
+  height: ${props => (props.$fullHeight ? '100%' : 'auto')};
+  border-radius: ${props =>
+    typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
+  padding: ${props =>
+    typeof props.$padding === 'number' ? `${props.$padding}px` : props.$padding};
   box-sizing: border-box;
   overflow: hidden;
-  z-index: ${props => props.$priority === 'high' ? 10 : props.$priority === 'low' ? 1 : 5};
-  
+  z-index: ${props => (props.$priority === 'high' ? 10 : props.$priority === 'low' ? 1 : 5)};
+
   /* Apply glass surface effect */
-  ${props => glassSurface({
-    elevation: props.$elevation,
-    blurStrength: props.$blurStrength,
-    borderOpacity: props.$borderOpacity,
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    glassSurface({
+      elevation: props.$elevation,
+      blurStrength: props.$blurStrength,
+      borderOpacity: props.$borderOpacity,
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Custom background color */
   background-color: ${props => props.$backgroundColor};
-  
+
   /* Border */
   border-width: ${props => props.$borderWidth}px;
   border-style: solid;
   border-color: ${props => {
     switch (props.$borderOpacity) {
-      case 'none': return 'transparent';
-      case 'subtle': return 'rgba(255, 255, 255, 0.1)';
-      case 'light': return 'rgba(255, 255, 255, 0.2)';
-      case 'medium': return 'rgba(255, 255, 255, 0.3)';
-      case 'strong': return 'rgba(255, 255, 255, 0.4)';
+      case 'none':
+        return 'transparent';
+      case 'subtle':
+        return 'rgba(255, 255, 255, 0.1)';
+      case 'light':
+        return 'rgba(255, 255, 255, 0.2)';
+      case 'medium':
+        return 'rgba(255, 255, 255, 0.3)';
+      case 'strong':
+        return 'rgba(255, 255, 255, 0.4)';
     }
   }};
-  
+
   /* Box-shadow based on widget type and priority */
-  box-shadow: ${props => getBoxShadow(
-    props.$widgetType, 
-    props.$priority, 
-    props.$isHovered, 
-    props.$highlightOnHover
-  )};
-  
+  box-shadow: ${props =>
+    getBoxShadow(props.$widgetType, props.$priority, props.$isHovered, props.$highlightOnHover)};
+
   /* Animation on mount */
-  ${props => props.$animateOnMount && !props.$reducedMotion && `
+  ${props =>
+    props.$animateOnMount &&
+    !props.$reducedMotion &&
+    `
     animation: ${enterAnimation} 0.3s ease-out forwards;
   `}
-  
+
   /* Interactive effects */
-  ${props => props.$interactive && `
+  ${props =>
+    props.$interactive &&
+    `
     cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     
@@ -167,7 +178,11 @@ const WidgetContainer = styled.div<{
   `}
   
   /* Highlight pulse animation for high priority widgets */
-  ${props => props.$priority === 'high' && props.$highlightOnHover && !props.$reducedMotion && `
+  ${props =>
+    props.$priority === 'high' &&
+    props.$highlightOnHover &&
+    !props.$reducedMotion &&
+    `
     &:hover {
       animation: ${pulseHighlight} 2s infinite;
     }
@@ -177,10 +192,7 @@ const WidgetContainer = styled.div<{
 /**
  * WidgetGlass Component Implementation
  */
-function WidgetGlassComponent(
-  props: WidgetGlassProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+function WidgetGlassComponent(props: WidgetGlassProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     className,
@@ -202,14 +214,14 @@ function WidgetGlassComponent(
     backgroundColor = 'rgba(255, 255, 255, 0.1)',
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // State for hover effects and animation
   const [isHovered, setIsHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(!animateOnMount);
-  
+
   // Handle animation on mount
   useEffect(() => {
     if (animateOnMount) {
@@ -217,20 +229,20 @@ function WidgetGlassComponent(
       const timer = setTimeout(() => {
         setIsVisible(true);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [animateOnMount]);
-  
+
   // Handle mouse events
   const handleMouseEnter = () => {
     setIsHovered(true);
   };
-  
+
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
-  
+
   return (
     <WidgetContainer
       ref={ref}
@@ -265,7 +277,7 @@ function WidgetGlassComponent(
 
 /**
  * WidgetGlass Component
- * 
+ *
  * A specialized glass component for UI widgets with enhanced effects.
  */
 const WidgetGlass = forwardRef(WidgetGlassComponent);

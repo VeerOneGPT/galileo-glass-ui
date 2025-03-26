@@ -1,13 +1,13 @@
 /**
  * Type definitions for React Testing Library
- * 
+ *
  * This file provides basic type definitions for React Testing Library functions
  * to support TypeScript typechecking in test files.
  */
 
 declare module '@testing-library/react' {
   import { ReactElement } from 'react';
-  
+
   // Basic render result interface
   export interface RenderResult {
     container: HTMLElement;
@@ -32,7 +32,7 @@ declare module '@testing-library/react' {
     findAllByTitle: (text: string | RegExp) => Promise<HTMLElement[]>;
     findByTestId: (id: string | RegExp) => Promise<HTMLElement>;
     findAllByTestId: (id: string | RegExp) => Promise<HTMLElement[]>;
-    
+
     getByText: (text: string | RegExp) => HTMLElement;
     getAllByText: (text: string | RegExp) => HTMLElement[];
     getByRole: (role: string) => HTMLElement;
@@ -49,7 +49,7 @@ declare module '@testing-library/react' {
     getAllByTitle: (text: string | RegExp) => HTMLElement[];
     getByTestId: (id: string | RegExp) => HTMLElement;
     getAllByTestId: (id: string | RegExp) => HTMLElement[];
-    
+
     queryByText: (text: string | RegExp) => HTMLElement | null;
     queryAllByText: (text: string | RegExp) => HTMLElement[];
     queryByRole: (role: string) => HTMLElement | null;
@@ -67,24 +67,21 @@ declare module '@testing-library/react' {
     queryByTestId: (id: string | RegExp) => HTMLElement | null;
     queryAllByTestId: (id: string | RegExp) => HTMLElement[];
   }
-  
+
   export interface RenderOptions {
     container?: HTMLElement;
     baseElement?: HTMLElement;
     hydrate?: boolean;
     wrapper?: React.ComponentType;
   }
-  
-  export function render(
-    ui: ReactElement,
-    options?: RenderOptions
-  ): RenderResult;
-  
+
+  export function render(ui: ReactElement, options?: RenderOptions): RenderResult;
+
   export function cleanup(): void;
-  
+
   export function act(callback: () => void): void;
   export function act<T>(callback: () => Promise<T>): Promise<T>;
-  
+
   // Screen object exports all queries bound to document.body
   // Hook testing functionality
   export interface RenderHookResult<TResult, TProps> {
@@ -95,7 +92,7 @@ declare module '@testing-library/react' {
     rerender: (props?: TProps) => void;
     unmount: () => void;
   }
-  
+
   export function renderHook<TResult, TProps>(
     callback: (props: TProps) => TResult,
     options?: {
@@ -103,7 +100,7 @@ declare module '@testing-library/react' {
       wrapper?: React.ComponentType<any>;
     }
   ): RenderHookResult<TResult, TProps>;
-  
+
   export const screen: {
     getByText: (text: string | RegExp, options?: any) => HTMLElement;
     getAllByText: (text: string | RegExp, options?: any) => HTMLElement[];
@@ -111,38 +108,38 @@ declare module '@testing-library/react' {
     queryAllByText: (text: string | RegExp, options?: any) => HTMLElement[];
     findByText: (text: string | RegExp, options?: any) => Promise<HTMLElement>;
     findAllByText: (text: string | RegExp, options?: any) => Promise<HTMLElement[]>;
-    
+
     getByRole: (role: string, options?: any) => HTMLElement;
     getAllByRole: (role: string, options?: any) => HTMLElement[];
     queryByRole: (role: string, options?: any) => HTMLElement | null;
     queryAllByRole: (role: string, options?: any) => HTMLElement[];
     findByRole: (role: string, options?: any) => Promise<HTMLElement>;
     findAllByRole: (role: string, options?: any) => Promise<HTMLElement[]>;
-    
+
     getByLabelText: (text: string | RegExp, options?: any) => HTMLElement;
     getAllByLabelText: (text: string | RegExp, options?: any) => HTMLElement[];
     queryByLabelText: (text: string | RegExp, options?: any) => HTMLElement | null;
     queryAllByLabelText: (text: string | RegExp, options?: any) => HTMLElement[];
     findByLabelText: (text: string | RegExp, options?: any) => Promise<HTMLElement>;
     findAllByLabelText: (text: string | RegExp, options?: any) => Promise<HTMLElement[]>;
-    
+
     getByPlaceholderText: (text: string | RegExp, options?: any) => HTMLElement;
     getAllByPlaceholderText: (text: string | RegExp, options?: any) => HTMLElement[];
     queryByPlaceholderText: (text: string | RegExp, options?: any) => HTMLElement | null;
     queryAllByPlaceholderText: (text: string | RegExp, options?: any) => HTMLElement[];
     findByPlaceholderText: (text: string | RegExp, options?: any) => Promise<HTMLElement>;
     findAllByPlaceholderText: (text: string | RegExp, options?: any) => Promise<HTMLElement[]>;
-    
+
     getByTestId: (testId: string | RegExp, options?: any) => HTMLElement;
     getAllByTestId: (testId: string | RegExp, options?: any) => HTMLElement[];
     queryByTestId: (testId: string | RegExp, options?: any) => HTMLElement | null;
     queryAllByTestId: (testId: string | RegExp, options?: any) => HTMLElement[];
     findByTestId: (testId: string | RegExp, options?: any) => Promise<HTMLElement>;
     findAllByTestId: (testId: string | RegExp, options?: any) => Promise<HTMLElement[]>;
-    
+
     debug: (baseElement?: HTMLElement | DocumentFragment) => void;
   };
-  
+
   export function waitFor<T>(
     callback: () => T | Promise<T>,
     options?: {
@@ -153,12 +150,9 @@ declare module '@testing-library/react' {
       mutationObserverOptions?: MutationObserverInit;
     }
   ): Promise<T>;
-  
-  export function fireEvent(
-    element: Document | Element | Window,
-    event: Event
-  ): boolean;
-  
+
+  export function fireEvent(element: Document | Element | Window, event: Event): boolean;
+
   export namespace fireEvent {
     export function click(element: Element): boolean;
     export function dblClick(element: Element): boolean;

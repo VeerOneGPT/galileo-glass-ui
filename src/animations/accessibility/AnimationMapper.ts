@@ -1,14 +1,20 @@
 /**
  * Animation Mapper
- * 
+ *
  * Maps animations to reduced motion alternatives.
  */
 import { keyframes, Keyframes } from 'styled-components';
-import { AnimationComplexity, MotionSensitivityLevel, getMotionSensitivity } from './MotionSensitivity';
+
 import { presets } from '../presets';
 import { AnimationPreset } from '../styled';
 import { KeyframeDefinition } from '../types';
+
 import { AnimationMapping } from './AccessibilityTypes';
+import {
+  AnimationComplexity,
+  MotionSensitivityLevel,
+  getMotionSensitivity,
+} from './MotionSensitivity';
 
 /**
  * Animation mapping configuration
@@ -16,19 +22,27 @@ import { AnimationMapping } from './AccessibilityTypes';
 export interface AnimationMapperConfig {
   /** Source animation to be replaced */
   source: AnimationPreset | Keyframes | string;
-  
+
   /** Reduced motion alternative */
   alternative: AnimationPreset | Keyframes | null;
-  
+
   /** Minimum sensitivity level required for this replacement */
   minimumSensitivity: MotionSensitivityLevel;
-  
+
   /** Animation complexity */
   complexity: AnimationComplexity;
-  
+
   /** Animation category */
-  category?: 'entrance' | 'exit' | 'hover' | 'focus' | 'active' | 'loading' | 'background' | 'feedback';
-  
+  category?:
+    | 'entrance'
+    | 'exit'
+    | 'hover'
+    | 'focus'
+    | 'active'
+    | 'loading'
+    | 'background'
+    | 'feedback';
+
   /** Animation duration to use in ms */
   duration?: number;
 }
@@ -41,94 +55,94 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
     alternative: null, // Already subtle enough
     minimumSensitivity: MotionSensitivityLevel.HIGH,
     complexity: AnimationComplexity.MINIMAL,
-    category: 'entrance'
+    category: 'entrance',
   },
-  
+
   // Mapping for slide animations
   {
     source: presets.slideUp,
     alternative: presets.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
-    category: 'entrance'
+    category: 'entrance',
   },
   {
     source: presets.slideDown,
     alternative: presets.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
-    category: 'entrance'
+    category: 'entrance',
   },
   {
     source: presets.slideLeft,
     alternative: presets.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
-    category: 'entrance'
+    category: 'entrance',
   },
   {
     source: presets.slideRight,
     alternative: presets.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
-    category: 'entrance'
+    category: 'entrance',
   },
-  
+
   // Glass reveal animations
   {
     source: presets.glassReveal,
     alternative: presets.fade,
     minimumSensitivity: MotionSensitivityLevel.LOW,
     complexity: AnimationComplexity.ENHANCED,
-    category: 'entrance'
+    category: 'entrance',
   },
-  
+
   // Button animations
   {
     source: presets.button.ripple,
     alternative: null, // Disable completely
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
-    category: 'feedback'
+    category: 'feedback',
   },
   {
     source: presets.button.hover,
     alternative: null, // Disable hover effects
     minimumSensitivity: MotionSensitivityLevel.HIGH,
     complexity: AnimationComplexity.BASIC,
-    category: 'hover'
+    category: 'hover',
   },
   {
     source: presets.button.press,
     alternative: null, // Disable press animation
     minimumSensitivity: MotionSensitivityLevel.HIGH,
     complexity: AnimationComplexity.BASIC,
-    category: 'active'
+    category: 'active',
   },
-  
+
   // Card animations
   {
     source: presets.card.hover,
     alternative: null, // Disable card hover
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
-    category: 'hover'
+    category: 'hover',
   },
   {
     source: presets.card.flip,
     alternative: presets.fade, // Replace flip with fade
     minimumSensitivity: MotionSensitivityLevel.LOW,
     complexity: AnimationComplexity.ENHANCED,
-    category: 'active'
+    category: 'active',
   },
   {
     source: presets.card.tilt3D,
     alternative: null, // Disable 3D tilt
     minimumSensitivity: MotionSensitivityLevel.LOW,
     complexity: AnimationComplexity.ENHANCED,
-    category: 'hover'
+    category: 'hover',
   },
-  
+
   // Loading animations should remain unless at maximum sensitivity
   {
     source: presets.button.loading,
@@ -136,8 +150,8 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
     minimumSensitivity: MotionSensitivityLevel.MAXIMUM,
     complexity: AnimationComplexity.BASIC,
     category: 'loading',
-    duration: 1500 // Slow down loading animations
-  }
+    duration: 1500, // Slow down loading animations
+  },
 ];
 
 /**
@@ -145,7 +159,7 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
  */
 export class AnimationMapper {
   private mappings: AnimationMapping[] = [];
-  
+
   /**
    * Create a new animation mapper
    * @param customMappings Optional custom mappings to add
@@ -153,7 +167,7 @@ export class AnimationMapper {
   constructor(customMappings: AnimationMapping[] = []) {
     this.mappings = [...DEFAULT_MAPPINGS, ...customMappings];
   }
-  
+
   /**
    * Add a new mapping
    * @param mapping The mapping to add
@@ -161,7 +175,7 @@ export class AnimationMapper {
   addMapping(mapping: AnimationMapping): void {
     this.mappings.push(mapping);
   }
-  
+
   /**
    * Get appropriate animation based on sensitivity
    * @param animation The original animation
@@ -181,34 +195,38 @@ export class AnimationMapper {
     shouldAnimate: boolean;
   } {
     const { sensitivity: userSensitivity, category, duration } = options || {};
-    
+
     // Get the motion sensitivity configuration
     const sensitivityConfig = getMotionSensitivity(userSensitivity);
-    
+
     // Find matching mapping
-    const mapping = this.mappings.find((m) => 
-      (m.source === animation || 
-       (typeof animation === 'string' && animation === (m.source as AnimationPreset).keyframes.name)) &&
-      (category === undefined || m.category === category)
+    const mapping = this.mappings.find(
+      m =>
+        (m.source === animation ||
+          (typeof animation === 'string' &&
+            animation === (m.source as AnimationPreset).keyframes.name)) &&
+        (category === undefined || m.category === category)
     );
-    
+
     // If no mapping found or sensitivity is lower than required, return original
-    if (!mapping || 
-        Object.values(MotionSensitivityLevel).indexOf(sensitivityConfig.level) < 
-        Object.values(MotionSensitivityLevel).indexOf(mapping.minimumSensitivity)) {
+    if (
+      !mapping ||
+      Object.values(MotionSensitivityLevel).indexOf(sensitivityConfig.level) <
+        Object.values(MotionSensitivityLevel).indexOf(mapping.minimumSensitivity)
+    ) {
       // Create correct return object based on the type of animation
       const finalDuration = typeof duration === 'number' ? duration : 300;
-      
+
       if (typeof animation === 'string') {
         return {
           animation,
           duration: finalDuration,
-          shouldAnimate: true
+          shouldAnimate: true,
         };
       } else {
-        let animDuration: number = 300;
+        let animDuration = 300;
         const presetDuration = (animation as AnimationPreset).duration;
-        
+
         if (typeof presetDuration === 'string') {
           // Try to extract ms value from string like "300ms" or "0.3s"
           if (presetDuration.endsWith('ms')) {
@@ -223,34 +241,36 @@ export class AnimationMapper {
         } else if (typeof presetDuration === 'number') {
           animDuration = presetDuration;
         }
-          
+
         return {
           animation,
           duration: finalDuration || animDuration,
-          shouldAnimate: true
+          shouldAnimate: true,
         };
       }
     }
-    
+
     // If animation complexity is not allowed, disable animation
-    if (!sensitivityConfig.maxAllowedComplexity || 
-        Object.values(AnimationComplexity).indexOf(mapping.complexity) > 
-        Object.values(AnimationComplexity).indexOf(sensitivityConfig.maxAllowedComplexity)) {
+    if (
+      !sensitivityConfig.maxAllowedComplexity ||
+      Object.values(AnimationComplexity).indexOf(mapping.complexity) >
+        Object.values(AnimationComplexity).indexOf(sensitivityConfig.maxAllowedComplexity)
+    ) {
       return {
         animation: null,
         duration: 0,
-        shouldAnimate: false
+        shouldAnimate: false,
       };
     }
-    
+
     // Return alternative or null if no alternative
     return {
       animation: mapping.alternative,
       duration: mapping.duration || sensitivityConfig.maxAllowedDuration,
-      shouldAnimate: mapping.alternative !== null
+      shouldAnimate: mapping.alternative !== null,
     };
   }
-  
+
   /**
    * Get all mappings
    * @returns All registered mappings
@@ -258,14 +278,14 @@ export class AnimationMapper {
   getAllMappings(): AnimationMapping[] {
     return [...this.mappings];
   }
-  
+
   /**
    * Clear all mappings
    */
   clearMappings(): void {
     this.mappings = [];
   }
-  
+
   /**
    * Reset to default mappings
    */

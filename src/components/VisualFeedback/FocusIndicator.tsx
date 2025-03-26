@@ -1,10 +1,11 @@
 /**
  * FocusIndicator Component
- * 
+ *
  * A component that provides accessible focus indicators.
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { FocusIndicatorProps } from './types';
 
 // Convert color string to RGB values
@@ -43,7 +44,7 @@ const getFocusStyle = (
 ): string => {
   const rgbColor = colorToRgb(color);
   const highContrastColor = highContrast ? '255, 255, 0' : rgbColor; // Yellow for high contrast
-  
+
   switch (style) {
     case 'dashed':
       return `
@@ -57,7 +58,9 @@ const getFocusStyle = (
       `;
     case 'glow':
       return `
-        box-shadow: 0 0 0 ${thickness}px rgba(${rgbColor}, 0.2), 0 0 ${thickness * 2}px rgba(${rgbColor}, 0.4);
+        box-shadow: 0 0 0 ${thickness}px rgba(${rgbColor}, 0.2), 0 0 ${
+        thickness * 2
+      }px rgba(${rgbColor}, 0.4);
         ${glass ? 'backdrop-filter: blur(4px);' : ''}
       `;
     case 'outline':
@@ -84,21 +87,21 @@ const FocusWrapper = styled.div<{
 }>`
   position: relative;
   display: inline-block;
-  
+
   /* Focus styling */
-  ${props => props.$visible && getFocusStyle(
-    props.$style,
-    props.$thickness,
-    props.$color,
-    props.$highContrast,
-    props.$glass
-  )}
-  
+  ${props =>
+    props.$visible &&
+    getFocusStyle(props.$style, props.$thickness, props.$color, props.$highContrast, props.$glass)}
+
   /* Transition for smoother appearance */
   transition: outline 0.2s ease, box-shadow 0.2s ease;
-  
+
   /* High-contrast focus indicator overlay for glass effect */
-  ${props => props.$visible && props.$glass && props.$highContrast && `
+  ${props =>
+    props.$visible &&
+    props.$glass &&
+    props.$highContrast &&
+    `
     &::after {
       content: '';
       position: absolute;
@@ -133,7 +136,7 @@ function FocusIndicatorComponent(
     componentStyle,
     ...rest
   } = props;
-  
+
   return (
     <FocusWrapper
       ref={ref}
@@ -154,7 +157,7 @@ function FocusIndicatorComponent(
 
 /**
  * FocusIndicator Component
- * 
+ *
  * A component that provides accessible focus indicators.
  */
 const FocusIndicator = forwardRef(FocusIndicatorComponent);

@@ -1,65 +1,66 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface ListProps {
   /**
    * The content of the list
    */
   children: React.ReactNode;
-  
+
   /**
    * The component used for the root node (advanced)
    */
   component?: React.ElementType;
-  
+
   /**
    * If true, compact vertical padding will be used
    */
   dense?: boolean;
-  
+
   /**
    * If true, the left and right padding will be removed
    */
   disablePadding?: boolean;
-  
+
   /**
    * The variant of the list
    */
   variant?: 'standard' | 'outlined' | 'glass';
-  
+
   /**
    * The width of the list
    */
   width?: string | number;
-  
+
   /**
    * If true, horizontal dividers will be rendered between items
    */
   dividers?: boolean;
-  
+
   /**
    * The color scheme of the list
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
-  
+
   /**
    * If true, the list will have rounded corners
    */
   rounded?: boolean;
-  
+
   /**
    * If true, the list will have a subtle background
    */
   hasBackground?: boolean;
-  
+
   /**
    * Additional CSS class
    */
   className?: string;
-  
+
   /**
    * If true, add shadow to the list
    */
@@ -71,57 +72,57 @@ export interface ListItemProps {
    * The content of the list item
    */
   children: React.ReactNode;
-  
+
   /**
    * If true, the list item will be a button
    */
   button?: boolean;
-  
+
   /**
    * If true, the list item will be disabled
    */
   disabled?: boolean;
-  
+
   /**
    * If true, the list item will be focused
    */
   focused?: boolean;
-  
+
   /**
    * If true, the list item will be selected
    */
   selected?: boolean;
-  
+
   /**
    * Primary text for the list item (used with secondaryText for two-line items)
    */
   primaryText?: React.ReactNode;
-  
+
   /**
    * Secondary text for the list item (used with primaryText for two-line items)
    */
   secondaryText?: React.ReactNode;
-  
+
   /**
    * Icon to display at the beginning of the list item
    */
   icon?: React.ReactNode;
-  
+
   /**
    * Element to display at the end of the list item
    */
   action?: React.ReactNode;
-  
+
   /**
    * If true, display a left border accent
    */
   accentLeft?: boolean;
-  
+
   /**
    * Callback fired when the list item is clicked
    */
   onClick?: React.MouseEventHandler<HTMLDivElement | HTMLLIElement>;
-  
+
   /**
    * Additional CSS class
    */
@@ -162,11 +163,11 @@ const ListRoot = styled.ul<{
 }>`
   list-style: none;
   margin: 0;
-  padding: ${props => props.$disablePadding ? 0 : props.$dense ? '4px 0' : '8px 0'};
-  width: ${props => typeof props.$width === 'number' ? `${props.$width}px` : props.$width};
+  padding: ${props => (props.$disablePadding ? 0 : props.$dense ? '4px 0' : '8px 0')};
+  width: ${props => (typeof props.$width === 'number' ? `${props.$width}px` : props.$width)};
   font-family: 'Inter', sans-serif;
   position: relative;
-  
+
   /* Variant styles */
   ${props => {
     switch (props.$variant) {
@@ -182,33 +183,40 @@ const ListRoot = styled.ul<{
           border: 1px solid rgba(255, 255, 255, 0.2);
         `;
       default: // standard
-        return props.$hasBackground 
-          ? `background-color: ${props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)'};` 
+        return props.$hasBackground
+          ? `background-color: ${
+              props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.8)'
+            };`
           : '';
     }
   }}
-  
+
   /* Rounded corners */
-  border-radius: ${props => props.$rounded ? '8px' : '0'};
-  
+  border-radius: ${props => (props.$rounded ? '8px' : '0')};
+
   /* Elevation/shadow */
-  box-shadow: ${props => props.$elevated ? '0 2px 10px rgba(0, 0, 0, 0.08)' : 'none'};
-  
+  box-shadow: ${props => (props.$elevated ? '0 2px 10px rgba(0, 0, 0, 0.08)' : 'none')};
+
   /* Glass effect for glass variant */
-  ${props => props.$variant === 'glass' && glassSurface({
-    elevation: props.$elevated ? 2 : 1,
-    blurStrength: 'standard',
-    backgroundOpacity: 'light',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({})
-  })}
-  
+  ${props =>
+    props.$variant === 'glass' &&
+    glassSurface({
+      elevation: props.$elevated ? 2 : 1,
+      blurStrength: 'standard',
+      backgroundOpacity: 'light',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}),
+    })}
+
   /* Glass glow for glass variant */
-  ${props => props.$variant === 'glass' && props.$color !== 'default' && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    props.$color !== 'default' &&
+    glassGlow({
+      intensity: 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const ListItemRoot = styled.li<{
@@ -223,16 +231,18 @@ const ListItemRoot = styled.li<{
   $hasBothTexts: boolean;
 }>`
   display: flex;
-  align-items: ${props => props.$hasBothTexts ? 'flex-start' : 'center'};
+  align-items: ${props => (props.$hasBothTexts ? 'flex-start' : 'center')};
   position: relative;
   padding: 8px 16px;
   text-align: left;
   width: 100%;
   box-sizing: border-box;
-  ${props => props.$button ? 'cursor: pointer;' : ''}
-  ${props => props.$disabled ? 'opacity: 0.5; pointer-events: none;' : ''}
-  ${props => props.$focused ? `background-color: rgba(0, 0, 0, 0.04);` : ''}
-  ${props => props.$selected ? `
+  ${props => (props.$button ? 'cursor: pointer;' : '')}
+  ${props => (props.$disabled ? 'opacity: 0.5; pointer-events: none;' : '')}
+  ${props => (props.$focused ? `background-color: rgba(0, 0, 0, 0.04);` : '')}
+  ${props =>
+    props.$selected
+      ? `
     background-color: rgba(${props.$color === 'default' ? '0, 0, 0' : '99, 102, 241'}, 0.08);
     &::after {
       content: '';
@@ -241,12 +251,17 @@ const ListItemRoot = styled.li<{
       left: 0;
       bottom: 0;
       width: 2px;
-      background-color: ${props.$color === 'default' ? 'rgba(0, 0, 0, 0.6)' : getColorByName(props.$color)};
+      background-color: ${
+        props.$color === 'default' ? 'rgba(0, 0, 0, 0.6)' : getColorByName(props.$color)
+      };
     }
-  ` : ''}
+  `
+      : ''}
   
   /* Accent left border */
-  ${props => props.$accentLeft && `
+  ${props =>
+    props.$accentLeft &&
+    `
     &::before {
       content: '';
       position: absolute;
@@ -254,12 +269,17 @@ const ListItemRoot = styled.li<{
       left: 0;
       bottom: 0;
       width: 4px;
-      background-color: ${props.$color === 'default' ? 'rgba(0, 0, 0, 0.6)' : getColorByName(props.$color)};
+      background-color: ${
+        props.$color === 'default' ? 'rgba(0, 0, 0, 0.6)' : getColorByName(props.$color)
+      };
     }
   `}
   
   /* Button functionality */
-  ${props => props.$button && !props.$disabled && `
+  ${props =>
+    props.$button &&
+    !props.$disabled &&
+    `
     transition: background-color 0.2s ease;
     &:hover {
       background-color: rgba(0, 0, 0, 0.04);
@@ -317,7 +337,7 @@ const Divider = styled.hr`
 
 /**
  * List Component
- * 
+ *
  * A component for displaying lists of items.
  */
 export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
@@ -336,21 +356,23 @@ export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
     elevated = false,
     ...rest
   } = props;
-  
+
   // Process children to add dividers between list items
   const processedChildren = React.Children.toArray(children).map((child, index, array) => {
     if (index === array.length - 1) {
       return child; // Last item doesn't need a divider
     }
-    
+
     return dividers ? (
       <React.Fragment key={index}>
         {child}
         <Divider />
       </React.Fragment>
-    ) : child;
+    ) : (
+      child
+    );
   });
-  
+
   return (
     <ListRoot
       ref={ref}
@@ -376,7 +398,7 @@ List.displayName = 'List';
 
 /**
  * ListItem Component
- * 
+ *
  * A component for displaying individual items within a list.
  */
 export const ListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) => {
@@ -395,11 +417,11 @@ export const ListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) =>
     className,
     ...rest
   } = props;
-  
+
   // Determine if we have a text structure
   const hasTextStructure = primaryText !== undefined;
   const hasBothTexts = hasTextStructure && secondaryText !== undefined;
-  
+
   return (
     <ListItemRoot
       ref={ref}
@@ -417,7 +439,7 @@ export const ListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) =>
       {...rest}
     >
       {icon && <ListItemIcon>{icon}</ListItemIcon>}
-      
+
       {hasTextStructure ? (
         <ListItemTexts>
           <PrimaryText>{primaryText}</PrimaryText>
@@ -426,7 +448,7 @@ export const ListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) =>
       ) : (
         children
       )}
-      
+
       {action && <ListItemAction>{action}</ListItemAction>}
     </ListItemRoot>
   );
@@ -436,17 +458,12 @@ ListItem.displayName = 'ListItem';
 
 /**
  * GlassList Component
- * 
+ *
  * A list component with glass morphism styling.
  */
 export const GlassList = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
-  const {
-    className,
-    variant = 'glass',
-    hasBackground = true,
-    ...rest
-  } = props;
-  
+  const { className, variant = 'glass', hasBackground = true, ...rest } = props;
+
   return (
     <List
       ref={ref}
@@ -462,22 +479,13 @@ GlassList.displayName = 'GlassList';
 
 /**
  * GlassListItem Component
- * 
+ *
  * A list item with glass morphism styling.
  */
 export const GlassListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) => {
-  const {
-    className,
-    ...rest
-  } = props;
-  
-  return (
-    <ListItem
-      ref={ref}
-      className={`glass-list-item ${className || ''}`}
-      {...rest}
-    />
-  );
+  const { className, ...rest } = props;
+
+  return <ListItem ref={ref} className={`glass-list-item ${className || ''}`} {...rest} />;
 });
 
 GlassListItem.displayName = 'GlassListItem';

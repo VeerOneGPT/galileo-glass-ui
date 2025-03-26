@@ -1,6 +1,6 @@
 /**
  * Animation Accessibility
- * 
+ *
  * Core modules for accessible animation system.
  */
 

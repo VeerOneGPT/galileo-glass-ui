@@ -1,13 +1,15 @@
 /**
  * Glass FormControl Component
- * 
+ *
  * A container for form controls with enhanced glass styling.
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { FormControlProps } from './types';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
+
+import { FormControlProps } from './types';
 
 // Styled components
 const FormControlRoot = styled.div<{
@@ -23,19 +25,21 @@ const FormControlRoot = styled.div<{
   display: inline-flex;
   flex-direction: column;
   position: relative;
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
-  
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
+
   /* Glass styling if enabled */
-  ${props => props.$glass && glassSurface({
-    elevation: 1,
-    blurStrength: 'light',
-    borderOpacity: 'light',
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'light',
+      borderOpacity: 'light',
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Margin variations */
   ${props => {
-    switch(props.$margin) {
+    switch (props.$margin) {
       case 'dense':
         return 'margin: 4px;';
       case 'normal':
@@ -48,7 +52,7 @@ const FormControlRoot = styled.div<{
   
   /* Padding variations */
   ${props => {
-    switch(props.$padding) {
+    switch (props.$padding) {
       case 'dense':
         return 'padding: 8px;';
       case 'normal':
@@ -60,13 +64,15 @@ const FormControlRoot = styled.div<{
   }}
   
   /* Border radius for glass styling */
-  ${props => props.$glass && `
+  ${props =>
+    props.$glass &&
+    `
     border-radius: 8px;
   `}
   
   /* Size variations */
   ${props => {
-    switch(props.$size) {
+    switch (props.$size) {
       case 'small':
         return `
           min-height: ${props.$glass ? '60px' : 'auto'};
@@ -87,37 +93,58 @@ const FormControlRoot = styled.div<{
   }}
   
   /* Error state */
-  ${props => props.$error && `
+  ${props =>
+    props.$error &&
+    `
     --form-control-color: rgba(240, 82, 82, 0.8);
   `}
   
   /* Focused state */
-  ${props => props.$focused && !props.$error && `
+  ${props =>
+    props.$focused &&
+    !props.$error &&
+    `
     --form-control-color: rgba(99, 102, 241, 0.8);
   `}
   
   /* Default state */
-  ${props => !props.$error && !props.$focused && `
+  ${props =>
+    !props.$error &&
+    !props.$focused &&
+    `
     --form-control-color: rgba(255, 255, 255, 0.6);
   `}
   
   /* Glass styling with error/focus states */
-  ${props => props.$glass && props.$error && `
+  ${props =>
+    props.$glass &&
+    props.$error &&
+    `
     border: 1px solid rgba(240, 82, 82, 0.8);
     box-shadow: 0 0 0 1px rgba(240, 82, 82, 0.3);
   `}
   
-  ${props => props.$glass && props.$focused && !props.$error && `
+  ${props =>
+    props.$glass &&
+    props.$focused &&
+    !props.$error &&
+    `
     border: 1px solid rgba(99, 102, 241, 0.8);
     box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
   `}
   
-  ${props => props.$glass && !props.$error && !props.$focused && `
+  ${props =>
+    props.$glass &&
+    !props.$error &&
+    !props.$focused &&
+    `
     border: 1px solid rgba(255, 255, 255, 0.12);
   `}
   
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     opacity: 0.6;
     cursor: not-allowed;
     
@@ -130,10 +157,7 @@ const FormControlRoot = styled.div<{
 /**
  * FormControl Component Implementation
  */
-function FormControlComponent(
-  props: FormControlProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+function FormControlComponent(props: FormControlProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     className,
@@ -150,16 +174,16 @@ function FormControlComponent(
     padding = 'none',
     ...rest
   } = props;
-  
+
   // Create a context object to pass to children
   const formControlContext = {
     disabled,
     error,
     focused,
     required,
-    size
+    size,
   };
-  
+
   return (
     <FormControlRoot
       ref={ref}
@@ -183,14 +207,14 @@ function FormControlComponent(
 
 /**
  * FormControl Component
- * 
+ *
  * A container for form controls with enhanced glass styling.
  */
 const FormControl = forwardRef(FormControlComponent);
 
 /**
  * GlassFormControl Component
- * 
+ *
  * Glass variant of the FormControl component with enhanced styling.
  */
 const GlassFormControl = forwardRef<HTMLDivElement, FormControlProps>((props, ref) => (

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+
 import { useTheme, useGlassEffects, usePreferences } from './ThemeProvider';
 
 interface ThemePerformanceMonitorProps {
@@ -7,17 +8,17 @@ interface ThemePerformanceMonitorProps {
    * Position of the monitor overlay
    */
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  
+
   /**
    * If true, starts minimized
    */
   startMinimized?: boolean;
-  
+
   /**
    * If true, shows advanced debug information
    */
   showAdvanced?: boolean;
-  
+
   /**
    * Custom styles for the monitor panel
    */
@@ -39,11 +40,11 @@ interface PerformanceMetrics {
 // Helper to format bytes to readable format
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
@@ -56,12 +57,12 @@ const MonitorContainer = styled.div<{ position: string; isMinimized: boolean }>`
   font-size: 12px;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  max-width: ${props => props.isMinimized ? '100px' : '300px'};
+  max-width: ${props => (props.isMinimized ? '100px' : '300px')};
   overflow: hidden;
   transition: all 0.3s ease;
   backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  
+
   /* Position based on prop */
   ${props => {
     if (props.position === 'top-left') {
@@ -92,8 +93,8 @@ const MonitorTitle = styled.div`
 `;
 
 const MonitorContent = styled.div<{ isMinimized: boolean }>`
-  padding: ${props => props.isMinimized ? '0' : '10px'};
-  max-height: ${props => props.isMinimized ? '0' : '300px'};
+  padding: ${props => (props.isMinimized ? '0' : '10px')};
+  max-height: ${props => (props.isMinimized ? '0' : '300px')};
   overflow: hidden;
 `;
 
@@ -140,7 +141,7 @@ const ToggleButton = styled.button`
   font-size: 10px;
   margin-left: 5px;
   transition: background-color 0.2s;
-  
+
   &:hover {
     background-color: rgba(255, 255, 255, 0.2);
   }
@@ -148,7 +149,7 @@ const ToggleButton = styled.button`
 
 /**
  * ThemePerformanceMonitor Component
- * 
+ *
  * Provides real-time performance monitoring for theme-related operations.
  * Designed for development use only.
  */
@@ -156,12 +157,12 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
   position = 'bottom-right',
   startMinimized = false,
   showAdvanced = false,
-  style = {}
+  style = {},
 }) => {
   const { isDark, currentColorMode, currentTheme } = useTheme();
   const { qualityTier } = useGlassEffects();
   const { reducedMotion } = usePreferences();
-  
+
   const [isMinimized, setIsMinimized] = useState(startMinimized);
   const [showAdvancedInfo, setShowAdvancedInfo] = useState(showAdvanced);
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
@@ -171,7 +172,7 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
     contextUpdates: 0,
     themeChanges: 0,
   });
-  
+
   // Refs for tracking
   const frameCountRef = useRef(0);
   const lastFrameTimeRef = useRef(performance.now());
@@ -179,27 +180,27 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
   const lastColorModeRef = useRef(currentColorMode);
   const updateCountRef = useRef(0);
   const themeChangeCountRef = useRef(0);
-  
+
   // Track FPS
   useEffect(() => {
     // Calculate FPS
     const calculateFPS = () => {
       frameCountRef.current++;
-      
+
       const now = performance.now();
       const elapsed = now - lastFrameTimeRef.current;
-      
+
       // Update FPS every second
       if (elapsed >= 1000) {
         setMetrics(prev => ({
           ...prev,
           fps: Math.round((frameCountRef.current * 1000) / elapsed),
         }));
-        
+
         frameCountRef.current = 0;
         lastFrameTimeRef.current = now;
       }
-      
+
       // Get memory info if available
       if (window.performance && (performance as any).memory) {
         setMetrics(prev => ({
@@ -207,17 +208,17 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
           memory: (performance as any).memory,
         }));
       }
-      
+
       requestAnimationFrame(calculateFPS);
     };
-    
+
     const frameId = requestAnimationFrame(calculateFPS);
-    
+
     return () => {
       cancelAnimationFrame(frameId);
     };
   }, []);
-  
+
   // Track theme changes
   useEffect(() => {
     // Track theme or color mode changes
@@ -225,15 +226,15 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
       lastThemeRef.current = currentTheme;
       lastColorModeRef.current = currentColorMode;
       themeChangeCountRef.current++;
-      
+
       setMetrics(prev => ({
         ...prev,
         themeChanges: themeChangeCountRef.current,
       }));
-      
+
       // Measure render time after theme change
       const startTime = performance.now();
-      
+
       // Use requestAnimationFrame to measure when the render completes
       requestAnimationFrame(() => {
         const renderTime = performance.now() - startTime;
@@ -243,7 +244,7 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
         }));
       });
     }
-    
+
     // Track context updates
     updateCountRef.current++;
     setMetrics(prev => ({
@@ -251,24 +252,24 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
       contextUpdates: updateCountRef.current,
     }));
   }, [currentTheme, currentColorMode]);
-  
+
   // Render the performance monitor
   return (
     <MonitorContainer position={position} isMinimized={isMinimized} style={style}>
       <MonitorHeader onClick={() => setIsMinimized(!isMinimized)}>
-        <MonitorTitle>
-          {isMinimized ? 'PERF' : 'Theme Performance Monitor'}
-        </MonitorTitle>
+        <MonitorTitle>{isMinimized ? 'PERF' : 'Theme Performance Monitor'}</MonitorTitle>
         {!isMinimized && (
-          <ToggleButton onClick={(e) => {
-            e.stopPropagation();
-            setShowAdvancedInfo(!showAdvancedInfo);
-          }}>
+          <ToggleButton
+            onClick={e => {
+              e.stopPropagation();
+              setShowAdvancedInfo(!showAdvancedInfo);
+            }}
+          >
             {showAdvancedInfo ? 'Basic' : 'Advanced'}
           </ToggleButton>
         )}
       </MonitorHeader>
-      
+
       <MonitorContent isMinimized={isMinimized}>
         <MetricRow>
           <MetricLabel>FPS:</MetricLabel>
@@ -276,27 +277,29 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
             {metrics.fps}
           </MetricValue>
         </MetricRow>
-        
+
         <MetricRow>
           <MetricLabel>Render Time:</MetricLabel>
           <MetricValue isWarning={metrics.renderTime > 50} isError={metrics.renderTime > 100}>
             {metrics.renderTime.toFixed(2)} ms
           </MetricValue>
         </MetricRow>
-        
+
         {metrics.memory && (
           <MetricRow>
             <MetricLabel>Memory:</MetricLabel>
-            <MetricValue isWarning={metrics.memory.usedJSHeapSize > metrics.memory.totalJSHeapSize * 0.7}>
+            <MetricValue
+              isWarning={metrics.memory.usedJSHeapSize > metrics.memory.totalJSHeapSize * 0.7}
+            >
               {formatBytes(metrics.memory.usedJSHeapSize)}
             </MetricValue>
           </MetricRow>
         )}
-        
+
         {showAdvancedInfo && (
           <>
             <SectionTitle>Theme Info</SectionTitle>
-            
+
             <ThemeInfo>
               <div>Theme: {currentTheme}</div>
               <div>Color Mode: {currentColorMode}</div>
@@ -304,42 +307,36 @@ const ThemePerformanceMonitor: React.FC<ThemePerformanceMonitorProps> = ({
               <div>Quality Tier: {qualityTier}</div>
               <div>Reduced Motion: {reducedMotion ? 'Yes' : 'No'}</div>
             </ThemeInfo>
-            
+
             <SectionTitle>Context Updates</SectionTitle>
-            
+
             <MetricRow>
               <MetricLabel>Context Updates:</MetricLabel>
               <MetricValue>{metrics.contextUpdates}</MetricValue>
             </MetricRow>
-            
+
             <MetricRow>
               <MetricLabel>Theme Changes:</MetricLabel>
               <MetricValue>{metrics.themeChanges}</MetricValue>
             </MetricRow>
-            
+
             {metrics.memory && (
               <>
                 <SectionTitle>Memory Details</SectionTitle>
-                
+
                 <MetricRow>
                   <MetricLabel>Used Heap:</MetricLabel>
-                  <MetricValue>
-                    {formatBytes(metrics.memory.usedJSHeapSize)}
-                  </MetricValue>
+                  <MetricValue>{formatBytes(metrics.memory.usedJSHeapSize)}</MetricValue>
                 </MetricRow>
-                
+
                 <MetricRow>
                   <MetricLabel>Total Heap:</MetricLabel>
-                  <MetricValue>
-                    {formatBytes(metrics.memory.totalJSHeapSize)}
-                  </MetricValue>
+                  <MetricValue>{formatBytes(metrics.memory.totalJSHeapSize)}</MetricValue>
                 </MetricRow>
-                
+
                 <MetricRow>
                   <MetricLabel>Heap Limit:</MetricLabel>
-                  <MetricValue>
-                    {formatBytes(metrics.memory.jsHeapSizeLimit)}
-                  </MetricValue>
+                  <MetricValue>{formatBytes(metrics.memory.jsHeapSizeLimit)}</MetricValue>
                 </MetricRow>
               </>
             )}

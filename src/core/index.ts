@@ -1,23 +1,17 @@
 /**
  * Galileo Glass UI - Core
- * 
+ *
  * Core utilities and foundation for the Glass UI system.
  */
 
 // CSS utilities
 export { cssWithKebabProps } from './cssUtils';
 export { withAlpha } from './colorUtils';
-export { 
-  vendorPrefix, 
-  backdropFilter, 
-  fontSmoothing, 
-  userSelect, 
-  appearance 
-} from './cssHelpers';
+export { vendorPrefix, backdropFilter, fontSmoothing, userSelect, appearance } from './cssHelpers';
 
 // Theme utilities
 export { createThemeContext } from './themeContext';
-export { 
+export {
   getThemeColor,
   getBlurStrength,
   getBackgroundOpacity,
@@ -34,7 +28,7 @@ export {
   BLUR_STRENGTH_VALUES,
   BACKGROUND_OPACITY_VALUES,
   BORDER_OPACITY_VALUES,
-  GLOW_INTENSITY_VALUES
+  GLOW_INTENSITY_VALUES,
 } from './themeUtils';
 
 // Style utilities
@@ -57,7 +51,7 @@ export {
   SPACING_UNITS,
   SPACING_BASE_UNIT,
   BORDER_RADIUS,
-  TYPOGRAPHY_SIZES
+  TYPOGRAPHY_SIZES,
 } from './styleUtils';
 
 // Glass mixins
@@ -71,15 +65,7 @@ export { enhancedGlowEffects, enhancedGlow } from './effects/enhancedGlowEffects
 export { contextAwareGlass, adaptiveGlass } from './effects/contextAwareGlass';
 
 // Z-Space system
-export { 
-  ZLayer, 
-  ZDepth, 
-  zLayer, 
-  zDepth, 
-  zPerspective,
-  ZSpaceProvider,
-  useZSpace
-} from './zspace';
+export { ZLayer, ZDepth, zLayer, zDepth, zPerspective, ZSpaceProvider, useZSpace } from './zspace';
 
 // Types
 export type {
@@ -96,7 +82,7 @@ export type {
   Theme,
   ThemeOptions,
   AnimationOptions,
-  TransitionOptions
+  TransitionOptions,
 } from './types';
 
 // Add missing types

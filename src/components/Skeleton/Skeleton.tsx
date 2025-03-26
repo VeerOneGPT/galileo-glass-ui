@@ -1,49 +1,50 @@
 import React, { forwardRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface SkeletonProps {
   /**
    * The type of content to render
    */
   variant?: 'text' | 'rectangular' | 'circular' | 'rounded';
-  
+
   /**
    * Width of the skeleton
    */
   width?: string | number;
-  
+
   /**
    * Height of the skeleton
    */
   height?: string | number;
-  
+
   /**
    * If true, the skeleton will animate
    */
   animation?: 'pulse' | 'wave' | 'shimmer' | false;
-  
+
   /**
    * If true, apply glass styling
    */
   glass?: boolean;
-  
+
   /**
    * The theme color to use for glass effects
    */
   color?: 'primary' | 'secondary' | 'default';
-  
+
   /**
    * Additional CSS class
    */
   className?: string;
-  
+
   /**
    * If set to true, renders a multi-line text skeleton with varying widths
    */
   multiline?: boolean;
-  
+
   /**
    * Number of lines to show when multiline is true
    */
@@ -110,12 +111,12 @@ const getRandomWidth = (lineIndex: number, totalLines: number): string => {
   if (lineIndex === totalLines - 1) {
     return `${30 + Math.floor(Math.random() * 40)}%`;
   }
-  
+
   // First line often full
   if (lineIndex === 0) {
     return '100%';
   }
-  
+
   // Middle lines vary between 70% and 100%
   return `${70 + Math.floor(Math.random() * 30)}%`;
 };
@@ -130,15 +131,15 @@ const SkeletonContainer = styled.span<{
   $color: string;
 }>`
   display: block;
-  background-color: ${props => props.$glass 
-    ? `${getColorByName(props.$color)}40` // transparent for glass
-    : '#E2E8F0'
-  };
+  background-color: ${props =>
+    props.$glass
+      ? `${getColorByName(props.$color)}40` // transparent for glass
+      : '#E2E8F0'};
   width: ${props => props.$width};
   height: ${props => props.$height};
   position: relative;
   overflow: hidden;
-  
+
   /* Variant styles */
   ${props => {
     switch (props.$variant) {
@@ -158,7 +159,7 @@ const SkeletonContainer = styled.span<{
         return `border-radius: 4px;`;
     }
   }}
-  
+
   /* Animation styles */
   ${props => {
     if (props.$animation === 'pulse') {
@@ -166,18 +167,19 @@ const SkeletonContainer = styled.span<{
         animation: ${pulse} 1.5s ease-in-out infinite;
       `;
     }
-    
+
     if (props.$animation === 'shimmer') {
       return css`
-        background: ${props.$glass 
-          ? `linear-gradient(90deg, ${getColorByName(props.$color)}40 25%, ${getColorByName(props.$color)}80 50%, ${getColorByName(props.$color)}40 75%)`
-          : 'linear-gradient(90deg, #E2E8F0 25%, #F8FAFC 50%, #E2E8F0 75%)'
-        };
+        background: ${props.$glass
+          ? `linear-gradient(90deg, ${getColorByName(props.$color)}40 25%, ${getColorByName(
+              props.$color
+            )}80 50%, ${getColorByName(props.$color)}40 75%)`
+          : 'linear-gradient(90deg, #E2E8F0 25%, #F8FAFC 50%, #E2E8F0 75%)'};
         background-size: 200% 100%;
         animation: ${shimmer} 2s infinite;
       `;
     }
-    
+
     if (props.$animation === 'wave') {
       return css`
         &::after {
@@ -188,32 +190,36 @@ const SkeletonContainer = styled.span<{
           right: 0;
           bottom: 0;
           background: linear-gradient(
-            90deg, 
-            transparent, 
-            ${props.$glass ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)'}, 
+            90deg,
+            transparent,
+            ${props.$glass ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.6)'},
             transparent
           );
           animation: ${wave} 1.6s linear 0.5s infinite;
         }
       `;
     }
-    
+
     return '';
   }}
   
   /* Glass effects */
-  ${props => props.$glass && css`
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border: 1px solid ${`${getColorByName(props.$color)}30`};
-  `}
+  ${props =>
+    props.$glass &&
+    css`
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid ${`${getColorByName(props.$color)}30`};
+    `}
   
   /* Glass glow effect */
-  ${props => props.$glass && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$glass &&
+    glassGlow({
+      intensity: 'minimal',
+      color: props.$color,
+      themeContext: createThemeContext({}),
+    })}
 `;
 
 const MultilineContainer = styled.div`
@@ -222,7 +228,7 @@ const MultilineContainer = styled.div`
 
 /**
  * Skeleton Component
- * 
+ *
  * A placeholder preview for content that will load
  */
 export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>((props, ref) => {
@@ -238,11 +244,11 @@ export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>((props, ref) 
     lines = 3,
     ...rest
   } = props;
-  
+
   // Default dimensions based on variant
   let defaultWidth;
   let defaultHeight;
-  
+
   if (variant === 'text') {
     defaultWidth = '100%';
     defaultHeight = '1.2em';
@@ -253,14 +259,18 @@ export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>((props, ref) 
     defaultWidth = '100%';
     defaultHeight = '100px';
   }
-  
+
   const widthValue = toCssValue(width, defaultWidth || '100%');
   const heightValue = toCssValue(height, defaultHeight || '100%');
-  
+
   // Render multiline skeleton
   if (multiline && variant === 'text') {
     return (
-      <MultilineContainer className={className} ref={ref as React.RefObject<HTMLDivElement>} {...rest}>
+      <MultilineContainer
+        className={className}
+        ref={ref as React.RefObject<HTMLDivElement>}
+        {...rest}
+      >
         {Array.from({ length: lines }).map((_, index) => (
           <SkeletonContainer
             key={index}
@@ -276,7 +286,7 @@ export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>((props, ref) 
       </MultilineContainer>
     );
   }
-  
+
   // Render single skeleton
   return (
     <SkeletonContainer
@@ -297,17 +307,12 @@ Skeleton.displayName = 'Skeleton';
 
 /**
  * GlassSkeleton Component
- * 
+ *
  * A skeleton component with glass morphism styling.
  */
 export const GlassSkeleton = forwardRef<HTMLSpanElement, SkeletonProps>((props, ref) => {
-  const {
-    className,
-    glass = true,
-    color = 'primary',
-    ...rest
-  } = props;
-  
+  const { className, glass = true, color = 'primary', ...rest } = props;
+
   return (
     <Skeleton
       ref={ref}

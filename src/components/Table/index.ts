@@ -1,19 +1,12 @@
 /**
  * Table Component Export
  */
-export { 
-  Table, 
-  GlassTable, 
-  TableHead, 
-  TableBody, 
-  TableRow, 
-  TableCell 
-} from './Table';
+export { Table, GlassTable, TableHead, TableBody, TableRow, TableCell } from './Table';
 
-export type { 
-  TableProps, 
-  TableHeadProps, 
+export type {
+  TableProps,
+  TableHeadProps,
   TableBodyProps,
-  TableRowProps, 
-  TableCellProps 
+  TableRowProps,
+  TableCellProps,
 } from './Table';

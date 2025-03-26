@@ -1,71 +1,72 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 export interface BadgeProps {
   /**
    * The content to be displayed within the badge
    */
   content?: React.ReactNode;
-  
+
   /**
    * The color of the badge
    */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
-  
+
   /**
    * The variant of the badge
    */
   variant?: 'standard' | 'dot' | 'glass';
-  
+
   /**
    * The placement of the badge
    */
   placement?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
-  
+
   /**
    * The horizontal offset of the badge
    */
   offsetX?: number;
-  
+
   /**
    * The vertical offset of the badge
    */
   offsetY?: number;
-  
+
   /**
    * If true, the badge will be invisible
    */
   invisible?: boolean;
-  
+
   /**
-   * The maximum value to display. If the content value is greater than max, 
+   * The maximum value to display. If the content value is greater than max,
    * the badge will display `${max}+`
    */
   max?: number;
-  
+
   /**
    * If true, the badge will show content as a notification dot without value
    */
   showDot?: boolean;
-  
+
   /**
    * The size of the badge
    */
   size?: 'small' | 'medium' | 'large';
-  
+
   /**
    * If true, displays a border around the badge
    */
   bordered?: boolean;
-  
+
   /**
    * The children wrapped by the badge, usually an icon or button
    */
   children: React.ReactNode;
-  
+
   /**
    * Additional CSS class
    */
@@ -142,15 +143,17 @@ const BadgeWrapper = styled.span<{
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
-  font-size: ${props => props.$size === 'small' ? '0.6rem' : props.$size === 'large' ? '0.85rem' : '0.75rem'};
-  min-width: ${props => props.$isDot ? 'auto' : `${getBadgeSize(props.$size)}px`};
-  height: ${props => props.$isDot ? 'auto' : `${getBadgeSize(props.$size)}px`};
-  padding: ${props => props.$isDot ? '0' : '0 6px'};
-  color: ${props => props.$variant === 'standard' ? 'white' : 'inherit'};
-  background-color: ${props => props.$variant === 'standard' ? getColorByName(props.$color) : 'transparent'};
-  border-radius: ${props => props.$isDot ? '50%' : '10px'};
-  opacity: ${props => props.$invisible ? 0 : 1};
-  transform: scale(${props => props.$invisible ? 0 : 1});
+  font-size: ${props =>
+    props.$size === 'small' ? '0.6rem' : props.$size === 'large' ? '0.85rem' : '0.75rem'};
+  min-width: ${props => (props.$isDot ? 'auto' : `${getBadgeSize(props.$size)}px`)};
+  height: ${props => (props.$isDot ? 'auto' : `${getBadgeSize(props.$size)}px`)};
+  padding: ${props => (props.$isDot ? '0' : '0 6px')};
+  color: ${props => (props.$variant === 'standard' ? 'white' : 'inherit')};
+  background-color: ${props =>
+    props.$variant === 'standard' ? getColorByName(props.$color) : 'transparent'};
+  border-radius: ${props => (props.$isDot ? '50%' : '10px')};
+  opacity: ${props => (props.$invisible ? 0 : 1)};
+  transform: scale(${props => (props.$invisible ? 0 : 1)});
   transform-origin: ${props => {
     if (props.$placement === 'top-left') return 'left top';
     if (props.$placement === 'bottom-left') return 'left bottom';
@@ -158,16 +161,21 @@ const BadgeWrapper = styled.span<{
     return 'right top'; // default top-right
   }};
   transition: transform 0.2s ease, opacity 0.2s ease;
-  
+
   /* Dot variant */
-  ${props => props.$isDot && `
+  ${props =>
+    props.$isDot &&
+    `
     width: ${getDotSize(props.$size)}px;
     height: ${getDotSize(props.$size)}px;
     background-color: ${getColorByName(props.$color)};
   `}
-  
+
   /* Glass variant */
-  ${props => props.$variant === 'glass' && !props.$isDot && `
+  ${props =>
+    props.$variant === 'glass' &&
+    !props.$isDot &&
+    `
     background-color: ${getColorByName(props.$color)}CC;
     color: white;
     backdrop-filter: blur(4px);
@@ -175,20 +183,24 @@ const BadgeWrapper = styled.span<{
   `}
   
   /* Glass effect for glass variant */
-  ${props => props.$variant === 'glass' && glassSurface({
-    elevation: 1,
-    blurStrength: 'minimal',
-    backgroundOpacity: 'strong',
-    borderOpacity: 'subtle',
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    glassSurface({
+      elevation: 1,
+      blurStrength: 'minimal',
+      backgroundOpacity: 'strong',
+      borderOpacity: 'subtle',
+      themeContext: createThemeContext({}),
+    })}
   
   /* Glass glow for glass variant */
-  ${props => props.$variant === 'glass' && glassGlow({
-    glowIntensity: 'minimal',
-    glowColor: props.$color,
-    themeContext: createThemeContext({})
-  })}
+  ${props =>
+    props.$variant === 'glass' &&
+    glassGlow({
+      glowIntensity: 'minimal',
+      glowColor: props.$color,
+      themeContext: createThemeContext({}),
+    })}
   
   /* Placement positioning */
   ${props => {
@@ -229,7 +241,9 @@ const BadgeWrapper = styled.span<{
   }}
   
   /* Border */
-  ${props => props.$bordered && `
+  ${props =>
+    props.$bordered &&
+    `
     border: 2px solid white;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
   `}
@@ -237,7 +251,7 @@ const BadgeWrapper = styled.span<{
 
 /**
  * Badge Component
- * 
+ *
  * A component that generates a small badge that appears at the corner of its children.
  */
 export const Badge = forwardRef<HTMLDivElement, BadgeProps>((props, ref) => {
@@ -257,20 +271,18 @@ export const Badge = forwardRef<HTMLDivElement, BadgeProps>((props, ref) => {
     className,
     ...rest
   } = props;
-  
+
   // Determine badge content
-  const badgeContent = showDot ? null : (
-    typeof content === 'number' && content > max ? `${max}+` : content
-  );
-  
+  const badgeContent = showDot
+    ? null
+    : typeof content === 'number' && content > max
+    ? `${max}+`
+    : content;
+
   return (
-    <BadgeContainer
-      ref={ref}
-      className={className}
-      {...rest}
-    >
+    <BadgeContainer ref={ref} className={className} {...rest}>
       {children}
-      
+
       <BadgeWrapper
         $variant={variant}
         $color={color}
@@ -278,7 +290,9 @@ export const Badge = forwardRef<HTMLDivElement, BadgeProps>((props, ref) => {
         $offsetX={offsetX}
         $offsetY={offsetY}
         $size={size}
-        $invisible={invisible || (!showDot && (content === undefined || content === null || content === 0))}
+        $invisible={
+          invisible || (!showDot && (content === undefined || content === null || content === 0))
+        }
         $isDot={showDot}
         $bordered={bordered}
       >
@@ -292,23 +306,14 @@ Badge.displayName = 'Badge';
 
 /**
  * GlassBadge Component
- * 
+ *
  * A badge component with glass morphism styling.
  */
 export const GlassBadge = forwardRef<HTMLDivElement, BadgeProps>((props, ref) => {
-  const {
-    className,
-    variant = 'glass',
-    ...rest
-  } = props;
-  
+  const { className, variant = 'glass', ...rest } = props;
+
   return (
-    <Badge
-      ref={ref}
-      className={`glass-badge ${className || ''}`}
-      variant={variant}
-      {...rest}
-    />
+    <Badge ref={ref} className={`glass-badge ${className || ''}`} variant={variant} {...rest} />
   );
 });
 

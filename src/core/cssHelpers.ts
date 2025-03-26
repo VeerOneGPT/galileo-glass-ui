@@ -1,6 +1,6 @@
 /**
  * CSS Helper Functions
- * 
+ *
  * Helper functions for handling CSS properties, especially vendor prefixes
  */
 
@@ -13,29 +13,30 @@
 export const vendorPrefix = (property: string, value: string): string => {
   // Convert camelCase to kebab-case
   const kebabProperty = property.replace(/([A-Z])/g, '-$1').toLowerCase();
-  
+
   // Standard property
   let result = `${kebabProperty}: ${value};`;
-  
+
   // Webkit prefix
-  if (kebabProperty.startsWith('backdrop-filter') ||
-      kebabProperty.startsWith('font-smoothing') ||
-      kebabProperty.startsWith('appearance') ||
-      kebabProperty.startsWith('user-select')) {
+  if (
+    kebabProperty.startsWith('backdrop-filter') ||
+    kebabProperty.startsWith('font-smoothing') ||
+    kebabProperty.startsWith('appearance') ||
+    kebabProperty.startsWith('user-select')
+  ) {
     result += `\n  -webkit-${kebabProperty}: ${value};`;
   }
-  
+
   // Moz prefix
-  if (kebabProperty.startsWith('osx-font-smoothing') ||
-      kebabProperty.startsWith('user-select')) {
+  if (kebabProperty.startsWith('osx-font-smoothing') || kebabProperty.startsWith('user-select')) {
     result += `\n  -moz-${kebabProperty}: ${value};`;
   }
-  
+
   // Ms prefix
   if (kebabProperty.startsWith('user-select')) {
     result += `\n  -ms-${kebabProperty}: ${value};`;
   }
-  
+
   return result;
 };
 
@@ -111,13 +112,13 @@ import { AnyHTMLElement } from '../utils/elementTypes';
  */
 export const applyGpuAcceleration = (element: AnyHTMLElement): void => {
   if (!element || !element.style) return;
-  
+
   // Add hardware acceleration
   element.style.transform = 'translateZ(0)';
-  
+
   // Add will-change for modern browsers
   element.style.willChange = 'transform, opacity';
-  
+
   // Add backface visibility with proper typing
   element.style.backfaceVisibility = 'hidden';
   element.style.webkitBackfaceVisibility = 'hidden';
@@ -131,12 +132,12 @@ export const applyGpuAcceleration = (element: AnyHTMLElement): void => {
 export const createTransform = (transforms: string | string[]): string => {
   // Convert single string to array
   const transformArray = Array.isArray(transforms) ? transforms : [transforms];
-  
+
   // Always add translateZ(0) for hardware acceleration if not already included
   if (!transformArray.some(t => t.includes('translateZ') || t.includes('translate3d'))) {
     transformArray.push('translateZ(0)');
   }
-  
+
   return transformArray.join(' ');
 };
 

@@ -1,11 +1,13 @@
 /**
  * VisualFeedback Component
- * 
+ *
  * A component that provides visual feedback effects.
  */
 import React, { forwardRef, useState, useRef, useEffect } from 'react';
 import styled, { keyframes, css } from 'styled-components';
+
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { VisualFeedbackProps } from './types';
 
 // Animation keyframes
@@ -65,17 +67,17 @@ const FeedbackContainer = styled.div<{
 }>`
   position: relative;
   display: inline-block;
-  overflow: ${props => props.$effect === 'ripple' ? 'hidden' : 'visible'};
-  
+  overflow: ${props => (props.$effect === 'ripple' ? 'hidden' : 'visible')};
+
   /* Set CSS variable for the color */
   --feedback-color-rgb: ${props => colorToRgb(props.$color)};
-  
+
   /* Animation based on effect type */
   ${props => {
     if (!props.$active || props.$effect === 'none' || props.$reducedMotion) {
       return '';
     }
-    
+
     switch (props.$effect) {
       case 'pulse':
         return css`
@@ -93,9 +95,12 @@ const FeedbackContainer = styled.div<{
         return '';
     }
   }}
-  
+
   /* Glass morphism effects */
-  ${props => props.$glass && props.$active && `
+  ${props =>
+    props.$glass &&
+    props.$active &&
+    `
     &::before {
       content: '';
       position: absolute;
@@ -129,7 +134,7 @@ const Ripple = styled.span<{
   left: ${props => props.$x}px;
   width: ${props => props.$size}px;
   height: ${props => props.$size}px;
-  
+
   @keyframes ripple {
     to {
       transform: scale(4);
@@ -157,53 +162,55 @@ function VisualFeedbackComponent(
     style,
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   // State for ripple effect
-  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; size: number }>>([]);
-  let rippleCount = useRef(0);
-  
+  const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number; size: number }>>(
+    []
+  );
+  const rippleCount = useRef(0);
+
   // Handle ripple effect
   const handleRipple = (event: React.MouseEvent<HTMLDivElement>) => {
     if (effect !== 'ripple' || !active || prefersReducedMotion) return;
-    
+
     const container = containerRef.current;
     if (!container) return;
-    
+
     const rect = container.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    
+
     // Add new ripple
     const id = rippleCount.current;
     rippleCount.current += 1;
-    
+
     const newRipple = { id, x, y, size };
     setRipples(prevRipples => [...prevRipples, newRipple]);
-    
+
     // Remove ripple after animation completes
     setTimeout(() => {
       setRipples(prevRipples => prevRipples.filter(r => r.id !== id));
     }, duration);
   };
-  
+
   // Clean up ripples when component unmounts
   useEffect(() => {
     return () => {
       setRipples([]);
     };
   }, []);
-  
+
   // Handle forwarded ref
   const setRefs = (element: HTMLDivElement) => {
     containerRef.current = element;
-    
+
     // Handle the forwarded ref
     if (typeof ref === 'function') {
       ref(element);
@@ -211,7 +218,7 @@ function VisualFeedbackComponent(
       (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
     }
   };
-  
+
   return (
     <FeedbackContainer
       ref={setRefs}
@@ -228,25 +235,26 @@ function VisualFeedbackComponent(
       {...rest}
     >
       {children}
-      
+
       {/* Render ripples */}
-      {effect === 'ripple' && ripples.map(ripple => (
-        <Ripple
-          key={ripple.id}
-          $size={ripple.size}
-          $x={ripple.x}
-          $y={ripple.y}
-          $color={color}
-          $duration={duration}
-        />
-      ))}
+      {effect === 'ripple' &&
+        ripples.map(ripple => (
+          <Ripple
+            key={ripple.id}
+            $size={ripple.size}
+            $x={ripple.x}
+            $y={ripple.y}
+            $color={color}
+            $duration={duration}
+          />
+        ))}
     </FeedbackContainer>
   );
 }
 
 /**
  * VisualFeedback Component
- * 
+ *
  * A component that provides visual feedback effects.
  */
 const VisualFeedback = forwardRef(VisualFeedbackComponent);

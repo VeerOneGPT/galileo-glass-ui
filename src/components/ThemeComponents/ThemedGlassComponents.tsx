@@ -1,12 +1,19 @@
 import React, { forwardRef, createContext, useContext, useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { ThemedGlassComponentsProps } from './types';
-import { ThemeProvider, ThemeTransition } from '../../theme';
-import { createThemeContext } from '../../core/themeContext';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
-import { THEME_VARIANTS } from '../../theme/constants';
+import { createThemeContext } from '../../core/themeContext';
 import { ColorMode, ThemeVariant } from '../../hooks/useGlassTheme';
-import { useTheme, useColorMode, useThemeVariant } from '../../theme';
+import {
+  ThemeProvider,
+  ThemeTransition,
+  useTheme,
+  useColorMode,
+  useThemeVariant,
+} from '../../theme';
+import { THEME_VARIANTS } from '../../theme/constants';
+
+import { ThemedGlassComponentsProps } from './types';
 
 // Create a context to pass down theme information to children
 interface ThemedGlassContextType {
@@ -17,7 +24,7 @@ interface ThemedGlassContextType {
 
 const ThemedGlassContext = createContext<ThemedGlassContextType>({
   glassIntensity: 0.7,
-  applyGlassEffect: true
+  applyGlassEffect: true,
 });
 
 // Hook to use the themed glass context
@@ -34,7 +41,7 @@ const GlassContainer = styled.div<{
       elevation: $glassIntensity,
       backgroundOpacity: 0.6,
       blurStrength: '10px',
-      themeContext
+      themeContext,
     });
   }}
 `;
@@ -65,25 +72,25 @@ export const ThemedGlassComponents = forwardRef<HTMLDivElement, ThemedGlassCompo
     const colorModeContext = useColorMode();
     const currentColorMode = colorModeContext[0];
     const setCurrentColorMode = colorModeContext[1];
-    
+
     const themeVariantContext = useThemeVariant();
     const currentThemeVariant = themeVariantContext[0];
     const setCurrentThemeVariant = themeVariantContext[1];
-    
+
     // Track transitions for animation
     const [isTransitioning, setIsTransitioning] = useState(false);
-    
+
     // Use provided values or fallback to current context
     const effectiveColorMode = colorMode || currentColorMode;
     const effectiveVariant = variant || currentThemeVariant;
-    
+
     // Create context value
     const contextValue: ThemedGlassContextType = {
       glassIntensity,
       applyGlassEffect,
-      contextData
+      contextData,
     };
-    
+
     // Handle transition state
     useEffect(() => {
       if (animated) {
@@ -91,11 +98,11 @@ export const ThemedGlassComponents = forwardRef<HTMLDivElement, ThemedGlassCompo
         const timer = setTimeout(() => {
           setIsTransitioning(false);
         }, transitionDuration);
-        
+
         return () => clearTimeout(timer);
       }
     }, [effectiveColorMode, effectiveVariant, animated, transitionDuration]);
-    
+
     // If we're not changing theme or variant, just render with context
     if (!effectiveVariant && !effectiveColorMode) {
       return (
@@ -113,15 +120,13 @@ export const ThemedGlassComponents = forwardRef<HTMLDivElement, ThemedGlassCompo
         </ThemedGlassContext.Provider>
       );
     }
-    
+
     // For theme changes, use the ThemeProvider and ThemeTransition
     return (
       <ThemeProvider>
         <ThemedGlassContext.Provider value={contextValue}>
           {animated ? (
-            <ThemeTransition 
-              duration={transitionDuration}
-            >
+            <ThemeTransition duration={transitionDuration}>
               <GlassContainer
                 ref={ref}
                 className={className}

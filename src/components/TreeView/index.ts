@@ -2,18 +2,10 @@
  * TreeView Component Exports
  */
 
-import TreeView, { GlassTreeView } from './TreeView';
 import TreeItem, { GlassTreeItem } from './TreeItem';
+import TreeView, { GlassTreeView } from './TreeView';
 
-export type { 
-  TreeViewProps, 
-  TreeItemProps
-} from './types';
+export type { TreeViewProps, TreeItemProps } from './types';
 
 export default TreeView;
-export { 
-  TreeView, 
-  GlassTreeView,
-  TreeItem, 
-  GlassTreeItem
-};
+export { TreeView, GlassTreeView, TreeItem, GlassTreeItem };

@@ -1,15 +1,16 @@
 /**
  * Card Animations
- * 
+ *
  * Animation presets specifically designed for card components
  */
 import { keyframes } from 'styled-components';
-import { 
-  animationTimings, 
-  animationEasings, 
-  AnimationIntensity, 
-  AnimationPreset, 
-  fadeAnimation 
+
+import {
+  animationTimings,
+  animationEasings,
+  AnimationIntensity,
+  AnimationPreset,
+  fadeAnimation,
 } from '../accessibleAnimations';
 
 // Card entrance animation
@@ -28,7 +29,7 @@ export const cardEnterAnimation: AnimationPreset = {
   easing: animationEasings.enter,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Card hover animation
@@ -58,9 +59,9 @@ export const cardHoverAnimation: AnimationPreset = {
     duration: animationTimings.fast,
     easing: animationEasings.standard,
     fillMode: 'forwards',
-    intensity: AnimationIntensity.SUBTLE
+    intensity: AnimationIntensity.SUBTLE,
   },
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Glass card reveal animation
@@ -83,7 +84,7 @@ export const glassCardRevealAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Card expand animation (for expandable cards)
@@ -110,7 +111,7 @@ export const cardExpandAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Card collapse animation (for expandable cards)
@@ -144,9 +145,9 @@ export const cardCollapseAnimation: AnimationPreset = {
     duration: animationTimings.fast,
     easing: animationEasings.exit,
     fillMode: 'forwards',
-    intensity: AnimationIntensity.SUBTLE
+    intensity: AnimationIntensity.SUBTLE,
   },
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Card flip animation (from front to back)
@@ -163,7 +164,7 @@ export const cardFlipAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation, // Just fade for reduced motion users
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Card fade in from bottom (stacked cards)
@@ -182,7 +183,7 @@ export const cardStackedEnterAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Card 3D tilt hover effect
@@ -199,7 +200,7 @@ export const card3DTiltAnimation: AnimationPreset = {
   easing: animationEasings.standard,
   fillMode: 'forwards',
   reducedMotionAlternative: null, // No alternative for reduced motion
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Export all card animations
@@ -211,5 +212,5 @@ export const cardAnimations = {
   collapse: cardCollapseAnimation,
   flip: cardFlipAnimation,
   stackedEnter: cardStackedEnterAnimation,
-  tilt3D: card3DTiltAnimation
+  tilt3D: card3DTiltAnimation,
 };

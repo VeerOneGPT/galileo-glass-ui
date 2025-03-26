@@ -1,6 +1,6 @@
 /**
  * Style Update Batching System
- * 
+ *
  * Optimizes performance by batching style updates to minimize reflows and repaints.
  */
 import { OptimizationLevel } from '../performanceOptimizations';
@@ -11,28 +11,28 @@ import { OptimizationLevel } from '../performanceOptimizations';
 export interface StyleBatcherConfig {
   /** Maximum batch size (number of operations) */
   maxBatchSize?: number;
-  
+
   /** Batch timeout in milliseconds */
   batchTimeout?: number;
-  
+
   /** Force batch processing on animation frame */
   useAnimationFrame?: boolean;
-  
+
   /** Current optimization level */
   optimizationLevel?: OptimizationLevel;
-  
+
   /** Group batches by element */
   groupByElement?: boolean;
-  
+
   /** Prioritize certain operations */
   prioritizeOperations?: boolean;
-  
+
   /** Auto disable during animations */
   disableDuringAnimation?: boolean;
-  
+
   /** Debug mode */
   debug?: boolean;
-  
+
   /** Automatically measure performance impact */
   measurePerformance?: boolean;
 }
@@ -49,7 +49,7 @@ const DEFAULT_CONFIG: Required<StyleBatcherConfig> = {
   prioritizeOperations: true,
   disableDuringAnimation: true,
   debug: false,
-  measurePerformance: false
+  measurePerformance: false,
 };
 
 /**
@@ -62,7 +62,7 @@ export enum StyleOperationType {
   REMOVE_CLASS = 'remove_class',
   SET_ATTRIBUTE = 'set_attribute',
   REMOVE_ATTRIBUTE = 'remove_attribute',
-  SET_PROPERTY = 'set_property'
+  SET_PROPERTY = 'set_property',
 }
 
 /**
@@ -72,7 +72,7 @@ export enum StyleOperationPriority {
   HIGH = 'high',
   NORMAL = 'normal',
   LOW = 'low',
-  DEFER = 'defer'
+  DEFER = 'defer',
 }
 
 /**
@@ -81,28 +81,28 @@ export enum StyleOperationPriority {
 export interface StyleOperation {
   /** Operation type */
   type: StyleOperationType;
-  
+
   /** Element to operate on */
   element: HTMLElement;
-  
+
   /** Property name (for style or attribute) */
   property?: string;
-  
+
   /** Value to set */
   value?: string;
-  
+
   /** Class name (for class operations) */
   className?: string;
-  
+
   /** Whether class should be toggled on or off */
   force?: boolean;
-  
+
   /** Priority level */
   priority?: StyleOperationPriority;
-  
+
   /** Creation timestamp */
   timestamp: number;
-  
+
   /** Operation ID */
   id: number;
 }
@@ -113,42 +113,42 @@ export interface StyleOperation {
 export interface BatchPerformanceMetrics {
   /** Total number of batches processed */
   batchCount: number;
-  
+
   /** Total number of operations processed */
   operationCount: number;
-  
+
   /** Average batch processing time in milliseconds */
   averageBatchTime: number;
-  
+
   /** Maximum batch processing time in milliseconds */
   maxBatchTime: number;
-  
+
   /** Total processing time in milliseconds */
   totalProcessingTime: number;
-  
+
   /** Estimated time saved compared to non-batched operations in milliseconds */
   estimatedTimeSaved: number;
-  
+
   /** Reflow count */
   reflowCount: number;
-  
+
   /** Repaint count */
   repaintCount: number;
 }
 
 /**
  * Style Update Batcher
- * 
+ *
  * Optimizes performance by batching style updates to minimize DOM reflows and repaints.
  */
 export class StyleUpdateBatcher {
   private config: Required<StyleBatcherConfig>;
   private operationQueue: StyleOperation[] = [];
-  private processingBatch: boolean = false;
+  private processingBatch = false;
   private batchTimeoutId: NodeJS.Timeout | null = null;
   private animationFrameId: number | null = null;
-  private lastBatchTime: number = 0;
-  private operationCounter: number = 0;
+  private lastBatchTime = 0;
+  private operationCounter = 0;
   private metrics: BatchPerformanceMetrics = {
     batchCount: 0,
     operationCount: 0,
@@ -157,26 +157,26 @@ export class StyleUpdateBatcher {
     totalProcessingTime: 0,
     estimatedTimeSaved: 0,
     reflowCount: 0,
-    repaintCount: 0
+    repaintCount: 0,
   };
   private onBatchProcessedCallbacks: ((count: number) => void)[] = [];
-  private isAnimating: boolean = false;
-  
+  private isAnimating = false;
+
   /**
    * Create a new style update batcher
    */
   constructor(config: StyleBatcherConfig = {}) {
     this.config = {
       ...DEFAULT_CONFIG,
-      ...config
+      ...config,
     };
-    
+
     // Detect animation frame loop for disabling during animations
     if (this.config.disableDuringAnimation) {
       this.setupAnimationDetection();
     }
   }
-  
+
   /**
    * Queue a style operation for batch processing
    */
@@ -186,22 +186,22 @@ export class StyleUpdateBatcher {
       this.processOperationImmediately(operation);
       return;
     }
-    
+
     // Add timestamp and id to operation
     const fullOperation: StyleOperation = {
       ...operation,
       timestamp: Date.now(),
       id: this.operationCounter++,
-      priority: operation.priority || StyleOperationPriority.NORMAL
+      priority: operation.priority || StyleOperationPriority.NORMAL,
     };
-    
+
     // Add to queue
     this.operationQueue.push(fullOperation);
-    
+
     // Check if we should process the batch
     this.checkBatchProcessing();
   }
-  
+
   /**
    * Set a style property value (queued)
    */
@@ -216,10 +216,10 @@ export class StyleUpdateBatcher {
       element,
       property,
       value,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Toggle a class on an element (queued)
    */
@@ -234,10 +234,10 @@ export class StyleUpdateBatcher {
       element,
       className,
       force,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Add a class to an element (queued)
    */
@@ -250,10 +250,10 @@ export class StyleUpdateBatcher {
       type: StyleOperationType.ADD_CLASS,
       element,
       className,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Remove a class from an element (queued)
    */
@@ -266,10 +266,10 @@ export class StyleUpdateBatcher {
       type: StyleOperationType.REMOVE_CLASS,
       element,
       className,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Set an attribute value (queued)
    */
@@ -284,10 +284,10 @@ export class StyleUpdateBatcher {
       element,
       property,
       value,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Remove an attribute (queued)
    */
@@ -300,10 +300,10 @@ export class StyleUpdateBatcher {
       type: StyleOperationType.REMOVE_ATTRIBUTE,
       element,
       property,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Set a property value (queued)
    */
@@ -318,50 +318,50 @@ export class StyleUpdateBatcher {
       element,
       property,
       value,
-      priority
+      priority,
     });
   }
-  
+
   /**
    * Process pending operations immediately
    */
   public flush(): void {
     if (this.operationQueue.length === 0) return;
-    
+
     // Cancel any pending batch processing
     if (this.batchTimeoutId !== null) {
       clearTimeout(this.batchTimeoutId);
       this.batchTimeoutId = null;
     }
-    
+
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
-    
+
     // Process the batch immediately
     this.processBatch();
   }
-  
+
   /**
    * Register a callback to be called after each batch is processed
    */
   public onBatchProcessed(callback: (count: number) => void): () => void {
     this.onBatchProcessedCallbacks.push(callback);
-    
+
     // Return a function to unregister the callback
     return () => {
       this.onBatchProcessedCallbacks = this.onBatchProcessedCallbacks.filter(cb => cb !== callback);
     };
   }
-  
+
   /**
    * Get current performance metrics
    */
   public getMetrics(): BatchPerformanceMetrics {
     return { ...this.metrics };
   }
-  
+
   /**
    * Reset performance metrics
    */
@@ -374,71 +374,71 @@ export class StyleUpdateBatcher {
       totalProcessingTime: 0,
       estimatedTimeSaved: 0,
       reflowCount: 0,
-      repaintCount: 0
+      repaintCount: 0,
     };
   }
-  
+
   /**
    * Clear all pending operations
    */
   public clear(): void {
     this.operationQueue = [];
-    
+
     // Cancel any pending batch processing
     if (this.batchTimeoutId !== null) {
       clearTimeout(this.batchTimeoutId);
       this.batchTimeoutId = null;
     }
-    
+
     if (this.animationFrameId !== null) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
     }
   }
-  
+
   /**
    * Process a single operation immediately (non-batched)
    */
   private processOperationImmediately(operation: Omit<StyleOperation, 'timestamp' | 'id'>): void {
     const { type, element, property, value, className, force } = operation;
-    
+
     switch (type) {
       case StyleOperationType.SET_STYLE:
         if (element && property !== undefined && value !== undefined) {
           element.style.setProperty(property, value);
         }
         break;
-        
+
       case StyleOperationType.TOGGLE_CLASS:
         if (element && className) {
           element.classList.toggle(className, force);
         }
         break;
-        
+
       case StyleOperationType.ADD_CLASS:
         if (element && className) {
           element.classList.add(className);
         }
         break;
-        
+
       case StyleOperationType.REMOVE_CLASS:
         if (element && className) {
           element.classList.remove(className);
         }
         break;
-        
+
       case StyleOperationType.SET_ATTRIBUTE:
         if (element && property !== undefined && value !== undefined) {
           element.setAttribute(property, value);
         }
         break;
-        
+
       case StyleOperationType.REMOVE_ATTRIBUTE:
         if (element && property !== undefined) {
           element.removeAttribute(property);
         }
         break;
-        
+
       case StyleOperationType.SET_PROPERTY:
         if (element && property !== undefined && value !== undefined) {
           (element as any)[property] = value;
@@ -446,26 +446,26 @@ export class StyleUpdateBatcher {
         break;
     }
   }
-  
+
   /**
    * Check if the batch should be processed
    */
   private checkBatchProcessing(): void {
     // Already processing a batch
     if (this.processingBatch) return;
-    
+
     // Check if batch size threshold is reached
     if (this.operationQueue.length >= this.config.maxBatchSize) {
       this.scheduleBatchProcessing();
       return;
     }
-    
+
     // Schedule batch processing with timeout
     if (this.batchTimeoutId === null) {
       this.scheduleBatchProcessing();
     }
   }
-  
+
   /**
    * Schedule the batch for processing
    */
@@ -488,23 +488,23 @@ export class StyleUpdateBatcher {
       }
     }
   }
-  
+
   /**
    * Process the current batch of operations
    */
   private processBatch(): void {
     // No operations to process
     if (this.operationQueue.length === 0) return;
-    
+
     this.processingBatch = true;
-    
+
     const startTime = performance.now();
     let operationsProcessed = 0;
-    
+
     // Get the operations to process
     let operations = [...this.operationQueue];
     this.operationQueue = [];
-    
+
     // Sort by priority if enabled
     if (this.config.prioritizeOperations) {
       operations.sort((a, b) => {
@@ -513,35 +513,35 @@ export class StyleUpdateBatcher {
           [StyleOperationPriority.HIGH]: 0,
           [StyleOperationPriority.NORMAL]: 1,
           [StyleOperationPriority.LOW]: 2,
-          [StyleOperationPriority.DEFER]: 3
+          [StyleOperationPriority.DEFER]: 3,
         };
-        
+
         const aPriority = priorityOrder[a.priority || StyleOperationPriority.NORMAL];
         const bPriority = priorityOrder[b.priority || StyleOperationPriority.NORMAL];
-        
+
         if (aPriority !== bPriority) {
           return aPriority - bPriority;
         }
-        
+
         // Then sort by timestamp
         return a.timestamp - b.timestamp;
       });
-      
+
       // Re-queue deferred operations
       const deferredOperations = operations.filter(
         op => op.priority === StyleOperationPriority.DEFER
       );
-      
+
       if (deferredOperations.length > 0) {
         this.operationQueue.push(...deferredOperations);
         operations = operations.filter(op => op.priority !== StyleOperationPriority.DEFER);
       }
     }
-    
+
     // Group by element if enabled
     if (this.config.groupByElement) {
       const elementGroups = new Map<HTMLElement, StyleOperation[]>();
-      
+
       // Group operations by element
       operations.forEach(op => {
         if (!elementGroups.has(op.element)) {
@@ -549,7 +549,7 @@ export class StyleUpdateBatcher {
         }
         elementGroups.get(op.element)!.push(op);
       });
-      
+
       // Process each element's operations together
       elementGroups.forEach((elementOperations, element) => {
         // Read phase - force a reflow once per element
@@ -558,13 +558,13 @@ export class StyleUpdateBatcher {
           element.offsetWidth; // eslint-disable-line
           this.metrics.reflowCount++;
         }
-        
+
         // Write phase - all changes in one batch per element
         elementOperations.forEach(op => {
           this.processOperation(op);
           operationsProcessed++;
         });
-        
+
         // Estimate one repaint per element
         if (this.config.measurePerformance) {
           this.metrics.repaintCount++;
@@ -576,34 +576,34 @@ export class StyleUpdateBatcher {
         this.processOperation(op);
         operationsProcessed++;
       });
-      
+
       // Estimate one reflow and repaint for the whole batch
       if (this.config.measurePerformance) {
         this.metrics.reflowCount++;
         this.metrics.repaintCount++;
       }
     }
-    
+
     // Calculate metrics
     const endTime = performance.now();
     const batchTime = endTime - startTime;
-    
+
     if (this.config.measurePerformance) {
       this.metrics.batchCount++;
       this.metrics.operationCount += operationsProcessed;
       this.metrics.totalProcessingTime += batchTime;
       this.metrics.maxBatchTime = Math.max(this.metrics.maxBatchTime, batchTime);
       this.metrics.averageBatchTime = this.metrics.totalProcessingTime / this.metrics.batchCount;
-      
+
       // Estimate time saved compared to non-batched operations
       // Assume 3ms per reflow on average
       const estimatedUnbatchedTime = operationsProcessed * 3;
       this.metrics.estimatedTimeSaved += Math.max(0, estimatedUnbatchedTime - batchTime);
     }
-    
+
     this.lastBatchTime = batchTime;
     this.processingBatch = false;
-    
+
     // Call batch processed callbacks
     this.onBatchProcessedCallbacks.forEach(callback => {
       try {
@@ -614,29 +614,29 @@ export class StyleUpdateBatcher {
         }
       }
     });
-    
+
     // Log debug info if enabled
     if (this.config.debug) {
       console.log(
         `[StyleBatcher] Processed ${operationsProcessed} operations in ${batchTime.toFixed(2)}ms`
       );
     }
-    
+
     // Check if there are more operations to process
     if (this.operationQueue.length > 0) {
       this.scheduleBatchProcessing();
     }
   }
-  
+
   /**
    * Process a single operation
    */
   private processOperation(operation: StyleOperation): void {
     const { type, element, property, value, className, force } = operation;
-    
+
     // Skip invalid operations
     if (!element || element.nodeType !== Node.ELEMENT_NODE) return;
-    
+
     try {
       switch (type) {
         case StyleOperationType.SET_STYLE:
@@ -644,37 +644,37 @@ export class StyleUpdateBatcher {
             element.style.setProperty(property, value);
           }
           break;
-          
+
         case StyleOperationType.TOGGLE_CLASS:
           if (className) {
             element.classList.toggle(className, force);
           }
           break;
-          
+
         case StyleOperationType.ADD_CLASS:
           if (className) {
             element.classList.add(className);
           }
           break;
-          
+
         case StyleOperationType.REMOVE_CLASS:
           if (className) {
             element.classList.remove(className);
           }
           break;
-          
+
         case StyleOperationType.SET_ATTRIBUTE:
           if (property !== undefined && value !== undefined) {
             element.setAttribute(property, value);
           }
           break;
-          
+
         case StyleOperationType.REMOVE_ATTRIBUTE:
           if (property !== undefined) {
             element.removeAttribute(property);
           }
           break;
-          
+
         case StyleOperationType.SET_PROPERTY:
           if (property !== undefined && value !== undefined) {
             (element as any)[property] = value;
@@ -687,39 +687,39 @@ export class StyleUpdateBatcher {
       }
     }
   }
-  
+
   /**
    * Set up detection of animation frame time to disable batching during animations
    */
   private setupAnimationDetection(): void {
     if (typeof window === 'undefined') return;
-    
+
     let lastFrameTime = 0;
     let consecutiveQuickFrames = 0;
-    
+
     const checkFrameRate = (timestamp: number) => {
       if (lastFrameTime === 0) {
         lastFrameTime = timestamp;
         requestAnimationFrame(checkFrameRate);
         return;
       }
-      
+
       const frameTime = timestamp - lastFrameTime;
       lastFrameTime = timestamp;
-      
+
       // Frames taking less than 16ms (>60fps) suggest animations
       if (frameTime < 16) {
         consecutiveQuickFrames++;
       } else {
         consecutiveQuickFrames = 0;
       }
-      
+
       // If we get multiple consecutive quick frames, assume animation is happening
       if (consecutiveQuickFrames >= 3) {
         // Animation detected
         if (!this.isAnimating) {
           this.isAnimating = true;
-          
+
           // Flush any pending operations
           this.flush();
         }
@@ -727,10 +727,10 @@ export class StyleUpdateBatcher {
         // Animation stopped
         this.isAnimating = false;
       }
-      
+
       requestAnimationFrame(checkFrameRate);
     };
-    
+
     requestAnimationFrame(checkFrameRate);
   }
 }
@@ -738,16 +738,12 @@ export class StyleUpdateBatcher {
 /**
  * Global style update batcher for shared use
  */
-export const globalStyleBatcher = typeof window !== 'undefined'
-  ? new StyleUpdateBatcher()
-  : null;
+export const globalStyleBatcher = typeof window !== 'undefined' ? new StyleUpdateBatcher() : null;
 
 /**
  * Create a new style update batcher
  */
-export const createStyleBatcher = (
-  config?: StyleBatcherConfig
-): StyleUpdateBatcher => {
+export const createStyleBatcher = (config?: StyleBatcherConfig): StyleUpdateBatcher => {
   return new StyleUpdateBatcher(config);
 };
 

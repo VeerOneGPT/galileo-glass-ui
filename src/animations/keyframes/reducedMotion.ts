@@ -1,6 +1,6 @@
 /**
  * Reduced Motion Alternatives
- * 
+ *
  * Animation keyframes specifically designed for users who prefer reduced motion.
  * These animations avoid movement and use opacity/color changes instead.
  */
@@ -223,20 +223,20 @@ export const REDUCED_MOTION_ALTERNATIVES = {
   slideInRight: reducedFadeIn,
   zoomIn: reducedFadeIn,
   zoomOut: reducedFadeOut,
-  
+
   // Feedback animations
   pulse: reducedEmphasis,
   spin: reducedLoading,
   bounce: reducedEmphasis,
   shake: reducedAttention,
-  
+
   // Glass animations
   glassFadeIn: reducedFadeIn,
   glassFadeOut: reducedFadeOut,
   glassReveal: reducedFadeIn,
   glassGlow: reducedStaticGlow,
   glassBorderShine: reducedBorderHighlight,
-  
+
   // Interaction feedback
   focusRingPulse: reducedFocusRing,
   borderPulse: reducedBorderPulse,

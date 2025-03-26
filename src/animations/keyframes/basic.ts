@@ -1,6 +1,6 @@
 /**
  * Basic Animation Keyframes
- * 
+ *
  * Common animation keyframes for UI elements
  */
 import { keyframes } from 'styled-components';

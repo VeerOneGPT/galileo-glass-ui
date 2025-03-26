@@ -1,24 +1,34 @@
 import React, { forwardRef, useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
-import { ZSpaceAppLayoutProps } from './types';
+
+import { glassBorder } from '../../core/mixins/glassBorder';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
 import { Box } from '../Box';
 import { Button } from '../Button';
 import { Icon } from '../Icon';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassBorder } from '../../core/mixins/glassBorder';
-import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+import { ZSpaceAppLayoutProps } from './types';
 
 // ZSpace layer provider for properly stacking layout elements
-const ZSpaceProvider = ({ children, zIndex = 0 }: { children: React.ReactNode; zIndex?: number }) => {
+const ZSpaceProvider = ({
+  children,
+  zIndex = 0,
+}: {
+  children: React.ReactNode;
+  zIndex?: number;
+}) => {
   return (
-    <div style={{ 
-      position: 'relative', 
-      zIndex, 
-      transform: `translateZ(${zIndex * 10}px)`,
-      transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-    }}>
+    <div
+      style={{
+        position: 'relative',
+        zIndex,
+        transform: `translateZ(${zIndex * 10}px)`,
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
       {children}
     </div>
   );
@@ -33,9 +43,10 @@ const LayoutContainer = styled.div<{
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  perspective: ${({ $enableZSpaceAnimations }) => $enableZSpaceAnimations ? '1200px' : 'none'};
-  transform-style: ${({ $enableZSpaceAnimations }) => $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
-  
+  perspective: ${({ $enableZSpaceAnimations }) => ($enableZSpaceAnimations ? '1200px' : 'none')};
+  transform-style: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
+
   ${({ theme, $glassIntensity }) => {
     if ($glassIntensity > 0) {
       const themeContext = createThemeContext(theme);
@@ -43,7 +54,7 @@ const LayoutContainer = styled.div<{
         elevation: 'low',
         backgroundOpacity: 0.2,
         blurStrength: '5px',
-        themeContext
+        themeContext,
       });
     }
     return '';
@@ -56,15 +67,15 @@ const HeaderContainer = styled.header<{
   $glassIntensity: number;
 }>`
   width: 100%;
-  height: ${({ $height }) => typeof $height === 'number' ? `${$height}px` : $height};
+  height: ${({ $height }) => (typeof $height === 'number' ? `${$height}px` : $height)};
   display: flex;
   align-items: center;
-  position: ${({ $fixed }) => $fixed ? 'fixed' : 'relative'};
+  position: ${({ $fixed }) => ($fixed ? 'fixed' : 'relative')};
   top: 0;
   left: 0;
   right: 0;
   z-index: 30;
-  
+
   ${({ theme, $glassIntensity }) => {
     if ($glassIntensity > 0) {
       const themeContext = createThemeContext(theme);
@@ -72,18 +83,18 @@ const HeaderContainer = styled.header<{
         elevation: 'medium',
         backgroundOpacity: 0.6,
         blurStrength: '10px',
-        themeContext
+        themeContext,
       });
     }
     return '';
   }}
-  
+
   ${({ theme }) => {
     const themeContext = createThemeContext(theme);
     return glassBorder({
       width: '0 0 1px 0',
       opacity: 0.3,
-      themeContext
+      themeContext,
     });
   }}
 `;
@@ -95,19 +106,19 @@ const SidebarContainer = styled.aside<{
   $glassIntensity: number;
   $enableZSpaceAnimations: boolean;
 }>`
-  width: ${({ $width, $collapsed }) => 
-    $collapsed ? '64px' : (typeof $width === 'number' ? `${$width}px` : $width)
-  };
+  width: ${({ $width, $collapsed }) =>
+    $collapsed ? '64px' : typeof $width === 'number' ? `${$width}px` : $width};
   height: 100%;
-  position: ${({ $fixed }) => $fixed ? 'fixed' : 'relative'};
+  position: ${({ $fixed }) => ($fixed ? 'fixed' : 'relative')};
   left: 0;
-  top: ${({ $fixed }) => $fixed ? '0' : 'auto'};
+  top: ${({ $fixed }) => ($fixed ? '0' : 'auto')};
   bottom: 0;
   z-index: 20;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  transform-style: ${({ $enableZSpaceAnimations }) => $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
-  
+  transform-style: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
+
   ${({ theme, $glassIntensity }) => {
     if ($glassIntensity > 0) {
       const themeContext = createThemeContext(theme);
@@ -115,18 +126,18 @@ const SidebarContainer = styled.aside<{
         elevation: 'medium',
         backgroundOpacity: 0.5,
         blurStrength: '8px',
-        themeContext
+        themeContext,
       });
     }
     return '';
   }}
-  
+
   ${({ theme }) => {
     const themeContext = createThemeContext(theme);
     return glassBorder({
       width: '0 1px 0 0',
       opacity: 0.3,
-      themeContext
+      themeContext,
     });
   }}
 `;
@@ -145,32 +156,44 @@ const ContentContainer = styled.main<{
   $enableZSpaceAnimations: boolean;
 }>`
   flex: 1;
-  margin-left: ${({ $hasSidebar, $sidebarWidth, $hasFixedSidebar, $sidebarCollapsed }) => 
-    $hasSidebar && $hasFixedSidebar 
-      ? ($sidebarCollapsed 
-          ? '64px' 
-          : (typeof $sidebarWidth === 'number' ? `${$sidebarWidth}px` : $sidebarWidth))
-      : '0'
-  };
-  margin-top: ${({ $hasFixedHeader, $headerHeight }) => 
-    $hasFixedHeader ? (typeof $headerHeight === 'number' ? `${$headerHeight}px` : $headerHeight) : '0'
-  };
-  margin-bottom: ${({ $hasFixedFooter, $footerHeight }) => 
-    $hasFixedFooter ? (typeof $footerHeight === 'number' ? `${$footerHeight}px` : $footerHeight) : '0'
-  };
-  padding: ${({ $padding }) => typeof $padding === 'number' ? `${$padding}px` : $padding};
-  max-width: ${({ $maxWidth }) => 
-    $maxWidth ? (typeof $maxWidth === 'number' ? `${$maxWidth}px` : $maxWidth) : 'none'
-  };
+  margin-left: ${({ $hasSidebar, $sidebarWidth, $hasFixedSidebar, $sidebarCollapsed }) =>
+    $hasSidebar && $hasFixedSidebar
+      ? $sidebarCollapsed
+        ? '64px'
+        : typeof $sidebarWidth === 'number'
+        ? `${$sidebarWidth}px`
+        : $sidebarWidth
+      : '0'};
+  margin-top: ${({ $hasFixedHeader, $headerHeight }) =>
+    $hasFixedHeader
+      ? typeof $headerHeight === 'number'
+        ? `${$headerHeight}px`
+        : $headerHeight
+      : '0'};
+  margin-bottom: ${({ $hasFixedFooter, $footerHeight }) =>
+    $hasFixedFooter
+      ? typeof $footerHeight === 'number'
+        ? `${$footerHeight}px`
+        : $footerHeight
+      : '0'};
+  padding: ${({ $padding }) => (typeof $padding === 'number' ? `${$padding}px` : $padding)};
+  max-width: ${({ $maxWidth }) =>
+    $maxWidth ? (typeof $maxWidth === 'number' ? `${$maxWidth}px` : $maxWidth) : 'none'};
   margin-right: auto;
-  margin-left: ${({ $hasSidebar, $hasFixedSidebar, $sidebarWidth, $sidebarCollapsed, $maxWidth }) => 
-    $hasSidebar && $hasFixedSidebar 
-      ? ($sidebarCollapsed ? '64px' : (typeof $sidebarWidth === 'number' ? `${$sidebarWidth}px` : $sidebarWidth))
-      : ($maxWidth ? 'auto' : '0')
-  };
+  margin-left: ${({ $hasSidebar, $hasFixedSidebar, $sidebarWidth, $sidebarCollapsed, $maxWidth }) =>
+    $hasSidebar && $hasFixedSidebar
+      ? $sidebarCollapsed
+        ? '64px'
+        : typeof $sidebarWidth === 'number'
+        ? `${$sidebarWidth}px`
+        : $sidebarWidth
+      : $maxWidth
+      ? 'auto'
+      : '0'};
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: ${({ $enableZSpaceAnimations }) => $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
+  transform-style: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
   z-index: 10;
 `;
 
@@ -180,15 +203,15 @@ const FooterContainer = styled.footer<{
   $glassIntensity: number;
 }>`
   width: 100%;
-  height: ${({ $height }) => typeof $height === 'number' ? `${$height}px` : $height};
+  height: ${({ $height }) => (typeof $height === 'number' ? `${$height}px` : $height)};
   display: flex;
   align-items: center;
-  position: ${({ $fixed }) => $fixed ? 'fixed' : 'relative'};
+  position: ${({ $fixed }) => ($fixed ? 'fixed' : 'relative')};
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 30;
-  
+
   ${({ theme, $glassIntensity }) => {
     if ($glassIntensity > 0) {
       const themeContext = createThemeContext(theme);
@@ -196,18 +219,18 @@ const FooterContainer = styled.footer<{
         elevation: 'medium',
         backgroundOpacity: 0.6,
         blurStrength: '8px',
-        themeContext
+        themeContext,
       });
     }
     return '';
   }}
-  
+
   ${({ theme }) => {
     const themeContext = createThemeContext(theme);
     return glassBorder({
       width: '1px 0 0 0',
       opacity: 0.3,
-      themeContext
+      themeContext,
     });
   }}
 `;
@@ -221,10 +244,10 @@ const BackgroundWrapper = styled.div<{
   right: 0;
   bottom: 0;
   z-index: 0;
-  transform: ${({ $enableZSpaceAnimations }) => 
-    $enableZSpaceAnimations ? 'translateZ(-50px)' : 'none'
-  };
-  transform-style: ${({ $enableZSpaceAnimations }) => $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
+  transform: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'translateZ(-50px)' : 'none'};
+  transform-style: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
 `;
 
 const SidebarToggleButton = styled.button`
@@ -242,7 +265,7 @@ const SidebarToggleButton = styled.button`
   justify-content: center;
   cursor: pointer;
   z-index: 100;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.2);
   }
@@ -275,7 +298,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
         content: 10,
         footer: 30,
         navigation: 40,
-        overlay: 50
+        overlay: 50,
       },
       maxContentWidth,
       contentPadding = '1.5rem',
@@ -293,13 +316,13 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
     const prefersReducedMotion = useReducedMotion();
     const zSpaceAnimation = useZSpaceAnimation({
       intensity: zSpaceAnimationIntensity,
-      enabled: enableZSpaceAnimations && !prefersReducedMotion
+      enabled: enableZSpaceAnimations && !prefersReducedMotion,
     });
-    
+
     const toggleSidebar = useCallback(() => {
       setSidebarCollapsed(prevState => !prevState);
     }, []);
-    
+
     // Adjust layout when window is resized
     useEffect(() => {
       const handleResize = () => {
@@ -307,34 +330,34 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
           setSidebarCollapsed(true);
         }
       };
-      
+
       window.addEventListener('resize', handleResize);
-      
+
       // Initial check
       handleResize();
-      
+
       return () => {
         window.removeEventListener('resize', handleResize);
       };
     }, [sidebarCollapsed]);
-    
+
     // Default sidebar toggle if none provided
     const defaultSidebarToggle = (
-      <SidebarToggleButton 
+      <SidebarToggleButton
         onClick={toggleSidebar}
         aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       >
         <Icon>{sidebarCollapsed ? 'chevron_right' : 'chevron_left'}</Icon>
       </SidebarToggleButton>
     );
-    
+
     return (
       <LayoutContainer
         ref={ref}
         className={className}
         style={{
           ...style,
-          ...zSpaceAnimation.containerStyle
+          ...zSpaceAnimation.containerStyle,
         }}
         $glassIntensity={useGlassEffects ? glassIntensity : 0}
         $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}
@@ -342,13 +365,13 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
       >
         {/* Background layer */}
         {backgroundComponent && (
-          <BackgroundWrapper $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}>
-            <ZSpaceProvider zIndex={zLayers.background}>
-              {backgroundComponent}
-            </ZSpaceProvider>
+          <BackgroundWrapper
+            $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}
+          >
+            <ZSpaceProvider zIndex={zLayers.background}>{backgroundComponent}</ZSpaceProvider>
           </BackgroundWrapper>
         )}
-        
+
         {/* Header */}
         {header && (
           <ZSpaceProvider zIndex={zLayers.header}>
@@ -361,7 +384,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             </HeaderContainer>
           </ZSpaceProvider>
         )}
-        
+
         {/* Sidebar */}
         {sidebar && (
           <ZSpaceProvider zIndex={zLayers.sidebar}>
@@ -377,7 +400,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             </SidebarContainer>
           </ZSpaceProvider>
         )}
-        
+
         {/* Main content */}
         <ZSpaceProvider zIndex={zLayers.content}>
           <ContentContainer
@@ -397,7 +420,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             {children}
           </ContentContainer>
         </ZSpaceProvider>
-        
+
         {/* Footer */}
         {footer && (
           <ZSpaceProvider zIndex={zLayers.footer}>
@@ -410,13 +433,9 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             </FooterContainer>
           </ZSpaceProvider>
         )}
-        
+
         {/* Navigation - typically used for floating nav elements */}
-        {navigation && (
-          <ZSpaceProvider zIndex={zLayers.navigation}>
-            {navigation}
-          </ZSpaceProvider>
-        )}
+        {navigation && <ZSpaceProvider zIndex={zLayers.navigation}>{navigation}</ZSpaceProvider>}
       </LayoutContainer>
     );
   }

@@ -1,11 +1,12 @@
 /**
  * Focus Styles Mixin
- * 
+ *
  * Creates accessible focus styles for better keyboard navigation
  */
 import { css } from 'styled-components';
-import { cssWithKebabProps } from '../../cssUtils';
+
 import { withAlpha } from '../../colorUtils';
+import { cssWithKebabProps } from '../../cssUtils';
 
 /**
  * Focus styles options
@@ -15,57 +16,57 @@ export interface FocusStylesOptions {
    * Type of focus style
    */
   type?: 'outline' | 'ring' | 'border' | 'highlight' | 'custom';
-  
+
   /**
    * Width of the focus indicator
    */
   width?: number | string;
-  
+
   /**
    * Color of the focus indicator
    */
   color?: string;
-  
+
   /**
    * Opacity of the focus indicator
    */
   opacity?: number;
-  
+
   /**
    * Offset of the focus indicator
    */
   offset?: number | string;
-  
+
   /**
    * Border radius of the focus indicator
    */
   borderRadius?: number | string;
-  
+
   /**
    * If true, uses the :focus-visible selector for focus styles
    */
   focusVisible?: boolean;
-  
+
   /**
    * If true, uses a more prominent style for high contrast mode
    */
   highContrast?: boolean;
-  
+
   /**
    * For custom type, a custom CSS snippet
    */
   customCss?: string;
-  
+
   /**
    * If true, the focus indicator will be animated
    */
   animated?: boolean;
-  
+
   /**
    * Animation duration in seconds
    */
   animationDuration?: number;
-  
+
   /**
    * Theme context
    */
@@ -90,33 +91,36 @@ export const focusStyles = (options: FocusStylesOptions) => {
     animationDuration = 0.2,
     themeContext,
   } = options;
-  
+
   // Determine if dark mode
   const isDarkMode = themeContext?.isDarkMode || false;
-  
+
   // Determine focus color
   const focusColor = color || (isDarkMode ? '#90caf9' : '#2196f3');
-  
+
   // Convert width and offset to pixels if they are numbers
   const widthPx = typeof width === 'number' ? `${width}px` : width;
   const offsetPx = typeof offset === 'number' ? `${offset}px` : offset;
-  
+
   // Determine border radius
-  const radius = borderRadius !== undefined
-    ? typeof borderRadius === 'number' ? `${borderRadius}px` : borderRadius
-    : 'inherit';
-  
+  const radius =
+    borderRadius !== undefined
+      ? typeof borderRadius === 'number'
+        ? `${borderRadius}px`
+        : borderRadius
+      : 'inherit';
+
   // Create focus selector based on preference
   const focusSelector = focusVisible ? '&:focus-visible' : '&:focus';
-  
+
   // Animation styles if enabled
   const animationStyles = animated
     ? `transition: box-shadow ${animationDuration}s ease-out, outline ${animationDuration}s ease-out;`
     : '';
-  
+
   // Build focus styles based on type
   let focusStylesCSS = '';
-  
+
   switch (type) {
     case 'outline':
       focusStylesCSS = `
@@ -127,7 +131,7 @@ export const focusStyles = (options: FocusStylesOptions) => {
         }
       `;
       break;
-      
+
     case 'ring':
       focusStylesCSS = `
         ${focusSelector} {
@@ -138,7 +142,7 @@ export const focusStyles = (options: FocusStylesOptions) => {
         }
       `;
       break;
-      
+
     case 'border':
       focusStylesCSS = `
         ${focusSelector} {
@@ -148,7 +152,7 @@ export const focusStyles = (options: FocusStylesOptions) => {
         }
       `;
       break;
-      
+
     case 'highlight':
       focusStylesCSS = `
         ${focusSelector} {
@@ -159,7 +163,7 @@ export const focusStyles = (options: FocusStylesOptions) => {
         }
       `;
       break;
-      
+
     case 'custom':
       focusStylesCSS = `
         ${focusSelector} {
@@ -168,7 +172,7 @@ export const focusStyles = (options: FocusStylesOptions) => {
         }
       `;
       break;
-      
+
     default:
       focusStylesCSS = `
         ${focusSelector} {
@@ -179,9 +183,10 @@ export const focusStyles = (options: FocusStylesOptions) => {
       `;
       break;
   }
-  
+
   // Add high contrast mode styles if enabled
-  const highContrastStyles = highContrast ? `
+  const highContrastStyles = highContrast
+    ? `
     @media (prefers-contrast: more) {
       ${focusSelector} {
         outline: ${widthPx} solid ${isDarkMode ? '#ffffff' : '#000000'} !important;
@@ -189,8 +194,9 @@ export const focusStyles = (options: FocusStylesOptions) => {
         box-shadow: none !important;
       }
     }
-  ` : '';
-  
+  `
+    : '';
+
   // Combine all styles
   return cssWithKebabProps`
     /* Remove default focus styles */

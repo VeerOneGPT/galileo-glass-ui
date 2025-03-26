@@ -1,13 +1,15 @@
 /**
  * RippleButton Component
- * 
+ *
  * A button component with ripple effect feedback.
  */
 import React, { forwardRef, useState, useRef } from 'react';
 import styled from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { RippleButtonProps } from './types';
 
 // Get color values based on theme color
@@ -16,7 +18,7 @@ const getColorValues = (
   variant: string
 ): { bg: string; border: string; text: string; hoverBg: string; activeBg: string } => {
   let bg, border, text, hoverBg, activeBg;
-  
+
   switch (color) {
     case 'primary':
       bg = variant === 'contained' ? 'rgba(99, 102, 241, 0.9)' : 'transparent';
@@ -68,7 +70,7 @@ const getColorValues = (
       hoverBg = variant === 'contained' ? 'rgba(80, 80, 80, 0.9)' : 'rgba(255, 255, 255, 0.08)';
       activeBg = variant === 'contained' ? 'rgba(90, 90, 90, 0.9)' : 'rgba(255, 255, 255, 0.12)';
   }
-  
+
   return { bg, border, text, hoverBg, activeBg };
 };
 
@@ -145,67 +147,80 @@ const ButtonRoot = styled.button<{
   outline: 0;
   border: 0;
   margin: 0;
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${props => (props.$disabled ? 'not-allowed' : 'pointer')};
   user-select: none;
   vertical-align: middle;
   text-decoration: none;
   font-weight: 500;
-  font-size: ${props => props.$size === 'small' ? '0.8125rem' : 
-                         props.$size === 'large' ? '0.9375rem' : 
-                         '0.875rem'};
+  font-size: ${props =>
+    props.$size === 'small' ? '0.8125rem' : props.$size === 'large' ? '0.9375rem' : '0.875rem'};
   line-height: 1.75;
   min-width: 64px;
-  padding: ${props => props.$size === 'small' ? '4px 10px' : 
-                      props.$size === 'large' ? '8px 22px' : 
-                      '6px 16px'};
+  padding: ${props =>
+    props.$size === 'small' ? '4px 10px' : props.$size === 'large' ? '8px 22px' : '6px 16px'};
   border-radius: 4px;
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
   overflow: hidden;
-  
+
   /* Base styling based on variant */
   background-color: ${props => props.$colorValues.bg};
   color: ${props => props.$colorValues.text};
-  
+
   /* Border styling */
-  border: ${props => props.$variant === 'outlined' ? `1px solid ${props.$colorValues.border}` : 'none'};
-  
+  border: ${props =>
+    props.$variant === 'outlined' ? `1px solid ${props.$colorValues.border}` : 'none'};
+
   /* Glass styling */
-  ${props => props.$glass && glassSurface({
-    elevation: props.$variant === 'contained' ? 2 : 1,
-    blurStrength: props.$variant === 'contained' ? 'standard' : 'light',
-    borderOpacity: props.$variant === 'outlined' ? 'medium' : 'subtle',
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: props.$variant === 'contained' ? 2 : 1,
+      blurStrength: props.$variant === 'contained' ? 'standard' : 'light',
+      borderOpacity: props.$variant === 'outlined' ? 'medium' : 'subtle',
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Glass variant additional styling */
-  ${props => props.$glass && props.$variant === 'contained' && `
+  ${props =>
+    props.$glass &&
+    props.$variant === 'contained' &&
+    `
     background-color: rgba(255, 255, 255, 0.1);
   `}
   
-  ${props => props.$glass && props.$variant === 'outlined' && `
+  ${props =>
+    props.$glass &&
+    props.$variant === 'outlined' &&
+    `
     border: 1px solid rgba(255, 255, 255, 0.23);
   `}
   
   /* Transitions */
   transition: background-color 0.3s, border-color 0.3s, color 0.3s, box-shadow 0.3s;
-  
+
   /* Hover state */
   &:hover {
-    ${props => !props.$disabled && `
+    ${props =>
+      !props.$disabled &&
+      `
       background-color: ${props.$colorValues.hoverBg};
       ${props.$variant === 'outlined' ? `border-color: ${props.$colorValues.border};` : ''}
     `}
   }
-  
+
   /* Active state */
   &:active {
-    ${props => !props.$disabled && `
+    ${props =>
+      !props.$disabled &&
+      `
       background-color: ${props.$colorValues.activeBg};
     `}
   }
-  
+
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     color: rgba(255, 255, 255, 0.4);
     background-color: ${props.$variant === 'contained' ? 'rgba(50, 50, 50, 0.5)' : 'transparent'};
     border-color: ${props.$variant === 'outlined' ? 'rgba(255, 255, 255, 0.12)' : 'transparent'};
@@ -213,7 +228,7 @@ const ButtonRoot = styled.button<{
     box-shadow: none;
     opacity: 0.6;
   `}
-  
+
   /* Set CSS variable for ripple color */
   --ripple-color-rgb: ${props => colorToRgb(props.$rippleColor)};
 `;
@@ -230,8 +245,9 @@ const Ripple = styled.span<{
   border-radius: 50%;
   background-color: rgba(var(--ripple-color-rgb), 0.3);
   transform: scale(0);
-  animation: ${props => props.$reducedMotion ? 'none' : `ripple ${props.$duration}ms ease-out forwards`};
-  
+  animation: ${props =>
+    props.$reducedMotion ? 'none' : `ripple ${props.$duration}ms ease-out forwards`};
+
   @keyframes ripple {
     to {
       transform: scale(2);
@@ -265,34 +281,34 @@ function RippleButtonComponent(
     type = 'button',
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Get color values
   const colorValues = getColorValues(color, variant);
-  
+
   // State for ripples
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number }>>([]);
-  let rippleCount = useRef(0);
-  
+  const rippleCount = useRef(0);
+
   // Reference to the button element
   const buttonRef = useRef<HTMLButtonElement>(null);
-  
+
   // Handle click and ripple effect
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled || prefersReducedMotion) {
       if (onClick) onClick(event);
       return;
     }
-    
+
     const button = buttonRef.current;
     if (!button) return;
-    
+
     // Calculate ripple position
     const rect = button.getBoundingClientRect();
     let x, y;
-    
+
     if (centerRipple) {
       x = rect.width / 2;
       y = rect.height / 2;
@@ -300,27 +316,27 @@ function RippleButtonComponent(
       x = event.clientX - rect.left;
       y = event.clientY - rect.top;
     }
-    
+
     // Add new ripple
     const id = rippleCount.current;
     rippleCount.current += 1;
-    
+
     setRipples(prevRipples => [...prevRipples, { id, x, y }]);
-    
+
     // Remove ripple after animation
     const duration = getRippleDuration(rippleSpeed);
     setTimeout(() => {
       setRipples(prevRipples => prevRipples.filter(r => r.id !== id));
     }, duration);
-    
+
     // Call the original onClick handler
     if (onClick) onClick(event);
   };
-  
+
   // Handle forwarded ref
   const setRefs = (element: HTMLButtonElement) => {
     buttonRef.current = element;
-    
+
     // Handle the forwarded ref
     if (typeof ref === 'function') {
       ref(element);
@@ -328,11 +344,11 @@ function RippleButtonComponent(
       (ref as React.MutableRefObject<HTMLButtonElement | null>).current = element;
     }
   };
-  
+
   // Get ripple parameters
   const rippleSizeValue = getRippleSize(rippleSize);
   const rippleDuration = getRippleDuration(rippleSpeed);
-  
+
   return (
     <ButtonRoot
       ref={setRefs}
@@ -352,7 +368,7 @@ function RippleButtonComponent(
       {...rest}
     >
       {children}
-      
+
       {/* Render ripples */}
       {ripples.map(ripple => (
         <Ripple
@@ -361,7 +377,7 @@ function RippleButtonComponent(
             left: ripple.x - rippleSizeValue / 2,
             top: ripple.y - rippleSizeValue / 2,
             width: rippleSizeValue,
-            height: rippleSizeValue
+            height: rippleSizeValue,
           }}
           $size={rippleSizeValue}
           $x={ripple.x}
@@ -376,7 +392,7 @@ function RippleButtonComponent(
 
 /**
  * RippleButton Component
- * 
+ *
  * A button component with ripple effect feedback.
  */
 const RippleButton = forwardRef(RippleButtonComponent);

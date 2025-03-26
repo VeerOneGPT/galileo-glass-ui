@@ -1,13 +1,15 @@
 /**
  * FrostedGlass Component
- * 
+ *
  * A glass surface with frosted ice effects.
  */
 import React, { forwardRef, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { FrostedGlassProps } from './types';
 
 // Frost animation keyframes
@@ -46,37 +48,45 @@ const FrostContainer = styled.div<{
 }>`
   position: relative;
   display: block;
-  width: ${props => props.$fullWidth ? '100%' : 'auto'};
-  height: ${props => props.$fullHeight ? '100%' : 'auto'};
-  border-radius: ${props => typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
-  padding: ${props => typeof props.$padding === 'number' ? `${props.$padding}px` : props.$padding};
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
+  height: ${props => (props.$fullHeight ? '100%' : 'auto')};
+  border-radius: ${props =>
+    typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
+  padding: ${props =>
+    typeof props.$padding === 'number' ? `${props.$padding}px` : props.$padding};
   box-sizing: border-box;
   overflow: hidden;
-  
+
   /* Apply glass surface effect */
-  ${props => glassSurface({
-    elevation: props.$elevation,
-    blurStrength: props.$blurStrength,
-    borderOpacity: props.$borderOpacity,
-    themeContext: createThemeContext(props.theme)
-  })}
-  
+  ${props =>
+    glassSurface({
+      elevation: props.$elevation,
+      blurStrength: props.$blurStrength,
+      borderOpacity: props.$borderOpacity,
+      themeContext: createThemeContext(props.theme),
+    })}
+
   /* Custom background color */
   background-color: ${props => props.$backgroundColor};
-  
+
   /* Border */
   border-width: ${props => props.$borderWidth}px;
   border-style: solid;
   border-color: ${props => {
     switch (props.$borderOpacity) {
-      case 'none': return 'transparent';
-      case 'subtle': return 'rgba(255, 255, 255, 0.15)';
-      case 'light': return 'rgba(255, 255, 255, 0.25)';
-      case 'medium': return 'rgba(255, 255, 255, 0.35)';
-      case 'strong': return 'rgba(255, 255, 255, 0.45)';
+      case 'none':
+        return 'transparent';
+      case 'subtle':
+        return 'rgba(255, 255, 255, 0.15)';
+      case 'light':
+        return 'rgba(255, 255, 255, 0.25)';
+      case 'medium':
+        return 'rgba(255, 255, 255, 0.35)';
+      case 'strong':
+        return 'rgba(255, 255, 255, 0.45)';
     }
   }};
-  
+
   /* Frost overlay pattern */
   &::before {
     content: '';
@@ -88,9 +98,9 @@ const FrostContainer = styled.div<{
     pointer-events: none;
     mix-blend-mode: overlay;
     opacity: ${props => 0.3 + props.$intensity * 0.5};
-    
+
     ${props => {
-      switch(props.$pattern) {
+      switch (props.$pattern) {
         case 'lines':
           return `
             background-image: 
@@ -113,13 +123,16 @@ const FrostContainer = styled.div<{
           `;
       }
     }}
-    
+
     /* Animation for frost pattern */
-    ${props => props.$animate && !props.$reducedMotion && `
+    ${props =>
+      props.$animate &&
+      !props.$reducedMotion &&
+      `
       animation: ${frostGrow} 8s ease-in-out infinite;
     `}
   }
-  
+
   /* Ice frost edge effect */
   &::after {
     content: '';
@@ -133,9 +146,11 @@ const FrostContainer = styled.div<{
     box-shadow: inset 0 0 ${props => 5 + props.$intensity * 15}px ${props => props.$frostColor};
     opacity: ${props => 0.2 + props.$intensity * 0.3};
   }
-  
+
   /* Interactive effects */
-  ${props => props.$interactive && `
+  ${props =>
+    props.$interactive &&
+    `
     cursor: pointer;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     
@@ -174,9 +189,12 @@ const FrostSparkles = styled.div<{
   background-image: radial-gradient(${props => props.$frostColor} 1px, transparent 1px);
   background-size: 30px 30px;
   opacity: ${props => props.$intensity * 0.4};
-  
+
   /* Sparkle animation */
-  ${props => props.$animate && !props.$reducedMotion && `
+  ${props =>
+    props.$animate &&
+    !props.$reducedMotion &&
+    `
     animation: ${frostSparkle} 4s ease-in-out infinite;
   `}
 `;
@@ -184,10 +202,7 @@ const FrostSparkles = styled.div<{
 /**
  * FrostedGlass Component Implementation
  */
-function FrostedGlassComponent(
-  props: FrostedGlassProps,
-  ref: React.ForwardedRef<HTMLDivElement>
-) {
+function FrostedGlassComponent(props: FrostedGlassProps, ref: React.ForwardedRef<HTMLDivElement>) {
   const {
     children,
     className,
@@ -209,22 +224,22 @@ function FrostedGlassComponent(
     backgroundColor = 'rgba(255, 255, 255, 0.1)',
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // State for hover effects
   const [isHovered, setIsHovered] = useState(false);
-  
+
   // Handle mouse events
   const handleMouseEnter = () => {
     setIsHovered(true);
   };
-  
+
   const handleMouseLeave = () => {
     setIsHovered(false);
   };
-  
+
   return (
     <FrostContainer
       ref={ref}
@@ -257,16 +272,14 @@ function FrostedGlassComponent(
         $intensity={intensity}
         $reducedMotion={prefersReducedMotion}
       />
-      <FrostContent>
-        {children}
-      </FrostContent>
+      <FrostContent>{children}</FrostContent>
     </FrostContainer>
   );
 }
 
 /**
  * FrostedGlass Component
- * 
+ *
  * A glass surface with frosted ice effects.
  */
 const FrostedGlass = forwardRef(FrostedGlassComponent);

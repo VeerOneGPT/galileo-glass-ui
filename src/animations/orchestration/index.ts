@@ -1,6 +1,6 @@
 /**
  * Animation Orchestration
- * 
+ *
  * System for coordinating complex animations across components.
  */
 

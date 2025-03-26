@@ -1,36 +1,41 @@
 /**
  * PieChart Component
- * 
+ *
  * A stylish pie/donut chart component with glass morphism styling
  */
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
-import { SafeChartRenderer } from './SafeChartRenderer';
-import { PieChartProps, DataPoint } from './types';
+
+import { cssWithKebabProps } from '../../core/cssUtils';
 import { useOptimizedAnimation, useGlassTheme, useReducedMotion } from '../../hooks';
 import { AnimationComplexity } from '../../hooks/useOptimizedAnimation';
-import { cssWithKebabProps } from '../../core/cssUtils';
+
+import { SafeChartRenderer } from './SafeChartRenderer';
+import { PieChartProps, DataPoint } from './types';
 
 /**
  * Styled components for PieChart
  */
-const ChartContainer = styled.div<{ 
+const ChartContainer = styled.div<{
   width?: string | number;
   height?: string | number;
   glass?: boolean;
 }>`
-  width: ${({ width }) => typeof width === 'number' ? `${width}px` : width || '100%'};
-  height: ${({ height }) => typeof height === 'number' ? `${height}px` : height || '300px'};
+  width: ${({ width }) => (typeof width === 'number' ? `${width}px` : width || '100%')};
+  height: ${({ height }) => (typeof height === 'number' ? `${height}px` : height || '300px')};
   position: relative;
-  
-  ${({ glass }) => glass ? `
+
+  ${({ glass }) =>
+    glass
+      ? `
     background-color: rgba(255, 255, 255, 0.07);
     border-radius: 8px;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-  ` : ''}
+  `
+      : ''}
 `;
 
 const ChartInner = styled.div`
@@ -84,12 +89,17 @@ interface PieSliceProps {
 const PieSlice = styled.path<PieSliceProps>`
   fill: ${props => props.fill};
   transition: d 0.5s ease-out;
-  
-  ${props => props.glassEffect && !props.simplified ? `
+
+  ${props =>
+    props.glassEffect && !props.simplified
+      ? `
     filter: drop-shadow(0 4px 8px ${props.fill}40);
-  ` : ''}
-  
-  ${props => props.glassEffect && !props.simplified ? `
+  `
+      : ''}
+
+  ${props =>
+    props.glassEffect && !props.simplified
+      ? `
     opacity: 0;
     animation: sliceAppear 0.5s ease-out ${props.delay}s forwards;
     
@@ -105,7 +115,8 @@ const PieSlice = styled.path<PieSliceProps>`
         transform-origin: center;
       }
     }
-  ` : 'opacity: 1;'}
+  `
+      : 'opacity: 1;'}
   
   &:hover {
     filter: brightness(1.1) drop-shadow(0 4px 12px ${props => props.fill}60);
@@ -127,10 +138,13 @@ const SliceLabel = styled.text<{ glassEffect: boolean }>`
   font-size: 12px;
   fill: rgba(255, 255, 255, 0.9);
   user-select: none;
-  
-  ${props => props.glassEffect ? `
+
+  ${props =>
+    props.glassEffect
+      ? `
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  ` : ''}
+  `
+      : ''}
 `;
 
 const Legend = styled.div`
@@ -147,8 +161,8 @@ const LegendItem = styled.div<{ color: string; interactive?: boolean }>`
   gap: 8px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
-  ${({ interactive }) => interactive ? 'cursor: pointer;' : ''}
-  
+  ${({ interactive }) => (interactive ? 'cursor: pointer;' : '')}
+
   &:hover {
     color: rgba(255, 255, 255, 0.9);
   }
@@ -195,10 +209,13 @@ const CenterLabel = styled.div<{ glassEffect: boolean }>`
   transform: translate(-50%, -50%);
   text-align: center;
   pointer-events: none;
-  
-  ${props => props.glassEffect ? `
+
+  ${props =>
+    props.glassEffect
+      ? `
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  ` : ''}
+  `
+      : ''}
 `;
 
 const CenterValue = styled.div`
@@ -218,18 +235,21 @@ const CenterLabel2 = styled.div`
 function hexToRgb(hex: string): string {
   // Remove # if present
   hex = hex.replace(/^#/, '');
-  
+
   // Parse the hex values
   if (hex.length === 3) {
     // If short hex (e.g. #ABC), convert to full hex (e.g. #AABBCC)
-    hex = hex.split('').map(char => char + char).join('');
+    hex = hex
+      .split('')
+      .map(char => char + char)
+      .join('');
   }
-  
+
   // Parse the full hex
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);
   const b = parseInt(hex.substring(4, 6), 16);
-  
+
   return `${r}, ${g}, ${b}`;
 }
 
@@ -268,24 +288,24 @@ function calculateSliceCoordinates(
   centerY: number
 ): string {
   // Convert angles from degrees to radians
-  const startRad = (startAngle - 90) * Math.PI / 180;
-  const endRad = (endAngle - 90) * Math.PI / 180;
-  
+  const startRad = ((startAngle - 90) * Math.PI) / 180;
+  const endRad = ((endAngle - 90) * Math.PI) / 180;
+
   // Calculate coordinates
   const startOuterX = centerX + outerRadius * Math.cos(startRad);
   const startOuterY = centerY + outerRadius * Math.sin(startRad);
   const endOuterX = centerX + outerRadius * Math.cos(endRad);
   const endOuterY = centerY + outerRadius * Math.sin(endRad);
-  
+
   // For donut charts
   const startInnerX = centerX + innerRadius * Math.cos(endRad);
   const startInnerY = centerY + innerRadius * Math.sin(endRad);
   const endInnerX = centerX + innerRadius * Math.cos(startRad);
   const endInnerY = centerY + innerRadius * Math.sin(startRad);
-  
+
   // Determine if the arc is a large arc
   const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
-  
+
   if (innerRadius === 0) {
     // Regular pie slice
     return `
@@ -318,52 +338,57 @@ function calculateLabelPosition(
 ): { x: number; y: number; textAnchor: 'start' | 'middle' | 'end' } {
   // Calculate the midpoint angle
   const midAngle = (startAngle + endAngle) / 2;
-  const midAngleRad = (midAngle - 90) * Math.PI / 180;
-  
+  const midAngleRad = ((midAngle - 90) * Math.PI) / 180;
+
   // Calculate the position
   const x = centerX + radius * 0.8 * Math.cos(midAngleRad);
   const y = centerY + radius * 0.8 * Math.sin(midAngleRad);
-  
+
   // Determine text anchor based on quadrant
   let textAnchor: 'start' | 'middle' | 'end' = 'middle';
-  
+
   if (midAngle > 0 && midAngle < 180) {
     textAnchor = 'start';
   } else if (midAngle > 180 && midAngle < 360) {
     textAnchor = 'end';
   }
-  
+
   return { x, y, textAnchor };
 }
 
 /**
  * Process data for the pie chart
  */
-function processChartData(data: DataPoint[], colors: string[]): {
-  processedData: Array<DataPoint & { 
-    percentage: number; 
-    startAngle: number; 
-    endAngle: number;
-    color: string;
-  }>;
+function processChartData(
+  data: DataPoint[],
+  colors: string[]
+): {
+  processedData: Array<
+    DataPoint & {
+      percentage: number;
+      startAngle: number;
+      endAngle: number;
+      color: string;
+    }
+  >;
   total: number;
 } {
   // Calculate total value
   const total = data.reduce((sum, point) => sum + point.value, 0);
-  
+
   // Process data
   const processedData = data.map((point, index) => {
     const percentage = (point.value / total) * 100;
-    
+
     return {
       ...point,
       percentage,
       startAngle: 0, // Will be calculated below
-      endAngle: 0,   // Will be calculated below
-      color: point.color || colors[index % colors.length]
+      endAngle: 0, // Will be calculated below
+      color: point.color || colors[index % colors.length],
     };
   });
-  
+
   // Calculate start and end angles
   let currentAngle = 0;
   processedData.forEach(point => {
@@ -371,7 +396,7 @@ function processChartData(data: DataPoint[], colors: string[]): {
     point.endAngle = currentAngle + (point.percentage / 100) * 360;
     currentAngle = point.endAngle;
   });
-  
+
   return { processedData, total };
 }
 
@@ -392,8 +417,16 @@ export const PieChart: React.FC<PieChartProps> = ({
   tooltip = { show: true, mode: 'single' },
   animation = { enabled: true, duration: 500 },
   colors = [
-    '#6366F1', '#8B5CF6', '#EC4899', '#F43F5E', '#F59E0B',
-    '#10B981', '#3B82F6', '#F97316', '#6B7280', '#D946EF'
+    '#6366F1',
+    '#8B5CF6',
+    '#EC4899',
+    '#F43F5E',
+    '#F59E0B',
+    '#10B981',
+    '#3B82F6',
+    '#F97316',
+    '#6B7280',
+    '#D946EF',
   ],
   margin = { top: 20, right: 20, bottom: 40, left: 20 },
   adaptToCapabilities = true,
@@ -416,64 +449,61 @@ export const PieChart: React.FC<PieChartProps> = ({
   onMouseLeave,
   onError,
   className,
-  style
+  style,
 }) => {
   // Access theme context
   const { isDarkMode } = useGlassTheme();
-  
+
   // Check for reduced motion preference
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Ref for the chart container
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  
+
   // State for tooltip
   const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
-  
+
   // State for highlighted slice
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
-  
+
   // Process chart data
-  const { processedData, total } = useMemo(
-    () => processChartData(data, colors),
-    [data, colors]
-  );
-  
+  const { processedData, total } = useMemo(() => processChartData(data, colors), [data, colors]);
+
   // Calculate dimensions
   const dimensions = useMemo(() => {
     if (!containerRef.current) {
       return { centerX: 150, centerY: 150, radius: 100 };
     }
-    
+
     const width = containerRef.current.clientWidth - (margin.left || 0) - (margin.right || 0);
     const height = containerRef.current.clientHeight - (margin.top || 0) - (margin.bottom || 0);
-    
+
     const centerX = width / 2;
     const centerY = height / 2;
-    
+
     // Calculate radius as a fraction of the minimum dimension
     const minDimension = Math.min(width, height);
     const radius = outerRadius || minDimension * 0.4;
-    const actualInnerRadius = donut ? (innerRadius || radius * 0.6) : 0;
-    
-    return { 
-      centerX, 
-      centerY, 
+    const actualInnerRadius = donut ? innerRadius || radius * 0.6 : 0;
+
+    return {
+      centerX,
+      centerY,
       radius,
-      innerRadius: actualInnerRadius
+      innerRadius: actualInnerRadius,
     };
   }, [containerRef.current, margin, outerRadius, innerRadius, donut]);
-  
+
   // Calculate slices
   const slices = useMemo(() => {
     const { centerX, centerY, radius, innerRadius } = dimensions;
-    
+
     return processedData.map((point, index) => {
       // Apply padding between slices if specified
-      const adjustedStartAngle = point.startAngle + (padAngle / 2);
-      const adjustedEndAngle = point.endAngle - (padAngle / 2);
-      
+      const adjustedStartAngle = point.startAngle + padAngle / 2;
+      const adjustedEndAngle = point.endAngle - padAngle / 2;
+
       // Calculate path
       const path = calculateSliceCoordinates(
         adjustedStartAngle + startAngle,
@@ -483,7 +513,7 @@ export const PieChart: React.FC<PieChartProps> = ({
         centerX,
         centerY
       );
-      
+
       // Calculate label position
       const labelPosition = calculateLabelPosition(
         adjustedStartAngle + startAngle,
@@ -492,55 +522,51 @@ export const PieChart: React.FC<PieChartProps> = ({
         centerX,
         centerY
       );
-      
+
       // Format label based on type
       let labelValue: string | number = '';
-      
+
       if (labelType === 'value') {
-        labelValue = labelFormatter 
+        labelValue = labelFormatter
           ? labelFormatter(point.value, point.percentage, point.label)
           : formatNumber(point.value);
       } else if (labelType === 'percent') {
-        labelValue = labelFormatter 
+        labelValue = labelFormatter
           ? labelFormatter(point.value, point.percentage, point.label)
           : formatPercentage(point.percentage);
       } else {
         labelValue = point.label || '';
       }
-      
+
       return {
         ...point,
         path,
         labelPosition: {
           ...labelPosition,
           value: labelValue,
-          percentage: formatPercentage(point.percentage)
-        }
+          percentage: formatPercentage(point.percentage),
+        },
       };
     });
   }, [processedData, dimensions, padAngle, startAngle, labelType, labelFormatter]);
-  
+
   // Determine if animations should be enabled
   const shouldAnimate = useMemo(() => {
     return animation?.enabled && !prefersReducedMotion && !animationDisabled;
   }, [animation?.enabled, prefersReducedMotion, animationDisabled]);
-  
+
   // Get animation duration
   const animationDuration = useMemo(() => {
     return shouldAnimate ? animation?.duration || 500 : 0;
   }, [shouldAnimate, animation?.duration]);
-  
+
   // Handle slice hover
-  const handleSliceHover = (
-    event: React.MouseEvent,
-    slice: any,
-    index: number
-  ) => {
+  const handleSliceHover = (event: React.MouseEvent, slice: any, index: number) => {
     if (!tooltip.show) return;
-    
+
     const rect = (event.target as SVGElement).getBoundingClientRect();
     const containerRect = containerRef.current?.getBoundingClientRect();
-    
+
     if (containerRect) {
       setTooltipData({
         x: rect.left - containerRect.left + rect.width / 2,
@@ -548,99 +574,94 @@ export const PieChart: React.FC<PieChartProps> = ({
         label: slice.label || 'Slice ' + (index + 1),
         value: slice.value,
         percentage: slice.percentage,
-        color: slice.color
+        color: slice.color,
       });
     }
-    
+
     setHighlightedIndex(index);
-    
+
     if (onMouseEnter) {
       onMouseEnter(event, {
         value: slice.value,
         label: slice.label,
-        percentage: slice.percentage
+        percentage: slice.percentage,
       });
     }
   };
-  
+
   // Handle mouse leave
   const handleMouseLeave = (event: React.MouseEvent) => {
     setTooltipData(null);
     setHighlightedIndex(null);
-    
+
     if (onMouseLeave) {
       onMouseLeave(event);
     }
   };
-  
+
   // Handle slice click
-  const handleSliceClick = (
-    event: React.MouseEvent,
-    slice: any,
-    index: number
-  ) => {
+  const handleSliceClick = (event: React.MouseEvent, slice: any, index: number) => {
     if (onClick) {
       onClick(event, {
         value: slice.value,
         label: slice.label,
         percentage: slice.percentage,
-        index
+        index,
       });
     }
   };
-  
+
   // Determine blur intensity
   const getBlurValue = () => {
     if (simplified) return '4px';
-    
+
     switch (blurIntensity) {
-      case 'light': return '4px';
-      case 'strong': return '12px';
-      default: return '8px';
+      case 'light':
+        return '4px';
+      case 'strong':
+        return '12px';
+      default:
+        return '8px';
     }
   };
-  
+
   // Apply glass styles conditionally
   const glassStyles = useMemo(() => {
     if (!glass || simplified) return {};
-    
+
     return {
-      backgroundColor: isDarkMode 
-        ? 'rgba(15, 23, 42, 0.5)'
-        : 'rgba(255, 255, 255, 0.1)',
+      backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.5)' : 'rgba(255, 255, 255, 0.1)',
       backdropFilter: `blur(${getBlurValue()})`,
       WebkitBackdropFilter: `blur(${getBlurValue()})`,
-      border: isDarkMode 
+      border: isDarkMode
         ? '1px solid rgba(255, 255, 255, 0.1)'
         : '1px solid rgba(255, 255, 255, 0.2)',
-      boxShadow: isDarkMode
-        ? '0 8px 32px rgba(0, 0, 0, 0.3)'
-        : '0 8px 32px rgba(0, 0, 0, 0.1)'
+      boxShadow: isDarkMode ? '0 8px 32px rgba(0, 0, 0, 0.3)' : '0 8px 32px rgba(0, 0, 0, 0.1)',
     };
   }, [glass, simplified, isDarkMode, blurIntensity]);
-  
+
   // Get center label content
   const centerLabelContent = useMemo(() => {
     if (!donut) return null;
-    
+
     // If there's a highlighted slice, show that slice's information
     if (highlightedIndex !== null && processedData[highlightedIndex]) {
       const slice = processedData[highlightedIndex];
       return {
         value: formatNumber(slice.value),
         label: slice.label || 'Slice ' + (highlightedIndex + 1),
-        percentage: formatPercentage(slice.percentage)
+        percentage: formatPercentage(slice.percentage),
       };
     }
-    
+
     // Otherwise show the total
     return {
       value: formatNumber(total),
       label: 'Total',
-      percentage: '100%'
+      percentage: '100%',
     };
   }, [donut, highlightedIndex, processedData, total]);
-  
+
   // Render the PieChart component
   return (
     <SafeChartRenderer
@@ -662,17 +683,24 @@ export const PieChart: React.FC<PieChartProps> = ({
         className={className}
         style={{
           ...style,
-          ...glassStyles
+          ...glassStyles,
         }}
-        aria-label={ariaLabel || altText || `${donut ? 'Donut' : 'Pie'} chart${title ? ` showing ${title}` : ''}`}
+        aria-label={
+          ariaLabel ||
+          altText ||
+          `${donut ? 'Donut' : 'Pie'} chart${title ? ` showing ${title}` : ''}`
+        }
         role="img"
       >
         <ChartInner>
           {title && <ChartTitle>{title}</ChartTitle>}
           {description && <ChartDescription>{description}</ChartDescription>}
-          
+
           <PieContainer>
-            <SVGContainer ref={svgRef} viewBox={`0 0 ${dimensions.centerX * 2} ${dimensions.centerY * 2}`}>
+            <SVGContainer
+              ref={svgRef}
+              viewBox={`0 0 ${dimensions.centerX * 2} ${dimensions.centerY * 2}`}
+            >
               {/* Render pie slices */}
               {slices.map((slice, index) => (
                 <PieSlice
@@ -684,18 +712,18 @@ export const PieChart: React.FC<PieChartProps> = ({
                   index={index}
                   total={slices.length}
                   delay={(index / slices.length) * (shouldAnimate ? 0.3 : 0)}
-                  onMouseEnter={(e) => handleSliceHover(e, slice, index)}
+                  onMouseEnter={e => handleSliceHover(e, slice, index)}
                   onMouseLeave={handleMouseLeave}
-                  onClick={(e) => handleSliceClick(e, slice, index)}
+                  onClick={e => handleSliceClick(e, slice, index)}
                 />
               ))}
-              
+
               {/* Render labels */}
               {showLabels && (
                 <>
                   {slices.map((slice, index) => {
                     const { labelPosition } = slice;
-                    
+
                     return (
                       <g key={`label-${index}`}>
                         <SliceLabel
@@ -707,7 +735,7 @@ export const PieChart: React.FC<PieChartProps> = ({
                         >
                           {labelPosition.value}
                         </SliceLabel>
-                        
+
                         {showValues && labelType !== 'value' && (
                           <SliceLabel
                             x={labelPosition.x}
@@ -725,7 +753,7 @@ export const PieChart: React.FC<PieChartProps> = ({
                 </>
               )}
             </SVGContainer>
-            
+
             {/* Center label for donut charts */}
             {donut && centerLabelContent && (
               <CenterLabel glassEffect={glass}>
@@ -734,18 +762,20 @@ export const PieChart: React.FC<PieChartProps> = ({
                 <CenterLabel2>{centerLabelContent.percentage}</CenterLabel2>
               </CenterLabel>
             )}
-            
+
             {/* Tooltip */}
             {tooltipData && tooltip.show && (
               <Tooltip x={tooltipData.x} y={tooltipData.y}>
                 <div style={{ color: tooltipData.color, fontWeight: 'bold' }}>
                   {tooltipData.label}
                 </div>
-                <div>{formatNumber(tooltipData.value)} ({tooltipData.percentage.toFixed(1)}%)</div>
+                <div>
+                  {formatNumber(tooltipData.value)} ({tooltipData.percentage.toFixed(1)}%)
+                </div>
               </Tooltip>
             )}
           </PieContainer>
-          
+
           {/* Legend */}
           {legend?.show !== false && (
             <Legend>
@@ -757,7 +787,9 @@ export const PieChart: React.FC<PieChartProps> = ({
                   onClick={() => handleSliceClick(null as any, slice, index)}
                 >
                   <LegendColor color={slice.color} />
-                  <span>{slice.label || 'Slice ' + (index + 1)} ({slice.percentage.toFixed(1)}%)</span>
+                  <span>
+                    {slice.label || 'Slice ' + (index + 1)} ({slice.percentage.toFixed(1)}%)
+                  </span>
                 </LegendItem>
               ))}
             </Legend>

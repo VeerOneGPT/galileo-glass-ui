@@ -1,6 +1,6 @@
 /**
  * MenuItem Component (Placeholder)
- * 
+ *
  * A menu item component that displays a clickable option in a menu.
  */
 import React, { forwardRef } from 'react';
@@ -11,17 +11,17 @@ export interface MenuItemProps {
    * Callback fired when the menu item is clicked
    */
   onClick?: (event: React.MouseEvent<HTMLLIElement>) => void;
-  
+
   /**
    * If true, the menu item is disabled
    */
   disabled?: boolean;
-  
+
   /**
    * If true, the menu item is selected
    */
   selected?: boolean;
-  
+
   /**
    * MenuItem content
    */

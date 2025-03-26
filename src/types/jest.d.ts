@@ -1,6 +1,6 @@
 /**
  * Type definitions for Jest
- * 
+ *
  * This file provides basic type definitions for Jest testing functions
  * to support TypeScript typechecking in test files.
  */
@@ -16,17 +16,19 @@ declare global {
   function afterEach(fn: () => any): void;
   function beforeAll(fn: () => any): void;
   function afterAll(fn: () => any): void;
-  
+
   // Jest Mock Functions
   const jest: {
-    fn: <T extends (...args: any[]) => any>(implementation?: T) => jest.Mock<ReturnType<T>, Parameters<T>>;
+    fn: <T extends (...args: any[]) => any>(
+      implementation?: T
+    ) => jest.Mock<ReturnType<T>, Parameters<T>>;
     mock: (moduleName: string, factory?: any, options?: any) => any;
     spyOn: (object: any, methodName: string) => any;
     clearAllMocks: () => void;
     resetAllMocks: () => void;
     restoreAllMocks: () => void;
   };
-  
+
   namespace jest {
     interface Mock<T = any, Y extends any[] = any[]> {
       (...args: Y): T;

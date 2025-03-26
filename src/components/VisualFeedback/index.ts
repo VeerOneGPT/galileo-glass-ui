@@ -2,21 +2,16 @@
  * Visual Feedback Components Exports
  */
 
-import VisualFeedback from './VisualFeedback';
-import RippleButton from './RippleButton';
 import FocusIndicator from './FocusIndicator';
+import RippleButton from './RippleButton';
 import StateIndicator from './StateIndicator';
+import VisualFeedback from './VisualFeedback';
 
-export type { 
+export type {
   VisualFeedbackProps,
   RippleButtonProps,
   FocusIndicatorProps,
-  StateIndicatorProps
+  StateIndicatorProps,
 } from './types';
 
-export {
-  VisualFeedback,
-  RippleButton,
-  FocusIndicator,
-  StateIndicator
-};
+export { VisualFeedback, RippleButton, FocusIndicator, StateIndicator };

@@ -1,13 +1,15 @@
 /**
  * SpeedDialAction Component
- * 
+ *
  * An action button for the SpeedDial component.
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { SpeedDialActionProps } from './types';
 
 // Calculate the position based on direction
@@ -20,7 +22,7 @@ const getPosition = (
   // Base spacing between buttons
   const spacing = size === 'small' ? 40 : size === 'large' ? 65 : 55;
   const offset = (index + 1) * spacing;
-  
+
   switch (direction) {
     case 'up':
       return { bottom: `${offset}px` };
@@ -36,11 +38,7 @@ const getPosition = (
 };
 
 // Calculate the transition delay based on index and total actions
-const getTransitionDelay = (
-  index: number,
-  totalActions: number,
-  opening: boolean
-): number => {
+const getTransitionDelay = (index: number, totalActions: number, opening: boolean): number => {
   if (!opening) {
     // When closing, reverse the order
     return (totalActions - 1 - index) * 30;
@@ -66,30 +64,36 @@ const ActionRoot = styled.div<{
   align-items: center;
   justify-content: center;
   z-index: ${props => props.$totalActions - props.$index};
-  width: ${props => props.$size === 'small' ? '32px' : props.$size === 'large' ? '48px' : '40px'};
-  height: ${props => props.$size === 'small' ? '32px' : props.$size === 'large' ? '48px' : '40px'};
+  width: ${props => (props.$size === 'small' ? '32px' : props.$size === 'large' ? '48px' : '40px')};
+  height: ${props =>
+    props.$size === 'small' ? '32px' : props.$size === 'large' ? '48px' : '40px'};
   border-radius: 50%;
-  background-color: ${props => props.$glass ? 'rgba(36, 36, 36, 0.5)' : 'rgba(36, 36, 36, 0.85)'};
+  background-color: ${props => (props.$glass ? 'rgba(36, 36, 36, 0.5)' : 'rgba(36, 36, 36, 0.85)')};
   color: rgba(255, 255, 255, 0.9);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  cursor: ${props => props.$disabled ? 'default' : 'pointer'};
-  opacity: ${props => props.$visible ? 1 : 0};
-  transform: ${props => props.$visible ? 'scale(1)' : 'scale(0.5)'};
+  cursor: ${props => (props.$disabled ? 'default' : 'pointer')};
+  opacity: ${props => (props.$visible ? 1 : 0)};
+  transform: ${props => (props.$visible ? 'scale(1)' : 'scale(0.5)')};
   ${props => props.$position.top !== undefined && `top: ${props.$position.top};`}
   ${props => props.$position.right !== undefined && `right: ${props.$position.right};`}
   ${props => props.$position.bottom !== undefined && `bottom: ${props.$position.bottom};`}
   ${props => props.$position.left !== undefined && `left: ${props.$position.left};`}
   
   /* Glass styling */
-  ${props => props.$glass && glassSurface({
-    elevation: 2,
-    blurStrength: 'light',
-    borderOpacity: 'medium',
-    themeContext: createThemeContext(props.theme)
-  })}
+  ${props =>
+    props.$glass &&
+    glassSurface({
+      elevation: 2,
+      blurStrength: 'light',
+      borderOpacity: 'medium',
+      themeContext: createThemeContext(props.theme),
+    })}
   
   /* Transitions */
-  ${props => props.$transition && !props.$reducedMotion && `
+  ${props =>
+    props.$transition &&
+    !props.$reducedMotion &&
+    `
     transition-property: transform, opacity;
     transition-duration: 0.2s;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -97,13 +101,17 @@ const ActionRoot = styled.div<{
   `}
   
   /* Disabled state */
-  ${props => props.$disabled && `
+  ${props =>
+    props.$disabled &&
+    `
     opacity: ${props.$visible ? 0.5 : 0};
     pointer-events: none;
   `}
   
   /* Hover effects */
-  ${props => !props.$disabled && `
+  ${props =>
+    !props.$disabled &&
+    `
     &:hover {
       background-color: ${props.$glass ? 'rgba(48, 48, 48, 0.5)' : 'rgba(48, 48, 48, 0.85)'};
       transform: ${props.$visible ? 'scale(1.1)' : 'scale(0.5)'};
@@ -130,9 +138,9 @@ const TooltipWrapper = styled.div<{
   border-radius: 4px;
   white-space: nowrap;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: ${props => !props.$reducedMotion ? 'opacity 0.2s, transform 0.2s' : 'none'};
-  opacity: ${props => (props.$visible && props.$showTooltip) ? 1 : 0};
-  
+  transition: ${props => (!props.$reducedMotion ? 'opacity 0.2s, transform 0.2s' : 'none')};
+  opacity: ${props => (props.$visible && props.$showTooltip ? 1 : 0)};
+
   /* Position the tooltip based on the direction */
   ${props => {
     switch (props.$direction) {
@@ -140,35 +148,43 @@ const TooltipWrapper = styled.div<{
         return `
           bottom: 100%;
           left: 50%;
-          transform: translateX(-50%) translateY(${props.$visible && props.$showTooltip ? '-8px' : '0'});
+          transform: translateX(-50%) translateY(${
+            props.$visible && props.$showTooltip ? '-8px' : '0'
+          });
           margin-bottom: 4px;
         `;
       case 'down':
         return `
           top: 100%;
           left: 50%;
-          transform: translateX(-50%) translateY(${props.$visible && props.$showTooltip ? '8px' : '0'});
+          transform: translateX(-50%) translateY(${
+            props.$visible && props.$showTooltip ? '8px' : '0'
+          });
           margin-top: 4px;
         `;
       case 'left':
         return `
           right: 100%;
           top: 50%;
-          transform: translateY(-50%) translateX(${props.$visible && props.$showTooltip ? '-8px' : '0'});
+          transform: translateY(-50%) translateX(${
+            props.$visible && props.$showTooltip ? '-8px' : '0'
+          });
           margin-right: 4px;
         `;
       case 'right':
         return `
           left: 100%;
           top: 50%;
-          transform: translateY(-50%) translateX(${props.$visible && props.$showTooltip ? '8px' : '0'});
+          transform: translateY(-50%) translateX(${
+            props.$visible && props.$showTooltip ? '8px' : '0'
+          });
           margin-left: 4px;
         `;
       default:
         return '';
     }
   }}
-  
+
   /* Tooltip arrow */
   &::after {
     content: '';
@@ -176,7 +192,7 @@ const TooltipWrapper = styled.div<{
     width: 0;
     height: 0;
     border: 4px solid transparent;
-    
+
     ${props => {
       switch (props.$direction) {
         case 'up':
@@ -237,16 +253,16 @@ function SpeedDialActionComponent(
     size = 'medium',
     ...rest
   } = props;
-  
+
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
-  
+
   // Calculate position
   const position = getPosition(direction, index, totalActions, size);
-  
+
   // Whether the action is visible
   const visible = true; // This would be controlled by parent
-  
+
   return (
     <ActionRoot
       ref={ref}
@@ -266,7 +282,7 @@ function SpeedDialActionComponent(
       {...rest}
     >
       {icon}
-      
+
       {tooltipTitle && (
         <TooltipWrapper
           $direction={direction}
@@ -283,7 +299,7 @@ function SpeedDialActionComponent(
 
 /**
  * SpeedDialAction Component
- * 
+ *
  * An action button for the SpeedDial component.
  */
 const SpeedDialAction = forwardRef(SpeedDialActionComponent);

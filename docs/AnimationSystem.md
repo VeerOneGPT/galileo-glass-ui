@@ -21,71 +21,71 @@ Please refer to the table of contents below for a detailed breakdown of each sec
 
 ## **Table of Contents**
 
-1. [Galileo Glass UI Animation System](mdc:#galileo-glass-ui-animation-system)  
-   1. [Key Features](mdc:#key-features)  
-   2. [Directory Structure](mdc:#directory-structure)  
-   3. [Accessibility Features](mdc:#accessibility-features)  
-       1. [Reduced Motion Support](mdc:#reduced-motion-support)  
-       2. [React Hooks](mdc:#react-hooks)  
-   4. [Usage Examples](mdc:#usage-examples)  
-       1. [Basic Accessible Animation](mdc:#basic-accessible-animation)  
-       2. [Using Animation Presets](mdc:#using-animation-presets)  
-       3. [Using UI-Specific Presets](mdc:#using-ui-specific-presets)  
-       4. [Accessible Transitions](mdc:#accessible-transitions)  
-   5. [Reduced Motion Alternatives](mdc:#reduced-motion-alternatives)  
-   6. [Best Practices](mdc:#best-practices)  
+1. [Galileo Glass UI Animation System](#galileo-glass-ui-animation-system)  
+   1. [Key Features](#key-features)  
+   2. [Directory Structure](#directory-structure)  
+   3. [Accessibility Features](#accessibility-features)  
+       1. [Reduced Motion Support](#reduced-motion-support)  
+       2. [React Hooks](#react-hooks)  
+   4. [Usage Examples](#usage-examples)  
+       1. [Basic Accessible Animation](#basic-accessible-animation)  
+       2. [Using Animation Presets](#using-animation-presets)  
+       3. [Using UI-Specific Presets](#using-ui-specific-presets)  
+       4. [Accessible Transitions](#accessible-transitions)  
+   5. [Reduced Motion Alternatives](#reduced-motion-alternatives)  
+   6. [Best Practices](#best-practices)  
 
-2. [Physics Animation System for Modern Glass UI](mdc:#physics-animation-system-for-modern-glass-ui)  
-   1. [Overview](mdc:#overview)  
-   2. [Key Components](mdc:#key-components)  
-       1. [Physics Animation Engine (`physicsAnimations.ts`)](mdc:#1-physics-animation-engine-physicsanimationsts)  
-       2. [Scroll Scene System (`useScrollScene.ts`)](mdc:#2-scroll-scene-system-usescrollscenets)  
-       3. [Mouse Physics Effects (`useMousePhysics.ts`)](mdc:#3-mouse-physics-effects-usemousephysicsts)  
-   3. [Enhanced UI Components](mdc:#enhanced-ui-components)  
-       1. [PhysicsButton](mdc:#1-physicsbutton)  
-       2. [PhysicsInsightCard](mdc:#2-physicsinsightcard)  
-       3. [PhysicsTabs](mdc:#3-physicstabs)  
-       4. [PhysicsDashboardLayout](mdc:#4-physicsdashboardlayout)  
-   4. [Physics Presets](mdc:#physics-presets)  
-   5. [Z-Space Integration](mdc:#z-space-integration)  
-   6. [Performance Considerations](mdc:#performance-considerations)  
-   7. [Accessibility](mdc:#accessibility)  
-   8. [Implementation Examples](mdc:#implementation-examples)
+2. [Physics Animation System for Modern Glass UI](#physics-animation-system-for-modern-glass-ui)  
+   1. [Overview](#overview)  
+   2. [Key Components](#key-components)  
+       1. [Physics Animation Engine (`physicsAnimations.ts`)](#1-physics-animation-engine-physicsanimationsts)  
+       2. [Scroll Scene System (`useScrollScene.ts`)](#2-scroll-scene-system-usescrollscenets)  
+       3. [Mouse Physics Effects (`useMousePhysics.ts`)](#3-mouse-physics-effects-usemousephysicsts)  
+   3. [Enhanced UI Components](#enhanced-ui-components)  
+       1. [PhysicsButton](#1-physicsbutton)  
+       2. [PhysicsInsightCard](#2-physicsinsightcard)  
+       3. [PhysicsTabs](#3-physicstabs)  
+       4. [PhysicsDashboardLayout](#4-physicsdashboardlayout)  
+   4. [Physics Presets](#physics-presets)  
+   5. [Z-Space Integration](#z-space-integration)  
+   6. [Performance Considerations](#performance-considerations)  
+   7. [Accessibility](#accessibility)  
+   8. [Implementation Examples](#implementation-examples)
 
-3. [Glass UI Animation System Documentation (Extended Content)](mdc:#glass-ui-animation-system-documentation-extended-content)  
-   1. [Introduction](mdc:#introduction)  
-   2. [Key Features](mdc:#key-features-1)  
-   3. [Getting Started](mdc:#getting-started)  
-       1. [Basic Usage](mdc:#basic-usage)  
-       2. [Animation Options](mdc:#animation-options)  
-   4. [Animation Categories](mdc:#animation-categories)  
-   5. [Accessibility](mdc:#accessibility-1)  
-       1. [Reduced Motion Support](mdc:#reduced-motion-support-1)  
-       2. [Reduced Motion Alternatives](mdc:#reduced-motion-alternatives-1)  
-       3. [Motion Sensitivity Levels](mdc:#motion-sensitivity-levels)  
-   6. [Performance](mdc:#performance)  
-       1. [Quality Tiers](mdc:#quality-tiers)  
-       2. [Performance Optimizations](mdc:#performance-optimizations)  
-   7. [Browser Compatibility](mdc:#browser-compatibility)  
-       1. [Known Issues](mdc:#known-issues)  
-   8. [Animation Creation Guides](mdc:#animation-creation-guides)  
-   9. [Migrating Legacy Animations](mdc:#migrating-legacy-animations)  
-   10. [Best Practices (Extended)](mdc:#best-practices-extended)  
-   11. [API Reference](mdc:#api-reference)
+3. [Glass UI Animation System Documentation (Extended Content)](#glass-ui-animation-system-documentation-extended-content)  
+   1. [Introduction](#introduction)  
+   2. [Key Features](#key-features-1)  
+   3. [Getting Started](#getting-started)  
+       1. [Basic Usage](#basic-usage)  
+       2. [Animation Options](#animation-options)  
+   4. [Animation Categories](#animation-categories)  
+   5. [Accessibility](#accessibility-1)  
+       1. [Reduced Motion Support](#reduced-motion-support-1)  
+       2. [Reduced Motion Alternatives](#reduced-motion-alternatives-1)  
+       3. [Motion Sensitivity Levels](#motion-sensitivity-levels)  
+   6. [Performance](#performance)  
+       1. [Quality Tiers](#quality-tiers)  
+       2. [Performance Optimizations](#performance-optimizations)  
+   7. [Browser Compatibility](#browser-compatibility)  
+       1. [Known Issues](#known-issues)  
+   8. [Animation Creation Guides](#animation-creation-guides)  
+   9. [Migrating Legacy Animations](#migrating-legacy-animations)  
+   10. [Best Practices (Extended)](#best-practices-extended)  
+   11. [API Reference](#api-reference)
 
-4. [Animation Accessibility Checklist](mdc:#animation-accessibility-checklist)
+4. [Animation Accessibility Checklist](#animation-accessibility-checklist)
 
-5. [Glass UI Animation Best Practices](mdc:#glass-ui-animation-best-practices)
+5. [Glass UI Animation Best Practices](#glass-ui-animation-best-practices)
 
-6. [Animation System Browser Compatibility Matrix](mdc:#animation-system-browser-compatibility-matrix)
+6. [Animation System Browser Compatibility Matrix](#animation-system-browser-compatibility-matrix)
 
-7. [Glass UI Animation System - Known Issues](mdc:#glass-ui-animation-system---known-issues)
+7. [Glass UI Animation System - Known Issues](#glass-ui-animation-system---known-issues)
 
-8. [Reduced Motion Alternatives (Detailed)](mdc:#reduced-motion-alternatives-detailed)
+8. [Reduced Motion Alternatives (Detailed)](#reduced-motion-alternatives-detailed)
 
-9. [Animation System Documentation (Detailed Sections)](mdc:#animation-system-documentation-detailed-sections)
+9. [Animation System Documentation (Detailed Sections)](#animation-system-documentation-detailed-sections)
 
-10. [Accessibility Guidelines for Galileo](mdc:#accessibility-guidelines-for-galileo)
+10. [Accessibility Guidelines for Galileo](#accessibility-guidelines-for-galileo)
 
 ---
 
@@ -576,6 +576,10 @@ The Glass UI Animation System provides a comprehensive framework for creating co
 - **Accessibility**: Comprehensive support for reduced motion preferences  
 - **Performance**: Automatic adaptation based on device capabilities  
 - **Browser Compatibility**: Support across all major browsers
+- **Animation Orchestration**: Gestalt-based patterns for coordinated animations
+- **Motion Sensitivity Levels**: Customizable animation intensity based on preferences
+- **Advanced Physics Animations**: Spring physics, particle systems, and magnetic effects
+- **Animation Mapping**: Intelligent mapping of animations to reduced motion alternatives
 
 ---
 
@@ -640,6 +644,20 @@ The `animate` function accepts an options object with the following properties:
 - **Glass**: `glassShimmer`, `glassReflection`, `glassFrost`, etc.  
 - **Atmospheric**: `atmosphericGlow`, `atmosphericParticles`, etc.  
 - **Physics**: `spring`, `bounce`, `wobble`, etc.
+
+### **Advanced Physics Animations**
+
+- **Spring System**: `springMotion`, `dampedOscillation`, `springToPosition`, etc.
+- **Particle Effects**: `particleEmission`, `particleField`, `particleAttraction`, etc.
+- **Magnetic Interactions**: `magneticAttraction`, `magneticRepulsion`, `magneticSnap`, etc.
+- **Path Physics**: `naturalPathFollowing`, `springPathMotion`, `physicsBasedPath`, etc.
+
+### **Orchestration Patterns**
+
+- **Sequenced**: `staggeredReveal`, `cascadeAnimation`, `sequentialFade`, etc.
+- **Gestalt-Based**: `hierarchicalReveal`, `relatedItemsAnimation`, `contextualHighlight`, etc.
+- **Narrative**: `storySequence`, `narrativeJourney`, `guidedAttention`, etc.
+- **Spatial**: `spatialRelationshipReveal`, `spatialGrouping`, `contextualSpacing`, etc.
 
 ---
 
@@ -711,7 +729,7 @@ The animation system is tested across all major browsers:
 
 ### **Known Issues**
 
-See [Known Issues Documentation](mdc:known-issues.md) for details on browser-specific compatibility issues and workarounds.
+See the [Known Issues section](#glass-ui-animation-system---known-issues) for details on browser-specific compatibility issues and workarounds.
 
 ---
 
@@ -758,6 +776,189 @@ export const customEntrance = (props) => animate({
 });
 ```
 
+## **Advanced Animation Systems**
+
+### **Animation Orchestration**
+
+The orchestration system enables coordinated, purposeful animations across multiple components to create cohesive user experiences.
+
+```tsx
+import { useOrchestration } from '../../hooks/useOrchestration';
+import { gestaltPatterns } from '../../design/animations/orchestration/GestaltPatterns';
+
+function DashboardReveal() {
+  // Create refs for all elements that will be animated
+  const elements = {
+    header: useRef(null),
+    sidebar: useRef(null),
+    metrics: [useRef(null), useRef(null), useRef(null)],
+    cards: [useRef(null), useRef(null), useRef(null), useRef(null)]
+  };
+  
+  // Use the gestalt pattern for hierarchical reveal
+  const { playSequence, reset } = useOrchestration(
+    gestaltPatterns.hierarchicalReveal(elements, {
+      continuity: 'smooth',       // How smoothly animations overlap
+      pacing: 'natural',          // Timing distribution
+      direction: 'top-to-bottom', // Overall direction
+      stagger: 0.05               // Delay between consecutive items
+    })
+  );
+  
+  useEffect(() => {
+    // Play the animation sequence on mount
+    playSequence();
+    
+    // Reset animation when data changes
+    return () => reset();
+  }, [data]);
+  
+  return (
+    <div>
+      <Header ref={elements.header}>Dashboard</Header>
+      <Sidebar ref={elements.sidebar}>
+        {/* Sidebar content */}
+      </Sidebar>
+      <main>
+        <MetricsRow>
+          {metrics.map((metric, i) => (
+            <MetricCard key={metric.id} ref={elements.metrics[i]} />
+          ))}
+        </MetricsRow>
+        <CardGrid>
+          {cards.map((card, i) => (
+            <DashboardCard key={card.id} ref={elements.cards[i]} />
+          ))}
+        </CardGrid>
+      </main>
+    </div>
+  );
+}
+```
+
+### **Physics-Based Animation System**
+
+The physics animation system provides realistic, natural motion that mimics real-world physics.
+
+```tsx
+import { 
+  usePhysicsInteraction, 
+  physicsPresets 
+} from '../../hooks/usePhysicsInteraction';
+import { springAnimation } from '../../design/animations/physics/springAnimation';
+import { magneticEffect } from '../../design/animations/physics/magneticEffect';
+
+// Create a magnetic button with spring-based physics
+function MagneticPhysicsButton({ children, onClick }) {
+  const { 
+    ref, 
+    style, 
+    handlers 
+  } = usePhysicsInteraction({
+    // Physics type
+    type: 'magnetic',
+    
+    // Spring properties
+    mass: 1,              // Object mass (higher = more inertia)
+    stiffness: 170,       // Spring stiffness (higher = faster movement)
+    dampingRatio: 0.7,    // Damping (higher = less oscillation)
+    
+    // Magnetic properties
+    attractionRadius: 150,    // Distance at which attraction begins
+    attractionStrength: 0.4,  // Strength of magnetic pull
+    repulsionEnabled: false,  // Whether to enable repulsion mode
+    
+    // Interactive properties
+    hoverScale: 1.05,         // Scale factor on hover
+    pressScale: 0.95,         // Scale factor when pressed
+    
+    // Preset (optional - overrides individual settings)
+    ...physicsPresets.responsive
+  });
+  
+  return (
+    <button 
+      ref={ref}
+      style={style}
+      onClick={onClick}
+      {...handlers}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Use the particle system for ambient effects
+function ParticleBackgroundEffect() {
+  const { containerRef } = useParticleSystem({
+    count: 50,                // Number of particles
+    speedFactor: 0.5,         // Overall speed multiplier
+    sizeRange: [2, 8],        // Min/max particle size
+    colorPalette: ['#4B66EA', '#2CA2F6', '#C084FC'],  // Colors
+    opacityRange: [0.3, 0.7], // Min/max opacity
+    physics: {
+      friction: 0.02,         // Slowing force
+      turbulence: 0.1,        // Random movement factor
+      attraction: {
+        enabled: true,        // Mouse attraction
+        strength: 0.5,        // Attraction strength
+        radius: 200           // Attraction radius
+      }
+    }
+  });
+  
+  return <div ref={containerRef} className="particle-container" />;
+}
+```
+
+### **Motion Sensitivity System**
+
+The motion sensitivity system provides granular control over animation intensity based on user preferences.
+
+```tsx
+import { MotionSensitivity } from '../../design/animations/accessibility/MotionSensitivity';
+import { AnimationMapper } from '../../design/animations/accessibility/AnimationMapper';
+import { useMotionSettings } from '../../hooks/useMotionSettings';
+
+function AccessibleAnimatedComponent() {
+  // Get the user's motion sensitivity preference
+  const { 
+    motionSensitivity,
+    motionReduced,
+    userPreferences
+  } = useMotionSettings();
+  
+  // Create animation map with alternatives for each sensitivity level
+  const animationMap = {
+    [MotionSensitivity.STANDARD]: fullAnimation,
+    [MotionSensitivity.REDUCED]: subtleAnimation,
+    [MotionSensitivity.MINIMAL]: opacityOnlyAnimation,
+    [MotionSensitivity.NONE]: null
+  };
+  
+  // Get the appropriate animation based on user preference
+  const animation = animationMap[motionSensitivity] || animationMap[MotionSensitivity.NONE];
+  
+  // Adjust duration based on sensitivity
+  const getDuration = () => {
+    switch(motionSensitivity) {
+      case MotionSensitivity.STANDARD: return 0.4;
+      case MotionSensitivity.REDUCED: return 0.3;
+      case MotionSensitivity.MINIMAL: return 0.2;
+      default: return 0;
+    }
+  };
+  
+  return (
+    <div style={{ 
+      animation: animation ? `${animation} ${getDuration()}s ease-out forwards` : 'none'
+    }}>
+      Content with motion sensitivity adaptations
+    </div>
+  );
+}
+```
+
 ---
 
 ## **Migrating Legacy Animations**
@@ -790,11 +991,13 @@ ${props => animate({
 
 ## **API Reference**
 
-- [Animation Functions](mdc:api-reference/animation-functions.md)  
-- [Keyframes](mdc:api-reference/keyframes.md)  
-- [Presets](mdc:api-reference/presets.md)  
-- [Performance Utilities](mdc:api-reference/performance.md)  
-- [Accessibility Utilities](mdc:api-reference/accessibility.md)
+- Animation Functions  
+- Keyframes  
+- Presets  
+- Performance Utilities  
+- Accessibility Utilities
+
+Refer to the API documentation in the codebase for detailed information on each function and component.
 
 ---
 

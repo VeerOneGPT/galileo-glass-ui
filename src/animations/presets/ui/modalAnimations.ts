@@ -1,15 +1,16 @@
 /**
  * Modal Animations
- * 
+ *
  * Animation presets specifically designed for modal and dialog components
  */
 import { keyframes } from 'styled-components';
-import { 
-  animationTimings, 
-  animationEasings, 
-  AnimationIntensity, 
-  AnimationPreset, 
-  fadeAnimation 
+
+import {
+  animationTimings,
+  animationEasings,
+  AnimationIntensity,
+  AnimationPreset,
+  fadeAnimation,
 } from '../accessibleAnimations';
 
 // Modal/dialog entrance animation
@@ -28,7 +29,7 @@ export const modalEnterAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Modal/dialog exit animation
@@ -54,9 +55,9 @@ export const modalExitAnimation: AnimationPreset = {
     duration: animationTimings.fast,
     easing: animationEasings.exit,
     fillMode: 'forwards',
-    intensity: AnimationIntensity.SUBTLE
+    intensity: AnimationIntensity.SUBTLE,
   },
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Modal backdrop enter animation
@@ -69,7 +70,7 @@ export const backdropEnterAnimation: AnimationPreset = {
   easing: animationEasings.enter,
   fillMode: 'forwards',
   reducedMotionAlternative: null, // This is subtle enough for reduced motion
-  intensity: AnimationIntensity.SUBTLE
+  intensity: AnimationIntensity.SUBTLE,
 };
 
 // Modal backdrop exit animation
@@ -82,7 +83,7 @@ export const backdropExitAnimation: AnimationPreset = {
   easing: animationEasings.exit,
   fillMode: 'forwards',
   reducedMotionAlternative: null, // This is subtle enough for reduced motion
-  intensity: AnimationIntensity.SUBTLE
+  intensity: AnimationIntensity.SUBTLE,
 };
 
 // Glass modal reveal animation
@@ -105,7 +106,7 @@ export const glassModalRevealAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.EXPRESSIVE
+  intensity: AnimationIntensity.EXPRESSIVE,
 };
 
 // Slide in from top
@@ -124,7 +125,7 @@ export const slideInTopAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide in from bottom
@@ -143,7 +144,7 @@ export const slideInBottomAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide in from left
@@ -162,7 +163,7 @@ export const slideInLeftAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Slide in from right
@@ -181,7 +182,7 @@ export const slideInRightAnimation: AnimationPreset = {
   easing: animationEasings.emphasized,
   fillMode: 'forwards',
   reducedMotionAlternative: fadeAnimation,
-  intensity: AnimationIntensity.STANDARD
+  intensity: AnimationIntensity.STANDARD,
 };
 
 // Export all modal animations
@@ -194,5 +195,5 @@ export const modalAnimations = {
   slideInTop: slideInTopAnimation,
   slideInBottom: slideInBottomAnimation,
   slideInLeft: slideInLeftAnimation,
-  slideInRight: slideInRightAnimation
+  slideInRight: slideInRightAnimation,
 };

@@ -11,5 +11,5 @@ export type {
   FormGroupProps,
   FormControlProps,
   FormLabelProps,
-  FormHelperTextProps
+  FormHelperTextProps,
 } from './types';

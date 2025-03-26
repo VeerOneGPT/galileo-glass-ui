@@ -1,6 +1,6 @@
 /**
  * Time Utilities
- * 
+ *
  * Utility functions for handling time-related operations.
  */
 
@@ -24,12 +24,12 @@ export const formatDuration = (milliseconds: number): string => {
   if (milliseconds < 1000) {
     return `${Math.round(milliseconds)}ms`;
   }
-  
+
   const seconds = milliseconds / 1000;
   if (seconds < 60) {
     return `${seconds.toFixed(1)}s`;
   }
-  
+
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.round(seconds % 60);
   return `${minutes}m ${remainingSeconds}s`;
@@ -55,12 +55,12 @@ export function debounce<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout>;
-  
-  return function(...args: Parameters<T>): void {
+
+  return function (...args: Parameters<T>): void {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    
+
     timeoutId = setTimeout(() => {
       fn(...args);
     }, delay);
@@ -77,14 +77,14 @@ export function throttle<T extends (...args: any[]) => any>(
   fn: T,
   limit: number
 ): (...args: Parameters<T>) => void {
-  let inThrottle: boolean = false;
+  let inThrottle = false;
   let lastArgs: Parameters<T> | null = null;
-  
-  return function(...args: Parameters<T>): void {
+
+  return function (...args: Parameters<T>): void {
     if (!inThrottle) {
       fn(...args);
       inThrottle = true;
-      
+
       setTimeout(() => {
         inThrottle = false;
         if (lastArgs) {
@@ -96,4 +96,4 @@ export function throttle<T extends (...args: any[]) => any>(
       lastArgs = args;
     }
   };
-};
+}

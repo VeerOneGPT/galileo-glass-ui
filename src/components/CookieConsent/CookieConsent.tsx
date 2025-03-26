@@ -1,16 +1,18 @@
 import React, { forwardRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { CookieConsentProps } from './types';
+
+import { glowEffects } from '../../core/mixins/effects/glowEffects';
+import { glassBorder } from '../../core/mixins/glassBorder';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { createThemeContext } from '../../core/themeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Box } from '../Box';
 import { Button } from '../Button';
-import { Typography } from '../Typography';
 import { Link } from '../Link';
-import { createThemeContext } from '../../core/themeContext';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassBorder } from '../../core/mixins/glassBorder';
+import { Typography } from '../Typography';
 // Import correct path for glowEffects
-import { glowEffects } from '../../core/mixins/effects/glowEffects';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+import { CookieConsentProps } from './types';
 
 // Cookie management utility
 const setCookie = (name: string, value: string, days: number): void => {
@@ -45,7 +47,7 @@ const StyledCookieConsent = styled.div<{
   box-sizing: border-box;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  
+
   ${({ $position }) => {
     switch ($position) {
       case 'bottom':
@@ -87,14 +89,14 @@ const StyledCookieConsent = styled.div<{
         `;
     }
   }}
-  
+
   ${({ theme, $glassIntensity }) => {
     const themeContext = createThemeContext(theme);
     return glassSurface({
       elevation: 2,
       backgroundOpacity: 'medium',
       blurStrength: 'medium',
-      themeContext
+      themeContext,
     });
   }}
   
@@ -103,7 +105,7 @@ const StyledCookieConsent = styled.div<{
     return glassBorder({
       width: '1px',
       opacity: 0.3,
-      themeContext
+      themeContext,
     });
   }}
   
@@ -111,25 +113,31 @@ const StyledCookieConsent = styled.div<{
     const themeContext = createThemeContext(theme);
     return glowEffects.glassGlow({
       intensity: $glassIntensity * 0.3,
-      themeContext
+      themeContext,
     });
   }}
   
-  ${({ $animate, $position }) => $animate && `
+  ${({ $animate, $position }) =>
+    $animate &&
+    `
     animation: slideIn 0.5s ease forwards;
     
     @keyframes slideIn {
       0% {
         opacity: 0;
-        transform: ${$position?.includes('top') 
-          ? 'translateY(-20px)' 
-          : $position?.includes('bottom') 
-            ? 'translateY(20px)' 
-            : 'translateY(20px)'} ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
+        transform: ${
+          $position?.includes('top')
+            ? 'translateY(-20px)'
+            : $position?.includes('bottom')
+            ? 'translateY(20px)'
+            : 'translateY(20px)'
+        } ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
       }
       100% {
         opacity: 1;
-        transform: translateY(0) ${$position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''};
+        transform: translateY(0) ${
+          $position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''
+        };
       }
     }
   `}
@@ -140,15 +148,15 @@ const StyledCookieConsent = styled.div<{
     left: 20px;
     right: 20px;
     transform: none;
-    
-    ${({ $position }) => 
-      ($position === 'top' || $position === 'bottom') && `
+
+    ${({ $position }) =>
+      ($position === 'top' || $position === 'bottom') &&
+      `
         left: 20px;
         right: 20px;
         width: calc(100% - 40px);
         transform: none;
-      `
-    }
+      `}
   }
 `;
 
@@ -158,10 +166,10 @@ const ButtonContainer = styled.div`
   gap: 0.75rem;
   margin-top: 1rem;
   justify-content: flex-end;
-  
+
   @media (max-width: 480px) {
     flex-direction: column;
-    
+
     & > button {
       width: 100%;
     }
@@ -202,7 +210,7 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
     const [visible, setVisible] = useState(false);
     const prefersReducedMotion = useReducedMotion();
     const shouldAnimate = animate && !prefersReducedMotion;
-    
+
     useEffect(() => {
       // Check if user has already made a choice
       const consentValue = getCookie('cookie-consent');
@@ -211,11 +219,11 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
         const timer = setTimeout(() => {
           setVisible(true);
         }, delay);
-        
+
         return () => clearTimeout(timer);
       }
     }, [delay]);
-    
+
     useEffect(() => {
       if (visible && timeout > 0) {
         const timer = setTimeout(() => {
@@ -224,11 +232,11 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
             onTimeout();
           }
         }, timeout);
-        
+
         return () => clearTimeout(timer);
       }
     }, [visible, timeout, onTimeout]);
-    
+
     const handleAccept = () => {
       setCookie('cookie-consent', 'accepted', cookieExpiration);
       setVisible(false);
@@ -236,7 +244,7 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
         onAccept();
       }
     };
-    
+
     const handleDecline = () => {
       setCookie('cookie-consent', 'declined', cookieExpiration);
       setVisible(false);
@@ -244,17 +252,17 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
         onDecline();
       }
     };
-    
+
     const handleSettings = () => {
       if (onSettings) {
         onSettings();
       }
     };
-    
+
     if (!visible) {
       return null;
     }
-    
+
     return (
       <StyledCookieConsent
         ref={ref}
@@ -271,7 +279,7 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
               {title}
             </Typography>
           )}
-          
+
           <Typography variant="body2">
             {message}
             {privacyPolicyUrl && (
@@ -283,20 +291,20 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
               </>
             )}
           </Typography>
-          
+
           <ButtonContainer>
             {dismissible && (
               <Button variant="outlined" onClick={handleDecline} size="small">
                 {declineButtonText}
               </Button>
             )}
-            
+
             {enableSettings && (
               <Button variant="outlined" onClick={handleSettings} size="small">
                 {settingsButtonText}
               </Button>
             )}
-            
+
             <Button variant="contained" onClick={handleAccept} size="small">
               {acceptButtonText}
             </Button>
@@ -311,13 +319,7 @@ CookieConsent.displayName = 'CookieConsent';
 
 // Glass version of the CookieConsent component
 export const GlassCookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
-  (props: CookieConsentProps, ref) => (
-    <CookieConsent
-      ref={ref}
-      glassIntensity={0.8}
-      {...props}
-    />
-  )
+  (props: CookieConsentProps, ref) => <CookieConsent ref={ref} glassIntensity={0.8} {...props} />
 );
 
 GlassCookieConsent.displayName = 'GlassCookieConsent';

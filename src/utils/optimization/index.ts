@@ -1,20 +1,24 @@
 /**
  * Style Optimization Utilities
- * 
+ *
  * Advanced utilities for optimizing styles and rendering in Glass UI components.
  */
 
 // Import globalStyleSheet for use in this file
-import { OptimizedStyleSheet, globalStyleSheet as importedGlobalStyleSheet, createOptimizedStyleSheet } from './optimizedStyleSheet';
+import {
+  OptimizedStyleSheet,
+  globalStyleSheet as importedGlobalStyleSheet,
+  createOptimizedStyleSheet,
+} from './optimizedStyleSheet';
 
 // Import globalPaintOptimizer for use in this file
-import { 
-  PaintOptimizer, 
+import {
+  PaintOptimizer,
   globalPaintOptimizer as importedGlobalPaintOptimizer,
   createPaintOptimizer,
   markAsAnimating,
   optimizeForPainting,
-  type PaintOptimizationConfig
+  type PaintOptimizationConfig,
 } from './paintOptimizer';
 
 // Re-export the imported items
@@ -25,7 +29,7 @@ export {
   createPaintOptimizer,
   markAsAnimating,
   optimizeForPainting,
-  type PaintOptimizationConfig
+  type PaintOptimizationConfig,
 };
 
 // Export references to the global instances with proper type safety
@@ -44,20 +48,20 @@ export {
   StyleOperationPriority,
   type StyleBatcherConfig,
   type StyleOperation,
-  type BatchPerformanceMetrics
+  type BatchPerformanceMetrics,
 } from './styleUpdateBatcher';
 
 /**
  * Utility to optimize an element's rendering performance
  */
-export const optimizeElement = (element: HTMLElement, isGlass: boolean = false): void => {
+export const optimizeElement = (element: HTMLElement, isGlass = false): void => {
   if (!element) return;
-  
+
   // Apply paint optimizations
   if (globalPaintOptimizer) {
     globalPaintOptimizer.optimizeElement(element, isGlass);
   }
-  
+
   // Add to optimized stylesheet if it's not already styled
   if (globalStyleSheet && !element.className) {
     const className = globalStyleSheet.createClass(
@@ -76,7 +80,7 @@ export const optimizeElement = (element: HTMLElement, isGlass: boolean = false):
  */
 export const optimizeElements = (
   elements: HTMLElement[] | NodeListOf<HTMLElement>,
-  isGlass: boolean = false
+  isGlass = false
 ): void => {
   Array.from(elements).forEach(element => {
     optimizeElement(element, isGlass);

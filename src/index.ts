@@ -1,6 +1,6 @@
 /**
  * Galileo Glass UI
- * 
+ *
  * A comprehensive UI system for creating beautiful glass morphism interfaces
  * with React and styled-components.
  */
@@ -26,22 +26,14 @@ export {
   typography,
   spacing,
   shadows,
-  borderRadius
+  borderRadius,
 } from './theme';
 
 // Explicitly re-export animations
-export {
-  accessibleAnimation,
-  animateWithPhysics,
-  useZSpaceAnimation
-} from './animations';
+export { accessibleAnimation, animateWithPhysics, useZSpaceAnimation } from './animations';
 
 // Explicitly re-export hooks
-export {
-  useGlassTheme,
-  usePhysicsInteraction,
-  useOrchestration
-} from './hooks';
+export { useGlassTheme, usePhysicsInteraction, useOrchestration } from './hooks';
 
 // Version
 export const version = '1.0.0';

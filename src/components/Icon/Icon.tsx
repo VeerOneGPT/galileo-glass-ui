@@ -1,10 +1,11 @@
 /**
  * Icon Component
- * 
+ *
  * A component for displaying icons with glass effects
  */
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
+
 import { cssWithKebabProps } from '../../core/cssUtils';
 
 /**
@@ -85,17 +86,17 @@ export interface IconProps {
    * CSS inline style
    */
   style?: React.CSSProperties;
-  
+
   /**
    * HTML title attribute
    */
   title?: string;
-  
+
   /**
    * Function called when the icon is clicked
    */
   onClick?: React.MouseEventHandler<HTMLSpanElement>;
-  
+
   /**
    * Additional HTML attributes
    */
@@ -117,9 +118,9 @@ const getIconSize = (size?: 'small' | 'medium' | 'large' | number): string => {
  */
 const getIconColor = (color?: string, theme?: any): string => {
   if (!color || color === 'inherit') return 'inherit';
-  
+
   const isDarkMode = theme?.palette?.mode === 'dark' || false;
-  
+
   // Default color mappings
   const colorMap: Record<string, string> = {
     primary: isDarkMode ? '#90caf9' : '#1976d2',
@@ -129,7 +130,7 @@ const getIconColor = (color?: string, theme?: any): string => {
     error: isDarkMode ? '#f44336' : '#d32f2f',
     info: isDarkMode ? '#29b6f6' : '#2196f3',
   };
-  
+
   return colorMap[color] || color;
 };
 
@@ -146,13 +147,17 @@ const getBlurValue = (blur?: 'light' | 'medium' | 'strong' | number): string => 
 /**
  * Get transform style based on props
  */
-const getTransform = (rotate?: number, flipHorizontal?: boolean, flipVertical?: boolean): string => {
+const getTransform = (
+  rotate?: number,
+  flipHorizontal?: boolean,
+  flipVertical?: boolean
+): string => {
   const transforms: string[] = [];
-  
+
   if (rotate) transforms.push(`rotate(${rotate}deg)`);
   if (flipHorizontal) transforms.push('scaleX(-1)');
   if (flipVertical) transforms.push('scaleY(-1)');
-  
+
   return transforms.length ? transforms.join(' ') : 'none';
 };
 
@@ -165,7 +170,7 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
     const color = getIconColor(props.color, props.theme);
     const blurValue = getBlurValue(props.blur);
     const transform = getTransform(props.rotate, props.flipHorizontal, props.flipVertical);
-    
+
     return cssWithKebabProps`
       display: inline-flex;
       align-items: center;
@@ -182,13 +187,19 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
         height: 100%;
         fill: currentColor;
         
-        ${props.glass ? `
+        ${
+          props.glass
+            ? `
           filter: drop-shadow(0 0 ${blurValue} ${color});
-        ` : ''}
+        `
+            : ''
+        }
       }
       
       /* Glass effect */
-      ${props.glass ? `
+      ${
+        props.glass
+          ? `
         position: relative;
         
         &::after {
@@ -204,10 +215,14 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
           z-index: -1;
           filter: blur(${blurValue});
         }
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Glow effect */
-      ${props.glowEffect ? `
+      ${
+        props.glowEffect
+          ? `
         @keyframes glow {
           0%, 100% {
             filter: drop-shadow(0 0 2px ${color}) drop-shadow(0 0 4px ${color}40);
@@ -220,10 +235,14 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
         & > svg {
           animation: glow 2s ease-in-out infinite;
         }
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Spin animation */
-      ${props.spin ? `
+      ${
+        props.spin
+          ? `
         @keyframes spin {
           0% {
             transform: ${transform} rotate(0deg);
@@ -234,10 +253,14 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
         }
         
         animation: spin 1.5s linear infinite;
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Pulse animation */
-      ${props.pulse ? `
+      ${
+        props.pulse
+          ? `
         @keyframes pulse {
           0%, 100% {
             transform: ${transform} scale(1);
@@ -250,10 +273,14 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
         }
         
         animation: pulse 1.5s ease-in-out infinite;
-      ` : ''}
+      `
+          : ''
+      }
       
       /* Hover effect */
-      ${props.hoverEffect ? `
+      ${
+        props.hoverEffect
+          ? `
         transition: transform 0.2s ease, filter 0.2s ease;
         cursor: pointer;
         
@@ -265,7 +292,9 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
         &:active {
           transform: ${transform} scale(0.95);
         }
-      ` : ''}
+      `
+          : ''
+      }
     `;
   }}
 `;
@@ -343,14 +372,14 @@ export const Icon = forwardRef<HTMLSpanElement, IconProps>(function Icon(props, 
 
   // Get the icon component to render
   let IconComponent: React.ReactNode = null;
-  
+
   if (Component) {
     IconComponent = <Component />;
   } else if (name && predefinedIcons[name]) {
     const PredefinedIcon = predefinedIcons[name];
     IconComponent = <PredefinedIcon />;
   }
-  
+
   if (!IconComponent) {
     console.warn('Icon component missing or invalid name provided');
     return null;
