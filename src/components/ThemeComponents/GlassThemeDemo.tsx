@@ -9,23 +9,23 @@ import { Alert } from '../Alert';
 import { Avatar } from '../Avatar';
 import { Badge } from '../Badge';
 import { Box } from '../Box';
-
-import { GlassThemeDemoProps } from './types';
-import { Card } from '../Card';
-import { Typography } from '../Typography';
 import { Button } from '../Button';
-import { Tabs, Tab } from '../Tabs';
-import { Divider } from '../Divider';
-import { TextField } from '../TextField';
-import { Switch } from '../Switch';
+import { Card } from '../Card';
 import { Checkbox } from '../Checkbox';
+import { Chip } from '../Chip';
+import { Divider } from '../Divider';
+import { Paper } from '../Paper';
+import { Progress } from '../Progress';
 import { Radio } from '../Radio';
 import { Select } from '../Select';
 import { Slider } from '../Slider';
-import { Chip } from '../Chip';
-import { Paper } from '../Paper';
-import { Progress } from '../Progress';
+import { Switch } from '../Switch';
+import { Tabs, Tab } from '../Tabs';
+import { TextField } from '../TextField';
+import { Typography } from '../Typography';
+
 import { GlassThemeSwitcher } from './GlassThemeSwitcher';
+import { GlassThemeDemoProps } from './types';
 
 // Styled components
 const StyledDemo = styled.div<{

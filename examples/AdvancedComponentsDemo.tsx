@@ -35,6 +35,7 @@ import {
   RippleButton
 } from 'galileo-glass-ui';
 import { createThemeContext } from 'galileo-glass-ui/core';
+import { type ThemeVariant } from '../src/hooks/useGlassTheme';
 
 // Icons (placeholders, would be imported from an icon library)
 const AddIcon = () => <span>+</span>;
@@ -75,7 +76,7 @@ export const AdvancedComponentsDemo: React.FC = () => {
   const [rating, setRating] = useState<number | null>(3);
   const [currentRoute, setCurrentRoute] = useState('/dashboard');
   const [currentView, setCurrentView] = useState('dashboard');
-  const [theme, setTheme] = useState('nebula');
+  const [theme, setTheme] = useState<ThemeVariant>('nebula' as ThemeVariant);
 
   // Sample data
   const navigationItems = [

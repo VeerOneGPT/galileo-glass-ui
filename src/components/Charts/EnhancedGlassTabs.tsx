@@ -4,7 +4,7 @@
  * High-contrast, accessibility-focused tab component for chart navigation
  * with glass morphism styling.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { useMagneticButton } from '../../animations/hooks';
@@ -15,6 +15,8 @@ import { interactiveGlass } from '../../core/mixins/interactions/interactiveGlas
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { asCoreThemeContext } from '../../utils/themeHelpers';
+import { useTheme } from '../../theme';
+import { DefaultTheme } from 'styled-components';
 
 /**
  * TabItem interface
@@ -380,6 +382,80 @@ const StyledBadge = styled.span<{
   color: white;
 `;
 
+// Add this helper function to ensure we have a properly typed theme
+const ensureValidTheme = (themeInput: any): DefaultTheme => {
+  // If the theme is already a valid DefaultTheme, return it
+  if (
+    themeInput && 
+    typeof themeInput === 'object' && 
+    'isDarkMode' in themeInput && 
+    'colorMode' in themeInput && 
+    'themeVariant' in themeInput && 
+    'colors' in themeInput && 
+    'zIndex' in themeInput
+  ) {
+    return themeInput as DefaultTheme;
+  }
+  
+  // Otherwise, create a new theme object
+  return {
+    isDarkMode: false,
+    colorMode: 'light',
+    themeVariant: 'nebula',
+    colors: {
+      nebula: {
+        accentPrimary: '#6366F1',
+        accentSecondary: '#8B5CF6',
+        accentTertiary: '#EC4899',
+        stateCritical: '#EF4444',
+        stateOptimal: '#10B981',
+        stateAttention: '#F59E0B',
+        stateInformational: '#3B82F6',
+        neutralBackground: '#F9FAFB',
+        neutralForeground: '#1F2937',
+        neutralBorder: '#E5E7EB',
+        neutralSurface: '#FFFFFF'
+      },
+      glass: {
+        light: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: 'rgba(255, 255, 255, 0.2)',
+          highlight: 'rgba(255, 255, 255, 0.3)',
+          shadow: 'rgba(0, 0, 0, 0.1)',
+          glow: 'rgba(255, 255, 255, 0.2)'
+        },
+        dark: {
+          background: 'rgba(0, 0, 0, 0.2)',
+          border: 'rgba(255, 255, 255, 0.1)',
+          highlight: 'rgba(255, 255, 255, 0.1)',
+          shadow: 'rgba(0, 0, 0, 0.3)',
+          glow: 'rgba(255, 255, 255, 0.1)'
+        },
+        tints: {
+          primary: 'rgba(99, 102, 241, 0.1)',
+          secondary: 'rgba(139, 92, 246, 0.1)'
+        }
+      }
+    },
+    zIndex: {
+      hide: -1,
+      auto: 'auto',
+      base: 0,
+      docked: 10,
+      dropdown: 1000,
+      sticky: 1100,
+      banner: 1200,
+      overlay: 1300,
+      modal: 1400,
+      popover: 1500,
+      skipLink: 1600,
+      toast: 1700,
+      tooltip: 1800,
+      glacial: 9999
+    }
+  };
+};
+
 /**
  * EnhancedGlassTabs Component
  */
@@ -400,6 +476,10 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
   className,
   style,
 }) => {
+  // Get theme from context and ensure it's valid
+  const providedTheme = useTheme();
+  const theme = ensureValidTheme(providedTheme);
+  
   // State for currently active tab
   const [currentTab, setCurrentTab] = useState(
     activeTab || defaultTab || (tabs.length > 0 ? tabs[0].id : '')
@@ -471,7 +551,7 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
       highContrast={highContrast}
       className={className}
       style={style}
-      theme={{}}
+      theme={theme}
     >
       <StyledTabsList fullWidth={fullWidth}>
         {tabs.map(tab => {
@@ -511,12 +591,12 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
               role="tab"
               tabIndex={tab.disabled ? -1 : 0}
               {...(magneticProps ? magneticProps.eventHandlers : {})}
-              theme={{}}
+              theme={theme}
             >
               {tab.icon && <span>{tab.icon}</span>}
               <span>{tab.label}</span>
               {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
-                <StyledBadge color={color} theme={{}}>
+                <StyledBadge color={color} theme={theme}>
                   {tab.badgeCount > 99 ? '99+' : tab.badgeCount}
                 </StyledBadge>
               )}
@@ -534,7 +614,7 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
           color={color}
           animation={prefersReducedMotion ? 'none' : indicatorAnimation}
           highContrast={highContrast}
-          theme={{}}
+          theme={theme}
         />
       )}
     </StyledTabsContainer>

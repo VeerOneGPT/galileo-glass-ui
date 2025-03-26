@@ -1,6 +1,10 @@
 /**
  * Tests for Performance Monitor
  */
+// Import the dependencies after the mock setup, not at the top
+
+// Add empty export to make this file a module
+export {};
 
 // Mock dependencies
 const mockMetricType = {
@@ -33,8 +37,22 @@ jest.mock('../performanceMonitor', () => {
   const createSnapshot = () => ({
     metrics: {
       fps: { value: 60, type: 'fps', severity: 'good', threshold: {}, normalized: 1, unit: 'fps' },
-      frameTime: { value: 16.67, type: 'frameTime', severity: 'good', threshold: {}, normalized: 1, unit: 'ms' },
-      memory: { value: 100, type: 'memory', severity: 'good', threshold: {}, normalized: 1, unit: 'MB' },
+      frameTime: {
+        value: 16.67,
+        type: 'frameTime',
+        severity: 'good',
+        threshold: {},
+        normalized: 1,
+        unit: 'ms',
+      },
+      memory: {
+        value: 100,
+        type: 'memory',
+        severity: 'good',
+        threshold: {},
+        normalized: 1,
+        unit: 'MB',
+      },
     },
     timestamp: Date.now(),
     deviceInfo: {
@@ -48,7 +66,7 @@ jest.mock('../performanceMonitor', () => {
     overallScore: 100,
     recommendations: [],
   });
-  
+
   return {
     MetricType: mockMetricType,
     MetricSeverity: mockMetricSeverity,
@@ -57,7 +75,7 @@ jest.mock('../performanceMonitor', () => {
       stop: jest.fn(),
       reset: jest.fn(),
       getSnapshot: jest.fn(() => createSnapshot()),
-      getMetric: jest.fn((type) => ({ value: 60, type, severity: 'good' })),
+      getMetric: jest.fn(type => ({ value: 60, type, severity: 'good' })),
       setCustomMetric: jest.fn(),
       getCustomMetrics: jest.fn(() => ({})),
       shouldReduceGlassEffects: jest.fn(() => false),
@@ -76,7 +94,7 @@ jest.mock('../performanceMonitor', () => {
       stop: jest.fn(),
       reset: jest.fn(),
       getSnapshot: jest.fn(() => createSnapshot()),
-      getMetric: jest.fn((type) => ({ value: 60, type, severity: 'good' })),
+      getMetric: jest.fn(type => ({ value: 60, type, severity: 'good' })),
       setCustomMetric: jest.fn(),
       getCustomMetrics: jest.fn(() => ({})),
       shouldReduceGlassEffects: jest.fn(() => false),
@@ -123,12 +141,12 @@ const mockPerformance = {
 };
 
 // Mock requestAnimationFrame
-global.requestAnimationFrame = jest.fn((callback) => {
+global.requestAnimationFrame = jest.fn(callback => {
   return setTimeout(() => callback(performance.now() + 16), 16) as unknown as number;
 });
 
 // Mock cancelAnimationFrame
-global.cancelAnimationFrame = jest.fn((id) => {
+global.cancelAnimationFrame = jest.fn(id => {
   clearTimeout(id as unknown as NodeJS.Timeout);
 });
 
@@ -141,23 +159,23 @@ Object.defineProperty(global, 'performance', {
 // Mock PerformanceObserver
 class MockPerformanceObserver {
   private callback: (list: any) => void;
-  
+
   constructor(callback: (list: any) => void) {
     this.callback = callback;
   }
-  
+
   observe() {
     // Store observer for testing
   }
-  
+
   disconnect() {
     // No-op
   }
-  
+
   // Helper method for testing
   triggerCallback(entries: any[]) {
     this.callback({
-      getEntries: () => entries
+      getEntries: () => entries,
     });
   }
 }
@@ -166,35 +184,35 @@ global.PerformanceObserver = MockPerformanceObserver as any;
 
 describe('PerformanceMonitor', () => {
   let monitor;
-  
+
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
     monitor = new PerformanceMonitor();
   });
-  
+
   afterEach(() => {
     jest.useRealTimers();
   });
-  
+
   test('can be instantiated', () => {
     expect(monitor).toBeDefined();
     expect(PerformanceMonitor).toHaveBeenCalled();
   });
-  
+
   test('factory function creates a monitor instance', () => {
     const instance = createPerformanceMonitor();
     expect(instance).toBeDefined();
   });
-  
+
   test('starts and stops monitoring', () => {
     monitor.start();
     expect(monitor.start).toHaveBeenCalled();
-    
+
     monitor.stop();
     expect(monitor.stop).toHaveBeenCalled();
   });
-  
+
   test('getSnapshot returns a performance snapshot', () => {
     const snapshot = monitor.getSnapshot();
     expect(snapshot).toBeDefined();
@@ -202,50 +220,50 @@ describe('PerformanceMonitor', () => {
     expect(snapshot.deviceInfo).toBeDefined();
     expect(snapshot.overallScore).toBe(100);
   });
-  
+
   test('getMetric returns a specific metric', () => {
     const metric = monitor.getMetric(MetricType.FPS);
     expect(metric).toBeDefined();
     expect(metric.type).toBe(MetricType.FPS);
   });
-  
+
   test('reset clears metrics', () => {
     monitor.reset();
     expect(monitor.reset).toHaveBeenCalled();
   });
-  
+
   test('custom metrics can be set and retrieved', () => {
     monitor.setCustomMetric('test', 42);
     expect(monitor.setCustomMetric).toHaveBeenCalledWith('test', 42);
-    
+
     const metrics = monitor.getCustomMetrics();
     expect(monitor.getCustomMetrics).toHaveBeenCalled();
     expect(metrics).toBeDefined();
   });
-  
+
   test('recommendations are provided when needed', () => {
     const recommendations = monitor.getRecommendations();
     expect(monitor.getRecommendations).toHaveBeenCalled();
     expect(Array.isArray(recommendations)).toBe(true);
   });
-  
+
   test('provides glass effect recommendations', () => {
     const settings = monitor.getRecommendedGlassSettings();
     expect(monitor.getRecommendedGlassSettings).toHaveBeenCalled();
     expect(settings).toHaveProperty('blurStrength');
     expect(settings).toHaveProperty('backgroundOpacity');
   });
-  
+
   test('identifies performance bottlenecks', () => {
     const bottlenecks = monitor.identifyBottlenecks();
     expect(monitor.identifyBottlenecks).toHaveBeenCalled();
     expect(Array.isArray(bottlenecks)).toBe(true);
   });
-  
+
   test('timing events can be measured', () => {
     monitor.markEvent('start');
     expect(monitor.markEvent).toHaveBeenCalledWith('start');
-    
+
     const duration = monitor.measureEvent('test', 'start', 'end');
     expect(monitor.measureEvent).toHaveBeenCalledWith('test', 'start', 'end');
     expect(duration).toBe(42);

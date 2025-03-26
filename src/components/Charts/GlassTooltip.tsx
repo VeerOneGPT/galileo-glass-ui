@@ -6,6 +6,7 @@
  */
 import React from 'react';
 import styled from 'styled-components';
+import { DefaultTheme } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/animationUtils';
 import { fadeIn } from '../../animations/keyframes/basic';
@@ -283,6 +284,80 @@ const TooltipContent = styled.div`
   color: ${props => (props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)')};
 `;
 
+// Add ensureValidTheme utility function
+const ensureValidTheme = (themeInput: any): DefaultTheme => {
+  // If the theme is already a valid DefaultTheme, return it
+  if (
+    themeInput && 
+    typeof themeInput === 'object' && 
+    'isDarkMode' in themeInput && 
+    'colorMode' in themeInput && 
+    'themeVariant' in themeInput && 
+    'colors' in themeInput && 
+    'zIndex' in themeInput
+  ) {
+    return themeInput as DefaultTheme;
+  }
+  
+  // Otherwise, create a new theme object
+  return {
+    isDarkMode: false,
+    colorMode: 'light',
+    themeVariant: 'nebula',
+    colors: {
+      nebula: {
+        accentPrimary: '#6366F1',
+        accentSecondary: '#8B5CF6',
+        accentTertiary: '#EC4899',
+        stateCritical: '#EF4444',
+        stateOptimal: '#10B981',
+        stateAttention: '#F59E0B',
+        stateInformational: '#3B82F6',
+        neutralBackground: '#F9FAFB',
+        neutralForeground: '#1F2937',
+        neutralBorder: '#E5E7EB',
+        neutralSurface: '#FFFFFF'
+      },
+      glass: {
+        light: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: 'rgba(255, 255, 255, 0.2)',
+          highlight: 'rgba(255, 255, 255, 0.3)',
+          shadow: 'rgba(0, 0, 0, 0.1)',
+          glow: 'rgba(255, 255, 255, 0.2)'
+        },
+        dark: {
+          background: 'rgba(0, 0, 0, 0.2)',
+          border: 'rgba(255, 255, 255, 0.1)',
+          highlight: 'rgba(255, 255, 255, 0.1)',
+          shadow: 'rgba(0, 0, 0, 0.3)',
+          glow: 'rgba(255, 255, 255, 0.1)'
+        },
+        tints: {
+          primary: 'rgba(99, 102, 241, 0.1)',
+          secondary: 'rgba(139, 92, 246, 0.1)'
+        }
+      }
+    },
+    zIndex: {
+      hide: -1,
+      auto: 'auto',
+      base: 0,
+      docked: 10,
+      dropdown: 1000,
+      sticky: 1100,
+      banner: 1200,
+      overlay: 1300,
+      modal: 1400,
+      popover: 1500,
+      skipLink: 1600,
+      toast: 1700,
+      tooltip: 1800,
+      glacial: 9999
+    }
+  };
+};
+
 /**
  * GlassTooltip Component
  */
@@ -300,6 +375,9 @@ export const GlassTooltip: React.FC<GlassTooltipProps> = ({
   className,
   style,
 }) => {
+  // Create a default theme
+  const theme = ensureValidTheme(null);
+  
   return (
     <TooltipContainer
       position={position}
@@ -312,14 +390,14 @@ export const GlassTooltip: React.FC<GlassTooltipProps> = ({
       zIndex={zIndex}
       className={className}
       style={style}
-      theme={{ isDarkMode: false }} // Provide minimal theme with isDarkMode property
+      theme={theme}
     >
       {children}
       {showPointer && (
         <TooltipPointer
           position={position}
           accentColor={accentColor}
-          theme={{ isDarkMode: false }}
+          theme={theme}
         />
       )}
     </TooltipContainer>

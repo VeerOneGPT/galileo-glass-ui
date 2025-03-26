@@ -3,12 +3,11 @@
  *
  * Core utilities for creating and managing accessible animations.
  */
-import { keyframes, css, FlattenSimpleInterpolation, Keyframes } from 'styled-components';
+import { css, FlattenSimpleInterpolation, Keyframes } from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { presets } from '../presets';
-import { AnimationPreset } from '../styled';
-import { AccessibleAnimationOptions } from '../types';
+import { AnimationPreset, AccessibleAnimationOptions } from '../types';
 
 import { animationMapper } from './AnimationMapper';
 import {

@@ -34,6 +34,26 @@ export interface StaggerOptions {
 }
 
 /**
+ * Staggered sequence options
+ */
+export interface StaggeredSequenceOptions {
+  /** Elements to apply animation to */
+  elements: string[] | HTMLElement[];
+
+  /** Animation to apply */
+  animation: AnimationPreset;
+
+  /** Delay between elements */
+  staggerDelay: number;
+
+  /** Initial delay before first element */
+  initialDelay: number;
+
+  /** Additional options */
+  options?: Record<string, any>;
+}
+
+/**
  * Animation sequence item
  */
 export interface AnimationSequenceItem {
@@ -355,4 +375,22 @@ export const coordinatedAnimations = {
     fillMode: 'both',
     intensity: AnimationIntensity.STANDARD,
   },
+};
+
+/**
+ * Create a staggered sequence for multiple elements
+ * @param options Staggered sequence configuration
+ * @returns Staggered animation sequence
+ */
+export const createStaggeredSequence = (options: StaggeredSequenceOptions) => {
+  const { elements, animation, staggerDelay, initialDelay, options: additionalOptions } = options;
+
+  return {
+    sequences: elements.map((element, i) => ({
+      element,
+      animation,
+      startTime: initialDelay + i * staggerDelay,
+      options: additionalOptions,
+    })),
+  };
 };

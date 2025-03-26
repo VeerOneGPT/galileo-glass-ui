@@ -224,7 +224,7 @@ describe('useGlassTheme', () => {
     // In the current implementation, useGlassTheme doesn't throw an error
     // but returns a default theme context
     const { result } = renderHook(() => useGlassTheme());
-    
+
     // Check that we have a theme object
     expect(result.current).toBeDefined();
     expect(result.current.theme).toBeDefined();

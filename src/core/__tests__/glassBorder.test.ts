@@ -1,19 +1,37 @@
+import { FlattenSimpleInterpolation } from 'styled-components';
+
 import { withAlpha } from '../colorUtils';
 import { cssWithKebabProps } from '../cssUtils';
 import { glassBorder } from '../mixins/glassBorder';
 
-// Create proper mock types
-const mockCssWithKebabProps = cssWithKebabProps as jest.MockedFunction<typeof cssWithKebabProps>;
-const mockWithAlpha = withAlpha as jest.MockedFunction<typeof withAlpha>;
-
 // Mock dependencies
+jest.mock('styled-components', () => ({
+  css: jest.fn((strings, ...values) => [strings, ...values]),
+}));
+
+// Add __cssString to the return type for testing
+type MockFlattenSimpleInterpolation = FlattenSimpleInterpolation & {
+  __cssString: string;
+  strings: string[];
+  values: any[];
+};
+
+// Create a structured mock result for cssWithKebabProps that will allow tests to access the interpolated strings
 jest.mock('../cssUtils', () => ({
-  cssWithKebabProps: jest.fn((...args) => args),
+  cssWithKebabProps: jest.fn((strings, ...values) => {
+    // Create a mock result that includes the template literal and values for inspection
+    const result = strings.raw.map((str, i) => `${str}${values[i] || ''}`).join('');
+    return { __cssString: result, strings, values } as MockFlattenSimpleInterpolation;
+  }),
 }));
 
 jest.mock('../colorUtils', () => ({
   withAlpha: jest.fn((color, alpha) => `${color}-${alpha}`),
 }));
+
+// Create proper mock types
+const mockCssWithKebabProps = cssWithKebabProps as jest.MockedFunction<typeof cssWithKebabProps>;
+const mockWithAlpha = withAlpha as jest.MockedFunction<typeof withAlpha>;
 
 describe('glassBorder Mixin', () => {
   beforeEach(() => {
@@ -21,25 +39,25 @@ describe('glassBorder Mixin', () => {
   });
 
   test('creates a default glass border', () => {
-    glassBorder({
+    const result = glassBorder({
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    expect(mockCssWithKebabProps).toHaveBeenCalledWith(expect.any(Array), ...expect.any(Array));
+    expect(mockCssWithKebabProps).toHaveBeenCalled();
 
-    // Check arguments passed to cssWithKebabProps
-    const args = mockCssWithKebabProps.mock.calls[0][0];
+    // Get the CSS string from our mock
+    const cssString = result.__cssString;
 
     // All borders should be present for default position 'all'
-    expect(args[0]).toContain('border-top:');
-    expect(args[0]).toContain('border-right:');
-    expect(args[0]).toContain('border-bottom:');
-    expect(args[0]).toContain('border-left:');
+    expect(cssString).toContain('border-top:');
+    expect(cssString).toContain('border-right:');
+    expect(cssString).toContain('border-bottom:');
+    expect(cssString).toContain('border-left:');
 
     // Should use default values
-    expect(args[0]).toContain('1px');
-    expect(args[0]).toContain('solid');
-    expect(args[0]).toContain('border-radius: 8px');
+    expect(cssString).toContain('1px');
+    expect(cssString).toContain('solid');
+    expect(cssString).toContain('border-radius: 8px');
   });
 
   test('applies specific border positions', () => {
@@ -55,64 +73,64 @@ describe('glassBorder Mixin', () => {
     for (const { position, expected } of positions) {
       mockCssWithKebabProps.mockClear();
 
-      glassBorder({
+      const result = glassBorder({
         position: position as any,
         themeContext: { isDarkMode: false },
-      });
+      }) as MockFlattenSimpleInterpolation;
 
-      const args = mockCssWithKebabProps.mock.calls[0][0];
+      const cssString = result.__cssString;
 
       // Check that only the correct borders are included
       for (const border of ['border-top:', 'border-right:', 'border-bottom:', 'border-left:']) {
         if (expected.includes(border)) {
-          expect(args[0]).toContain(border);
+          expect(cssString).toContain(border);
         } else {
-          expect(args[0]).not.toContain(border);
+          expect(cssString).not.toContain(border);
         }
       }
     }
   });
 
   test('applies custom width and style', () => {
-    glassBorder({
+    const result = glassBorder({
       width: 2,
       style: 'dashed',
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args[0]).toContain('2px');
-    expect(args[0]).toContain('dashed');
+    const cssString = result.__cssString;
+    expect(cssString).toContain('2px');
+    expect(cssString).toContain('dashed');
   });
 
   test('handles string width values', () => {
-    glassBorder({
+    const result = glassBorder({
       width: '3px',
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args[0]).toContain('3px');
+    const cssString = result.__cssString;
+    expect(cssString).toContain('3px');
   });
 
   test('applies custom border radius', () => {
-    glassBorder({
+    const result = glassBorder({
       radius: 16,
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args[0]).toContain('border-radius: 16px');
+    const cssString = result.__cssString;
+    expect(cssString).toContain('border-radius: 16px');
 
     mockCssWithKebabProps.mockClear();
 
-    glassBorder({
+    const result2 = glassBorder({
       radius: '2rem',
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args2 = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args2[0]).toContain('border-radius: 2rem');
+    const cssString2 = result2.__cssString;
+    expect(cssString2).toContain('border-radius: 2rem');
   });
 
   test('applies different opacity levels', () => {
@@ -138,36 +156,36 @@ describe('glassBorder Mixin', () => {
   });
 
   test('applies gradient border when specified', () => {
-    glassBorder({
+    const result = glassBorder({
       gradient: true,
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args[0]).toContain('border-image:');
-    expect(args[0]).toContain('linear-gradient');
+    const cssString = result.__cssString;
+    expect(cssString).toContain('border-image:');
+    expect(cssString).toContain('linear-gradient');
   });
 
   test('applies glow effect when specified', () => {
-    glassBorder({
+    const result = glassBorder({
       glow: true,
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args[0]).toContain('box-shadow:');
+    const cssString = result.__cssString;
+    expect(cssString).toContain('box-shadow:');
   });
 
   test('applies animated glow effect when specified', () => {
-    glassBorder({
+    const result = glassBorder({
       glow: true,
       animated: true,
       themeContext: { isDarkMode: false },
-    });
+    }) as MockFlattenSimpleInterpolation;
 
-    const args = mockCssWithKebabProps.mock.calls[0][0];
-    expect(args[0]).toContain('animation:');
-    expect(args[0]).toContain('@keyframes glassBorderGlow');
+    const cssString = result.__cssString;
+    expect(cssString).toContain('animation:');
+    expect(cssString).toContain('@keyframes glassBorderGlow');
   });
 
   test('handles custom glow intensity', () => {

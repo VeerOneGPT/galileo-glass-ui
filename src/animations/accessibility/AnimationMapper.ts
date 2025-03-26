@@ -3,11 +3,10 @@
  *
  * Maps animations to reduced motion alternatives.
  */
-import { keyframes, Keyframes } from 'styled-components';
+import { Keyframes } from 'styled-components';
 
 import { presets } from '../presets';
-import { AnimationPreset } from '../styled';
-import { KeyframeDefinition } from '../types';
+import { AnimationPreset } from '../types';
 
 import { AnimationMapping } from './AccessibilityTypes';
 import {

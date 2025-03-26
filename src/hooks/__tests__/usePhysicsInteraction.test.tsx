@@ -10,42 +10,64 @@ const originalPerformanceNow = global.performance.now;
 jest.spyOn(global.performance, 'now').mockImplementation(() => 1000);
 
 // Mock IntersectionObserver
-class MockIntersectionObserver {
-  constructor(callback: IntersectionObserverCallback) {
-    // Initialize and immediately call with mock entries
+class MockIntersectionObserver implements Partial<IntersectionObserver> {
+  // Add required properties from IntersectionObserver interface
+  root: Element | Document | null = null;
+  rootMargin = '0px';
+  thresholds: ReadonlyArray<number> = [0];
+
+  constructor(private callback: IntersectionObserverCallback) {
     setTimeout(() => {
+      // Create a mock IntersectionObserverEntry
       const mockEntry = {
         isIntersecting: true,
         boundingClientRect: {
-          x: 0, y: 0, width: 100, height: 100,
-          top: 0, right: 100, bottom: 100, left: 0,
-          toJSON: () => {}
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+          top: 0,
+          right: 100,
+          bottom: 100,
+          left: 0,
+          toJSON: () => {},
         },
         intersectionRatio: 1,
         intersectionRect: {
-          x: 0, y: 0, width: 100, height: 100,
-          top: 0, right: 100, bottom: 100, left: 0,
-          toJSON: () => {}
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+          top: 0,
+          right: 100,
+          bottom: 100,
+          left: 0,
+          toJSON: () => {},
         },
         rootBounds: null,
         target: document.createElement('div'),
-        time: Date.now()
+        time: Date.now(),
       };
-      
-      callback([mockEntry as IntersectionObserverEntry], this);
+
+      // Use an object with the required properties instead of 'this'
+      this.callback([mockEntry as IntersectionObserverEntry], this);
     }, 0);
   }
-  
+
   observe() {
     // No-op
   }
-  
+
   unobserve() {
     // No-op
   }
-  
+
   disconnect() {
     // No-op
+  }
+
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
   }
 }
 
@@ -166,7 +188,7 @@ describe('usePhysicsInteraction Hook', () => {
 
     // Check that state was updated, even if values may not be exactly as expected
     expect(onStateChange).toHaveBeenCalled();
-    
+
     // In the testing environment, the values might not change visibly due to mocking
     // So instead of checking the rendered values, check that onStateChange was called
     // with non-default values
@@ -238,7 +260,7 @@ describe('usePhysicsInteraction Hook', () => {
     // Check individual style properties
     expect(element.style.transform).toBeDefined();
     expect(element.style.transition).toContain('transform');
-    
+
     // In the actual implementation, transform and transition styles are applied
     // but the exact format may vary based on the implementation details
   });

@@ -15,16 +15,17 @@ import { useGlassTheme, useReducedMotion, useGlassPerformance } from '../../hook
 import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
 import { FlexibleElementRef } from '../../utils/elementTypes';
 import { asCoreThemeContext } from '../../utils/themeHelpers';
+import { useTheme } from '../../theme';
+import { DefaultTheme } from 'styled-components';
 
 import { AreaChart } from './AreaChart';
 import { BarChart } from './BarChart';
+import EnhancedGlassTabs from './EnhancedGlassTabs';
 import GlassTooltip, { GlassTooltipContent } from './GlassTooltip';
 import { LineChart } from './LineChart';
 import { PieChart } from './PieChart';
 import SimpleChart from './SimpleChart';
-import EnhancedGlassTabs from './EnhancedGlassTabs';
 import { BaseChartProps } from './types';
-
 
 /**
  * GlassChart props interface
@@ -118,6 +119,11 @@ export interface GlassChartProps extends BaseChartProps {
    * Custom download function
    */
   onDownload?: () => void;
+
+  /**
+   * Theme object for the chart
+   */
+  theme?: DefaultTheme | any;
 }
 
 /**
@@ -316,6 +322,80 @@ const ChartTypeIcons = {
   ),
 };
 
+// Add this helper function to ensure we have a properly typed theme
+const ensureValidTheme = (themeInput: any): DefaultTheme => {
+  // If the theme is already a valid DefaultTheme, return it
+  if (
+    themeInput && 
+    typeof themeInput === 'object' && 
+    'isDarkMode' in themeInput && 
+    'colorMode' in themeInput && 
+    'themeVariant' in themeInput && 
+    'colors' in themeInput && 
+    'zIndex' in themeInput
+  ) {
+    return themeInput as DefaultTheme;
+  }
+  
+  // Otherwise, create a new theme object
+  return {
+    isDarkMode: false,
+    colorMode: 'light',
+    themeVariant: 'nebula',
+    colors: {
+      nebula: {
+        accentPrimary: '#6366F1',
+        accentSecondary: '#8B5CF6',
+        accentTertiary: '#EC4899',
+        stateCritical: '#EF4444',
+        stateOptimal: '#10B981',
+        stateAttention: '#F59E0B',
+        stateInformational: '#3B82F6',
+        neutralBackground: '#F9FAFB',
+        neutralForeground: '#1F2937',
+        neutralBorder: '#E5E7EB',
+        neutralSurface: '#FFFFFF'
+      },
+      glass: {
+        light: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: 'rgba(255, 255, 255, 0.2)',
+          highlight: 'rgba(255, 255, 255, 0.3)',
+          shadow: 'rgba(0, 0, 0, 0.1)',
+          glow: 'rgba(255, 255, 255, 0.2)'
+        },
+        dark: {
+          background: 'rgba(0, 0, 0, 0.2)',
+          border: 'rgba(255, 255, 255, 0.1)',
+          highlight: 'rgba(255, 255, 255, 0.1)',
+          shadow: 'rgba(0, 0, 0, 0.3)',
+          glow: 'rgba(255, 255, 255, 0.1)'
+        },
+        tints: {
+          primary: 'rgba(99, 102, 241, 0.1)',
+          secondary: 'rgba(139, 92, 246, 0.1)'
+        }
+      }
+    },
+    zIndex: {
+      hide: -1,
+      auto: 'auto',
+      base: 0,
+      docked: 10,
+      dropdown: 1000,
+      sticky: 1100,
+      banner: 1200,
+      overlay: 1300,
+      modal: 1400,
+      popover: 1500,
+      skipLink: 1600,
+      toast: 1700,
+      tooltip: 1800,
+      glacial: 9999
+    }
+  };
+};
+
 /**
  * GlassChart Component
  */
@@ -346,9 +426,11 @@ export const GlassChart: React.FC<GlassChartProps> = ({
   onError,
   style,
   className,
+  theme: providedTheme,
 }) => {
-  // Access theme context
-  const { isDarkMode, theme } = useGlassTheme();
+  // Get theme from context or use the provided theme, and ensure it's valid
+  const contextTheme = useTheme();
+  const theme = ensureValidTheme(providedTheme || contextTheme);
 
   // Check for reduced motion preference
   const prefersReducedMotion = useReducedMotion();
@@ -508,7 +590,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
       zElevation={zElevation}
       width={width}
       height={height}
-      theme={theme || {}}
+      theme={theme}
       focused={isFocused}
       style={{
         ...style,

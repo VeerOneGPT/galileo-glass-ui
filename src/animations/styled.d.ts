@@ -11,9 +11,15 @@ declare module 'styled-components' {
     rules: string;
     toString: () => string;
   }
-  
-  export type FlattenSimpleInterpolation = any;
-  export type DefaultTheme = any;
+
+  export interface FlattenSimpleInterpolation {
+    __cssString?: string;
+    [key: string]: any;
+  }
+
+  export interface DefaultTheme {
+    [key: string]: any;
+  }
 }
 
 // Define proper animation preset type to solve type compatibility issues

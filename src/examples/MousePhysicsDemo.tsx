@@ -3,8 +3,9 @@
  *
  * Demonstrates the mouse physics hooks from the animation system
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { DefaultTheme } from 'styled-components';
 
 import {
   useMouseMagneticEffect,
@@ -115,6 +116,66 @@ const Button = styled.button`
   }
 `;
 
+// Add ensureValidTheme utility function
+const ensureValidTheme = (): DefaultTheme => {
+  return {
+    isDarkMode: false,
+    colorMode: 'light',
+    themeVariant: 'nebula',
+    colors: {
+      nebula: {
+        accentPrimary: '#6366F1',
+        accentSecondary: '#8B5CF6',
+        accentTertiary: '#EC4899',
+        stateCritical: '#EF4444',
+        stateOptimal: '#10B981',
+        stateAttention: '#F59E0B',
+        stateInformational: '#3B82F6',
+        neutralBackground: '#F9FAFB',
+        neutralForeground: '#1F2937',
+        neutralBorder: '#E5E7EB',
+        neutralSurface: '#FFFFFF'
+      },
+      glass: {
+        light: {
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: 'rgba(255, 255, 255, 0.2)',
+          highlight: 'rgba(255, 255, 255, 0.3)',
+          shadow: 'rgba(0, 0, 0, 0.1)',
+          glow: 'rgba(255, 255, 255, 0.2)'
+        },
+        dark: {
+          background: 'rgba(0, 0, 0, 0.2)',
+          border: 'rgba(255, 255, 255, 0.1)',
+          highlight: 'rgba(255, 255, 255, 0.1)',
+          shadow: 'rgba(0, 0, 0, 0.3)',
+          glow: 'rgba(255, 255, 255, 0.1)'
+        },
+        tints: {
+          primary: 'rgba(99, 102, 241, 0.1)',
+          secondary: 'rgba(139, 92, 246, 0.1)'
+        }
+      }
+    },
+    zIndex: {
+      hide: -1,
+      auto: 'auto',
+      base: 0,
+      docked: 10,
+      dropdown: 1000,
+      sticky: 1100,
+      banner: 1200,
+      overlay: 1300,
+      modal: 1400,
+      popover: 1500,
+      skipLink: 1600,
+      toast: 1700,
+      tooltip: 1800,
+      glacial: 9999
+    }
+  };
+};
+
 /**
  * Demo component for mouse physics hooks
  */
@@ -127,6 +188,9 @@ const MousePhysicsDemo: React.FC = () => {
     'glow' | 'ripple' | 'trail' | 'magnetic' | 'repel' | 'spotlight'
   >('glow');
   const [isCursorEffectActive, setIsCursorEffectActive] = useState(false);
+
+  // In your component, create the default theme
+  const defaultTheme = ensureValidTheme();
 
   // useMouseMagneticEffect demo with proper typing
   const magneticCard1 = useMouseMagneticEffect<HTMLDivElement>({
@@ -232,19 +296,19 @@ const MousePhysicsDemo: React.FC = () => {
         </ControlsContainer>
 
         <EffectGrid>
-          <MagneticCard ref={magneticCard1.ref} theme={{}}>
+          <MagneticCard ref={magneticCard1.ref} theme={defaultTheme}>
             Basic Magnetic
           </MagneticCard>
 
-          <MagneticCard ref={magneticCard2.ref} theme={{}}>
+          <MagneticCard ref={magneticCard2.ref} theme={defaultTheme}>
             With Rotation
           </MagneticCard>
 
-          <MagneticCard ref={magneticCard3.ref} theme={{}}>
+          <MagneticCard ref={magneticCard3.ref} theme={defaultTheme}>
             With Scale
           </MagneticCard>
 
-          <MagneticCard ref={magneticCard4.ref} theme={{}}>
+          <MagneticCard ref={magneticCard4.ref} theme={defaultTheme}>
             With Rotation & Scale
           </MagneticCard>
         </EffectGrid>
@@ -262,7 +326,7 @@ const MousePhysicsDemo: React.FC = () => {
           <MagneticButtonElement
             ref={magneticButton1.ref}
             {...magneticButton1.eventHandlers}
-            theme={{}}
+            theme={defaultTheme}
           >
             Basic Magnetic Button
           </MagneticButtonElement>
@@ -270,7 +334,7 @@ const MousePhysicsDemo: React.FC = () => {
           <MagneticButtonElement
             ref={magneticButton2.ref}
             {...magneticButton2.eventHandlers}
-            theme={{}}
+            theme={defaultTheme}
           >
             Tilt Magnetic Button
           </MagneticButtonElement>
@@ -308,19 +372,19 @@ const MousePhysicsDemo: React.FC = () => {
         </ControlsContainer>
 
         <EffectGrid>
-          <MagneticCard className="cursor-target" theme={{}}>
+          <MagneticCard className="cursor-target" theme={defaultTheme}>
             Target Element 1
           </MagneticCard>
 
-          <MagneticCard className="cursor-target" theme={{}}>
+          <MagneticCard className="cursor-target" theme={defaultTheme}>
             Target Element 2
           </MagneticCard>
 
-          <MagneticCard className="cursor-target" theme={{}}>
+          <MagneticCard className="cursor-target" theme={defaultTheme}>
             Target Element 3
           </MagneticCard>
 
-          <MagneticCard className="cursor-target" theme={{}}>
+          <MagneticCard className="cursor-target" theme={defaultTheme}>
             Target Element 4
           </MagneticCard>
         </EffectGrid>

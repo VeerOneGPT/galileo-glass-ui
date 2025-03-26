@@ -9,33 +9,15 @@ import { DefaultTheme } from 'styled-components';
  * Extended theme interface with Glass UI specific properties
  */
 export interface GlassTheme extends DefaultTheme {
-  colors?: {
-    [key: string]: any;
-  };
-
-  spacing?: {
-    unit?: number;
-    [key: string]: any;
-  };
-
+  // Additional properties beyond DefaultTheme
   shadows?: string[];
-
+  
   borderRadius?: {
     [key: string]: string;
   };
-
-  typography?: {
-    [key: string]: any;
-  };
-
-  zIndex?: {
-    [key: string]: number;
-  };
-
-  colorMode?: 'light' | 'dark';
-
+  
   variant?: string;
-
+  
   availableThemes?: string[];
 }
 
@@ -129,7 +111,11 @@ export const createThemeContext = (theme?: DefaultTheme): ThemeContext => {
    */
   const getSpacing = (size: string | number): string => {
     if (typeof size === 'number') {
-      const spacingUnit = glassTheme.spacing?.unit || 8;
+      // Ensure spacingUnit is a number with a default of 8
+      const spacingUnit = typeof glassTheme.spacing?.unit === 'number' 
+        ? glassTheme.spacing.unit 
+        : 8;
+      
       return `${size * spacingUnit}px`;
     }
 

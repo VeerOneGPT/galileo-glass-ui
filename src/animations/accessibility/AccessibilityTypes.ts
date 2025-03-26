@@ -3,7 +3,7 @@
  */
 import { Keyframes } from 'styled-components';
 
-import { AnimationPreset } from '../styled';
+import { AnimationPreset } from '../types';
 
 import { AnimationComplexity, MotionSensitivityLevel } from './MotionSensitivity';
 
