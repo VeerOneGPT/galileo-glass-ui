@@ -15,6 +15,7 @@ import { particleSystem } from '../animations/physics/particleSystem';
 import { magneticEffect } from '../animations/physics/magneticEffect';
 import usePhysicsInteraction from '../hooks/usePhysicsInteraction';
 import { createThemeContext } from '../core/themeUtils';
+import { AnyHTMLElement } from '../utils/elementTypes';
 
 const DemoContainer = styled.div`
   padding: 24px;
@@ -130,13 +131,8 @@ const PhysicsDemo = () => {
   
   const [particleTrigger, setParticleTrigger] = useState(0);
   
-  const springProps = { ref: { current: null as any }, style: {} };
-  const magneticProps = { ref: { current: null as any }, style: {} };
-  const gravityProps = { ref: { current: null as any }, style: {} };
-  const particleProps = { ref: { current: null as any }, style: {} };
-  
-  // Use physics interaction hooks
-  const springHook = usePhysicsInteraction({
+  // Use physics interaction hooks with proper HTML element types
+  const springHook = usePhysicsInteraction<HTMLDivElement>({
     type: 'spring',
     strength: 0.5,
     radius: 150,
@@ -146,14 +142,14 @@ const PhysicsDemo = () => {
     reducedMotion
   });
   
-  const magneticHook = usePhysicsInteraction({
+  const magneticHook = usePhysicsInteraction<HTMLDivElement>({
     type: 'magnetic',
     strength: 0.7,
     radius: 150,
     reducedMotion
   });
   
-  const gravityHook = usePhysicsInteraction({
+  const gravityHook = usePhysicsInteraction<HTMLDivElement>({
     type: 'gravity',
     strength: 0.3,
     radius: 150,
@@ -161,7 +157,7 @@ const PhysicsDemo = () => {
     reducedMotion
   });
   
-  const particleHook = usePhysicsInteraction({
+  const particleHook = usePhysicsInteraction<HTMLDivElement>({
     type: 'particle',
     strength: 0.3,
     radius: 100,

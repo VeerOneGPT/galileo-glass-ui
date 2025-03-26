@@ -123,7 +123,7 @@ const TabsContainer = styled.div<{
   ${props => props.$appearance === 'glass' && glassSurface({
     elevation: 1,
     blurStrength: 'standard',
-    backgroundOpacity: 'low',
+    backgroundOpacity: 'subtle',
     borderOpacity: 'subtle',
     themeContext: createThemeContext({})
   })}
@@ -439,12 +439,24 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
   const tabs: React.ReactElement[] = [];
   const tabPanels: React.ReactElement[] = [];
   
-  Children.forEach(children, (child: any, index) => {
+  Children.forEach(children, (child: React.ReactElement | null, index) => {
     if (!React.isValidElement(child)) return;
     
-    if (child.type === Tab || child.type.displayName === 'Tab') {
+    // Check if component type is Tab using proper type guards
+    const isTabComponent = 
+      typeof child.type === 'function' && 
+      (child.type === Tab || (child.type as any).displayName === 'Tab');
+    
+    // Check if component type is TabPanel using proper type guards
+    const isTabPanelComponent = 
+      typeof child.type === 'function' && 
+      (child.type === TabPanel || (child.type as any).displayName === 'TabPanel');
+    
+    if (isTabComponent) {
+      // Type assertion for props to handle them safely with TypeScript
+      const childProps = child.props as TabProps;
+      
       const tabProps = {
-        ...child.props,
         key: `tab-${index}`,
         ref: (node: HTMLElement | null) => {
           if (node) {
@@ -457,29 +469,36 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
         role: 'tab',
         onClick: (event: React.MouseEvent) => {
           handleTabClick(index, event);
-          if (child.props.onClick) {
-            child.props.onClick(event);
+          if (childProps.onClick) {
+            childProps.onClick(event);
           }
-        }
+        },
+        label: childProps.label,
+        disabled: childProps.disabled,
+        icon: childProps.icon,
+        className: childProps.className
       };
       
       tabs.push(React.cloneElement(child, tabProps));
       
-      if (child.props.children) {
+      // Check if children exist with type guard
+      if (childProps.children) {
         tabPanels.push(
           <TabPanel key={`tabpanel-${index}`} value={value} index={index}>
-            {child.props.children}
+            {childProps.children}
           </TabPanel>
         );
       }
-    } else if (child.type === TabPanel || child.type.displayName === 'TabPanel') {
-      tabPanels.push(
-        React.cloneElement(child, {
-          key: `tabpanel-${index}`,
-          value,
-          index
-        })
-      );
+    } else if (isTabPanelComponent) {
+      // Type assertion for TabPanel props
+      const panelProps = {
+        key: `tabpanel-${index}`,
+        value,
+        index,
+        children: (child.props as {children?: React.ReactNode}).children
+      };
+      
+      tabPanels.push(React.cloneElement(child, panelProps));
     }
   });
   

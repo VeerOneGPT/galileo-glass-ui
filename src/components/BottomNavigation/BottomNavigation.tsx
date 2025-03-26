@@ -163,15 +163,15 @@ const BottomNavigationContainer = styled.div<{
   ${props => props.$variant === 'glass' && glassSurface({
     elevation: props.$elevation,
     blurStrength: 'enhanced',
-    backgroundOpacity: 'minimal',
+    backgroundOpacity: 'subtle',
     borderOpacity: 'subtle',
     themeContext: createThemeContext({})
   })}
   
   /* Glass glow for glass variant */
   ${props => props.$variant === 'glass' && props.$color !== 'default' && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
+    glowIntensity: 'minimal',
+    glowColor: props.$color,
     themeContext: createThemeContext({})
   })}
   
@@ -334,6 +334,7 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
   const childrenWithProps = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
       return React.cloneElement(child, {
+        ...child.props,
         selected: child.props.value === value,
         showLabel: showLabels || child.props.value === value,
         onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -346,7 +347,7 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
         },
         variant,
         color,
-      });
+      } as React.HTMLAttributes<HTMLElement>);
     }
     return child;
   });

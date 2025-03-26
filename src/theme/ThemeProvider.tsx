@@ -39,7 +39,7 @@ const ThemeVariantContext = createContext<ThemeVariantContextType>({
 interface StyleUtilsContextType {
   getColor: (path: string, fallback?: string) => string;
   getSpacing: (size: string | number) => string;
-  getShadow: (level: number, color?: string) => string;
+  getShadow: (level: number, color?: string) => string; // Always returns string in implementation
   getBorderRadius: (size: string) => string;
   getZIndex: (layer: string) => number;
   getTypography: (variant: string) => React.CSSProperties;
@@ -466,7 +466,7 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
     return '0';
   }, []);
   
-  const getShadow = useCallback((level: number, color?: string) => {
+  const getShadow = useCallback((level: number, color?: string): string => {
     const shadowKey = `${level < 1 ? 'none' : level > 5 ? '5xl' : 
       level === 1 ? 'sm' : 
       level === 2 ? 'md' : 
@@ -474,6 +474,12 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       level === 4 ? 'xl' : '2xl'}`;
     
     let shadow = shadows[shadowKey as keyof typeof shadows] || shadows.none;
+    
+    // Handle case where shadow might be an object (from nested properties)
+    if (typeof shadow !== 'string') {
+      // Default to a standard shadow if the retrieved value is an object
+      shadow = shadows.md;
+    }
     
     // Apply custom color if provided
     if (color && shadow !== 'none') {
@@ -488,8 +494,13 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
     return borderRadius[size as keyof typeof borderRadius] || '0';
   }, []);
   
-  const getZIndex = useCallback((layer: string) => {
-    return zIndex[layer as keyof typeof zIndex] || 0;
+  const getZIndex = useCallback((layer: string): number => {
+    const index = zIndex[layer as keyof typeof zIndex];
+    // Handle special cases like 'auto'
+    if (typeof index === 'string') {
+      return 0; // Default to 0 for non-numeric values
+    }
+    return index || 0;
   }, []);
   
   const getTypography = useCallback((variant: string) => {
@@ -560,9 +571,163 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
   
   // Helper to create glass surface styles
   const createSurface = useCallback((props: GlassSurfaceProps) => {
-    // This is a simplified version - the real implementation would use themeUtils
-    return '';
-  }, []);
+    const {
+      variant = 'standard',
+      blurStrength = 'medium',
+      backgroundOpacity = 'medium',
+      borderOpacity = 'medium',
+      glowIntensity = 'medium',
+      elevation: rawElevation = 1,
+      interactive = false,
+      darkMode = isDarkMode
+    } = props;
+    
+    // Ensure elevation is a number
+    const elevation: number = typeof rawElevation === 'string' 
+      ? (rawElevation === 'none' ? 0 : 
+         rawElevation === 'low' ? 1 : 
+         rawElevation === 'medium' ? 2 : 
+         rawElevation === 'high' ? 3 : 1)
+      : Number(rawElevation);
+    
+    // Get glass-specific color values
+    const backgroundColor = darkMode 
+      ? colors.glass.dark.background 
+      : colors.glass.light.background;
+    
+    const borderColor = darkMode 
+      ? colors.glass.dark.border 
+      : colors.glass.light.border;
+    
+    const shadowColor = darkMode 
+      ? colors.glass.dark.shadow 
+      : colors.glass.light.shadow;
+    
+    const glowColor = darkMode 
+      ? colors.glass.dark.glow 
+      : colors.glass.light.glow;
+    
+    // Get opacity and blur values from qualityTier
+    const bgOpacity = getBackgroundOpacity(backgroundOpacity);
+    const borderOpacityValue = getBorderOpacity(borderOpacity);
+    const blurValue = getBlurStrength(blurStrength);
+    const glowValue = getGlowIntensity(glowIntensity);
+    
+    // Build styles based on glass variant
+    const baseStyles = `
+      position: relative;
+      background-color: ${backgroundColor};
+      backdrop-filter: blur(${blurValue});
+      -webkit-backdrop-filter: blur(${blurValue});
+      border: 1px solid ${borderColor};
+      box-shadow: 0 4px 12px ${shadowColor};
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    `;
+    
+    // Add variant-specific styles
+    let variantStyles = '';
+    
+    switch (variant) {
+      case 'frosted':
+        // Parse blur value as number if it's a string
+        const blurNumber = typeof blurValue === 'string' ? 
+          parseInt(blurValue.replace('px', ''), 10) : 
+          Number(blurValue);
+        
+        const bgOpacityAdjusted = bgOpacity * 0.7;
+        const blurAdjusted = blurNumber * 1.5;
+          
+        variantStyles = `
+          background-color: rgba(255, 255, 255, ${bgOpacityAdjusted});
+          backdrop-filter: blur(${blurAdjusted}px);
+          -webkit-backdrop-filter: blur(${blurAdjusted}px);
+          border-width: 1px;
+        `;
+        break;
+      case 'dimensional':
+        const dimBgOpacity = bgOpacity * 0.6;
+        const dimElev2 = elevation * 2;
+        const dimElev6 = elevation * 6;
+        const dimElev05 = elevation * 0.5;
+        const dimElev1 = elevation * 1;
+        
+        variantStyles = `
+          background-color: rgba(255, 255, 255, ${dimBgOpacity});
+          box-shadow: 
+            0 ${dimElev2}px ${dimElev6}px ${shadowColor},
+            0 ${dimElev05}px ${dimElev1}px rgba(0, 0, 0, 0.03),
+            inset 0 0 0 1px rgba(255, 255, 255, ${borderOpacityValue});
+          border-width: 0;
+        `;
+        break;
+      case 'heat':
+        const accentColor = darkMode ? colors.accent[400] : colors.accent[300];
+        const bgOpacityTop = bgOpacity * 0.6;
+        const bgOpacityBottom = bgOpacity * 0.4;
+        const elevationDouble = elevation * 2;
+        const elevationSix = elevation * 6;
+        const elevationFive = elevation * 5;
+        
+        variantStyles = `
+          background: linear-gradient(
+            135deg, 
+            rgba(255, 255, 255, ${bgOpacityTop}) 0%, 
+            rgba(${accentColor}, ${bgOpacityBottom}) 100%
+          );
+          box-shadow: 
+            0 ${elevationDouble}px ${elevationSix}px ${shadowColor},
+            0 0 ${elevationFive}px rgba(${accentColor}, ${glowValue});
+        `;
+        break;
+      case 'standard':
+      default:
+        const stdElev2 = elevation * 2;
+        const stdElev6 = elevation * 6;
+        
+        variantStyles = `
+          background-color: rgba(255, 255, 255, ${bgOpacity});
+          box-shadow: 
+            0 ${stdElev2}px ${stdElev6}px ${shadowColor},
+            inset 0 0 0 1px rgba(255, 255, 255, ${borderOpacityValue});
+        `;
+        break;
+    }
+    
+    // Add interactive states if required
+    const hoverElev3 = elevation * 3;
+    const hoverElev8 = elevation * 8;
+    const hoverElev2 = elevation * 2;
+    const activeElev1 = elevation * 1;
+    const activeElev3 = elevation * 3;
+    
+    const interactiveStyles = interactive ? `
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 
+          0 ${hoverElev3}px ${hoverElev8}px ${shadowColor},
+          0 0 ${hoverElev2}px ${glowColor};
+      }
+      
+      &:active {
+        transform: translateY(0);
+        box-shadow: 
+          0 ${activeElev1}px ${activeElev3}px ${shadowColor};
+      }
+    ` : '';
+    
+    return `
+      ${baseStyles}
+      ${variantStyles}
+      ${interactiveStyles}
+    `;
+  }, [
+    isDarkMode, 
+    colors, 
+    getBackgroundOpacity, 
+    getBorderOpacity, 
+    getBlurStrength, 
+    getGlowIntensity
+  ]);
   
   // ------ Create Responsive Utilities ------
   const breakpoints = useMemo(() => {
@@ -798,7 +963,7 @@ export const useTheme = () => {
  * Hook for accessing only color mode aspects of the theme.
  * More efficient than useTheme when only color mode is needed.
  */
-export const useColorMode = () => {
+export const useColorMode = (): ColorModeContextType => {
   const context = useContext(ColorModeContext);
   
   if (!context) {
@@ -812,7 +977,7 @@ export const useColorMode = () => {
  * Hook for accessing only theme variant aspects.
  * More efficient than useTheme when only theme variant is needed.
  */
-export const useThemeVariant = () => {
+export const useThemeVariant = (): ThemeVariantContextType => {
   const context = useContext(ThemeVariantContext);
   
   if (!context) {
@@ -825,7 +990,7 @@ export const useThemeVariant = () => {
 /**
  * Hook for accessing only style utilities.
  */
-export const useStyleUtils = () => {
+export const useStyleUtils = (): StyleUtilsContextType => {
   const context = useContext(StyleUtilsContext);
   
   if (!context) {
@@ -838,7 +1003,7 @@ export const useStyleUtils = () => {
 /**
  * Hook for accessing only glass effect utilities.
  */
-export const useGlassEffects = () => {
+export const useGlassEffects = (): GlassEffectsContextType => {
   const context = useContext(GlassEffectsContext);
   
   if (!context) {
@@ -851,7 +1016,7 @@ export const useGlassEffects = () => {
 /**
  * Hook for accessing only preference settings.
  */
-export const usePreferences = () => {
+export const usePreferences = (): PreferencesContextType => {
   const context = useContext(PreferencesContext);
   
   if (!context) {
@@ -864,7 +1029,7 @@ export const usePreferences = () => {
 /**
  * Hook for accessing only responsive context.
  */
-export const useResponsive = () => {
+export const useResponsive = (): ResponsiveContextType => {
   const context = useContext(ResponsiveContext);
   
   if (!context) {

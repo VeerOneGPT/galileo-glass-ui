@@ -186,14 +186,14 @@ const TooltipContainer = styled.div<{
     elevation: 3,
     blurStrength: props.blurIntensity,
     borderOpacity: 'medium',
-    themeContext: createThemeContext(props.theme)
+    themeContext: createThemeContext(props.theme || {})
   })}
   
   ${props => innerGlow({
     color: props.accentColor,
     intensity: 'subtle',
     spread: 5,
-    themeContext: createThemeContext(props.theme)
+    themeContext: createThemeContext(props.theme || {})
   })}
   
   ${props => edgeHighlight({
@@ -201,13 +201,13 @@ const TooltipContainer = styled.div<{
     thickness: 2,
     opacity: 0.8,
     color: props.accentColor,
-    themeContext: createThemeContext(props.theme)
+    themeContext: createThemeContext(props.theme || {})
   })}
   
   ${props => props.applyGlow && glassGlow({
     intensity: props.glowIntensity,
     color: props.accentColor,
-    themeContext: createThemeContext(props.theme)
+    themeContext: createThemeContext(props.theme || {})
   })}
   
   ${accessibleAnimation({
@@ -302,14 +302,14 @@ export const GlassTooltip: React.FC<GlassTooltipProps> = ({
       zIndex={zIndex}
       className={className}
       style={style}
-      theme={{}} // Theme will be accessed via ThemeContext in styled-components
+      theme={{isDarkMode: false}} // Provide minimal theme with isDarkMode property
     >
       {children}
       {showPointer && (
         <TooltipPointer 
           position={position} 
           accentColor={accentColor}
-          theme={{}}
+          theme={{isDarkMode: false}}
         />
       )}
     </TooltipContainer>

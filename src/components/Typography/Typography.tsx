@@ -60,6 +60,11 @@ export interface TypographyProps {
    * Additional CSS class name
    */
   className?: string;
+
+  /**
+   * Custom inline style
+   */
+  style?: React.CSSProperties;
 }
 
 // Get the correct font size for each variant

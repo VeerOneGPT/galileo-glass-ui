@@ -6,7 +6,7 @@ import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { slideUp, slideDown, slideLeft, slideRight } from '../../animations/keyframes/basic';
+import { slideUp, slideDown, slideInLeft, slideRight } from '../../animations/keyframes/basic';
 
 export interface SnackbarProps {
   /**
@@ -91,9 +91,9 @@ const getAnimationByPosition = (position: string) => {
   if (position.startsWith('top')) {
     return { in: slideDown, out: slideUp };
   } else if (position.endsWith('left')) {
-    return { in: slideRight, out: slideLeft };
+    return { in: slideRight, out: slideInLeft };
   } else if (position.endsWith('right')) {
-    return { in: slideLeft, out: slideRight };
+    return { in: slideInLeft, out: slideRight };
   } else {
     return { in: slideUp, out: slideDown };
   }

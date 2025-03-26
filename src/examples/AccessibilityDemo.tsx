@@ -4,7 +4,7 @@
  * Demonstrates the usage of accessibility mixins and features
  */
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 import { Typography } from '../components/Typography';
 import { Box } from '../components/Box';
 import { Button } from '../components/Button';
@@ -62,9 +62,13 @@ const ReducedTransparencyDemo = styled.div<{ theme: any, type: string }>`
   margin-bottom: 16px;
 `;
 
-const FocusStylesDemo = styled.button<{ theme: any, type: string }>`
+// Define a union type for the focus style types
+type FocusStyleType = 'outline' | 'ring' | 'border' | 'highlight';
+
+// Create a styled button base
+const StyledFocusButton = styled.button<{ theme: any, focusType: FocusStyleType }>`
   ${props => focusStyles({
-    type: props.type as any,
+    type: props.focusType as any,
     width: 3,
     color: '#3b82f6',
     opacity: 0.8,
@@ -83,6 +87,18 @@ const FocusStylesDemo = styled.button<{ theme: any, type: string }>`
   margin: 8px;
   cursor: pointer;
 `;
+
+// Create a proper React component that uses the styled component
+const FocusStylesDemo: React.FC<{
+  type: FocusStyleType;
+  children: React.ReactNode;
+}> = ({ type, children }) => {
+  return (
+    <StyledFocusButton focusType={type} type="button">
+      {children}
+    </StyledFocusButton>
+  );
+};
 
 const VisualFeedbackDemo = styled.div<{ theme: any, type: string }>`
   ${props => visualFeedback({
@@ -127,12 +143,36 @@ const ReducedMotionSection = styled.div`
   margin-bottom: 16px;
 `;
 
+// Create global animations using createGlobalStyle
+const GlobalAnimations = createGlobalStyle`
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes slideIn {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(20px); }
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  @keyframes fadeOnly {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
+  }
+`;
+
 const AccessibilityDemo = () => {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [highContrastEnabled, setHighContrastEnabled] = useState(false);
   
   return (
     <DemoContainer>
+      <GlobalAnimations />
       <Typography variant="h2">Accessibility Features & Mixins Demo</Typography>
       
       <DemoSection>
@@ -238,80 +278,6 @@ const AccessibilityDemo = () => {
       </DemoSection>
       
       <DemoSection>
-        <Typography variant="h4">Visual Feedback Mixin</Typography>
-        <Typography variant="body1" style={{ marginBottom: '16px' }}>
-          Enhanced visual feedback for different states:
-        </Typography>
-        
-        <VisualFeedbackDemo type="hover">
-          <Typography variant="body1">Hover Feedback (Hover Me)</Typography>
-        </VisualFeedbackDemo>
-        
-        <VisualFeedbackDemo type="active">
-          <Typography variant="body1">Active Feedback (Click Me)</Typography>
-        </VisualFeedbackDemo>
-        
-        <VisualFeedbackDemo type="loading">
-          <Typography variant="body1">Loading Feedback</Typography>
-        </VisualFeedbackDemo>
-        
-        <VisualFeedbackDemo type="success">
-          <Typography variant="body1">Success Feedback</Typography>
-        </VisualFeedbackDemo>
-        
-        <VisualFeedbackDemo type="error">
-          <Typography variant="body1">Error Feedback</Typography>
-        </VisualFeedbackDemo>
-        
-        <VisualFeedbackDemo type="warning">
-          <Typography variant="body1">Warning Feedback</Typography>
-        </VisualFeedbackDemo>
-      </DemoSection>
-      
-      <DemoSection>
-        <Typography variant="h4">Text Styles Mixin</Typography>
-        <Typography variant="body1" style={{ marginBottom: '16px' }}>
-          Accessible text styling variations:
-        </Typography>
-        
-        <TextStylesDemo variant="title">
-          Title Style - Large Bold Text
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="heading">
-          Heading Style - Section Heading
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="subheading">
-          Subheading Style - Smaller Heading
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="body">
-          Body Style - Regular text used for paragraphs and general content. Provides good readability with appropriate line height and spacing for comfortable reading.
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="caption">
-          Caption Style - Smaller text for captions and secondary information
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="glassTitle">
-          Glass Title - Title with Glass Effect
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="glassHeading">
-          Glass Heading - Heading with Glass Effect
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="code">
-          Code Style - for displaying code snippets
-        </TextStylesDemo>
-        
-        <TextStylesDemo variant="quote">
-          Quote Style - Used for blockquotes and citations in the text
-        </TextStylesDemo>
-      </DemoSection>
-      
-      <DemoSection>
         <Typography variant="h4">Reduced Motion Support</Typography>
         <Typography variant="body1" style={{ marginBottom: '16px' }}>
           Examples with alternatives for users who prefer reduced motion:
@@ -332,12 +298,6 @@ const AccessibilityDemo = () => {
               animation: reducedMotion ? 'none' : 'pulse 2s infinite ease-in-out'
             }}>
               <Typography variant="body1">Pulsing Animation</Typography>
-              <style jsx>{`
-                @keyframes pulse {
-                  0%, 100% { transform: scale(1); }
-                  50% { transform: scale(1.05); }
-                }
-              `}</style>
             </Box>
             
             <Box style={{ 
@@ -349,12 +309,6 @@ const AccessibilityDemo = () => {
               opacity: reducedMotion ? 0.7 : 1 // Alternative feedback for reduced motion
             }}>
               <Typography variant="body1">Slide Animation</Typography>
-              <style jsx>{`
-                @keyframes slideIn {
-                  0% { transform: translateX(0); }
-                  100% { transform: translateX(20px); }
-                }
-              `}</style>
             </Box>
             
             <Box style={{ 
@@ -365,16 +319,6 @@ const AccessibilityDemo = () => {
               animation: reducedMotion ? 'fadeOnly 2s infinite alternate ease-in-out' : 'spin 2s infinite linear'
             }}>
               <Typography variant="body1">Spin (with Fade Alternative)</Typography>
-              <style jsx>{`
-                @keyframes spin {
-                  0% { transform: rotate(0deg); }
-                  100% { transform: rotate(360deg); }
-                }
-                @keyframes fadeOnly {
-                  0% { opacity: 0.7; }
-                  100% { opacity: 1; }
-                }
-              `}</style>
             </Box>
           </Stack>
         </ReducedMotionSection>

@@ -96,7 +96,6 @@ const LayoutComponentsDemo = () => {
         <div style={{ position: 'relative', padding: '24px', background: 'linear-gradient(45deg, #2196F3, #21CBF3)' }}>
           <Stack
             spacing={2}
-            padding={3}
             glass
             glassOptions={{
               blurStrength: 'enhanced',

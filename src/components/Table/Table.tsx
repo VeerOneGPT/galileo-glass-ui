@@ -346,7 +346,7 @@ const TableContainer = styled.table<{
   ${props => props.$variant === 'glass' && glassSurface({
     elevation: 1,
     blurStrength: 'standard',
-    backgroundOpacity: 'minimal',
+    backgroundOpacity: 'subtle',
     borderOpacity: 'subtle',
     themeContext: createThemeContext({})
   })}

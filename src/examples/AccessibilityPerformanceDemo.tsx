@@ -10,7 +10,7 @@ import { AccessibilityProvider, useAccessibility } from '../components/Accessibi
 import { useOptimizedAnimation, useGlassPerformance } from '../hooks';
 import { AnimationComplexity } from '../hooks/useOptimizedAnimation';
 import { fadeIn, scaleIn } from '../animations/keyframes/basic';
-import { glassSlideFadeIn } from '../animations/keyframes/glass';
+import { glassFadeIn } from '../animations/keyframes/glass';
 import { slideInBottom, slideInTop, pulse, float, bounce } from '../animations/keyframes/motion';
 import { 
   OptimizationLevel,
@@ -236,7 +236,7 @@ const DemoCard = styled.div<{
         `;
       } else if (props.animationName === 'glass') {
         return `
-          animation: ${glassSlideFadeIn} 1s ease-out;
+          animation: ${glassFadeIn} 1s ease-out;
         `;
       }
     } else {

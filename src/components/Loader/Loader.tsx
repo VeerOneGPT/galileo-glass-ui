@@ -161,9 +161,13 @@ const CircularLoaderContainer = styled.div<{
       animation: ${dash} 1.5s ease-in-out infinite;
       
       /* Glass effect for circle */
-      ${props => props.$glass && css`
-        filter: drop-shadow(0 0 3px ${props.$color}40);
-      `}
+      ${props => {
+        // Store the color value before using it in nested template
+        const colorValue = props.$color;
+        return props.$glass && css`
+          filter: drop-shadow(0 0 3px ${colorValue}40);
+        `;
+      }}
     }
   }
   
@@ -198,9 +202,9 @@ const LinearLoaderContainer = styled.div<{
   }
   
   /* Glass effect */
-  ${props => props.$glass && css`
+  ${props => props.$glass && `
     &::before {
-      box-shadow: 0 0 8px ${props => props.$color}80;
+      box-shadow: 0 0 8px ${props.$color + '80'};
     }
   `}
   
@@ -238,8 +242,8 @@ const DotsLoaderContainer = styled.div<{
     }
     
     /* Glass effect */
-    ${props => props.$glass && css`
-      box-shadow: 0 0 6px ${props => props.$color}80;
+    ${props => props.$glass && `
+      box-shadow: 0 0 6px ${props.$color + '80'};
     `}
   }
   
@@ -264,9 +268,9 @@ const PulseLoaderContainer = styled.div<{
   animation: ${pulse} 1.5s ease-in-out infinite;
   
   /* Glass effect */
-  ${props => props.$glass && css`
-    background-color: ${props => `${props.$color}CC`};
-    box-shadow: 0 0 10px ${props => props.$color}80;
+  ${props => props.$glass && `
+    background-color: ${props.$color + 'CC'};
+    box-shadow: 0 0 10px ${props.$color + '80'};
     backdrop-filter: blur(4px);
   `}
   

@@ -12,7 +12,8 @@ import {
   AnimationComplexity
 } from '../hooks';
 import { fadeIn, scaleIn } from '../animations/keyframes/basic';
-import { glassSlideFadeIn } from '../animations/keyframes/glass';
+// Use glassFadeIn as a fallback since glassSlideFadeIn isn't available
+import { glassFadeIn as glassSlideFadeIn } from '../animations/keyframes/glass';
 import { DeviceCapabilityTier } from '../utils/deviceCapabilities';
 
 // Indicators for current performance state
@@ -63,7 +64,7 @@ const OptimizedGlassCard = styled.div<OptimizedGlassCardProps>`
     // Use optimized animation with different settings based on complexity
     const animation = useOptimizedAnimation({
       animation: complexity === AnimationComplexity.MINIMAL ? fadeIn : 
-                 complexity === AnimationComplexity.REDUCED ? scaleIn : 
+                 complexity === AnimationComplexity.BASIC ? scaleIn : 
                  glassSlideFadeIn,
       reducedMotionFallback: fadeIn,
       complexity,
@@ -220,7 +221,7 @@ export const PerformanceOptimizedGlass: React.FC = () => {
           onChange={(e) => setComplexity(e.target.value as AnimationComplexity)}
         >
           <option value={AnimationComplexity.MINIMAL}>Minimal</option>
-          <option value={AnimationComplexity.REDUCED}>Reduced</option>
+          <option value={AnimationComplexity.BASIC}>Basic</option>
           <option value={AnimationComplexity.STANDARD}>Standard</option>
           <option value={AnimationComplexity.ENHANCED}>Enhanced</option>
           <option value={AnimationComplexity.COMPLEX}>Complex</option>
@@ -303,3 +304,6 @@ export const PerformanceOptimizedGlass: React.FC = () => {
     </div>
   );
 };
+
+// Add default export at the end of the file
+export default PerformanceOptimizedGlass;

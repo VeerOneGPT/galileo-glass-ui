@@ -3,6 +3,8 @@
  * 
  * Utilities for detecting browser features and providing appropriate fallbacks
  */
+// Import CSS type definitions
+import '../types/css';
 
 /**
  * Browser feature detection results
@@ -257,9 +259,10 @@ export function detectFeatures(): BrowserFeatures {
   // Create a test div for feature detection
   const testDiv = document.createElement('div');
   
-  // Test for backdrop-filter support
+  // Test for backdrop-filter support with proper casing handling
   const backdropFilter = supportsCSSProperty('backdropFilter') || 
-                          supportsCSSProperty('webkitBackdropFilter');
+                          supportsCSSProperty('WebkitBackdropFilter') ||
+                          supportsCSSProperty('-webkit-backdrop-filter');
   
   // Test for backdrop-filter blur specifically
   let backdropFilterBlur = false;
@@ -269,8 +272,15 @@ export function detectFeatures(): BrowserFeatures {
       backdropFilterBlur = !!testDiv.style.backdropFilter;
       
       if (!backdropFilterBlur) {
-        testDiv.style.webkitBackdropFilter = 'blur(5px)';
-        backdropFilterBlur = !!testDiv.style.webkitBackdropFilter;
+        // Try both camel case and kebab case
+        testDiv.style.WebkitBackdropFilter = 'blur(5px)';
+        backdropFilterBlur = !!testDiv.style.WebkitBackdropFilter;
+        
+        if (!backdropFilterBlur) {
+          // Using string index access to avoid TypeScript errors with kebab case
+          testDiv.style['-webkit-backdrop-filter' as any] = 'blur(5px)';
+          backdropFilterBlur = !!(testDiv.style['-webkit-backdrop-filter' as any]);
+        }
       }
     } catch (e) {
       backdropFilterBlur = false;

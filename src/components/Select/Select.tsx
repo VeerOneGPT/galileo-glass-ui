@@ -4,7 +4,7 @@ import { createThemeContext } from '../../core/themeContext';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
-import { innerGlow } from '../../core/mixins/innerEffects';
+import { innerGlow } from '../../core/mixins/effects/innerEffects';
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { fadeIn, slideUp } from '../../animations/keyframes/basic';
 
@@ -190,16 +190,16 @@ const StyledSelect = styled.div<{
   /* Error state additional styling */
   ${props => props.$error && !props.$disabled && innerGlow({
     color: 'error',
-    intensity: 'minimal',
-    spread: 5,
+    intensity: 'subtle',
+    spread: 2,
     themeContext: createThemeContext({})
   })}
   
   /* Focus state glow effect */
   ${props => props.$focused && !props.$disabled && !props.$error && innerGlow({
     color: 'primary',
-    intensity: 'minimal',
-    spread: 5,
+    intensity: 'subtle',
+    spread: 2,
     themeContext: createThemeContext({})
   })}
   

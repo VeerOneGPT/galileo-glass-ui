@@ -210,22 +210,21 @@ const AvatarRoot = styled.div<{
     elevation: props.$elevated ? 2 : 1,
     blurStrength: 'standard',
     backgroundOpacity: 'medium',
-    borderOpacity: props.$bordered ? 'high' : 'subtle',
+    borderOpacity: props.$bordered ? 'strong' : 'subtle',
     themeContext: createThemeContext({})
   })}
   
   /* Glass glow for glass styling */
   ${props => props.$glassEffect && !props.$hasImage && glassGlow({
-    intensity: 'low',
-    color: props.$color,
+    glowIntensity: 'low',
+    glowColor: props.$color,
     themeContext: createThemeContext({})
   })}
   
   /* Edge highlight for bordered avatars */
   ${props => props.$bordered && !props.$hasImage && edgeHighlight({
-    position: 'all',
-    thickness: 2,
-    opacity: 0.7,
+    edgeIntensity: 'medium',
+    edgeStyle: 'smooth',
     themeContext: createThemeContext({})
   })}
   

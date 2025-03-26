@@ -104,3 +104,64 @@ export const glassGlow = (options: GlassGlowOptions) => {
     ${pulseAnimation}
   `;
 };
+
+/**
+ * Creates a spotlight glow effect
+ */
+export const spotlightGlow = (options: GlassGlowOptions & { angle?: number }) => {
+  const {
+    intensity = 'medium',
+    color = 'primary',
+    angle = 135,
+    themeContext,
+  } = options;
+  
+  // Convert intensity to a number
+  const glowSize = typeof intensity === 'number'
+    ? intensity
+    : intensity === 'subtle' ? 10
+      : intensity === 'medium' ? 15
+      : intensity === 'strong' ? 25
+      : 15;
+  
+  // Get the color based on theme or fallback
+  let glowColor: string;
+  
+  if (themeContext?.getColor && typeof color === 'string') {
+    switch (color) {
+      case 'primary':
+        glowColor = themeContext.getColor('nebula.accentPrimary', '#6366F1');
+        break;
+      case 'secondary':
+        glowColor = themeContext.getColor('nebula.accentSecondary', '#8B5CF6');
+        break;
+      default:
+        glowColor = color;
+    }
+  } else {
+    // Fallback colors
+    switch (color) {
+      case 'primary': glowColor = '#6366F1'; break;
+      case 'secondary': glowColor = '#8B5CF6'; break;
+      default: glowColor = typeof color === 'string' ? color : '#6366F1';
+    }
+  }
+  
+  // Convert angle to x and y offset
+  const radian = (angle * Math.PI) / 180;
+  const x = Math.round(Math.cos(radian) * (glowSize / 2));
+  const y = Math.round(Math.sin(radian) * (glowSize / 2));
+  
+  // Build the CSS
+  return cssWithKebabProps`
+    box-shadow: ${x}px ${y}px ${glowSize}px 0 ${glowColor}50;
+  `;
+};
+
+/**
+ * Collection of glow effect methods
+ */
+export const glowEffects = {
+  glassGlow,
+  spotlightGlow
+};

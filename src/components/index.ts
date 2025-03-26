@@ -19,6 +19,18 @@ export { Link } from './Link';
 
 // Form components
 export { Autocomplete, GlassAutocomplete } from './Autocomplete';
+export { DatePicker, GlassDatePicker } from './DatePicker';
+export { TagInput, GlassTagInput } from './TagInput';
+export { 
+  FormGroup, 
+  GlassFormGroup,
+  FormControl, 
+  GlassFormControl,
+  FormLabel, 
+  GlassFormLabel,
+  FormHelperText, 
+  GlassFormHelperText 
+} from './Form';
 export { Checkbox, GlassCheckbox } from './Checkbox';
 export { Radio, GlassRadio } from './Radio';
 export { Switch, GlassSwitch } from './Switch';
@@ -46,6 +58,20 @@ export {
 } from './BottomNavigation';
 export { Breadcrumbs, GlassBreadcrumbs } from './Breadcrumbs';
 export { Toolbar, GlassToolbar } from './Toolbar';
+export {
+  Accordion,
+  GlassAccordion,
+  AccordionSummary,
+  GlassAccordionSummary,
+  AccordionDetails,
+  GlassAccordionDetails
+} from './Accordion';
+export {
+  TreeView,
+  GlassTreeView,
+  TreeItem,
+  GlassTreeItem
+} from './TreeView';
 
 // Data display components
 export { Chip, GlassChip } from './Chip';
@@ -60,6 +86,15 @@ export {
   TableRow, 
   TableCell 
 } from './Table';
+export {
+  ImageList,
+  GlassImageList,
+  ImageListItem,
+  GlassImageListItem,
+  ImageListItemBar,
+  GlassImageListItemBar
+} from './ImageList';
+export { Rating, GlassRating } from './Rating';
 
 // Utility components
 export { Tooltip, GlassTooltip } from './Tooltip';
@@ -67,10 +102,81 @@ export { Drawer, GlassDrawer } from './Drawer';
 export { Fab, GlassFab } from './Fab';
 export { Backdrop } from './Backdrop';
 export { Icon } from './Icon';
+export { 
+  SpeedDial, 
+  GlassSpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon
+} from './SpeedDial';
+export {
+  ToggleButton,
+  GlassToggleButton,
+  ToggleButtonGroup,
+  GlassToggleButtonGroup
+} from './ToggleButton';
+
+// Cookie Consent Components
+export {
+  CookieConsent,
+  GlassCookieConsent,
+  GlobalCookieConsent,
+  GlassGlobalCookieConsent,
+  CompactCookieNotice,
+  GlassCompactCookieNotice
+} from './CookieConsent';
+
+// Navigation Components
+export {
+  GlassNavigation,
+  ResponsiveNavigation,
+  PageTransition,
+  ZSpaceAppLayout
+} from './Navigation';
+
+// Theme Components
+export {
+  GlassThemeSwitcher,
+  GlassThemeDemo,
+  ThemedGlassComponents,
+  useThemedGlass
+} from './ThemeComponents';
+
+// Performance Components
+export {
+  PerformanceMonitor,
+  OptimizedGlassContainer
+} from './Performance';
 
 // Advanced Components
 export { DynamicAtmosphere } from './DynamicAtmosphere';
 export { ContextAwareGlass } from './ContextAwareGlass';
+export {
+  KpiCard,
+  GlassKpiCard,
+  PerformanceMetricCard,
+  GlassPerformanceMetricCard,
+  InteractiveKpiCard,
+  GlassInteractiveKpiCard
+} from './KpiCard';
+export {
+  DimensionalGlass,
+  HeatGlass,
+  FrostedGlass,
+  PageGlassContainer,
+  WidgetGlass
+} from './surfaces';
+export {
+  VisualFeedback,
+  RippleButton,
+  FocusIndicator,
+  StateIndicator
+} from './VisualFeedback';
+
+// Background Components
+export {
+  AtmosphericBackground, 
+  ParticleBackground
+} from './backgrounds';
 
 // Glass Presets
 export { 

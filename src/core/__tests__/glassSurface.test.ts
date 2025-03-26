@@ -2,6 +2,9 @@ import { glassSurface } from '../mixins/glassSurface';
 import { css } from 'styled-components';
 import { cssWithKebabProps } from '../cssUtils';
 
+// Create proper mock type
+const mockCssWithKebabProps = cssWithKebabProps as jest.MockedFunction<typeof cssWithKebabProps>;
+
 // Mock dependencies
 jest.mock('styled-components', () => ({
   css: jest.fn((...args) => args),
@@ -25,14 +28,14 @@ describe('glassSurface Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    expect(cssWithKebabProps).toHaveBeenCalledWith(
+    expect(mockCssWithKebabProps).toHaveBeenCalledWith(
       expect.any(Array),
       ...expect.any(Array)
     );
     
     // Check arguments passed to cssWithKebabProps
-    const args = cssWithKebabProps.mock.calls[0][0];
-    const interpolations = cssWithKebabProps.mock.calls[0].slice(1);
+    const args = mockCssWithKebabProps.mock.calls[0][0];
+    const interpolations = mockCssWithKebabProps.mock.calls[0].slice(1);
     
     // Check CSS properties
     expect(args[0]).toContain('background-color:');
@@ -59,14 +62,14 @@ describe('glassSurface Mixin', () => {
     ];
     
     blurOptions.forEach(option => {
-      cssWithKebabProps.mockClear();
+      mockCssWithKebabProps.mockClear();
       
       glassSurface({
         blurStrength: option.input as any,
         themeContext: { isDarkMode: false }
       });
       
-      const args = cssWithKebabProps.mock.calls[0][0];
+      const args = mockCssWithKebabProps.mock.calls[0][0];
       
       expect(args[0]).toContain(`backdrop-filter: blur(${option.expected})`);
       expect(args[0]).toContain(`-webkit-backdrop-filter: blur(${option.expected})`);
@@ -85,14 +88,14 @@ describe('glassSurface Mixin', () => {
     ];
     
     elevationOptions.forEach(option => {
-      cssWithKebabProps.mockClear();
+      mockCssWithKebabProps.mockClear();
       
       glassSurface({
         elevation: option.input as any,
         themeContext: { isDarkMode: false }
       });
       
-      const args = cssWithKebabProps.mock.calls[0][0];
+      const args = mockCssWithKebabProps.mock.calls[0][0];
       
       // Check if shadow string contains the expected pattern
       const shadowPattern = option.expected;
@@ -108,7 +111,7 @@ describe('glassSurface Mixin', () => {
       themeContext: { isDarkMode: true }
     });
     
-    const darkArgs = cssWithKebabProps.mock.calls[0][0];
+    const darkArgs = mockCssWithKebabProps.mock.calls[0][0];
     
     // Dark mode should use dark background color
     expect(darkArgs[0]).toContain('background-color: rgba(15, 23, 42,');
@@ -117,12 +120,12 @@ describe('glassSurface Mixin', () => {
     expect(darkArgs[0]).toContain('border: 1px solid rgba(255, 255, 255,');
     
     // Reset and test with light mode
-    cssWithKebabProps.mockClear();
+    mockCssWithKebabProps.mockClear();
     glassSurface({
       themeContext: { isDarkMode: false }
     });
     
-    const lightArgs = cssWithKebabProps.mock.calls[0][0];
+    const lightArgs = mockCssWithKebabProps.mock.calls[0][0];
     
     // Light mode should use light background color
     expect(lightArgs[0]).toContain('background-color: rgba(255, 255, 255,');
@@ -138,14 +141,14 @@ describe('glassSurface Mixin', () => {
     ];
     
     opacityOptions.forEach(option => {
-      cssWithKebabProps.mockClear();
+      mockCssWithKebabProps.mockClear();
       
       glassSurface({
         backgroundOpacity: option.input as any,
         themeContext: { isDarkMode: false }
       });
       
-      const args = cssWithKebabProps.mock.calls[0][0];
+      const args = mockCssWithKebabProps.mock.calls[0][0];
       
       // Should include the correct background opacity
       expect(args[0]).toContain(`background-color: rgba(255, 255, 255, ${option.expected})`);
@@ -163,14 +166,14 @@ describe('glassSurface Mixin', () => {
     ];
     
     borderOptions.forEach(option => {
-      cssWithKebabProps.mockClear();
+      mockCssWithKebabProps.mockClear();
       
       glassSurface({
         borderOpacity: option.input as any,
         themeContext: { isDarkMode: false }
       });
       
-      const args = cssWithKebabProps.mock.calls[0][0];
+      const args = mockCssWithKebabProps.mock.calls[0][0];
       
       // Should include the correct border opacity
       // In light mode, we add 0.3 to the opacity

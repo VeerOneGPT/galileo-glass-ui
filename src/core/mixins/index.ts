@@ -9,9 +9,13 @@ export { backgroundEffects } from './backgroundEffects';
 
 // Effects mixins
 export { glowEffects } from './effects/glowEffects';
-export { edgeEffects } from './effects/edgeEffects';
-export { innerEffects } from './effects/innerEffects';
+export { edgeHighlight } from './effects/edgeEffects';
+export { innerGlow } from './effects/innerEffects';
 export { ambientEffects } from './effects/ambientEffects';
+
+// Enhanced Effects mixins
+export { enhancedGlowEffects, enhancedGlow } from '../effects/enhancedGlowEffects';
+export { contextAwareGlass, adaptiveGlass } from '../effects/contextAwareGlass';
 
 // Interaction mixins
 export { interactiveGlass } from './interactions/interactiveGlass';

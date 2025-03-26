@@ -16,8 +16,9 @@ import {
  * Animation complexity levels for optimization
  */
 export enum AnimationComplexity {
+  NONE = 'none',         // No animation
   MINIMAL = 'minimal',   // Simplest possible animation (opacity only)
-  REDUCED = 'reduced',   // Simplified but still noticeable (transforms, no filters)
+  BASIC = 'basic',       // Simplified but still noticeable (transforms, no filters)
   STANDARD = 'standard', // Default complexity level
   ENHANCED = 'enhanced', // More complex (with shadows, transforms)
   COMPLEX = 'complex'    // Most complex (filters, multiple properties)
@@ -138,28 +139,28 @@ const getAdaptedComplexity = (
       [DeviceCapabilityTier.ULTRA]: AnimationComplexity.COMPLEX,
       [DeviceCapabilityTier.HIGH]: AnimationComplexity.ENHANCED,
       [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.STANDARD,
-      [DeviceCapabilityTier.LOW]: AnimationComplexity.REDUCED,
+      [DeviceCapabilityTier.LOW]: AnimationComplexity.BASIC,
       [DeviceCapabilityTier.MINIMAL]: AnimationComplexity.MINIMAL
     },
     [AnimationComplexity.ENHANCED]: {
       [DeviceCapabilityTier.ULTRA]: AnimationComplexity.ENHANCED,
       [DeviceCapabilityTier.HIGH]: AnimationComplexity.ENHANCED,
       [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.STANDARD,
-      [DeviceCapabilityTier.LOW]: AnimationComplexity.REDUCED,
+      [DeviceCapabilityTier.LOW]: AnimationComplexity.BASIC,
       [DeviceCapabilityTier.MINIMAL]: AnimationComplexity.MINIMAL
     },
     [AnimationComplexity.STANDARD]: {
       [DeviceCapabilityTier.ULTRA]: AnimationComplexity.STANDARD,
       [DeviceCapabilityTier.HIGH]: AnimationComplexity.STANDARD,
       [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.STANDARD,
-      [DeviceCapabilityTier.LOW]: AnimationComplexity.REDUCED,
+      [DeviceCapabilityTier.LOW]: AnimationComplexity.BASIC,
       [DeviceCapabilityTier.MINIMAL]: AnimationComplexity.MINIMAL
     },
-    [AnimationComplexity.REDUCED]: {
-      [DeviceCapabilityTier.ULTRA]: AnimationComplexity.REDUCED,
-      [DeviceCapabilityTier.HIGH]: AnimationComplexity.REDUCED,
-      [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.REDUCED,
-      [DeviceCapabilityTier.LOW]: AnimationComplexity.REDUCED,
+    [AnimationComplexity.BASIC]: {
+      [DeviceCapabilityTier.ULTRA]: AnimationComplexity.BASIC,
+      [DeviceCapabilityTier.HIGH]: AnimationComplexity.BASIC,
+      [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.BASIC,
+      [DeviceCapabilityTier.LOW]: AnimationComplexity.BASIC,
       [DeviceCapabilityTier.MINIMAL]: AnimationComplexity.MINIMAL
     },
     [AnimationComplexity.MINIMAL]: {
@@ -168,6 +169,13 @@ const getAdaptedComplexity = (
       [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.MINIMAL,
       [DeviceCapabilityTier.LOW]: AnimationComplexity.MINIMAL,
       [DeviceCapabilityTier.MINIMAL]: AnimationComplexity.MINIMAL
+    },
+    [AnimationComplexity.NONE]: {
+      [DeviceCapabilityTier.ULTRA]: AnimationComplexity.NONE,
+      [DeviceCapabilityTier.HIGH]: AnimationComplexity.NONE,
+      [DeviceCapabilityTier.MEDIUM]: AnimationComplexity.NONE,
+      [DeviceCapabilityTier.LOW]: AnimationComplexity.NONE,
+      [DeviceCapabilityTier.MINIMAL]: AnimationComplexity.NONE
     }
   };
   
@@ -255,7 +263,7 @@ const getOptimizedProperties = (
       gpuAccelerated: hasTransform,
       compositingOptimized: hasTransform || hasOpacity,
       repaintOptimized: !hasFilter,
-      useWillChange: hasTransform && (hasFilter || complexity === AnimationComplexity.ENHANCED),
+      useWillChange: hasTransform && (hasFilter || hasTransform),
       properties: hasTransform ? ['transform'] : hasOpacity ? ['opacity'] : animatedProperties
     };
   }
@@ -350,10 +358,12 @@ export const optimizedAnimation = (options: OptimizedAnimationOptions) => {
   // CPU-only animations for minimal complexity or low-end devices
   if (
     adaptedComplexity === AnimationComplexity.MINIMAL || 
+    adaptedComplexity === AnimationComplexity.BASIC ||
     deviceTier === DeviceCapabilityTier.MINIMAL
   ) {
     // If non-essential, potentially skip animation
-    if (!isEssential && deviceTier === DeviceCapabilityTier.MINIMAL) {
+    if ((!isEssential && deviceTier === DeviceCapabilityTier.MINIMAL) ||
+        adaptedComplexity === AnimationComplexity.NONE) {
       return '';
     }
     

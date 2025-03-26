@@ -248,7 +248,7 @@ const PaginationButton = styled.button<{
   ${props => props.$current && !props.$disabled && glassSurface({
     elevation: 1,
     blurStrength: 'minimal',
-    backgroundOpacity: props.$variant === 'contained' ? 'high' : 'subtle',
+    backgroundOpacity: props.$variant === 'contained' ? 'strong' : 'subtle',
     borderOpacity: 'medium',
     themeContext: createThemeContext({})
   })}

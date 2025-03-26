@@ -419,7 +419,7 @@ export const useMouseCursorEffect = (options: MouseCursorEffectOptions = {}) => 
         particle.style.left = `${x}px`;
         particle.style.top = `${y}px`;
         particle.style.transform = 'translate(-50%, -50%)';
-        particle.style.opacity = ((adjustedParticleCount - index) / adjustedParticleCount) * 0.7;
+        particle.style.opacity = String(((adjustedParticleCount - index) / adjustedParticleCount) * 0.7);
         
         // Fade out
         setTimeout(() => {

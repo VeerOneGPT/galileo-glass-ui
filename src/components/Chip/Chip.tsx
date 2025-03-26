@@ -164,7 +164,7 @@ const ChipRoot = styled.div<{
   ${props => props.$variant === 'glass' && !props.$disabled && glassSurface({
     elevation: 1,
     blurStrength: 'minimal',
-    backgroundOpacity: 'low',
+    backgroundOpacity: 'medium',
     borderOpacity: 'medium',
     themeContext: createThemeContext({})
   })}

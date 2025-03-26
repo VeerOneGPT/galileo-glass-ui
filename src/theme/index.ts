@@ -7,7 +7,8 @@
 // Main theme provider with context architecture
 export { 
   ThemeProvider,
-  GlassThemeProvider,
+  // Export ThemeProvider as GlassThemeProvider for backwards compatibility
+  ThemeProvider as GlassThemeProvider,
   useTheme,
   useColorMode,
   useThemeVariant,

@@ -198,7 +198,7 @@ const ListRoot = styled.ul<{
   ${props => props.$variant === 'glass' && glassSurface({
     elevation: props.$elevated ? 2 : 1,
     blurStrength: 'standard',
-    backgroundOpacity: 'low',
+    backgroundOpacity: 'light',
     borderOpacity: 'subtle',
     themeContext: createThemeContext({})
   })}

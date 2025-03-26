@@ -231,7 +231,7 @@ const LinearProgressBar = styled.div<{
   ${props => props.$glassEffect && glassSurface({
     elevation: 1,
     blurStrength: 'subtle',
-    backgroundOpacity: 'high',
+    backgroundOpacity: 'strong',
     borderOpacity: 'subtle',
     themeContext: createThemeContext({})
   })}

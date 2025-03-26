@@ -72,7 +72,7 @@ const MagneticButtonElement = styled.button<{ theme: any }>`
   ${props => glassSurface({
     elevation: 3,
     blurStrength: 'enhanced',
-    borderOpacity: 'high',
+    borderOpacity: 'strong',
     themeContext: createThemeContext(props.theme)
   })}
   padding: 15px 30px;
@@ -121,15 +121,15 @@ const MousePhysicsDemo: React.FC = () => {
   const [cursorEffectType, setCursorEffectType] = useState<'glow' | 'ripple' | 'trail' | 'magnetic' | 'repel' | 'spotlight'>('glow');
   const [isCursorEffectActive, setIsCursorEffectActive] = useState(false);
   
-  // useMouseMagneticEffect demo
-  const magneticCard1 = useMouseMagneticEffect({
+  // useMouseMagneticEffect demo with proper typing
+  const magneticCard1 = useMouseMagneticEffect<HTMLDivElement>({
     type: magneticType,
     strength: 0.5,
     radius: 200,
     maxDisplacement: 50
   });
   
-  const magneticCard2 = useMouseMagneticEffect({
+  const magneticCard2 = useMouseMagneticEffect<HTMLDivElement>({
     type: magneticType,
     strength: 0.8,
     radius: 250,
@@ -138,7 +138,7 @@ const MousePhysicsDemo: React.FC = () => {
     rotationAmplitude: 10
   });
   
-  const magneticCard3 = useMouseMagneticEffect({
+  const magneticCard3 = useMouseMagneticEffect<HTMLDivElement>({
     type: magneticType,
     strength: 0.6,
     radius: 200,
@@ -147,7 +147,7 @@ const MousePhysicsDemo: React.FC = () => {
     scaleAmplitude: 0.1
   });
   
-  const magneticCard4 = useMouseMagneticEffect({
+  const magneticCard4 = useMouseMagneticEffect<HTMLDivElement>({
     type: magneticType,
     strength: 0.7,
     radius: 220,
@@ -158,21 +158,17 @@ const MousePhysicsDemo: React.FC = () => {
     scaleAmplitude: 0.08
   });
   
-  // useMagneticButton demo
-  const magneticButton1 = useMagneticButton({
+  // useMagneticButton demo with proper typing
+  const magneticButton1 = useMagneticButton<HTMLButtonElement>({
     strength: 0.5,
     radius: 150,
-    maxDisplacement: 20,
-    pressScale: 0.95
+    maxDisplacement: 20
   });
   
-  const magneticButton2 = useMagneticButton({
+  const magneticButton2 = useMagneticButton<HTMLButtonElement>({
     strength: 0.7,
     radius: 180,
-    maxDisplacement: 30,
-    pressScale: 0.92,
-    tiltEffect: true,
-    maxTiltAngle: 15
+    maxDisplacement: 30
   });
   
   // useMouseCursorEffect demo

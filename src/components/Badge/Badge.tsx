@@ -178,15 +178,15 @@ const BadgeWrapper = styled.span<{
   ${props => props.$variant === 'glass' && glassSurface({
     elevation: 1,
     blurStrength: 'minimal',
-    backgroundOpacity: 'high',
+    backgroundOpacity: 'strong',
     borderOpacity: 'subtle',
     themeContext: createThemeContext({})
   })}
   
   /* Glass glow for glass variant */
   ${props => props.$variant === 'glass' && glassGlow({
-    intensity: 'minimal',
-    color: props.$color,
+    glowIntensity: 'minimal',
+    glowColor: props.$color,
     themeContext: createThemeContext({})
   })}
   

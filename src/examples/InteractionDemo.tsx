@@ -130,7 +130,11 @@ const InteractiveGlassDemo = styled.div<{ theme: any, hoverEffect: string, activ
   margin-bottom: 16px;
 `;
 
-const FocusEffectsDemo = styled.button<{ theme: any, type: string }>`
+// Define a type for the focus effect types
+type FocusEffectType = 'outline' | 'ring' | 'glow' | 'border' | 'inset';
+
+// Create a styled button base component
+const StyledFocusButton = styled.button<{ theme: any, focusType: FocusEffectType }>`
   background-color: rgba(15, 23, 42, 0.2);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -141,7 +145,7 @@ const FocusEffectsDemo = styled.button<{ theme: any, type: string }>`
   cursor: pointer;
   
   ${props => focusEffects({
-    type: props.type as any,
+    type: props.focusType as any,
     color: '#3b82f6',
     thickness: 3,
     opacity: 0.6,
@@ -151,6 +155,18 @@ const FocusEffectsDemo = styled.button<{ theme: any, type: string }>`
     themeContext: createThemeContext(props.theme)
   })}
 `;
+
+// Create a proper React component that uses the styled component
+const FocusEffectsDemo: React.FC<{
+  type: FocusEffectType;
+  children: React.ReactNode;
+}> = ({ type, children }) => {
+  return (
+    <StyledFocusButton focusType={type} type="button">
+      {children}
+    </StyledFocusButton>
+  );
+};
 
 const HoverEffectsDemo = styled.div<{ theme: any, type: string }>`
   background-color: rgba(15, 23, 42, 0.2);

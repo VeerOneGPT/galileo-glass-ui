@@ -629,6 +629,82 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
     return optimizations;
   }, [metrics.isPoorPerformance]);
   
+  /**
+   * Get recommended glass UI settings based on current performance metrics
+   * and device capabilities
+   */
+  const getRecommendedGlassSettings = useCallback(() => {
+    const { deviceCapabilityTier, isPoorPerformance, fps, jankScore } = metrics;
+    const currentOptLevel = Math.floor(optimizationLevel);
+    
+    // Default settings (high quality)
+    const settings = {
+      blurStrength: 10,
+      transparency: 0.7,
+      reflectionOpacity: 0.2,
+      enableReflections: true,
+      enableParallax: true,
+      enableAnimations: true,
+      useHardwareAcceleration: true,
+      useReducedMotion: false,
+      animationComplexity: 'standard',
+      enableParticles: true,
+      maxParticles: 100,
+      shadowQuality: 'high',
+      useCachedBackgrounds: false
+    };
+    
+    // Adjust based on device capability
+    if (deviceCapabilityTier === DeviceCapabilityTier.LOW) {
+      settings.blurStrength = 5;
+      settings.transparency = 0.85;
+      settings.reflectionOpacity = 0.1;
+      settings.enableParallax = false;
+      settings.enableReflections = false;
+      settings.animationComplexity = 'minimal';
+      settings.enableParticles = false;
+      settings.maxParticles = 0;
+      settings.shadowQuality = 'low';
+      settings.useCachedBackgrounds = true;
+    } else if (deviceCapabilityTier === DeviceCapabilityTier.MEDIUM) {
+      settings.blurStrength = 8;
+      settings.transparency = 0.75;
+      settings.reflectionOpacity = 0.15;
+      settings.enableParallax = true;
+      settings.enableReflections = true;
+      settings.animationComplexity = 'basic';
+      settings.enableParticles = true;
+      settings.maxParticles = 50;
+      settings.shadowQuality = 'medium';
+    }
+    
+    // Further adjust based on current performance
+    if (isPoorPerformance || currentOptLevel > 0) {
+      // Reduce quality based on optimization level
+      const reductionFactor = 0.25 * currentOptLevel;
+      
+      settings.blurStrength = Math.max(3, Math.floor(settings.blurStrength * (1 - reductionFactor)));
+      settings.transparency = Math.min(0.95, settings.transparency + (reductionFactor * 0.2));
+      settings.reflectionOpacity = Math.max(0, settings.reflectionOpacity - (reductionFactor * 0.1));
+      
+      if (fps < 30 || jankScore > 7 || currentOptLevel >= 2) {
+        settings.enableReflections = false;
+        settings.enableParallax = false;
+        settings.animationComplexity = 'minimal';
+        settings.enableParticles = false;
+        settings.shadowQuality = 'low';
+        settings.useCachedBackgrounds = true;
+      } else if (fps < 45 || jankScore > 5 || currentOptLevel >= 1) {
+        settings.enableParallax = false;
+        settings.animationComplexity = 'basic';
+        settings.maxParticles = 25;
+        settings.shadowQuality = 'medium';
+      }
+    }
+    
+    return settings;
+  }, [metrics, optimizationLevel]);
+
   return {
     metrics,
     optimizationLevel,
@@ -637,6 +713,7 @@ export const useGlassPerformance = (options: GlassPerformanceOptions = {}) => {
     getSuggestions,
     getHistory,
     getElementOptimizations,
+    getRecommendedGlassSettings,
     reset: () => {
       frameTimings.current = [];
       lastFrameTime.current = 0;

@@ -15,6 +15,15 @@ export {
   type PhysicsState
 } from '../../hooks/usePhysicsInteraction';
 
-// Export legacy hook names for backward compatibility
-export { usePhysicsInteraction as useMouseMagneticEffect } from '../../hooks/usePhysicsInteraction';
-export { usePhysicsInteraction as useMagneticButton } from '../../hooks/usePhysicsInteraction';
+// Import the hook explicitly to use with our wrapper functions
+import usePhysicsInteraction from '../../hooks/usePhysicsInteraction';
+import { PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+
+// Export legacy hook names for backward compatibility with proper typing
+export const useMouseMagneticEffect = <T extends HTMLElement = HTMLElement>(options: PhysicsInteractionOptions = {}) => {
+  return usePhysicsInteraction<T>(options);
+};
+
+export const useMagneticButton = <T extends HTMLElement = HTMLElement>(options: PhysicsInteractionOptions = {}) => {
+  return usePhysicsInteraction<T>(options);
+};

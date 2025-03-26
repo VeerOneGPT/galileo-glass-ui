@@ -12,9 +12,37 @@ galileo-glass-ui/
 │   │   ├── Card/
 │   │   ├── Charts/    # Chart components
 │   │   ├── TextField/
+│   │   ├── Accordion/ # Advanced components
+│   │   ├── CookieConsent/
+│   │   ├── DatePicker/
+│   │   ├── Form/
+│   │   ├── ImageList/
+│   │   ├── KpiCard/
+│   │   ├── Navigation/
+│   │   ├── Performance/
+│   │   ├── Rating/
+│   │   ├── SpeedDial/
+│   │   ├── TagInput/
+│   │   ├── ThemeComponents/
+│   │   ├── ToggleButton/
+│   │   ├── TreeView/
+│   │   ├── VisualFeedback/
+│   │   ├── backgrounds/ # Background components
+│   │   ├── surfaces/   # Glass surface variants
 │   │   └── ...
 │   ├── core/          # Core utilities
 │   │   ├── mixins/
+│   │   │   ├── effects/
+│   │   │   │   ├── borderEffects.ts
+│   │   │   │   ├── interactiveEffects.ts
+│   │   │   │   └── ...
+│   │   │   ├── typography/
+│   │   │   │   ├── textEffects.ts
+│   │   │   │   └── ...
+│   │   ├── effects/
+│   │   │   ├── enhancedGlowEffects.ts
+│   │   │   ├── contextAwareGlass.ts
+│   │   │   └── ...
 │   │   ├── cssUtils.ts
 │   │   ├── colorUtils.ts
 │   │   └── ...
@@ -26,19 +54,42 @@ galileo-glass-ui/
 │   ├── animations/    # Animation system
 │   │   ├── keyframes/
 │   │   ├── physics/
+│   │   │   ├── advancedPhysicsAnimations.ts
+│   │   │   ├── physicsCalculations.ts
+│   │   │   └── ...
+│   │   ├── accessibility/ # Accessibility-aware animations
+│   │   ├── dimensional/   # Z-space animations
+│   │   ├── orchestration/ # Animation orchestration
+│   │   ├── performance/   # Animation performance
+│   │   ├── presets/       # Animation presets
 │   │   ├── animationUtils.ts
 │   │   └── ...
 │   ├── hooks/         # React hooks
 │   │   ├── useGlassEffects.ts
 │   │   ├── useReducedMotion.ts
 │   │   ├── usePhysicsInteraction.ts
+│   │   ├── useZSpaceAnimation.ts
+│   │   ├── useOrchestration.ts
+│   │   ├── useBreakpoint.ts
+│   │   ├── useResponsiveValue.ts
+│   │   └── ...
+│   ├── utils/         # Utility functions
+│   │   ├── optimization/ # Style optimization
+│   │   ├── performance/  # Performance utilities  
 │   │   └── ...
 │   └── index.ts       # Main entry point
 ├── docs/              # Documentation
-│   ├── GalileoGlass.md  # Main framework documentation
+│   ├── GalileoGlass.md   # Main framework documentation
 │   ├── AnimationSystem.md # Animation system documentation
-│   ├── ThemeProvider.md # Theme system documentation
-│   └── GlassCharts.md   # Chart components documentation
+│   ├── ThemeProvider.md  # Theme system documentation
+│   ├── GlassCharts.md    # Chart components documentation
+│   ├── AdvancedComponents.md # Advanced components documentation
+│   ├── PhysicsAnimations.md  # Physics animation documentation
+│   ├── SpecializedSurfaces.md # Specialized glass surfaces documentation
+│   ├── guides/            # Implementation guides
+│   │   ├── OptimizationTechniques.md # Performance optimization guide
+│   │   ├── MemoizationPatterns.md    # Style and event handler memoization
+│   │   └── ...
 ├── package.json       # Package config with subpath exports
 └── rollup.config.js   # Build configuration
 ```

@@ -7,12 +7,13 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassGlow } from '../../core/mixins/effects/glowEffects';
+import { glassGlow, GlowEffectProps } from '../../core/mixins/glowEffects';
 import { interactiveGlass } from '../../core/mixins/interactions/interactiveGlass';
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { useMagneticButton } from '../../animations/hooks';
+import { asCoreThemeContext } from '../../utils/themeHelpers';
 
 /**
  * TabItem interface
@@ -142,7 +143,7 @@ const StyledTabsContainer = styled.div<{
     elevation: props.variant === 'elevated' ? 2 : 1,
     blurStrength: props.highContrast ? 'minimal' : 'light',
     borderOpacity: props.variant === 'outlined' ? 'medium' : 'subtle',
-    themeContext: createThemeContext(props.theme)
+    themeContext: asCoreThemeContext(createThemeContext(props.theme))
   })}
   
   ${props => props.variant === 'text' && `
@@ -273,14 +274,14 @@ const StyledTab = styled.button<{
   }}
   
   ${props => !props.disabled && !props.active && interactiveGlass({
-    hoverEffect: 'subtle',
-    themeContext: createThemeContext(props.theme)
+    hoverEffect: 'brighten',
+    themeContext: asCoreThemeContext(createThemeContext(props.theme))
   })}
   
   ${props => props.active && props.variant !== 'text' && glassGlow({
-    intensity: 'subtle',
-    color: props.color || 'primary',
-    themeContext: createThemeContext(props.theme)
+    glowIntensity: 'subtle',
+    glowColor: props.color || 'primary',
+    themeContext: asCoreThemeContext(createThemeContext(props.theme))
   })}
 `;
 
@@ -327,7 +328,7 @@ const StyledTabIndicator = styled.div<{
   ${props => glassGlow({
     intensity: 'subtle',
     color: props.color || 'primary',
-    themeContext: createThemeContext(props.theme)
+    themeContext: asCoreThemeContext(createThemeContext(props.theme))
   })}
 `;
 
@@ -447,20 +448,29 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
     >
       <StyledTabsList fullWidth={fullWidth}>
         {tabs.map(tab => {
-          // Use magnetic button effect if enabled
+          // Use magnetic button effect if enabled with proper typing
           const magneticProps = physicsEnabled && !prefersReducedMotion
-            ? useMagneticButton({
+            ? useMagneticButton<HTMLButtonElement>({
                 strength: 0.3,
                 maxDisplacement: 5,
-                springBack: true,
-                tiltEffect: false
+                stiffness: 80,  // springBack replacement
+                dampingRatio: 0.6  // controls oscillation
               })
             : null;
+          
+          // Create a ref callback that handles both the tab ref and magnetic ref
+          const handleRef = (element: HTMLButtonElement | null) => {
+            setTabRef(tab.id, element);
+            if (magneticProps && magneticProps.ref.current !== element) {
+              // Set the ref manually since we can't use multiple refs directly
+              Object.assign(magneticProps.ref, { current: element });
+            }
+          };
             
           return (
             <StyledTab
               key={tab.id}
-              ref={ref => setTabRef(tab.id, ref)}
+              ref={handleRef}
               active={currentTab === tab.id}
               disabled={!!tab.disabled}
               color={color}
@@ -472,10 +482,7 @@ export const EnhancedGlassTabs: React.FC<EnhancedGlassTabsProps> = ({
               aria-selected={currentTab === tab.id}
               role="tab"
               tabIndex={tab.disabled ? -1 : 0}
-              {...(magneticProps ? {
-                ref: magneticProps.ref,
-                ...magneticProps.eventHandlers
-              } : {})}
+              {...(magneticProps ? magneticProps.eventHandlers : {})}
               theme={{}}
             >
               {tab.icon && <span>{tab.icon}</span>}

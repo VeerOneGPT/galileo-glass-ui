@@ -452,23 +452,23 @@ export const getElevationShadow = (level: number, isDarkMode = false): string =>
 };
 
 /**
- * Set CSS properties based on a theme
+ * Apply theme properties to a CSS block
  * 
- * @param callback Function that receives the theme and returns CSS properties
- * @returns CSS properties that adapt to the theme
+ * @param callback Function that takes a theme and returns CSS properties or string
+ * @returns A styled-components CSS block
  */
 export const withTheme = (
   callback: (theme: Theme) => CSSProperties | string
-): ReturnType<typeof css> => {
-  return css`
-    ${props => {
-      if (!props.theme) {
-        return '';
-      }
-      
-      return callback(props.theme);
-    }}
-  `;
+) => {
+  // Convert to string or CSSObject that styled-components can handle
+  return (props: any) => {
+    if (!props.theme) {
+      return '';
+    }
+    
+    const result = callback(props.theme);
+    return result;
+  };
 };
 
 /**

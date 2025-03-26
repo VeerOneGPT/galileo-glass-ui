@@ -128,9 +128,16 @@ const StackItemContainer = styled.div`
 `;
 
 /**
+ * Extended Stack interface with static Item property
+ */
+export interface StackComponent extends React.ForwardRefExoticComponent<StackProps & React.RefAttributes<HTMLDivElement>> {
+  Item: React.ForwardRefExoticComponent<StackItemProps & React.RefAttributes<HTMLDivElement>>;
+}
+
+/**
  * Stack component for arranging children vertically or horizontally
  */
-export const Stack = forwardRef<HTMLDivElement, StackProps>(function Stack(props, ref) {
+const StackBase = forwardRef<HTMLDivElement, StackProps>(function Stack(props, ref) {
   const {
     direction = 'column',
     spacing = 0,
@@ -265,7 +272,10 @@ const Item = forwardRef<HTMLDivElement, StackItemProps>(function StackItem(props
   );
 });
 
-// Attach Item as a static property
+// Create the Stack component with Item as a static property
+const Stack = StackBase as StackComponent;
 Stack.Item = Item;
 
+// Export the Stack component
+export { Stack };
 export default Stack;

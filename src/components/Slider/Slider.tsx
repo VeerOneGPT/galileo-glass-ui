@@ -240,7 +240,7 @@ const SliderThumb = styled.div<{
   ${props => !props.$disabled && glassSurface({
     elevation: 2,
     blurStrength: 'minimal',
-    backgroundOpacity: 'high',
+    backgroundOpacity: 'strong',
     borderOpacity: 'medium',
     themeContext: createThemeContext({})
   })}

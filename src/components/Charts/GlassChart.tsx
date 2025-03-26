@@ -20,6 +20,8 @@ import { zSpaceLayer } from '../../core/mixins/depth/zSpaceLayer';
 import { useGlassTheme, useReducedMotion, useGlassPerformance } from '../../hooks';
 import { useMouseMagneticEffect, usePhysicsInteraction } from '../../animations/hooks';
 import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
+import { asCoreThemeContext } from '../../utils/themeHelpers';
+import { FlexibleElementRef } from '../../utils/elementTypes';
 
 /**
  * GlassChart props interface
@@ -28,7 +30,7 @@ export interface GlassChartProps extends BaseChartProps {
   /**
    * The type of chart to render
    */
-  type: 'bar' | 'line' | 'area' | 'pie' | 'scatter' | 'radar' | 'bubble';
+  type: 'bar' | 'line' | 'area' | 'pie' | 'scatter';
   
   /**
    * Data for the chart
@@ -97,7 +99,7 @@ export interface GlassChartProps extends BaseChartProps {
   /**
    * Available chart types for switching
    */
-  availableTypes?: Array<'bar' | 'line' | 'area' | 'pie' | 'scatter' | 'radar' | 'bubble'>;
+  availableTypes?: Array<'bar' | 'line' | 'area' | 'pie' | 'scatter'>;
   
   /**
    * Enable interactive focus mode with zoom
@@ -136,12 +138,12 @@ const ChartContainer = styled.div<{
     elevation: props.zElevation,
     blurStrength: 'standard',
     borderOpacity: 'medium',
-    themeContext: createThemeContext(props.theme)
+    themeContext: asCoreThemeContext(createThemeContext(props.theme))
   })}
   
   ${props => zSpaceLayer({
-    layer: props.zElevation,
-    themeContext: createThemeContext(props.theme)
+    layer: String(props.zElevation) as any, // Convert to string for layer
+    themeContext: asCoreThemeContext(createThemeContext(props.theme))
   })}
   
   ${props => props.focused && `
@@ -200,9 +202,9 @@ const ToolbarContainer = styled.div`
 /**
  * Chart type selector button
  */
-const ChartTypeButton = styled.button<{ active: boolean; theme: any }>`
+const ChartTypeButton = styled.button<{ active: boolean; theme?: any }>`
   background: ${props => props.active 
-    ? props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' 
+    ? (props.theme?.isDarkMode ?? false) ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)' 
     : 'transparent'};
   border: none;
   border-radius: 4px;
@@ -213,7 +215,7 @@ const ChartTypeButton = styled.button<{ active: boolean; theme: any }>`
   justify-content: center;
   
   &:hover {
-    background: ${props => props.theme.isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'};
+    background: ${props => (props.theme?.isDarkMode ?? false) ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)'};
   }
 `;
 
@@ -304,7 +306,8 @@ export const GlassChart: React.FC<GlassChartProps> = ({
   const prefersReducedMotion = useReducedMotion();
   
   // Get device performance capabilities
-  const { isLowPerformanceDevice, deviceCapabilityTier } = useGlassPerformance();
+  const performanceContext = useGlassPerformance();
+  const isLowPerformanceDevice = performanceContext?.isPoorPerformance || false;
   
   // Determine if simplified rendering should be used
   const useSimplified = useMemo(() => {
@@ -326,7 +329,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
   // Use magnetic effect if enabled
   const magneticProps = useMemo(() => {
     if (magneticEffect && !prefersReducedMotion) {
-      return useMouseMagneticEffect({
+      return useMouseMagneticEffect<HTMLDivElement>({
         type: 'attract',
         strength: magneticStrength,
         radius: 200,
@@ -340,14 +343,22 @@ export const GlassChart: React.FC<GlassChartProps> = ({
   }, [magneticEffect, magneticStrength, prefersReducedMotion]);
   
   // Use depth animation if enabled
-  const { animate, styles: depthStyles } = useZSpaceAnimation({
-    fromLayer: 2,
-    toLayer: 3,
-    trajectory: 'forward',
-    atmosphericFog: true,
-    depthShadows: true,
+  const zAnimationResult = useZSpaceAnimation({
+    plane: 'midground', // Use standard options
+    interactive: true,
+    intensity: 0.2,
+    perspectiveDepth: 1000,
     duration: 0.5
   });
+  
+  // Create a simplified API for depth animation 
+  const animate = useCallback(() => {
+    // Set a custom position to create animation effect
+    zAnimationResult.setCustomPosition(0, 10, 20);
+    setTimeout(() => zAnimationResult.reset(), 500);
+  }, [zAnimationResult]);
+  
+  const depthStyles = zAnimationResult.style;
   
   // Handle tab change
   const handleTabChange = (tabId: string) => {
@@ -417,7 +428,9 @@ export const GlassChart: React.FC<GlassChartProps> = ({
       case 'line':
         return <LineChart {...commonProps} />;
       case 'area':
-        return <AreaChart {...commonProps} fillArea={true} {...chartProps} />;
+        // Separate fillArea from other chartProps
+        const { fillArea, ...otherChartProps } = chartProps;
+        return <AreaChart {...commonProps} {...otherChartProps} />;
       case 'pie':
         return <PieChart {...commonProps} />;
       default:
@@ -425,9 +438,25 @@ export const GlassChart: React.FC<GlassChartProps> = ({
     }
   }, [currentType, data, glass, chartProps, useSimplified]);
   
+  // Create a ref callback that handles both container ref and magnetic ref
+  const combinedRefCallback = useCallback(
+    (element: HTMLDivElement | null) => {
+      // Set the container ref
+      if (containerRef) containerRef.current = element;
+      
+      // Set the magnetic ref if it exists
+      if (magneticProps && magneticProps.ref) {
+        // Safe type cast using our utility type
+        const magneticRef = magneticProps.ref as React.MutableRefObject<HTMLDivElement | null>;
+        if (magneticRef) magneticRef.current = element;
+      }
+    },
+    [magneticProps]
+  );
+
   return (
     <ChartContainer
-      ref={containerRef}
+      ref={combinedRefCallback}
       zElevation={zElevation}
       width={width}
       height={height}
@@ -435,11 +464,10 @@ export const GlassChart: React.FC<GlassChartProps> = ({
       focused={isFocused}
       style={{
         ...style,
-        ...(magneticProps ? magneticProps.transform : {}),
+        ...(magneticProps ? magneticProps.style : {}),
         ...(isFocused && depthAnimation ? depthStyles : {})
       }}
       className={className}
-      {...(magneticProps ? { ref: magneticProps.ref } : {})}
       onClick={handleFocusToggle}
     >
       <div style={{ padding: '16px', height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -478,7 +506,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
                       active={currentType === 'bar'}
                       onClick={() => handleTypeChange('bar')}
                       title="Bar chart"
-                      theme={{}}
+                      theme={theme}
                     >
                       {ChartTypeIcons.bar}
                     </ChartTypeButton>
@@ -488,7 +516,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
                       active={currentType === 'line'}
                       onClick={() => handleTypeChange('line')}
                       title="Line chart"
-                      theme={{}}
+                      theme={theme}
                     >
                       {ChartTypeIcons.line}
                     </ChartTypeButton>
@@ -498,7 +526,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
                       active={currentType === 'area'}
                       onClick={() => handleTypeChange('area')}
                       title="Area chart"
-                      theme={{}}
+                      theme={theme}
                     >
                       {ChartTypeIcons.area}
                     </ChartTypeButton>
@@ -508,7 +536,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
                       active={currentType === 'pie'}
                       onClick={() => handleTypeChange('pie')}
                       title="Pie chart"
-                      theme={{}}
+                      theme={theme}
                     >
                       {ChartTypeIcons.pie}
                     </ChartTypeButton>
@@ -521,7 +549,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
                   active={false}
                   onClick={handleDownload}
                   title="Download chart"
-                  theme={{}}
+                  theme={theme}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

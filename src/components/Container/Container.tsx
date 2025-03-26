@@ -3,11 +3,11 @@ import styled from 'styled-components';
 import { Box, BoxProps } from '../Box/Box';
 
 // Container props interface
-export interface ContainerProps extends BoxProps {
+export interface ContainerProps extends Omit<BoxProps, 'maxWidth'> {
   /**
    * The maximum width of the container
    */
-  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
+  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false | string;
   
   /**
    * If true, the left and right padding is removed

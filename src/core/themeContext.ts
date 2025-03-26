@@ -3,9 +3,44 @@
  */
 
 /**
+ * Theme context interface for Glass UI system
+ */
+export interface ThemeContext {
+  /**
+   * The theme object
+   */
+  theme?: any;
+  
+  /**
+   * Whether dark mode is enabled
+   */
+  isDarkMode: boolean;
+  
+  /**
+   * Get a color from the theme by path
+   */
+  getColor: (path: string, fallback: string) => string;
+  
+  /**
+   * Get a shadow from the theme
+   */
+  getShadow: (level: number, color: string) => string;
+  
+  /**
+   * Get spacing from the theme
+   */
+  getSpacing: (size: number) => string;
+  
+  /**
+   * Get a breakpoint from the theme
+   */
+  getBreakpoint: (name: string) => number;
+}
+
+/**
  * Creates a theme context object for use with Glass mixins
  */
-export const createThemeContext = (theme: any, forceDarkMode = false) => {
+export const createThemeContext = (theme: any, forceDarkMode = false): ThemeContext => {
   // If there's no theme, return a basic context
   if (!theme) {
     return {

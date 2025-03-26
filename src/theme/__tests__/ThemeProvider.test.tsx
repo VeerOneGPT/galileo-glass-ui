@@ -1,3 +1,5 @@
+/// <reference path="../../types/jest.d.ts" />
+/// <reference path="../../types/testing-library.d.ts" />
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ThemeProvider, useColorMode, useTheme } from '../ThemeProvider';

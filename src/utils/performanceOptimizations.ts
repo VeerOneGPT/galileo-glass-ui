@@ -3,6 +3,8 @@
  * 
  * Utilities for optimizing the performance of Glass UI components
  */
+// Import CSS type definitions
+import '../types/css';
 import { DeviceCapabilityTier, getDeviceCapabilityTier } from '../utils/deviceCapabilities';
 import { detectFeatures, getFeatureSupportLevel, GLASS_REQUIREMENTS, FeatureLevel } from './browserCompatibility';
 
@@ -412,12 +414,21 @@ export function applyCssOptimizations(
     element.style.willChange = '';
   }
   
-  // Apply blur strength adjustment
-  const backdropFilter = element.style.backdropFilter || element.style.webkitBackdropFilter;
+  // Apply blur strength adjustment with proper webkit handling
+  const backdropFilter = element.style.backdropFilter || 
+                        element.style.WebkitBackdropFilter || 
+                        element.style['-webkit-backdrop-filter' as any];
   if (backdropFilter && backdropFilter.includes('blur')) {
     const newFilter = `blur(${settings.blurStrength}px)`;
+    
+    // Apply to standard property
     element.style.backdropFilter = newFilter;
-    element.style.webkitBackdropFilter = newFilter;
+    
+    // Apply to webkit properties with different casing options
+    element.style.WebkitBackdropFilter = newFilter;
+    
+    // Use bracket notation for kebab-case property
+    element.style['-webkit-backdrop-filter' as any] = newFilter;
   }
   
   // Apply shadow simplification

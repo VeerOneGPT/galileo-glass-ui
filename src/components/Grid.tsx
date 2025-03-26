@@ -269,9 +269,16 @@ const GridItemStyled = styled.div<GridItemProps & { parentColumns?: number }>`
 `;
 
 /**
+ * Extended Grid interface with static Item property
+ */
+export interface GridComponent extends React.ForwardRefExoticComponent<GridProps & React.RefAttributes<HTMLDivElement>> {
+  Item: React.ForwardRefExoticComponent<GridItemProps & { parentColumns?: number } & React.RefAttributes<HTMLDivElement>>;
+}
+
+/**
  * Grid component
  */
-export const Grid = forwardRef<HTMLDivElement, GridProps>(
+const GridBase = forwardRef<HTMLDivElement, GridProps>(
   function Grid(props, ref) {
     const {
       spacing = 0,
@@ -311,8 +318,8 @@ export const Grid = forwardRef<HTMLDivElement, GridProps>(
       >
         {/* Recursively pass columns value down to Grid.Item children */}
         {React.Children.map(children, child => {
-          if (React.isValidElement(child) && child.type === Grid.Item) {
-            return React.cloneElement(child, {
+          if (React.isValidElement(child) && child.type === (Grid as any).Item) {
+            return React.cloneElement(child as React.ReactElement<any>, {
               parentColumns: columns,
               ...child.props
             });
@@ -371,7 +378,10 @@ const GridItem = forwardRef<HTMLDivElement, GridItemProps & { parentColumns?: nu
   }
 );
 
-// Attach Item as a static property
+// Create the Grid component with Item as a static property
+const Grid = GridBase as unknown as GridComponent;
 Grid.Item = GridItem;
 
+// Export the Grid component
+export { Grid };
 export default Grid;

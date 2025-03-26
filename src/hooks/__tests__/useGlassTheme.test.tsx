@@ -1,5 +1,35 @@
 import React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import '@testing-library/jest-dom';
+
+// Custom renderHook implementation that works with React 18
+function renderHook<Result, Props>(
+  renderCallback: (props: Props) => Result,
+  options: { wrapper?: React.ComponentType<any> } = {}
+) {
+  const result = { current: {} as Result };
+  
+  const TestComponent = () => {
+    result.current = renderCallback({} as Props);
+    return null;
+  };
+  
+  const DefaultWrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+  const WrapperComponent = options.wrapper
+    ? () => {
+        const Wrapper = options.wrapper as React.ComponentType<{ children: React.ReactNode }>;
+        return <Wrapper><TestComponent /></Wrapper>;
+      }
+    : () => <DefaultWrapper><TestComponent /></DefaultWrapper>;
+  
+  const { rerender, unmount } = render(<WrapperComponent />);
+  
+  return {
+    result,
+    rerender: () => rerender(<WrapperComponent />),
+    unmount
+  };
+}
 import { 
   GlassThemeContext, 
   useGlassTheme, 

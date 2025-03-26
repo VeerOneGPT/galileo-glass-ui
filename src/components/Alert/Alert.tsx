@@ -174,22 +174,22 @@ const AlertRoot = styled.div<{
   ${props => props.$variant === 'glass' && glassSurface({
     elevation: 2,
     blurStrength: 'standard',
-    backgroundOpacity: 'low',
+    backgroundOpacity: 'subtle',
     borderOpacity: 'medium',
     themeContext: createThemeContext({})
   })}
   
   /* Subtle glow for filled and glass variants */
   ${props => (props.$variant === 'filled' || props.$variant === 'glass') && glassGlow({
-    intensity: 'low',
-    color: props.$severity,
+    glowIntensity: 'light',
+    glowColor: getSeverityColor(props.$severity),
     themeContext: createThemeContext({})
   })}
   
   /* Animation if enabled */
   ${props => props.$animated && accessibleAnimation({
     animation: fadeIn,
-    duration: 0.3,
+    duration: '0.3s',
     easing: 'ease-out'
   })}
 `;

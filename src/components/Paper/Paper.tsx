@@ -78,7 +78,7 @@ const StyledPaper = styled.div<{
   ${props => props.$glass && glassSurface({
     elevation: props.$elevation,
     blurStrength: 'standard',
-    backgroundOpacity: props.$variant === 'outlined' ? 'none' : 'light',
+    backgroundOpacity: props.$variant === 'outlined' ? 'subtle' : 'light',
     borderOpacity: props.$variant === 'outlined' ? 'medium' : 'subtle',
     themeContext: createThemeContext({}) // In real usage, this would use props.theme
   })}

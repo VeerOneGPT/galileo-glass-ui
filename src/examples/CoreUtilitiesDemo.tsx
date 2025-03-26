@@ -36,7 +36,7 @@ import {
 } from '../core';
 
 // Create a theme context for the demo
-import { createThemeContext } from '../design/core/themeContext';
+import { createThemeContext } from '../core/themeContext';
 
 /**
  * Styled components for the demo
@@ -135,7 +135,7 @@ const GlowDemo = styled.div<{ color: string; interactive?: boolean }>`
     themeContext: createThemeContext(props.theme, true)
   })}
   
-  ${props => glassGlow({
+  ${props => glassGlow.glassGlow({
     color: props.color,
     intensity: 'medium',
     themeContext: createThemeContext(props.theme, true)
@@ -485,20 +485,7 @@ export const CoreUtilitiesDemo: React.FC = () => {
           
           <div style={{ marginTop: '20px' }}>
             <h4>Z-Space System</h4>
-            <div style={{ position: 'relative', perspective: '1000px' }}>
-              <ZSpaceDemo layer={ZLayer.BACKGROUND} color="#10B981">
-                Background Layer
-              </ZSpaceDemo>
-              <ZSpaceDemo layer={ZLayer.CONTENT} color="#3B82F6">
-                Content Layer
-              </ZSpaceDemo>
-              <ZSpaceDemo layer={ZLayer.SURFACE} color="#8B5CF6">
-                Surface Layer
-              </ZSpaceDemo>
-              <ZSpaceDemo layer={ZLayer.OVERLAY} color="#F43F5E">
-                Overlay Layer
-              </ZSpaceDemo>
-            </div>
+            <ZSpaceGrid />
           </div>
           
           <div style={{ marginTop: '20px' }}>
@@ -512,3 +499,34 @@ export const CoreUtilitiesDemo: React.FC = () => {
     </Container>
   );
 };
+
+const ZSpaceGrid = () => (
+  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+    <ZSpaceDemo layer={ZLayer.Background} color="#6366F1">
+      Background Layer
+    </ZSpaceDemo>
+    
+    <ZSpaceDemo layer={ZLayer.Content} color="#8B5CF6">
+      Content Layer
+    </ZSpaceDemo>
+    
+    <ZSpaceDemo layer={ZLayer.Surface} color="#10B981">
+      Surface Layer
+    </ZSpaceDemo>
+    
+    <ZSpaceDemo layer={ZLayer.Backdrop} color="#EC4899">
+      Overlay Layer
+    </ZSpaceDemo>
+    
+    <ZSpaceDemo layer={ZLayer.Modal} color="#F59E0B">
+      Modal Layer
+    </ZSpaceDemo>
+    
+    <ZSpaceDemo layer={ZLayer.TopLayer} color="#EF4444">
+      Top Layer
+    </ZSpaceDemo>
+  </div>
+);
+
+// Add a default export at the end of the file
+export default CoreUtilitiesDemo;

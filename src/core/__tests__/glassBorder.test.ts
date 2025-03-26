@@ -2,6 +2,10 @@ import { glassBorder } from '../mixins/glassBorder';
 import { cssWithKebabProps } from '../cssUtils';
 import { withAlpha } from '../colorUtils';
 
+// Create proper mock types
+const mockCssWithKebabProps = cssWithKebabProps as jest.MockedFunction<typeof cssWithKebabProps>;
+const mockWithAlpha = withAlpha as jest.MockedFunction<typeof withAlpha>;
+
 // Mock dependencies
 jest.mock('../cssUtils', () => ({
   cssWithKebabProps: jest.fn((...args) => args),
@@ -21,13 +25,13 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    expect(cssWithKebabProps).toHaveBeenCalledWith(
+    expect(mockCssWithKebabProps).toHaveBeenCalledWith(
       expect.any(Array),
       ...expect.any(Array)
     );
     
     // Check arguments passed to cssWithKebabProps
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     
     // All borders should be present for default position 'all'
     expect(args[0]).toContain('border-top:');
@@ -52,14 +56,14 @@ describe('glassBorder Mixin', () => {
     ];
     
     for (const { position, expected } of positions) {
-      cssWithKebabProps.mockClear();
+      mockCssWithKebabProps.mockClear();
       
       glassBorder({
         position: position as any,
         themeContext: { isDarkMode: false }
       });
       
-      const args = cssWithKebabProps.mock.calls[0][0];
+      const args = mockCssWithKebabProps.mock.calls[0][0];
       
       // Check that only the correct borders are included
       for (const border of ['border-top:', 'border-right:', 'border-bottom:', 'border-left:']) {
@@ -79,7 +83,7 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     expect(args[0]).toContain('2px');
     expect(args[0]).toContain('dashed');
   });
@@ -90,7 +94,7 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     expect(args[0]).toContain('3px');
   });
   
@@ -100,17 +104,17 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     expect(args[0]).toContain('border-radius: 16px');
     
-    cssWithKebabProps.mockClear();
+    mockCssWithKebabProps.mockClear();
     
     glassBorder({
       radius: '2rem',
       themeContext: { isDarkMode: false }
     });
     
-    const args2 = cssWithKebabProps.mock.calls[0][0];
+    const args2 = mockCssWithKebabProps.mock.calls[0][0];
     expect(args2[0]).toContain('border-radius: 2rem');
   });
   
@@ -124,7 +128,7 @@ describe('glassBorder Mixin', () => {
     ];
     
     for (const { opacity, expected } of opacities) {
-      withAlpha.mockClear();
+      mockWithAlpha.mockClear();
       
       glassBorder({
         opacity: opacity as any,
@@ -132,7 +136,7 @@ describe('glassBorder Mixin', () => {
       });
       
       // Check that withAlpha was called with correct opacity
-      expect(withAlpha).toHaveBeenCalledWith(expect.any(String), expected);
+      expect(mockWithAlpha).toHaveBeenCalledWith(expect.any(String), expected);
     }
   });
   
@@ -142,7 +146,7 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     expect(args[0]).toContain('border-image:');
     expect(args[0]).toContain('linear-gradient');
   });
@@ -153,7 +157,7 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     expect(args[0]).toContain('box-shadow:');
   });
   
@@ -164,7 +168,7 @@ describe('glassBorder Mixin', () => {
       themeContext: { isDarkMode: false }
     });
     
-    const args = cssWithKebabProps.mock.calls[0][0];
+    const args = mockCssWithKebabProps.mock.calls[0][0];
     expect(args[0]).toContain('animation:');
     expect(args[0]).toContain('@keyframes glassBorderGlow');
   });
@@ -179,7 +183,7 @@ describe('glassBorder Mixin', () => {
     ];
     
     for (const { intensity, expected } of intensities) {
-      withAlpha.mockClear();
+      mockWithAlpha.mockClear();
       
       glassBorder({
         glow: true,
@@ -188,7 +192,7 @@ describe('glassBorder Mixin', () => {
       });
       
       // Check that withAlpha was called with correct intensity
-      expect(withAlpha).toHaveBeenCalledWith(expect.any(String), expected);
+      expect(mockWithAlpha).toHaveBeenCalledWith(expect.any(String), expected);
     }
   });
   
@@ -199,9 +203,9 @@ describe('glassBorder Mixin', () => {
     });
     
     // Check that withAlpha was called with correct color
-    expect(withAlpha).toHaveBeenCalledWith('#FF0000', expect.any(Number));
+    expect(mockWithAlpha).toHaveBeenCalledWith('#FF0000', expect.any(Number));
     
-    withAlpha.mockClear();
+    mockWithAlpha.mockClear();
     
     glassBorder({
       glow: true,
@@ -210,7 +214,7 @@ describe('glassBorder Mixin', () => {
     });
     
     // Check that withAlpha was called with glow color
-    expect(withAlpha).toHaveBeenCalledWith('#00FF00', expect.any(Number));
+    expect(mockWithAlpha).toHaveBeenCalledWith('#00FF00', expect.any(Number));
   });
   
   test('handles dark mode differently', () => {
@@ -219,15 +223,15 @@ describe('glassBorder Mixin', () => {
     });
     
     // Default border color should be different in dark mode
-    expect(withAlpha).toHaveBeenCalledWith('rgba(255, 255, 255, 0.25)', expect.any(Number));
+    expect(mockWithAlpha).toHaveBeenCalledWith('rgba(255, 255, 255, 0.25)', expect.any(Number));
     
-    withAlpha.mockClear();
+    mockWithAlpha.mockClear();
     
     glassBorder({
       themeContext: { isDarkMode: false }
     });
     
     // Default border color should be different in light mode
-    expect(withAlpha).toHaveBeenCalledWith('rgba(255, 255, 255, 0.75)', expect.any(Number));
+    expect(mockWithAlpha).toHaveBeenCalledWith('rgba(255, 255, 255, 0.75)', expect.any(Number));
   });
 });

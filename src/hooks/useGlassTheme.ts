@@ -410,12 +410,24 @@ export const useThemeColor = (
   const { theme } = useGlassTheme();
   
   // Handle nested text properties
-  if (colorKey === 'text.primary') return theme.colors.text.primary;
-  if (colorKey === 'text.secondary') return theme.colors.text.secondary;
-  if (colorKey === 'text.disabled') return theme.colors.text.disabled;
+  if (colorKey === 'text.primary') {
+    const primary = theme.colors.text?.primary;
+    return typeof primary === 'string' ? primary : (primary as any)?.primary || '#000000';
+  }
+  
+  if (colorKey === 'text.secondary') {
+    const secondary = theme.colors.text?.secondary;
+    return typeof secondary === 'string' ? secondary : (secondary as any)?.secondary || '#666666';
+  }
+  
+  if (colorKey === 'text.disabled') {
+    const disabled = theme.colors.text?.disabled;
+    return typeof disabled === 'string' ? disabled : (disabled as any)?.disabled || '#999999';
+  }
   
   // Handle regular color properties
-  return theme.colors[colorKey as keyof ThemeColors];
+  const color = theme.colors[colorKey as keyof ThemeColors];
+  return typeof color === 'string' ? color : (color as any)?.main || '#666666';
 };
 
 /**
