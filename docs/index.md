@@ -2,32 +2,45 @@
 
 Welcome to the comprehensive documentation for Galileo Glass UI, a complete glass morphism UI framework for React applications.
 
-## Core Documentation
+## Core Framework
 
 | Documentation | Description |
 |---------------|-------------|
-| [**Framework Guide**](./GalileoGlass.md) | Main documentation for the Galileo Glass UI framework |
-| [**Animation System**](./AnimationSystem.md) | Details of the animation framework and physics system |
-| [**Theme Provider**](./ThemeProvider.md) | Theme implementation and customization |
-| [**Advanced Components**](./AdvancedComponents.md) | Documentation for complex UI components |
-| [**Glass Charts**](./GlassCharts.md) | Data visualization components |
-| [**Physics Animations**](./PhysicsAnimations.md) | Physics-based animation system | 
-| [**Specialized Surfaces**](./SpecializedSurfaces.md) | Advanced glass surface implementations |
+| [**Framework Guide**](./core/framework-guide.md) | Main documentation for the Galileo Glass UI framework |
+| [**Theme System**](./core/theme-system.md) | Theme implementation and customization |
+| [**Project Structure**](./core/project-structure.md) | Overall package architecture |
 
-## Implementation Guides
+## Components
 
-| Guide | Description |
-|-------|-------------|
-| [**Optimization Techniques**](./guides/OptimizationTechniques.md) | Performance optimization strategies |
-| [**Memoization Patterns**](./guides/MemoizationPatterns.md) | Effective component and style memoization |
+| Documentation | Description |
+|---------------|-------------|
+| [**Advanced Components**](./components/advanced-components.md) | Documentation for complex UI components |
+| [**Glass Charts**](./components/glass-charts.md) | Data visualization components |
+| [**Specialized Surfaces**](./components/specialized-surfaces.md) | Advanced glass surface implementations |
 
-## Project Structure & Development
+## Animations
 
-| Resource | Description |
-|-------|-------------|
-| [**Project Structure**](../STRUCTURE.md) | Overall package architecture |
-| [**Implementation Status**](../implementation_status.md) | Current development status |
-| [**Implementation Notes**](../implementation_notes.md) | Technical notes on migration and implementation |
+| Documentation | Description |
+|---------------|-------------|
+| [**Animation System**](./animations/animation-system.md) | Details of the animation framework |
+| [**Physics Animations**](./animations/physics-animations.md) | Physics-based animation system | 
+
+## Performance & Optimization
+
+| Documentation | Description |
+|---------------|-------------|
+| [**Bundle Optimization**](./performance/optimization/bundle-optimization.md) | Bundle size optimization techniques |
+| [**Import Optimization**](./performance/optimization/import-optimization.md) | Efficient import strategies |
+| [**Optimization Techniques**](./performance/optimization/optimization-techniques.md) | Performance optimization strategies |
+| [**Memoization Patterns**](./performance/optimization/memoization-patterns.md) | Effective component and style memoization |
+
+## Development
+
+| Documentation | Description |
+|---------------|-------------|
+| [**Coding Guidelines**](./development/coding-guidelines.md) | Code style and development standards |
+| [**Implementation Status**](./development/implementation-status.md) | Current development status |
+| [**Implementation Notes**](./development/implementation-notes.md) | Technical notes on migration and implementation |
 
 ## Component Library
 
@@ -42,7 +55,7 @@ The Galileo Glass UI library includes over 40 components across the following ca
 - **Utility Components**: Backdrop, Modal, Drawer, Tooltip, Icon, Theme components, Performance components
 - **Specialized Surfaces**: DimensionalGlass, HeatGlass, FrostedGlass, WidgetGlass, AtmosphericBackground, ParticleBackground
 
-For a complete component reference, see the [Framework Guide](./GalileoGlass.md#component-library).
+For a complete component reference, see the [Framework Guide](./core/framework-guide.md#component-library).
 
 ## Key Features
 
@@ -58,7 +71,7 @@ For a complete component reference, see the [Framework Guide](./GalileoGlass.md#
 
 ## Getting Started
 
-For a quick introduction to using the Galileo Glass UI library, refer to the [Framework Guide Getting Started](./GalileoGlass.md#getting-started) section.
+For a quick introduction to using the Galileo Glass UI library, refer to the [Framework Guide Getting Started](./core/framework-guide.md#getting-started) section.
 
 ## Implementation Requirements
 
@@ -68,8 +81,8 @@ To ensure proper functionality, be sure to follow these critical implementation 
 2. **Always pass themeContext** to glass mixins
 3. **Follow the recommended import patterns**
 
-For details on these requirements, refer to the [Framework Guide Implementation Requirements](./GalileoGlass.md#implementation-requirements) section.
+For details on these requirements, refer to the [Framework Guide Implementation Requirements](./core/framework-guide.md#implementation-requirements) section.
 
 ## Common Issues & Troubleshooting
 
-If you encounter issues while using the Galileo Glass UI library, refer to the [Framework Guide Troubleshooting](./GalileoGlass.md#troubleshooting) section for solutions to common problems.
+If you encounter issues while using the Galileo Glass UI library, refer to the [Framework Guide Troubleshooting](./core/framework-guide.md#troubleshooting) section for solutions to common problems.

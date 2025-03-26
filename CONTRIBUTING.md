@@ -128,7 +128,12 @@ export default MyComponent;
 ## Documentation
 
 1. Add comprehensive JSDoc comments to all components and functions
-2. Update relevant documentation in `/docs` directory
+2. Update relevant documentation in `/docs` directory according to our structure:
+   - Core framework docs in `/docs/core`
+   - Component docs in `/docs/components`
+   - Animation docs in `/docs/animations`
+   - Performance optimization in `/docs/performance/optimization`
+   - Development guidelines in `/docs/development`
 3. Add usage examples
 4. Document any known limitations or edge cases
 

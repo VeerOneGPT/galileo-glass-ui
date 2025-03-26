@@ -44,7 +44,16 @@ const basePlugins = [
     include: ['src/**/*', 'examples/**/*'],
     exclude: 'node_modules/**'
   }),
-  terser()
+  terser({
+    compress: {
+      passes: 2,
+      drop_console: true,
+      pure_getters: true
+    },
+    format: {
+      comments: false
+    }
+  })
 ];
 
 // Common external packages that shouldn't be bundled
@@ -55,7 +64,14 @@ const baseExternal = [
   'chart.js',
   'react-chartjs-2',
   '@mui/icons-material',
-  '@mui/material'
+  '@mui/material',
+  'color',
+  'csstype',
+  'framer-motion',
+  'polished',
+  'popmotion',
+  'react-spring',
+  'react-window'
 ];
 
 // Create config for each entry point
@@ -65,16 +81,23 @@ const createConfig = (input, output) => ({
     {
       file: output.cjs,
       format: 'cjs',
-      sourcemap: true
+      sourcemap: true,
+      exports: 'named'
     },
     {
       file: output.esm,
       format: 'esm',
-      sourcemap: true
+      sourcemap: true,
+      exports: 'named'
     }
   ],
   plugins: basePlugins,
-  external: baseExternal
+  external: baseExternal,
+  treeshake: {
+    moduleSideEffects: false,
+    propertyReadSideEffects: false,
+    tryCatchDeoptimization: false
+  }
 });
 
 // Define all entry points and their outputs
@@ -114,11 +137,41 @@ const entryPoints = [
       esm: 'dist/components.esm.js'
     }
   },
+  // Add component category builds for tree-shaking friendly imports
+  {
+    input: 'src/components/Button/index.ts',
+    output: {
+      cjs: 'dist/components/Button.js',
+      esm: 'dist/components/Button.esm.js'
+    }
+  },
+  {
+    input: 'src/components/Card/index.ts',
+    output: {
+      cjs: 'dist/components/Card.js',
+      esm: 'dist/components/Card.esm.js'
+    }
+  },
+  {
+    input: 'src/components/Charts/index.ts',
+    output: {
+      cjs: 'dist/components/Charts.js',
+      esm: 'dist/components/Charts.esm.js'
+    }
+  },
   {
     input: 'src/hooks/index.ts',
     output: {
       cjs: 'dist/hooks.js',
       esm: 'dist/hooks.esm.js'
+    }
+  },
+  // Slim bundle with only the most commonly used components
+  {
+    input: 'src/slim.ts',
+    output: {
+      cjs: 'dist/slim.js',
+      esm: 'dist/slim.esm.js'
     }
   },
   // Add examples build
@@ -136,6 +189,12 @@ const dtsConfigs = [
   {
     input: 'dist/dts/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'es' }],
+    plugins: [dts()],
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+  },
+  {
+    input: 'dist/dts/slim.d.ts',
+    output: [{ file: 'dist/slim.d.ts', format: 'es' }],
     plugins: [dts()],
     external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },
@@ -163,6 +222,24 @@ const dtsConfigs = [
   {
     input: 'dist/dts/components/index.d.ts',
     output: [{ file: 'dist/components.d.ts', format: 'es' }],
+    plugins: [dts()],
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+  },
+  {
+    input: 'dist/dts/components/Button/index.d.ts',
+    output: [{ file: 'dist/components/Button.d.ts', format: 'es' }],
+    plugins: [dts()],
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+  },
+  {
+    input: 'dist/dts/components/Card/index.d.ts',
+    output: [{ file: 'dist/components/Card.d.ts', format: 'es' }],
+    plugins: [dts()],
+    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+  },
+  {
+    input: 'dist/dts/components/Charts/index.d.ts',
+    output: [{ file: 'dist/components/Charts.d.ts', format: 'es' }],
     plugins: [dts()],
     external: [/\.css$/, 'styled-components', 'react', 'react-dom']
   },

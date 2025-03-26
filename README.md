@@ -1,7 +1,7 @@
 # Galileo Glass UI
 
 <div align="center">
-  <img width="200" height="200" src="./assets/galileo-glass-logo.svg" alt="Galileo Glass UI Logo">
+  <img width="200" height="200" src="./assets/galileo-glass-logo.svg?v=2" alt="Galileo Glass UI Logo">
   <p><em>Modern glass morphism UI components for React applications</em></p>
 
   <p>
@@ -16,13 +16,19 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 ## 🌟 Features
 
 - **Glass Morphism Styling**: Create beautiful glass-like UI elements with blur effects, transparency, and lighting
-- **Comprehensive Component Library**: Over 30 UI components with glass styling options
+- **Comprehensive Component Library**: Over 40 UI components with glass styling options
 - **Physics-Based Animations**: Natural animations using spring physics, particle systems, and magnetic effects
 - **Accessibility-First Design**: Includes reduced motion support, high contrast mode, and keyboard navigation
 - **Performance Optimized**: Adapts to device capabilities for smooth performance on all devices
+- **Bundle Optimization**: Multiple import options including granular component imports and a slim bundle
+- **Tree-Shaking Support**: Fully optimized for modern bundlers with extensive tree-shaking capabilities
 - **Extensive Customization**: Powerful styling mixins for creating your own custom glass effects
-- **TypeScript Support**: Fully typed API for better developer experience
-- **Standalone Implementation**: Built with styled-components for complete independence and flexibility
+- **Environmental Awareness**: Dynamic adaptation to light conditions and surrounding content
+- **Z-Space System**: Sophisticated depth management for creating meaningful layering
+- **Specialized Surfaces**: HeatGlass, FrostedGlass, DimensionalGlass and other advanced surface types
+- **Chart Components**: Glass-style data visualization components built on Chart.js
+- **Typed API**: Comprehensive TypeScript support with flexible type configurations
+- **Tested & Reliable**: Extensive test coverage for components, animations, and core utilities
 
 ## 🚀 Getting Started
 
@@ -84,6 +90,25 @@ function App() {
 export default App;
 ```
 
+### Optimized Imports
+
+Galileo Glass UI now supports multiple import patterns for optimal bundle size:
+
+```jsx
+// Option 1: Slim bundle with essential components only (smallest bundle size)
+import { Button, Card, Typography, ThemeProvider } from 'galileo-glass-ui/slim';
+
+// Option 2: Direct component imports (optimal tree-shaking)
+import { Button } from 'galileo-glass-ui/components/Button';
+import { Card } from 'galileo-glass-ui/components/Card';
+import { ThemeProvider } from 'galileo-glass-ui/theme';
+
+// Option 3: Domain-specific imports
+import { accessibleAnimation } from 'galileo-glass-ui/animations';
+import { glassSurface, glassGlow } from 'galileo-glass-ui/core';
+import { usePhysicsInteraction } from 'galileo-glass-ui/hooks';
+```
+
 <details>
 <summary><strong>Live Demo</strong></summary>
 
@@ -103,25 +128,25 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <th>🏗️ Development</th>
     </tr>
     <tr>
-      <td><a href="./docs/GalileoGlass.md">Framework Guide</a></td>
-      <td><a href="./docs/GalileoGlass.md#glass-surface-system">Glass Surfaces</a></td>
-      <td><a href="./docs/AnimationSystem.md">Animation System</a></td>
-      <td><a href="./docs/GlassCharts.md">Chart Components</a></td>
-      <td><a href="./STRUCTURE.md">Package Architecture</a></td>
+      <td><a href="./docs/core/framework-guide.md">Framework Guide</a></td>
+      <td><a href="./docs/core/framework-guide.md#glass-surface-system">Glass Surfaces</a></td>
+      <td><a href="./docs/animations/animation-system.md">Animation System</a></td>
+      <td><a href="./docs/components/glass-charts.md">Chart Components</a></td>
+      <td><a href="./docs/core/project-structure.md">Package Architecture</a></td>
     </tr>
     <tr>
-      <td><a href="./docs/ThemeProvider.md">Theme System</a></td>
-      <td><a href="./docs/GalileoGlass.md#z-space-layering">Z-Space Layering</a></td>
-      <td><a href="./docs/AnimationSystem.md#physics-animation-system-for-modern-glass-ui">Physics Animations</a></td>
-      <td><a href="./docs/SpecializedSurfaces.md">Specialized Surfaces</a></td>
-      <td><a href="./docs/guides/OptimizationTechniques.md">Optimization Techniques</a></td>
+      <td><a href="./docs/core/theme-system.md">Theme System</a></td>
+      <td><a href="./docs/core/framework-guide.md#z-space-layering">Z-Space Layering</a></td>
+      <td><a href="./docs/animations/animation-system.md#physics-animation-system-for-modern-glass-ui">Physics Animations</a></td>
+      <td><a href="./docs/components/specialized-surfaces.md">Specialized Surfaces</a></td>
+      <td><a href="./docs/performance/optimization/optimization-techniques.md">Optimization Techniques</a></td>
     </tr>
     <tr>
-      <td><a href="./docs/AdvancedComponents.md">Advanced Components</a></td>
-      <td><a href="./docs/GalileoGlass.md#common-patterns">Common Patterns</a></td>
-      <td><a href="./docs/AnimationSystem.md#advanced-animation-systems">Advanced Animations</a></td>
-      <td><a href="./docs/PhysicsAnimations.md">Physics System</a></td>
-      <td><a href="./docs/guides/MemoizationPatterns.md">Memoization Patterns</a></td>
+      <td><a href="./docs/components/advanced-components.md">Advanced Components</a></td>
+      <td><a href="./docs/core/framework-guide.md#common-patterns">Common Patterns</a></td>
+      <td><a href="./docs/animations/animation-system.md#advanced-animation-systems">Advanced Animations</a></td>
+      <td><a href="./docs/animations/physics-animations.md">Physics System</a></td>
+      <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
   </table>
 </div>
@@ -176,7 +201,7 @@ const GlassComponent = styled.div`
 > **Why?** The theme context provides color mode, variant, and other critical styling information
 </details>
 
-For a complete implementation guide, see the [Glass UI Framework Documentation](./docs/GalileoGlass.md).
+For a complete implementation guide, see the [Glass UI Framework Documentation](./docs/core/framework-guide.md).
 
 ## 📦 Component Library
 
@@ -462,6 +487,31 @@ function MagneticButton() {
   </table>
 </div>
 
+## ⚡ Performance Optimization
+
+Galileo Glass UI is designed for optimal performance in production environments:
+
+### Bundle Size Optimization
+
+We've implemented several strategies to minimize bundle size:
+
+- **External Dependencies**: All major dependencies are marked as external to avoid duplication
+- **Tree-Shaking**: Enhanced configuration for effective dead code elimination
+- **Component-Level Code Splitting**: Import only the components you need
+- **Slim Bundle**: A lightweight bundle with only essential components (~83% smaller than full bundle)
+- **Optimized Minification**: Advanced Terser configuration for maximum compression
+
+### Runtime Performance
+
+- **Adaptive Quality**: Automatically adjusts effect complexity based on device capabilities
+- **Style Caching**: Prevents unnecessary style recalculations
+- **Animation Optimization**: GPU-accelerated animations with fallbacks for lower-end devices
+- **Memoization**: Strategic use of React.memo and useMemo for expensive calculations
+- **Z-Space Management**: Optimized rendering of layered elements
+- **Optimized Glass Effects**: Simplified effects for large surfaces on low-end devices
+
+For detailed optimization guidelines, see our [performance documentation](./docs/performance/optimization/bundle-optimization.md).
+
 ## 🧪 Testing & Development
 
 <div align="center">
@@ -475,6 +525,8 @@ function MagneticButton() {
 | `npm run lint` | Run ESLint to check code style |
 | `npm run typecheck` | Verify TypeScript types |
 | `npm run typecheck:permissive` | Run type checking with less strict rules |
+| `npm run build` | Build the production bundle |
+| `npm run dev` | Start development mode |
 
 </div>
 
