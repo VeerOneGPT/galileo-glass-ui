@@ -62,9 +62,9 @@
   },
   "sideEffects": false,
   "scripts": {
-    "preinstall": "node --input-type=module -e \"import fs from 'fs'; import path from 'path'; try { console.log('\\n💡 Galileo Glass UI Installer\\n'); console.log('Cleaning up any conflicting dependencies before installation...'); const problematicDeps = ['chart.js', 'framesync', 'framer-motion', 'popmotion', 'react-chartjs-2', 'react-spring', 'react-window']; const nm = './node_modules'; if (fs.existsSync(nm)) { problematicDeps.forEach(pkg => { try { // Clean temp files const tempFiles = fs.readdirSync(nm).filter(f => f.startsWith('.' + pkg + '-')); tempFiles.forEach(file => { try { fs.rmSync(path.join(nm, file), { recursive: true, force: true }); console.log('✓ Removed: ' + path.join(nm, file)); } catch (e) {} }); // Clean main package directory const pkgDir = path.join(nm, pkg); if (fs.existsSync(pkgDir)) { fs.rmSync(pkgDir, { recursive: true, force: true }); console.log('✓ Removed: ' + pkgDir); } } catch (e) {} }); // Check for partial installs if (fs.existsSync(path.join(nm, 'galileo-glass-ui'))) { try { fs.rmSync(path.join(nm, 'galileo-glass-ui'), { recursive: true, force: true }); console.log('✓ Cleaned partial galileo-glass-ui installation'); } catch (e) {} } } if (!process.env.NODE_ENV) { console.log('\\n💡 TIP: For a smoother installation, try:\\n\\nNODE_ENV=production npm install\\n'); } } catch(e) {}\"",
-    "postinstall": "node --input-type=module -e \"import fs from 'fs'; import path from 'path'; try { const problematicDeps = ['chart.js', 'framesync', 'framer-motion', 'popmotion', 'react-chartjs-2', 'react-spring', 'react-window']; const nm = './node_modules'; if (fs.existsSync(nm)) { let foundIssues = false; problematicDeps.forEach(pkg => { try { const tempFiles = fs.readdirSync(nm).filter(f => f.startsWith('.' + pkg + '-')); tempFiles.forEach(file => { foundIssues = true; try { fs.rmSync(path.join(nm, file), { recursive: true, force: true }); console.log('✓ Cleaned post-install: ' + path.join(nm, file)); } catch (e) {} }); } catch (e) {} }); if (foundIssues) { console.log('\\n⚠️ Fixed some dependency conflicts. If you have issues, try:\\n\\nrm -rf node_modules && NODE_ENV=production npm install\\n'); } else { console.log('\\n✅ Galileo Glass UI installed successfully!\\n'); } } } catch(e) {}\"",
-    "preuninstall": "node --input-type=module -e \"console.log('\\n🧹 Cleaning up Galileo Glass UI...\\n');\"",
+    "preinstall": "echo '\\n💡 Galileo Glass UI - Installation in progress\\n'",
+    "postinstall": "echo '\\n✅ Galileo Glass UI installed successfully!\\n'",
+    "preuninstall": "echo '\\n🧹 Cleaning up Galileo Glass UI...\\n'",
     "build": "npm run typecheck:build && (npm run lint:build || true) && rollup -c",
     "build:fix": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\" && npm run build",
     "build:clean": "rm -rf dist && npm run build:fix",
@@ -130,6 +130,12 @@
     },
     "styled-components": {
       "optional": false
+    },
+    "chart.js": {
+      "optional": true
+    },
+    "react-chartjs-2": {
+      "optional": true
     }
   },
   "dependencies": {
