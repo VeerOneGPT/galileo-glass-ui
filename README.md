@@ -37,32 +37,51 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 <div align="center">
   <table>
     <tr>
+      <th>Pre-built (Recommended)</th>
+      <th>With Install Script</th>
       <th>npm</th>
-      <th>yarn</th>
-      <th>pnpm</th>
+      <th>yarn/pnpm</th>
     </tr>
     <tr>
       <td>
         
 ```bash
-npm install github:VeerOneGPT/galileo-glass-ui styled-components
+# Install pre-built version
+npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 ```
       </td>
       <td>
         
 ```bash
-yarn add github:VeerOneGPT/galileo-glass-ui styled-components
+# Clone the repo
+git clone https://github.com/VeerOneGPT/galileo-glass-ui.git
+cd galileo-glass-ui
+# Run the installation script
+./install.sh
 ```
       </td>
       <td>
         
 ```bash
-pnpm add github:VeerOneGPT/galileo-glass-ui styled-components
+# Use NODE_ENV to prevent build issues
+NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui styled-components
+```
+      </td>
+      <td>
+        
+```bash
+# For yarn
+NODE_ENV=production yarn add github:VeerOneGPT/galileo-glass-ui styled-components
+
+# For pnpm
+NODE_ENV=production pnpm add github:VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
     </tr>
   </table>
 </div>
+
+> **Important**: For detailed installation instructions, troubleshooting, and framework-specific guidance, see our [Installation Guide](./INSTALLATION.md).
 
 ### Basic Usage
 
@@ -180,6 +199,13 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/core/framework-guide.md#common-patterns">Common Patterns</a></td>
       <td><a href="./docs/animations/animation-system.md#advanced-animation-systems">Advanced Animations</a></td>
       <td><a href="./docs/animations/physics-animations.md">Physics System</a></td>
+      <td><a href="./docs/development/component-patterns.md">Component Patterns</a></td>
+    </tr>
+    <tr>
+      <td><a href="./INSTALLATION.md">Installation Guide</a></td>
+      <td><a href="./docs/components/TROUBLESHOOTING.md">Troubleshooting</a></td>
+      <td><a href="./docs/development/implementation-notes.md">Implementation Notes</a></td>
+      <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
   </table>

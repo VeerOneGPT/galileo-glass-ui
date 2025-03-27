@@ -436,7 +436,7 @@ const ChartsDemo: React.FC = () => {
               y={50}
               position="bottom"
               glow={true}
-              accentColor="accent"
+              accentColor="info"
               blurIntensity="strong"
             >
               <GlassTooltipContent

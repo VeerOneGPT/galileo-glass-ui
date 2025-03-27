@@ -21,22 +21,31 @@ const basePlugins = [
   peerDepsExternal(),
   resolve({ 
     extensions,
-    // Add aliases for resolving galileo-glass-ui imports in examples
+    preferBuiltins: false,
+    // Improved aliases for resolving galileo-glass-ui imports in examples and internal imports
     alias: {
       'galileo-glass-ui': path.resolve(__dirname, 'src'),
       'galileo-glass-ui/core': path.resolve(__dirname, 'src/core'),
       'galileo-glass-ui/animations': path.resolve(__dirname, 'src/animations'),
       'galileo-glass-ui/theme': path.resolve(__dirname, 'src/theme'),
       'galileo-glass-ui/components': path.resolve(__dirname, 'src/components'),
-      'galileo-glass-ui/hooks': path.resolve(__dirname, 'src/hooks')
+      'galileo-glass-ui/hooks': path.resolve(__dirname, 'src/hooks'),
+      'galileo-glass-ui/slim': path.resolve(__dirname, 'src/slim'),
+      'galileo-glass-ui/utils': path.resolve(__dirname, 'src/utils'),
+      // Handle internal path issues
+      '@styled': path.resolve(__dirname, 'src/animations/styled')
     }
   }),
-  commonjs(),
+  commonjs({
+    include: /node_modules/,
+    requireReturnsDefault: 'auto'
+  }),
   typescript({ 
     tsconfig: './tsconfig.json',
     declaration: true,
     declarationDir: './dist/dts',
-    rootDir: './src' 
+    rootDir: './src',
+    sourceMap: true
   }),
   babel({
     extensions,
@@ -184,83 +193,107 @@ const entryPoints = [
   }
 ];
 
-// Create TypeScript definition configs
+// Common DTS plugin config with improved path resolution
+const createDtsPlugin = () => dts({
+  respectExternal: true, 
+  compilerOptions: {
+    baseUrl: ".",
+    paths: {
+      "styled-components": ["node_modules/styled-components"],
+      "galileo-glass-ui": ["src"],
+      "galileo-glass-ui/*": ["src/*"]
+    }
+  }
+});
+
+// Common external dependencies for .d.ts files
+const dtsExternal = [
+  /\.css$/,
+  'styled-components',
+  'react',
+  'react-dom',
+  './styled',
+  '../styled',
+  '../../styled',
+  'chart.js',
+  'react-chartjs-2',
+  'framer-motion', 
+  'popmotion',
+  'react-spring',
+  'react-window',
+  'color',
+  'csstype',
+  'polished'
+];
+
+// Create TypeScript definition configs with improved path handling
 const dtsConfigs = [
   {
     input: 'dist/dts/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/slim.d.ts',
     output: [{ file: 'dist/slim.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/animations/index.d.ts',
     output: [{ file: 'dist/animations.d.ts', format: 'es' }],
-    plugins: [dts({
-      // Resolvers for common issues
-      respectExternal: true,
-      compilerOptions: {
-        baseUrl: ".",
-        paths: {
-          "styled-components": ["node_modules/styled-components"]
-        }
-      }
-    })],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom', './styled']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/core/index.d.ts',
     output: [{ file: 'dist/core.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/components/index.d.ts',
     output: [{ file: 'dist/components.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/components/Button/index.d.ts',
     output: [{ file: 'dist/components/Button.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/components/Card/index.d.ts',
     output: [{ file: 'dist/components/Card.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/components/Charts/index.d.ts',
     output: [{ file: 'dist/components/Charts.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/hooks/index.d.ts',
     output: [{ file: 'dist/hooks.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   {
     input: 'dist/dts/theme/index.d.ts',
     output: [{ file: 'dist/theme.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   },
   // Examples types (optional)
   {
     input: 'dist/dts/examples/index.d.ts',
     output: [{ file: 'dist/examples.d.ts', format: 'es' }],
-    plugins: [dts()],
-    external: [/\.css$/, 'styled-components', 'react', 'react-dom']
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
   }
 ];
 

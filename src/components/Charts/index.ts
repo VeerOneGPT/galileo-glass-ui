@@ -14,7 +14,8 @@ export { SafeChartRenderer } from './SafeChartRenderer';
 // Export enhanced Glass UI chart components
 export { default as GlassChart } from './GlassChart';
 export { default as SimpleChart } from './SimpleChart';
-export { default as GlassTooltip, GlassTooltipContent } from './GlassTooltip';
+export { GlassTooltipContent } from './GlassTooltip';
+export { GlassTooltip } from './GlassTooltip';
 export { default as EnhancedGlassTabs } from './EnhancedGlassTabs';
 
 // Export chart types

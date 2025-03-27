@@ -1,211 +1,186 @@
-# Troubleshooting Glass Components
+# Troubleshooting Guide
 
-This guide addresses common issues when working with Galileo Glass UI components.
+This guide helps you troubleshoot common issues when working with Galileo Glass UI.
 
-## Common Issues and Solutions
+## Installation Issues
 
-### Glass Effects Not Showing Up
+### Installation Fails with Build Errors
 
-**Issue**: Glass effects (blur, transparency, glow) aren't appearing on components.
+**Problem**: The package build process fails during installation.
 
-**Possible Causes and Solutions**:
+**Solution**:
+- Use the production environment flag to skip build:
+  ```bash
+  NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui
+  ```
+- Alternatively, use our installation script:
+  ```bash
+  ./install.sh
+  ```
 
-1. **CSS Property Naming**
-   - **Problem**: Using camelCase instead of kebab-case in styled-components.
-   - **Solution**: Always use kebab-case for CSS properties in styled components:
-     ```tsx
-     // WRONG
-     const GlassComponent = styled.div`
-       backgroundColor: rgba(255, 255, 255, 0.2);
-       backdropFilter: blur(10px);
-     `;
-     
-     // CORRECT
-     const GlassComponent = styled.div`
-       background-color: rgba(255, 255, 255, 0.2);
-       backdrop-filter: blur(10px);
-     `;
-     ```
+### ENOTEMPTY Errors with chart.js
 
-2. **Missing ThemeContext**
-   - **Problem**: Glass mixins require theme context to work properly.
-   - **Solution**: Always pass themeContext to glass mixins:
-     ```tsx
-     ${props => glassSurface({
-       elevation: 2,
-       themeContext: createThemeContext(props.theme)
-     })}
-     ```
+**Problem**: You see errors related to chart.js during installation:
+```
+npm error code ENOTEMPTY
+npm error syscall rename
+npm error path /Users/username/project/node_modules/chart.js
+npm error dest /Users/username/project/node_modules/.chart.js-XXXX
+```
 
-3. **Browser Support**
-   - **Problem**: Browser doesn't support backdrop-filter.
-   - **Solution**: Enable fallback styles and check browser compatibility.
-     ```tsx
-     import { browserSupportsBackdropFilter } from '../../utils/browserCompatibility';
-     
-     const GlassComponent = styled.div`
-       ${props => browserSupportsBackdropFilter() ? `
-         backdrop-filter: blur(10px);
-       ` : `
-         background-color: rgba(255, 255, 255, 0.85);
-       `}
-     `;
-     ```
+**Solution**:
+1. Clean the problematic folders:
+   ```bash
+   rm -rf node_modules/chart.js node_modules/.chart.js-*
+   ```
+2. Clear npm cache:
+   ```bash
+   npm cache clean --force
+   ```
+3. Try installation with production flag:
+   ```bash
+   NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui
+   ```
 
-### React Hook Rules Violations
+### Dependency Conflicts in Next.js
 
-**Issue**: ESLint warnings about React Hook rules violations.
+**Problem**: Next.js projects show dependency conflicts with styled-components or other libraries.
 
-**Solutions**:
+**Solution**:
+1. Install with the legacy peer deps flag:
+   ```bash
+   NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui --legacy-peer-deps
+   ```
+2. Configure Next.js for styled-components:
+   ```js
+   // next.config.js
+   module.exports = {
+     compiler: {
+       styledComponents: true,
+     },
+   }
+   ```
 
-1. **Missing Dependencies**
-   - Use the `fix-hooks.js` script to identify and fix missing dependencies:
-     ```
-     node scripts/fix-hooks.js --fix
-     ```
-   - Ensure all variables used in the hook body are included in the dependency array.
-
-2. **Hook in Callback Functions**
-   - Don't call hooks inside callbacks, conditionals, or loops.
-   - Move the hook to the top level of the component.
-
-3. **Hook in Component Map Function**
-   - **Problem**: Creating hooks in a map function.
-   - **Solution**: Create a separate component for each mapped item.
+## Build Issues
 
 ### TypeScript Errors
 
-**Issue**: TypeScript compilation errors with Glass components.
+**Problem**: You encounter TypeScript errors when trying to build the library.
 
-**Solutions**:
+**Solution**:
+- Use our more permissive TypeScript configuration:
+  ```bash
+  npm run typecheck:permissive
+  ```
+- For building, use:
+  ```bash
+  npm run build:fix
+  ```
 
-1. **Theme Types**
-   - Use proper typing for theme access:
-     ```tsx
-     import { DefaultTheme } from 'styled-components';
-     
-     const Component = styled.div<{ theme: DefaultTheme }>`
-       color: ${props => props.theme.colors.primary};
-     `;
-     ```
+### Rollup Errors with Path Resolution
 
-2. **Prop Naming Conflicts**
-   - Use transient props with `$` prefix to avoid HTML attribute conflicts:
-     ```tsx
-     const Button = styled.button<{ $glass: boolean }>`
-       /* glass styling */
-     `;
-     ```
+**Problem**: Rollup shows errors about not being able to resolve imports.
 
-3. **CSS Type Issues**
-   - Use `css` helper from styled-components for type safety:
-     ```tsx
-     import { css } from 'styled-components';
-     
-     const glassStyles = css`
-       backdrop-filter: blur(10px);
-     `;
-     ```
+**Solution**:
+- Check the import paths in your components
+- Make sure you're using the correct import paths:
+  ```tsx
+  // Use this:
+  import { Button } from 'galileo-glass-ui/components/Button';
+  
+  // Not this:
+  import { Button } from '../components/Button';
+  ```
 
-### Performance Issues
+## Component Issues
 
-**Issue**: Glass effects causing performance issues.
+### Glass Effects Not Applying
 
-**Solutions**:
+**Problem**: The glass styling isn't appearing on components.
 
-1. **Use Performance Optimization**
-   - Wrap glass components with OptimizedGlassContainer:
-     ```tsx
-     <OptimizedGlassContainer>
-       <GlassComponent />
-     </OptimizedGlassContainer>
-     ```
+**Solution**:
+1. Make sure you're using the ThemeProvider:
+   ```tsx
+   import { ThemeProvider } from 'galileo-glass-ui';
+   
+   function App() {
+     return (
+       <ThemeProvider>
+         {/* Your components */}
+       </ThemeProvider>
+     );
+   }
+   ```
 
-2. **Reduce Blur Values**
-   - Lower blur values for better performance:
-     ```tsx
-     ${glassSurface({
-       blurStrength: 'light',  // Use light instead of standard or strong
-       // ...
-     })}
-     ```
+2. Check that you're using Glass components or the `glass` prop:
+   ```tsx
+   // Either use Glass variants:
+   <GlassButton>Click me</GlassButton>
+   
+   // Or use the glass prop:
+   <Button glass>Click me</Button>
+   ```
 
-3. **Disable Effects on Low-End Devices**
-   - Use the performance detection hook:
-     ```tsx
-     const { isPoorPerformance } = useGlassPerformance();
-     
-     ${props => glassSurface({
-       blurStrength: isPoorPerformance ? 'minimal' : 'standard',
-       // ...
-     })}
-     ```
+### CSS Props Not Working
 
-4. **Throttle Animations**
-   - Use the throttledAnimation helper for hover effects:
-     ```tsx
-     import { throttledAnimation } from '../../animations/performance';
-     
-     &:hover {
-       ${props => throttledAnimation(fadeIn, 0.3)}
-     }
-     ```
+**Problem**: Styled-components props with camelCase aren't being applied.
 
-## ESLint Rules Violations
+**Solution**:
+- Always use kebab-case for CSS properties in styled-components template literals:
+  ```tsx
+  // Correct:
+  const Component = styled.div`
+    background-color: rgba(255, 255, 255, 0.1);
+  `;
+  
+  // Incorrect:
+  const Component = styled.div`
+    backgroundColor: rgba(255, 255, 255, 0.1);
+  `;
+  ```
 
-**Issue**: Many ESLint warnings about unused variables or incorrect imports.
+### Animations Not Working
 
-**Solutions**:
+**Problem**: The animations aren't displaying properly.
 
-1. **Unused Variables**
-   - Prefix unused variables with underscore: `_unusedVar`
-   - Use the automated script: `node scripts/fix-unused-vars.js`
+**Solution**:
+1. Check browser compatibility - make sure you're using a supported browser
+2. Verify the ThemeProvider is properly set up
+3. For physics animations, ensure the dependencies are installed:
+   ```bash
+   npm install framer-motion popmotion
+   ```
 
-2. **Import/Export Issues**
-   - Use named exports consistently
-   - Fix circular dependencies by refactoring common code to separate utility files
+## Performance Issues
 
-## Z-Index and Layering Issues
+### Slow Rendering Performance
 
-**Issue**: Components appear behind or in front of the wrong elements.
+**Problem**: The glass effects cause slowdowns, especially on mobile devices.
 
-**Solution**: Use the Z-Space system:
+**Solution**:
+1. Use the OptimizedGlassContainer:
+   ```tsx
+   import { OptimizedGlassContainer } from 'galileo-glass-ui/components/Performance';
+   
+   <OptimizedGlassContainer>
+     {/* Glass components */}
+   </OptimizedGlassContainer>
+   ```
 
-```tsx
-import { zSpaceLayer } from '../../core/mixins/depth/zSpaceLayer';
+2. Reduce the number of glass effects on screen at once
+3. Use the performance monitor to identify bottlenecks:
+   ```tsx
+   import { PerformanceMonitor } from 'galileo-glass-ui/components/Performance';
+   
+   <PerformanceMonitor>
+     {/* Your app */}
+   </PerformanceMonitor>
+   ```
 
-const Overlay = styled.div`
-  ${props => zSpaceLayer({
-    layer: 'OVERLAY',
-    themeContext: createThemeContext(props.theme)
-  })}
-`;
-```
+## Still Having Issues?
 
-## Animation Issues
+If you're still experiencing problems after trying these solutions:
 
-**Issue**: Animations not respecting reduced motion preferences.
-
-**Solution**: Use the accessibleAnimation helper:
-
-```tsx
-import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { fadeIn } from '../../animations/keyframes';
-
-const AnimatedComponent = styled.div`
-  ${props => accessibleAnimation({
-    animation: fadeIn,
-    duration: 0.3,
-    easing: 'ease-out'
-  })}
-`;
-```
-
-## How to Get Further Help
-
-If you encounter issues not covered in this guide:
-
-1. Run the verification script for detailed errors: `./scripts/verify.sh`
-2. Check the detailed documentation in `frontend/GalileoGlass.md`
-3. Use the combined auto-fix tool: `./scripts/auto-fix-all.sh`
-4. Open an issue on GitHub with the error details and reproduction steps 
+1. Check the [GitHub issues](https://github.com/VeerOneGPT/galileo-glass-ui/issues) to see if your problem has been reported
+2. Create a new issue with detailed reproduction steps
+3. Try the minimal reproduction in [CodeSandbox](https://codesandbox.io) to isolate the problem

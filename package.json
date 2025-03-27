@@ -7,7 +7,9 @@
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "install.sh",
+    "INSTALLATION.md"
   ],
   "exports": {
     ".": {
@@ -60,10 +62,13 @@
   },
   "sideEffects": false,
   "scripts": {
-    "preinstall": "node -e \"try { require('fs').rmdirSync('./node_modules/.chart.js-*', { recursive: true }); require('fs').rmdirSync('./node_modules/.framesync-*', { recursive: true }); } catch(e) {}\"",
+    "preinstall": "node -e \"try { console.log('\\n💡 Galileo Glass UI Installer\\n'); console.log('Cleaning up any conflicting dependencies before installation...'); const fs = require('fs'); const path = require('path'); const problematicDeps = ['chart.js', 'framesync', 'framer-motion', 'popmotion', 'react-chartjs-2', 'react-spring', 'react-window']; const nm = './node_modules'; if (fs.existsSync(nm)) { problematicDeps.forEach(pkg => { try { // Clean temp files const tempFiles = fs.readdirSync(nm).filter(f => f.startsWith('.' + pkg + '-')); tempFiles.forEach(file => { try { fs.rmdirSync(path.join(nm, file), { recursive: true }); console.log('✓ Removed: ' + path.join(nm, file)); } catch (e) {} }); // Clean main package directory const pkgDir = path.join(nm, pkg); if (fs.existsSync(pkgDir)) { fs.rmdirSync(pkgDir, { recursive: true }); console.log('✓ Removed: ' + pkgDir); } } catch (e) {} }); // Check for partial installs if (fs.existsSync(path.join(nm, 'galileo-glass-ui'))) { try { fs.rmdirSync(path.join(nm, 'galileo-glass-ui'), { recursive: true }); console.log('✓ Cleaned partial galileo-glass-ui installation'); } catch (e) {} } } if (!process.env.NODE_ENV) { console.log('\\n💡 TIP: For a smoother installation, try:\\n\\nNODE_ENV=production npm install\\n'); } } catch(e) {}\"",
+    "postinstall": "node -e \"try { const fs = require('fs'); const path = require('path'); const problematicDeps = ['chart.js', 'framesync', 'framer-motion', 'popmotion', 'react-chartjs-2', 'react-spring', 'react-window']; const nm = './node_modules'; if (fs.existsSync(nm)) { let foundIssues = false; problematicDeps.forEach(pkg => { try { const tempFiles = fs.readdirSync(nm).filter(f => f.startsWith('.' + pkg + '-')); tempFiles.forEach(file => { foundIssues = true; try { fs.rmdirSync(path.join(nm, file), { recursive: true }); console.log('✓ Cleaned post-install: ' + path.join(nm, file)); } catch (e) {} }); } catch (e) {} }); if (foundIssues) { console.log('\\n⚠️ Fixed some dependency conflicts. If you have issues, try:\\n\\nrm -rf node_modules && NODE_ENV=production npm install\\n'); } else { console.log('\\n✅ Galileo Glass UI installed successfully!\\n'); } } } catch(e) {}\"",
+    "preuninstall": "node -e \"console.log('\\n🧹 Cleaning up Galileo Glass UI...\\n');\"",
     "build": "npm run typecheck:build && (npm run lint:build || true) && rollup -c",
     "build:fix": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\" && npm run build",
     "build:clean": "rm -rf dist && npm run build:fix",
+    "build:prebuild": "node prebuild.js",
     "prepublishOnly": "npm run build:clean",
     "dev": "rollup -c -w",
     "test": "jest",
@@ -80,7 +85,7 @@
     "typecheck:ultra": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
     "typecheck:examples": "tsc --noEmit --skipLibCheck --project ./.ts-examples.json",
     "typecheck:build": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
-    "prepare": "npm run build && husky install",
+    "prepare": "node -e \"if (process.env.NODE_ENV !== 'production') { console.log('\\n⚙️ Development environment detected - running build...'); require('child_process').execSync('npm run build && husky install', {stdio: 'inherit'}); } else { console.log('\\n🚀 Production environment detected - skipping build...'); }\"",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook",
     "verify": "./scripts/verify.sh",
@@ -115,12 +120,25 @@
     "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0",
     "styled-components": "^5.3.3 || ^6.0.0"
   },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": false
+    },
+    "react-dom": {
+      "optional": false
+    },
+    "styled-components": {
+      "optional": false
+    }
+  },
   "dependencies": {
-    "chart.js": "^4.3.0",
     "color": "^4.2.3",
     "csstype": "^3.1.2",
+    "polished": "^4.2.2"
+  },
+  "optionalDependencies": {
+    "chart.js": "^4.3.0",
     "framer-motion": "^10.12.16",
-    "polished": "^4.2.2",
     "popmotion": "^11.0.5",
     "react-chartjs-2": "^5.2.0",
     "react-spring": "^9.6.1",

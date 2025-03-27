@@ -12,6 +12,7 @@ const GlassCardExample: React.FC = () => {
       {/* Standard Glass Card */}
       <GlassCard 
         title="Standard Glass Card" 
+        variant="standard"
         elevation={1}
       >
         <p>This is a standard glass card with medium blur and opacity.</p>
@@ -22,7 +23,7 @@ const GlassCardExample: React.FC = () => {
       <GlassCard 
         title="Frosted Glass Card" 
         variant="frosted"
-        blurStrength="high"
+        blurStrength="strong"
         backgroundOpacity="light"
       >
         <p>This card uses the frosted glass variant with high blur.</p>

@@ -14,7 +14,7 @@ import {
   AnimationComplexity,
   getMotionSensitivity,
 } from '../accessibility/MotionSensitivity';
-import type { AnimationPreset } from '../styled';
+import type { AnimationPreset } from '../core/types';
 
 /**
  * Animation event types
