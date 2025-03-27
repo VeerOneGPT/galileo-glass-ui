@@ -81,7 +81,27 @@ NODE_ENV=production pnpm add github:VeerOneGPT/galileo-glass-ui styled-component
   </table>
 </div>
 
-> **Important**: For detailed installation instructions, troubleshooting, and framework-specific guidance, see our [Installation Guide](./INSTALLATION.md).
+#### Optional Feature Dependencies
+
+Galileo Glass UI uses a modular approach where specialized features only require their dependencies when you use them:
+
+```bash
+# Only if using chart components (BarChart, LineChart, etc.)
+npm install chart.js react-chartjs-2
+
+# Only if using physics animations (spring, magnetic effects)
+npm install react-spring
+
+# Only if using advanced animations 
+npm install framer-motion popmotion
+
+# Only if using virtualized lists
+npm install react-window
+```
+
+This keeps your bundle size small by only including what you need!
+
+> **Important**: For detailed installation instructions, see our [Installation Guide](./INSTALLATION.md) and [Pre-built Guide](./PREBUILD.md).
 
 ### Basic Usage
 

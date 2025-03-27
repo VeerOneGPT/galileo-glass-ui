@@ -56,13 +56,37 @@ pnpm add github:VeerOneGPT/galileo-glass-ui#prebuild
 
 This version has been pre-compiled and is the most reliable for production use.
 
-## Peer Dependencies
+## Dependencies
 
-Galileo Glass UI requires the following peer dependencies:
+### Required Dependencies
+
+Galileo Glass UI requires the following peer dependencies for basic functionality:
 
 ```bash
 npm install react react-dom styled-components
 ```
+
+### Optional Feature Dependencies
+
+We use a modular approach where specialized features only require dependencies when you actually use them:
+
+```bash
+# Only if using chart components (BarChart, LineChart, PieChart, etc.)
+npm install chart.js react-chartjs-2
+
+# Only if using physics animations (spring animations, magnetic effects, etc.)
+npm install react-spring
+
+# Only if using advanced animations and motion effects
+npm install framer-motion popmotion
+
+# Only if using virtualized lists for large datasets
+npm install react-window
+```
+
+This keeps your bundle size smaller by only including what you need!
+
+For more detailed information on the optional features, see [Pre-built Guide](./PREBUILD.md).
 
 ## Troubleshooting
 

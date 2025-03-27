@@ -46,12 +46,26 @@ If you want to use the chart components like BarChart, LineChart, or PieChart:
 npm install chart.js react-chartjs-2
 ```
 
+Example usage:
+```jsx
+import { BarChart, LineChart, PieChart } from 'galileo-glass-ui/components/Charts';
+// Or directly:
+import { BarChart } from 'galileo-glass-ui';
+```
+
 ### Physics Animations
 
 For spring animations, magnetic effects, and particle systems:
 
 ```bash
 npm install react-spring
+```
+
+Example usage:
+```jsx
+import { springAnimation, magneticEffect } from 'galileo-glass-ui/animations/physics';
+// Or via hooks:
+import { usePhysicsInteraction } from 'galileo-glass-ui/hooks';
 ```
 
 ### Advanced Animations
@@ -62,6 +76,13 @@ For complex motion effects and transitions:
 npm install framer-motion popmotion
 ```
 
+Example usage:
+```jsx
+import { advancedPhysicsAnimations } from 'galileo-glass-ui/animations';
+// Or specialized animations:
+import { Orchestrator } from 'galileo-glass-ui/animations/orchestration';
+```
+
 ### Virtualized Lists
 
 For efficiently rendering large lists:
@@ -70,7 +91,12 @@ For efficiently rendering large lists:
 npm install react-window
 ```
 
-This modular approach keeps your bundle size smaller by only including the dependencies you actually need.
+Example usage:
+```jsx
+import { OptimizedList } from 'galileo-glass-ui/components/Performance';
+```
+
+This modular approach keeps your bundle size smaller by only including the dependencies you actually need. If you try to use a component that requires an optional dependency without installing it first, you'll receive a helpful error message explaining which package to install.
 
 ## Verifying Installation
 
