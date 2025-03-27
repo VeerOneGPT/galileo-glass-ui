@@ -121,28 +121,52 @@ const options = [
 
 ### DatePicker
 
-The DatePicker component provides an intuitive interface for selecting dates and date ranges, with multiple views and comprehensive customization options.
+The DatePicker component provides an intuitive interface for selecting dates and date ranges, with multiple views and comprehensive customization options. The component is now fully icon-library agnostic, allowing you to use any icon library of your choice.
 
 ```tsx
-import { DatePicker } from 'galileo-glass-ui';
+import { 
+  DatePicker, 
+  GlassDatePicker, 
+  GlassLocalizationProvider, 
+  createDateFnsAdapter 
+} from 'galileo-glass-ui';
 
-<DatePicker
-  label="Select Date"
-  value={selectedDate}
-  onChange={handleDateChange}
-  minDate={new Date('2023-01-01')}
-  maxDate={new Date('2025-12-31')}
-  views={['year', 'month', 'day']}
-  format="MM/dd/yyyy"
-  disablePast={true}
-  renderDay={(day, selected, dayProps) => (
-    <div {...dayProps} style={{ 
-      ...(selected ? { background: 'var(--color-primary)' } : {}) 
-    }}>
-      {day.getDate()}
-    </div>
-  )}
-/>
+// Using MUI icons (default)
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import TodayIcon from '@mui/icons-material/Today';
+import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
+
+// Or using another icon library like react-icons
+import { FiCalendar, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+
+// Set up localization
+<GlassLocalizationProvider adapter={createDateFnsAdapter()}>
+  {/* Default with MUI icons */}
+  <GlassDatePicker
+    label="Select Date"
+    value={selectedDate}
+    onChange={handleDateChange}
+    minDate={new Date('2023-01-01')}
+    maxDate={new Date('2025-12-31')}
+    format="MM/dd/yyyy"
+    disablePast={true}
+  />
+  
+  {/* With custom icons from react-icons */}
+  <GlassDatePicker
+    label="Custom Icons"
+    value={selectedDate}
+    onChange={handleDateChange}
+    format="MM/dd/yyyy"
+    icons={{
+      calendar: FiCalendar,
+      today: FiClock,
+      leftArrow: FiChevronLeft,
+      rightArrow: FiChevronRight
+    }}
+  />
+</GlassLocalizationProvider>
 ```
 
 #### Key Features
@@ -151,8 +175,10 @@ import { DatePicker } from 'galileo-glass-ui';
 - **Range Selection**: Support for selecting date ranges
 - **Custom Formatting**: Flexible date display formats
 - **Date Constraints**: Min/max dates and disabled date ranges
-- **Internationalization**: Support for different locales and calendars
+- **Internationalization**: Support for different locales and calendars via GlassLocalizationProvider
 - **Keyboard Navigation**: Full keyboard accessibility
+- **Icon Library Agnostic**: Supports any icon library through the icons prop
+- **Custom Rendering**: Flexible date rendering
 
 #### Glass Specific Features
 
@@ -160,6 +186,31 @@ import { DatePicker } from 'galileo-glass-ui';
 - Subtle animations for view transitions with reduced motion support
 - Interactive glass effects for hover and selection states
 - Theme-aware rendering with proper light/dark mode adaptation
+
+#### GlassLocalizationProvider
+
+The GlassLocalizationProvider component provides date/time localization for Glass components. It supports:
+
+```tsx
+import { GlassLocalizationProvider, createDateFnsAdapter } from 'galileo-glass-ui';
+
+<GlassLocalizationProvider
+  adapter={createDateFnsAdapter()} // Date-fns adapter (default)
+  locale="en-US"                   // Locale for formatting
+  firstDayOfWeek={0}               // 0 = Sunday, 1 = Monday, etc.
+  dateFormat="MM/dd/yyyy"          // Default date format
+  weekdayFormat="short"            // Format for weekday names
+  monthFormat="long"               // Format for month names
+>
+  {children}
+</GlassLocalizationProvider>
+```
+
+- **Adapter System**: Flexible adapter pattern for different date libraries
+- **Locale Support**: International date/time formatting
+- **Format Customization**: Configurable date formats
+- **Weekday Settings**: Configurable first day of week
+- **Context Provider**: Consistent date handling across components
 
 ---
 

@@ -92,6 +92,117 @@ import { GlassCard } from '../Glass';
 | `maxWidth` | string | undefined | Maximum width (CSS value) |
 | `onClick` | function | undefined | Click handler (also sets interactive=true) |
 
+### GlassDatePicker
+
+A date picker component with glass morphism styling that supports multiple icon libraries. Extends all GlassSurface props.
+
+```tsx
+import { GlassDatePicker, GlassLocalizationProvider, createDateFnsAdapter } from '../Glass';
+import { FiCalendar, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+
+<GlassLocalizationProvider adapter={createDateFnsAdapter()}>
+  <GlassDatePicker 
+    label="Select Date"
+    value={selectedDate}
+    onChange={setSelectedDate}
+    format="MM/dd/yyyy"
+    icons={{
+      calendar: FiCalendar,
+      today: FiClock,
+      leftArrow: FiChevronLeft,
+      rightArrow: FiChevronRight
+    }}
+    minDate={new Date('2023-01-01')}
+    maxDate={new Date('2025-12-31')}
+    disablePast={true}
+    elevation={2}
+  />
+</GlassLocalizationProvider>
+```
+
+#### Additional Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | string | undefined | Label text for the date picker |
+| `value` | Date \| null | null | Selected date value |
+| `onChange` | (date: Date \| null) => void | required | Function called when date changes |
+| `placeholder` | string | 'Select date' | Placeholder text when no date is selected |
+| `error` | boolean \| string | false | Error state or error message |
+| `helperText` | string | undefined | Helper text to display below input |
+| `disabled` | boolean | false | Make the date picker disabled |
+| `size` | 'small' \| 'medium' \| 'large' | 'medium' | Size variant of the date picker |
+| `fullWidth` | boolean | false | Make the date picker full width |
+| `animate` | boolean | false | Add a subtle animation when mounted |
+| `format` | string | 'MM/dd/yyyy' | Date format used for display and input |
+| `minDate` | Date | undefined | Optional minimum selectable date |
+| `maxDate` | Date | undefined | Optional maximum selectable date |
+| `disablePast` | boolean | false | If true, dates before today cannot be selected |
+| `disableFuture` | boolean | false | If true, dates after today cannot be selected |
+| `disableDates` | Date[] \| ((date: Date) => boolean) | undefined | Custom set of dates to disable |
+| `allowInput` | boolean | false | Enable input mode where user can type date |
+| `clearable` | boolean | true | If true, shows a clear button |
+| `icons` | { calendar?: ElementType; today?: ElementType; leftArrow?: ElementType; rightArrow?: ElementType; clear?: ElementType; } | MUI Icons | Icon component customization |
+| `portal` | boolean | false | Makes popup portal to body instead of in component tree |
+| `initialView` | 'day' \| 'month' \| 'year' | 'day' | Initial calendar view |
+
+### GlassLocalizationProvider
+
+A provider component for date and time localization in Glass components, using an adapter pattern for flexibility.
+
+```tsx
+import { GlassLocalizationProvider, createDateFnsAdapter } from '../Glass';
+
+<GlassLocalizationProvider
+  adapter={createDateFnsAdapter()}
+  locale="en-US"
+  firstDayOfWeek={1} // Monday
+  dateFormat="MM/dd/yyyy"
+>
+  {children}
+</GlassLocalizationProvider>
+```
+
+#### Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `adapter` | DateAdapter | required | The date adapter to use |
+| `locale` | string | 'en-US' | The locale to use for date formatting |
+| `firstDayOfWeek` | number | 0 | First day of week (0 = Sunday, 1 = Monday, etc.) |
+| `dateFormat` | string | 'MM/dd/yyyy' | Default date format to use |
+| `weekdayFormat` | 'narrow' \| 'short' \| 'long' | 'short' | Format for weekday names |
+| `monthFormat` | 'narrow' \| 'short' \| 'long' | 'long' | Format for month names |
+| `children` | ReactNode | required | The children components |
+
+#### DateAdapter Interface
+
+The `DateAdapter` interface defines methods for date operations:
+
+```tsx
+interface DateAdapter {
+  locale: string;
+  format: (date: Date | null, formatString: string) => string;
+  parse: (value: string, formatString: string) => Date | null;
+  isValid: (date: any) => boolean;
+  addDays: (date: Date, amount: number) => Date;
+  isToday: (date: Date) => boolean;
+  isSameDay: (dateA: Date, dateB: Date) => boolean;
+  isSameMonth: (dateA: Date, dateB: Date) => boolean;
+  getDaysInMonth: (year: number, month: number) => number;
+  getMonthData: (year: number, month: number, firstDayOfWeek: number) => Date[];
+  getWeekdays: (format?: 'narrow' | 'short' | 'long') => string[];
+  getMonthNames: (format?: 'narrow' | 'short' | 'long') => string[];
+}
+```
+
+#### Helper Functions
+
+| Function | Description |
+|----------|-------------|
+| `createDateFnsAdapter` | Creates a DateAdapter using date-fns |
+| `useDateAdapter` | Hook to access the current date adapter in components |
+
 ## Best Practices
 
 1. **Consistent Variant Usage**: Use the same variant for related components to maintain visual consistency

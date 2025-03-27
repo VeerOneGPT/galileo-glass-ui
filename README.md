@@ -325,7 +325,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Select</li>
           <li>Slider</li>
           <li>Autocomplete</li>
-          <li>DatePicker</li>
+          <li>DatePicker (Icon Agnostic)</li>
           <li>TagInput</li>
           <li>Form Components</li>
           <li>ToggleButton</li>
@@ -394,6 +394,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>PerformanceMonitor</li>
           <li>OptimizedGlassContainer</li>
           <li>DynamicAtmosphere</li>
+          <li>GlassLocalizationProvider</li>
         </ul>
       </td>
       <td>

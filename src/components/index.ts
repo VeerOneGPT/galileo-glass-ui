@@ -19,7 +19,12 @@ export { Link } from './Link';
 
 // Form components
 export { Autocomplete, GlassAutocomplete } from './Autocomplete';
-export { DatePicker, GlassDatePicker } from './DatePicker';
+export { 
+  DatePicker, 
+  GlassDatePicker, 
+  GlassLocalizationProvider,
+  createDateFnsAdapter 
+} from './DatePicker';
 export { TagInput, GlassTagInput } from './TagInput';
 export {
   FormGroup,

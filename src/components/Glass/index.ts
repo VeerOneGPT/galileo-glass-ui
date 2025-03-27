@@ -17,7 +17,7 @@ export { GlassTooltip } from '../Tooltip';
 
 // Additional specialized glass components
 export { GlassAutocomplete } from '../Autocomplete';
-export { GlassDatePicker } from '../DatePicker';
+export { GlassDatePicker, GlassLocalizationProvider } from '../DatePicker';
 export { GlassTagInput } from '../TagInput';
 export { GlassCheckbox } from '../Checkbox';
 export { GlassRadio } from '../Radio';
