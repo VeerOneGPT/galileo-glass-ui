@@ -124,6 +124,9 @@ try {
   // Remove unnecessary files array
   packageJson.files = ["*"];
   
+  // Remove dev dependencies for a cleaner installation
+  packageJson.devDependencies = undefined;
+  
   // Write the simplified package.json
   fs.writeFileSync('./dist/package.json', JSON.stringify(packageJson, null, 2));
   console.log('Created simplified package.json without problematic install scripts');
