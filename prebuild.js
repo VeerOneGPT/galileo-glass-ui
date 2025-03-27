@@ -85,16 +85,26 @@ Do not modify these files directly.
   console.error('Error creating marker file:', e);
 }
 
-// Update package.json to include skipBuild flag
+// Create a simplified package.json for the prebuild version
 try {
-  console.log('Updating package.json...');
+  console.log('Creating simplified package.json for prebuild...');
   const packageJson = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
   
   // Add a prebuild configuration flag
   packageJson.prebuild = true;
   
-  // Write the changes to a temp file
+  // Remove problematic scripts that can cause installation issues
+  if (packageJson.scripts) {
+    // Keep only essential scripts
+    const safeScripts = {
+      "test": packageJson.scripts.test || "echo \"No tests specified\" && exit 0"
+    };
+    packageJson.scripts = safeScripts;
+  }
+  
+  // Write the simplified package.json
   fs.writeFileSync('./dist/package.json', JSON.stringify(packageJson, null, 2));
+  console.log('Created simplified package.json without problematic install scripts');
 } catch (e) {
   console.error('Error updating package.json:', e);
 }
