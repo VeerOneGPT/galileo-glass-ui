@@ -119,13 +119,15 @@
   "peerDependencies": {
     "react": "^17.0.0 || ^18.0.0 || ^19.0.0",
     "react-dom": "^17.0.0 || ^18.0.0 || ^19.0.0",
-    "styled-components": "^5.3.3 || ^6.0.0",
-    "chart.js": "^4.3.0",
-    "framer-motion": "^10.12.16 || ^12.0.0",
-    "popmotion": "^11.0.5",
-    "react-chartjs-2": "^5.2.0",
-    "react-spring": "^9.6.1",
-    "react-window": "^1.8.9"
+    "styled-components": "^5.3.3 || ^6.0.0"
+  },
+  "optionalDependencies": {
+    "chart.js": "^4.0.0",
+    "framer-motion": "^10.0.0 || ^12.0.0",
+    "popmotion": "^11.0.0",
+    "react-chartjs-2": "^5.0.0",
+    "react-spring": "^9.0.0",
+    "react-window": "^1.8.0"
   },
   "dependencies": {
     "color": "^4.2.3",
@@ -141,24 +143,6 @@
     },
     "styled-components": {
       "optional": false
-    },
-    "chart.js": {
-      "optional": true
-    },
-    "react-chartjs-2": {
-      "optional": true
-    },
-    "framer-motion": {
-      "optional": true
-    },
-    "popmotion": {
-      "optional": true
-    },
-    "react-spring": {
-      "optional": true
-    },
-    "react-window": {
-      "optional": true
     }
   },
   "devDependencies": {

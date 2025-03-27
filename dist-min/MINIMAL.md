@@ -37,10 +37,9 @@ cd galileo-glass-ui
 npm install /path/to/galileo-glass-ui/dist-min styled-components
 ```
 
-### IMPORTANT: For fastest installation
+### IMPORTANT: For fastest installation and avoiding dependency conflicts
 
-If you're experiencing very slow installation or dependency resolution issues, 
-you can also install directly from the dist-min directory:
+If you're experiencing slow installation or dependency resolution issues, use the local tarball:
 
 ```bash
 # Create a direct tarball for instant installation
@@ -50,6 +49,16 @@ tar -czf galileo-minimal.tgz -C dist-min .
 # Then install the tarball
 npm install /path/to/galileo-minimal.tgz styled-components
 ```
+
+### Compatibility with framer-motion and other dependencies
+
+This package works with multiple versions of its optional dependencies:
+
+- framer-motion: ^10.0.0 or ^12.0.0
+- react: ^17.0.0, ^18.0.0, or ^19.0.0
+- styled-components: ^5.3.3 or ^6.0.0
+
+The only required peer dependency is styled-components. To use animations, you may install framer-motion, but it's entirely optional.
 
 ## Usage Example
 
