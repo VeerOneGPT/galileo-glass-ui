@@ -102,6 +102,28 @@ try {
     packageJson.scripts = safeScripts;
   }
   
+  // Fix paths to not include 'dist/' prefix since we're already in the dist directory
+  if (packageJson.main) packageJson.main = packageJson.main.replace(/^dist\//, './');
+  if (packageJson.module) packageJson.module = packageJson.module.replace(/^dist\//, './');
+  if (packageJson.types) packageJson.types = packageJson.types.replace(/^dist\//, './');
+  
+  // Fix exports paths
+  if (packageJson.exports) {
+    for (const key in packageJson.exports) {
+      const entry = packageJson.exports[key];
+      if (typeof entry === 'object') {
+        for (const format in entry) {
+          if (entry[format] && typeof entry[format] === 'string') {
+            entry[format] = entry[format].replace(/^\.\/dist\//, './');
+          }
+        }
+      }
+    }
+  }
+  
+  // Remove unnecessary files array
+  packageJson.files = ["*"];
+  
   // Write the simplified package.json
   fs.writeFileSync('./dist/package.json', JSON.stringify(packageJson, null, 2));
   console.log('Created simplified package.json without problematic install scripts');
