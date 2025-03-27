@@ -37,16 +37,16 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 <div align="center">
   <table>
     <tr>
-      <th>Pre-built (Recommended)</th>
+      <th>Standard (Recommended)</th>
       <th>With Install Script</th>
-      <th>npm</th>
-      <th>yarn/pnpm</th>
+      <th>Minimal (Fastest)</th>
+      <th>Package Managers</th>
     </tr>
     <tr>
       <td>
         
 ```bash
-# Install pre-built version
+# Install pre-built version (recommended)
 npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 ```
       </td>
@@ -57,14 +57,14 @@ npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 git clone https://github.com/VeerOneGPT/galileo-glass-ui.git
 cd galileo-glass-ui
 # Run the installation script
-./install.sh
+./scripts/installation/install.sh
 ```
       </td>
       <td>
         
 ```bash
-# Use NODE_ENV to prevent build issues
-NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui styled-components
+# Install minimal version (fastest installation)
+npm install github:VeerOneGPT/galileo-glass-ui-minimal styled-components
 ```
       </td>
       <td>
@@ -101,7 +101,10 @@ npm install react-window
 
 This keeps your bundle size small by only including what you need!
 
-> **Important**: For detailed installation instructions, see our [Installation Guide](./INSTALLATION.md) and [Pre-built Guide](./PREBUILD.md).
+> **Important**: For detailed installation instructions, see our installation guides:
+> - [Complete Installation Guide](./docs/installation/INSTALLATION.md) - Full installation options
+> - [Pre-built Version Guide](./docs/installation/PREBUILD.md) - Using the pre-built distribution
+> - [Minimal Installation Guide](./docs/installation/MINIMAL.md) - Fast, minimal installation option
 
 ### Basic Usage
 

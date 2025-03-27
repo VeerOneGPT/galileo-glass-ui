@@ -97,7 +97,8 @@ try {
   if (packageJson.scripts) {
     // Keep only essential scripts
     const safeScripts = {
-      "test": packageJson.scripts.test || "echo \"No tests specified\" && exit 0"
+      "test": packageJson.scripts.test || "echo \"No tests specified\" && exit 0",
+      "postinstall": "echo '\n✅ Galileo Glass UI installed successfully! See documentation for optional dependencies you may need.'"
     };
     packageJson.scripts = safeScripts;
   }
@@ -121,15 +122,60 @@ try {
     }
   }
   
+  // Ensure peerDependencies and peerDependenciesMeta are correctly set
+  // Keep only essential direct dependencies
+  packageJson.dependencies = {
+    "color": packageJson.dependencies.color,
+    "csstype": packageJson.dependencies.csstype,
+    "polished": packageJson.dependencies.polished
+  };
+  
+  // Make sure peerDependenciesMeta is preserved
+  if (!packageJson.peerDependenciesMeta) {
+    // Create it based on peerDependencies if missing
+    packageJson.peerDependenciesMeta = {
+      "react": {
+        "optional": false
+      },
+      "react-dom": {
+        "optional": false
+      },
+      "styled-components": {
+        "optional": false
+      },
+      "chart.js": {
+        "optional": true
+      },
+      "react-chartjs-2": {
+        "optional": true
+      },
+      "framer-motion": {
+        "optional": true
+      },
+      "popmotion": {
+        "optional": true
+      },
+      "react-spring": {
+        "optional": true
+      },
+      "react-window": {
+        "optional": true
+      }
+    };
+  }
+  
   // Remove unnecessary files array
   packageJson.files = ["*"];
   
   // Remove dev dependencies for a cleaner installation
   packageJson.devDependencies = undefined;
   
+  // Add helpful readme about optional dependencies
+  packageJson.optionalDependenciesInfo = "Check PREBUILD.md for information about which optional dependencies to install based on the components you use.";
+  
   // Write the simplified package.json
   fs.writeFileSync('./dist/package.json', JSON.stringify(packageJson, null, 2));
-  console.log('Created simplified package.json without problematic install scripts');
+  console.log('Created simplified package.json with proper dependency settings');
 } catch (e) {
   console.error('Error updating package.json:', e);
 }
@@ -137,10 +183,12 @@ try {
 // Copy necessary files
 const filesToCopy = [
   'README.md',
-  'INSTALLATION.md',
+  'docs/installation/INSTALLATION.md',
+  'docs/installation/PREBUILD.md',  // Added PREBUILD.md with detailed installation instructions
   'LICENSE',
-  'CONTRIBUTING.md',
-  'install.sh',
+  'docs/CONTRIBUTING.md',
+  'scripts/installation/install.sh',
+  'scripts/installation/install-local.js'  // Added install-local.js script for easier local installation
 ];
 
 try {
@@ -148,6 +196,9 @@ try {
   filesToCopy.forEach(file => {
     if (fs.existsSync(`./${file}`)) {
       fs.copyFileSync(`./${file}`, `./dist/${file}`);
+      console.log(`✓ Copied ${file} to dist/`);
+    } else {
+      console.log(`⚠ Warning: Could not find ${file} to copy`);
     }
   });
 } catch (e) {
@@ -158,10 +209,18 @@ console.log(`
 ✅ Pre-built version created successfully!
 
 To use the pre-built version locally:
-   npm install ${path.resolve(__dirname, 'dist')}
+   npm install ${path.resolve(__dirname, 'dist')} styled-components
 
 For direct GitHub installation (after committing and pushing):
-   npm install github:VeerOneGPT/galileo-glass-ui#prebuild
+   npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 
-This version is ready for direct installation without requiring a build step.
+IMPORTANT NOTES:
+1. This version is ready for direct installation without requiring a build step.
+2. Remember that you'll need additional dependencies for certain features:
+   - For charts: npm install chart.js react-chartjs-2
+   - For physics animations: npm install react-spring
+   - For advanced animations: npm install framer-motion popmotion
+   - For virtualized lists: npm install react-window
+
+See PREBUILD.md for complete documentation on the modular dependency system.
 `);

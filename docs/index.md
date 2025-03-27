@@ -34,13 +34,23 @@ Welcome to the comprehensive documentation for Galileo Glass UI, a complete glas
 | [**Optimization Techniques**](./performance/optimization/optimization-techniques.md) | Performance optimization strategies |
 | [**Memoization Patterns**](./performance/optimization/memoization-patterns.md) | Effective component and style memoization |
 
+## Installation & Deployment
+
+| Documentation | Description |
+|---------------|-------------|
+| [**Installation Guide**](./installation/INSTALLATION.md) | Complete installation instructions |
+| [**Pre-built Version**](./installation/PREBUILD.md) | Using the pre-built distribution |
+| [**Minimal Installation**](./installation/MINIMAL.md) | Fast, minimal installation option |
+
 ## Development
 
 | Documentation | Description |
 |---------------|-------------|
 | [**Coding Guidelines**](./development/coding-guidelines.md) | Code style and development standards |
+| [**Component Patterns**](./development/component-patterns.md) | Recommended component implementation patterns |
 | [**Implementation Status**](./development/implementation-status.md) | Current development status |
 | [**Implementation Notes**](./development/implementation-notes.md) | Technical notes on migration and implementation |
+| [**Build Fixes**](./development/BUILD_FIXES.md) | Recent build system improvements |
 
 ## Component Library
 

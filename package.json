@@ -8,8 +8,8 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist",
-    "install.sh",
-    "INSTALLATION.md"
+    "scripts/installation/install.sh",
+    "docs/installation/INSTALLATION.md"
   ],
   "exports": {
     ".": {
@@ -68,8 +68,8 @@
     "build": "npm run typecheck:build && (npm run lint:build || true) && rollup -c",
     "build:fix": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\" && npm run build",
     "build:clean": "rm -rf dist && npm run build:fix",
-    "build:prebuild": "node prebuild.js",
-    "install-local": "node install-local.js",
+    "build:prebuild": "node scripts/build/prebuild.js",
+    "install-local": "node scripts/installation/install-local.js",
     "prepublishOnly": "npm run build:clean",
     "dev": "rollup -c -w",
     "test": "jest",
@@ -126,23 +126,6 @@
     "react-chartjs-2": "^5.2.0",
     "react-spring": "^9.6.1",
     "react-window": "^1.8.9"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": false
-    },
-    "react-dom": {
-      "optional": false
-    },
-    "styled-components": {
-      "optional": false
-    },
-    "chart.js": {
-      "optional": true
-    },
-    "react-chartjs-2": {
-      "optional": true
-    }
   },
   "dependencies": {
     "color": "^4.2.3",
