@@ -17,6 +17,32 @@ const packageJson = require('./package.json');
 const extensions = ['.js', '.jsx', '.ts', '.tsx'];
 
 // Shared plugins config for all bundles
+// Check if we should skip TypeScript checking 
+const skipTypeCheck = process.env.SKIP_TS_CHECK === 'true' || process.argv.includes('--environment') && process.argv.includes('SKIP_TYPECHECK:true');
+
+// TypeScript plugin configuration
+const typescriptPlugin = skipTypeCheck 
+  ? typescript({ 
+      tsconfig: './tsconfig.json',
+      declaration: false, // Skip declaration files in emergency mode
+      rootDir: './src',
+      sourceMap: true,
+      noEmitOnError: false, // Continue even with errors
+      noCheck: true,      // Skip type checking
+      skipLibCheck: true  // Skip lib checks
+    })
+  : typescript({ 
+      tsconfig: './tsconfig.json',
+      declaration: true,
+      declarationDir: './dist/dts',
+      rootDir: './src',
+      sourceMap: true
+    });
+
+if (skipTypeCheck) {
+  console.log('🚨 Building with TypeScript checks disabled'); 
+}
+
 const basePlugins = [
   peerDepsExternal(),
   resolve({ 
@@ -40,13 +66,7 @@ const basePlugins = [
     include: /node_modules/,
     requireReturnsDefault: 'auto'
   }),
-  typescript({ 
-    tsconfig: './tsconfig.json',
-    declaration: true,
-    declarationDir: './dist/dts',
-    rootDir: './src',
-    sourceMap: true
-  }),
+  typescriptPlugin,
   babel({
     extensions,
     babelHelpers: 'bundled',
