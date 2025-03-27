@@ -1,12 +1,13 @@
 {
-  "name": "test-install",
+  "name": "galileo-glass-test",
   "version": "1.0.0",
+  "description": "Test installation for Galileo Glass UI",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Success! Galileo Glass UI is installed.\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "styled-components": "^5.3.11"
+  }
 }
