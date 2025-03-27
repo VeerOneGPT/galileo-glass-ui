@@ -34,6 +34,44 @@ cd galileo-glass-ui
 ./install.sh
 ```
 
+## Optional Features and Dependencies
+
+Galileo Glass UI uses a modular approach where specialized features only require their dependencies when you actually use them. **You only need to install these packages if you use the corresponding features:**
+
+### Chart Components
+
+If you want to use the chart components like BarChart, LineChart, or PieChart:
+
+```bash
+npm install chart.js react-chartjs-2
+```
+
+### Physics Animations
+
+For spring animations, magnetic effects, and particle systems:
+
+```bash
+npm install react-spring
+```
+
+### Advanced Animations
+
+For complex motion effects and transitions:
+
+```bash
+npm install framer-motion popmotion
+```
+
+### Virtualized Lists
+
+For efficiently rendering large lists:
+
+```bash
+npm install react-window
+```
+
+This modular approach keeps your bundle size smaller by only including the dependencies you actually need.
+
 ## Verifying Installation
 
 After installation, you can verify that the package is working correctly by importing and using a simple component:
