@@ -3,26 +3,25 @@
  */
 import { MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
 import { ZSpaceAnimator, useZSpaceAnimation } from '../ZSpaceAnimation';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { getMotionSensitivity } from '../../accessibility/MotionSensitivity';
 
-// Mock hook
+// Mock the imported modules
 jest.mock('../../../hooks/useReducedMotion', () => ({
-  useReducedMotion: jest.fn(() => false),
+  useReducedMotion: jest.fn(() => false)
 }));
 
-// Mock getMotionSensitivity
 jest.mock('../../accessibility/MotionSensitivity', () => ({
   MotionSensitivityLevel: {
     NONE: 'none',
     LOW: 'low',
     MEDIUM: 'medium',
     HIGH: 'high',
+    MAXIMUM: 'maximum',
   },
-  getMotionSensitivity: jest.fn(level => ({
-    disableParallax: level === 'high',
-    reduceShadows: level === 'high' || level === 'medium',
-    reduceFloating: level === 'high',
-    scaleEffects: level === 'high' ? 0 : level === 'medium' ? 0.5 : level === 'low' ? 0.8 : 1,
-  })),
+  getMotionSensitivity: jest.fn(() => ({
+    disableParallax: false
+  }))
 }));
 
 // Mock window and requestAnimationFrame
@@ -245,7 +244,7 @@ describe('useZSpaceAnimation hook', () => {
 
   test('respects reduced motion preference', () => {
     // Temporarily mock useReducedMotion to return true
-    const useReducedMotion = require('../../../hooks/useReducedMotion').useReducedMotion;
+    // @ts-ignore - Temporarily ignore type error for mock function
     useReducedMotion.mockReturnValueOnce(true);
 
     const { containerStyle, elementStyle } = useZSpaceAnimation();
@@ -257,7 +256,7 @@ describe('useZSpaceAnimation hook', () => {
 
   test('respects motion sensitivity', () => {
     // Mock high sensitivity which disables parallax
-    const { getMotionSensitivity } = require('../../accessibility/MotionSensitivity');
+    // @ts-ignore - Temporarily ignore type error for mock function
     getMotionSensitivity.mockReturnValueOnce({ disableParallax: true });
 
     const { containerStyle, elementStyle } = useZSpaceAnimation({

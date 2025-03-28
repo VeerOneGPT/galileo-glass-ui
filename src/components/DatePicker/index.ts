@@ -8,8 +8,18 @@ import GlassLocalizationProvider, { DateAdapter, useDateAdapter } from './GlassL
 import { createDateFnsAdapter } from './adapters/dateFnsAdapter';
 
 export type { DatePickerProps, CalendarProps, CalendarView } from './types';
-export type { GlassDatePickerProps } from './GlassDatePicker';
 export type { DateAdapter, GlassLocalizationProviderProps } from './GlassLocalizationProvider';
+
+// Expose DatePickerProps from GlassDatePicker
+export interface GlassDatePickerProps {
+  initialDate?: Date;
+  onChange?: (date: Date) => void;
+  disabled?: boolean;
+  placeholder?: string;
+  className?: string;
+  label?: string;
+  dateFormat?: string;
+}
 
 // Export components
 export default DatePicker;

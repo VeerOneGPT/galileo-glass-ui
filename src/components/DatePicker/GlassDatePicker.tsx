@@ -1,429 +1,348 @@
 /**
  * GlassDatePicker Component
  *
- * An enhanced date picker component with glass morphism styling
- * and support for multiple icon libraries.
+ * A date picker component with Glass UI styling.
  */
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
-import styled, { css } from 'styled-components';
-import { GlassIcon } from '../Glass';
-import { useDateAdapter } from './GlassLocalizationProvider';
-import { useGlass } from '../../design/GlassProvider';
-import { fadeIn } from '../../design/animations';
-import { glassSurface } from '../../design/mixins/glass/surfaces';
-import { glassText } from '../../design/mixins/typography/glassText';
-import { createThemeContext } from '../../design/core/themeContext';
-import { colors, spacing, typography, zIndex } from '../../design/domain/tokens';
-import { cssWithKebabProps } from '../../design/core/cssUtils';
-import { useClickOutside } from '../../hooks/useClickOutside';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+import React, { useState, useRef, useEffect } from 'react';
+import styled from 'styled-components';
 
-// Default icons - these will be imported as props
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import TodayIcon from '@mui/icons-material/Today';
-import KeyboardArrowLeftIcon from '@mui/icons-material/KeyboardArrowLeft';
-import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
-import ClearIcon from '@mui/icons-material/Clear';
+// Import from our theme
+import { useTheme, useGlassEffects } from '../../theme/ThemeProvider';
+import { useAccessibility } from '../../components/AccessibilityProvider';
 
-// Types
-export interface GlassDatePickerProps {
-  /** Selected date value */
-  value: Date | null;
+// Define the DatePicker Props
+interface DatePickerProps {
+  /**
+   * Initial date
+   */
+  initialDate?: Date;
   
-  /** Function called when date changes */
-  onChange: (date: Date | null) => void;
+  /**
+   * Callback when date changes
+   */
+  onChange?: (date: Date) => void;
   
-  /** Label text for the date picker */
-  label?: string;
-  
-  /** Placeholder text when no date is selected */
-  placeholder?: string;
-  
-  /** Error state or error message */
-  error?: boolean | string;
-  
-  /** Helper text to display below input */
-  helperText?: string;
-  
-  /** Make the date picker disabled */
+  /**
+   * Whether the datepicker is disabled
+   */
   disabled?: boolean;
   
-  /** Size variant of the date picker */
-  size?: 'small' | 'medium' | 'large';
+  /**
+   * Placeholder text
+   */
+  placeholder?: string;
   
-  /** Make the date picker full width */
-  fullWidth?: boolean;
-  
-  /** Add a subtle animation when mounted */
-  animate?: boolean;
-  
-  /** Glass elevation level */
-  elevation?: 1 | 2 | 3 | 4;
-  
-  /** Date format used for display and input */
-  format?: string;
-  
-  /** Optional minimum selectable date */
-  minDate?: Date;
-  
-  /** Optional maximum selectable date */
-  maxDate?: Date;
-  
-  /** If true, dates before today cannot be selected */
-  disablePast?: boolean;
-  
-  /** If true, dates after today cannot be selected */
-  disableFuture?: boolean;
-  
-  /** Custom set of dates to disable */
-  disableDates?: Date[] | ((date: Date) => boolean);
-  
-  /** Enable input mode where user can type date */
-  allowInput?: boolean;
-  
-  /** If true, shows a clear button */
-  clearable?: boolean;
-  
-  /** Optional CSS styles */
-  style?: React.CSSProperties;
-  
-  /** Additional input props */
-  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
-  
-  /** Icon component customization */
-  icons?: {
-    calendar?: React.ElementType;
-    today?: React.ElementType;
-    leftArrow?: React.ElementType;
-    rightArrow?: React.ElementType;
-    clear?: React.ElementType;
-  };
-  
-  /** Makes popup portal to body instead of in component tree */
-  portal?: boolean;
-  
-  /** Initial calendar view */
-  initialView?: 'day' | 'month' | 'year';
-  
-  /** Custom class name */
+  /**
+   * Custom class name
+   */
   className?: string;
+  
+  /**
+   * Label for the date picker
+   */
+  label?: string;
+  
+  /**
+   * Format for displaying the date
+   */
+  dateFormat?: string;
 }
 
 /**
- * GlassDatePicker Component implementation
+ * GlassDatePicker component
  */
-export const GlassDatePicker = forwardRef<HTMLDivElement, GlassDatePickerProps>(
-  ({
-    value,
-    onChange,
-    label,
-    placeholder = 'Select date',
-    error = false,
-    helperText,
-    disabled = false,
-    size = 'medium',
-    fullWidth = false,
-    animate = false,
-    elevation = 2,
-    format,
-    minDate,
-    maxDate,
-    disablePast = false,
-    disableFuture = false,
-    disableDates,
-    allowInput = false,
-    clearable = true,
-    style,
-    inputProps,
-    icons = {},
-    portal = false,
-    initialView = 'day',
-    className,
-    ...rest
-  }, ref) => {
-    // Hooks and state
-    const { reducedEffects } = useGlass();
-    const prefersReducedMotion = useReducedMotion();
-    const dateAdapter = useDateAdapter();
-    const [isOpen, setIsOpen] = useState(false);
-    const [isFocused, setIsFocused] = useState(false);
-    const [inputValue, setInputValue] = useState('');
-    const [currentView, setCurrentView] = useState(initialView);
-    const [viewDate, setViewDate] = useState(value || new Date());
-    const pickerRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
-    
-    // Resolve icon components
-    const CalendarIcon = icons.calendar || CalendarTodayIcon;
-    const TodayButtonIcon = icons.today || TodayIcon;
-    const LeftArrowIcon = icons.leftArrow || KeyboardArrowLeftIcon;
-    const RightArrowIcon = icons.rightArrow || KeyboardArrowRightIcon;
-    const ClearButtonIcon = icons.clear || ClearIcon;
-    
-    // Format date for display
-    const formatDisplayDate = (date: Date | null) => {
-      if (!date) return '';
-      return dateAdapter?.adapter.format(date, format || dateAdapter.dateFormat);
+export const GlassDatePicker: React.FC<DatePickerProps> = ({
+  initialDate,
+  onChange,
+  disabled = false,
+  placeholder = 'Select date',
+  className = '',
+  label = 'Date',
+  dateFormat = 'MM/DD/YYYY',
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
+  const [displayValue, setDisplayValue] = useState('');
+  const pickerRef = useRef<HTMLDivElement>(null);
+  
+  // Get theme utilities
+  const theme = useTheme();
+  const { GlassSurface } = useGlassEffects();
+  const { reducedMotion } = useAccessibility();
+  
+  // Format date to display value
+  useEffect(() => {
+    if (selectedDate) {
+      const formatted = formatDate(selectedDate, dateFormat);
+      setDisplayValue(formatted);
+    } else {
+      setDisplayValue('');
+    }
+  }, [selectedDate, dateFormat]);
+  
+  // Handle outside clicks
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
     };
     
-    // Handle errors
-    const hasError = Boolean(error);
-    const errorMessage = typeof error === 'string' ? error : helperText;
-    
-    // Update input value when value changes
-    useEffect(() => {
-      setInputValue(formatDisplayDate(value));
-    }, [value, dateAdapter, format]);
-    
-    // Set up click outside handler
-    useClickOutside(pickerRef, () => {
-      setIsOpen(false);
-      setIsFocused(false);
-    });
-    
-    // Handle date selection
-    const handleDateSelect = (date: Date) => {
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Handle date selection
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setIsOpen(false);
+    if (onChange) {
       onChange(date);
-      setIsOpen(false);
-      setIsFocused(false);
-    };
-    
-    // Handle toggle calendar
-    const handleToggleCalendar = () => {
-      if (disabled) return;
+    }
+  };
+  
+  // Toggle calendar
+  const toggleCalendar = () => {
+    if (!disabled) {
       setIsOpen(!isOpen);
-      setIsFocused(!isOpen);
-      if (!isOpen && inputRef.current) {
-        inputRef.current.focus();
-      }
-    };
+    }
+  };
+  
+  // Format date helper
+  const formatDate = (date: Date, format: string): string => {
+    // Simple formatting implementation
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
     
-    // Handle input change
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (disabled || !allowInput) return;
+    return format
+      .replace('MM', month)
+      .replace('DD', day)
+      .replace('YYYY', String(year));
+  };
+  
+  // Generate calendar days
+  const generateCalendarDays = () => {
+    const today = new Date();
+    const currentMonth = selectedDate ? selectedDate.getMonth() : today.getMonth();
+    const currentYear = selectedDate ? selectedDate.getFullYear() : today.getFullYear();
+    
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    
+    const startingDayOfWeek = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    const days = [];
+    
+    // Add empty cells for days before the first day of the month
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(<CalendarDay key={`empty-${i}`} empty />);
+    }
+    
+    // Add cells for each day of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const date = new Date(currentYear, currentMonth, i);
+      const isSelectedDate = selectedDate && 
+        selectedDate.getDate() === i &&
+        selectedDate.getMonth() === currentMonth &&
+        selectedDate.getFullYear() === currentYear;
       
-      const newValue = e.target.value;
-      setInputValue(newValue);
+      const isToday = 
+        today.getDate() === i &&
+        today.getMonth() === currentMonth &&
+        today.getFullYear() === currentYear;
       
-      // Try to parse the date from the input
-      if (newValue && dateAdapter?.adapter) {
-        const parsedDate = dateAdapter.adapter.parse(
-          newValue, 
-          format || dateAdapter.dateFormat
-        );
-        
-        if (parsedDate && dateAdapter.adapter.isValid(parsedDate)) {
-          onChange(parsedDate);
-          setViewDate(parsedDate);
-        }
-      } else if (newValue === '') {
-        onChange(null);
-      }
-    };
-    
-    // Handle clear button click
-    const handleClear = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onChange(null);
-      setInputValue('');
-    };
-    
-    // Rendering logic will be implemented here
-    return (
-      <DatePickerContainer
-        ref={ref}
-        className={className}
-        style={style}
-        $fullWidth={fullWidth}
-        $animate={animate && !prefersReducedMotion}
-      >
-        {label && <Label>{label}</Label>}
-        
-        <InputContainer
-          $size={size}
-          $focused={isFocused}
-          $disabled={disabled}
-          $hasError={hasError}
-          $elevation={elevation}
-          onClick={handleToggleCalendar}
+      days.push(
+        <CalendarDay 
+          key={`day-${i}`}
+          onClick={() => handleDateSelect(date)}
+          isSelected={isSelectedDate}
+          isToday={isToday}
         >
-          <Input
-            ref={inputRef}
-            type="text"
-            value={inputValue}
-            placeholder={placeholder}
-            onChange={handleInputChange}
-            disabled={disabled || !allowInput}
-            readOnly={!allowInput}
-            $size={size}
-            $disabled={disabled}
-            {...inputProps}
-          />
-          
-          {clearable && value && !disabled && (
-            <ClearButton onClick={handleClear} aria-label="Clear">
-              <GlassIcon component={ClearButtonIcon} fontSize="small" />
-            </ClearButton>
-          )}
-          
-          <CalendarButton aria-label="Open calendar">
-            <GlassIcon component={CalendarIcon} fontSize="small" color="secondary" />
-          </CalendarButton>
-        </InputContainer>
-        
-        {(helperText || hasError) && (
-          <HelperText $hasError={hasError}>
-            {errorMessage}
-          </HelperText>
-        )}
-        
-        {/* Calendar implementation will go here */}
-        {/* This will be implemented fully in the actual component */}
-      </DatePickerContainer>
-    );
-  }
-);
+          {i}
+        </CalendarDay>
+      );
+    }
+    
+    return days;
+  };
+  
+  return (
+    <DatePickerContainer ref={pickerRef} className={className}>
+      {label && <DatePickerLabel>{label}</DatePickerLabel>}
+      
+      <DatePickerInput onClick={toggleCalendar} disabled={disabled}>
+        <GlassSurface 
+          variant="standard"
+          blurStrength="light" 
+          backgroundOpacity={0.2}
+          borderOpacity="minimal"
+          interactive
+          elevation={1}
+        >
+          <DatePickerInputInner>
+            {displayValue || placeholder}
+            <CalendarIcon />
+          </DatePickerInputInner>
+        </GlassSurface>
+      </DatePickerInput>
+      
+      {isOpen && (
+        <CalendarContainer>
+          <GlassSurface 
+            variant="frosted"
+            blurStrength="medium" 
+            backgroundOpacity={0.3}
+            borderOpacity="minimal"
+            elevation={2}
+          >
+            <CalendarHeader>
+              <MonthYearSelector>
+                {selectedDate ? formatDate(selectedDate, 'MMMM YYYY') : formatDate(new Date(), 'MMMM YYYY')}
+              </MonthYearSelector>
+            </CalendarHeader>
+            
+            <WeekDaysRow>
+              <WeekDay>Su</WeekDay>
+              <WeekDay>Mo</WeekDay>
+              <WeekDay>Tu</WeekDay>
+              <WeekDay>We</WeekDay>
+              <WeekDay>Th</WeekDay>
+              <WeekDay>Fr</WeekDay>
+              <WeekDay>Sa</WeekDay>
+            </WeekDaysRow>
+            
+            <CalendarGrid>
+              {generateCalendarDays()}
+            </CalendarGrid>
+          </GlassSurface>
+        </CalendarContainer>
+      )}
+    </DatePickerContainer>
+  );
+};
 
 // Styled components
-const DatePickerContainer = styled.div<{
-  $fullWidth: boolean;
-  $animate: boolean;
-}>`
-  display: flex;
-  flex-direction: column;
+const DatePickerContainer = styled.div`
   position: relative;
-  width: ${props => props.$fullWidth ? '100%' : '280px'};
-  
-  ${props => props.$animate && css`
-    animation: ${fadeIn} 0.3s ease-out;
-  `}
+  width: 100%;
+  max-width: 300px;
+  font-family: var(--font-family, 'Inter', sans-serif);
 `;
 
-const Label = styled.label`
-  ${glassText}
-  margin-bottom: ${spacing.xxs};
-  font-size: ${typography.fontSize.sm};
-  color: ${colors.nebula.textSecondary};
+const DatePickerLabel = styled.label`
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
   font-weight: 500;
+  color: var(--text-color, rgba(255, 255, 255, 0.9));
 `;
 
-const InputContainer = styled.div<{
-  $size: 'small' | 'medium' | 'large';
-  $focused: boolean;
-  $disabled: boolean;
-  $hasError: boolean;
-  $elevation: number;
-}>`
-  ${props => glassSurface({
-    elevation: props.$elevation,
-    blurStrength: 'standard',
-    borderOpacity: 'medium',
-    themeContext: createThemeContext({})
-  })}
-  
+const DatePickerInput = styled.div<{ disabled?: boolean }>`
+  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${props => props.disabled ? 0.6 : 1};
+`;
+
+const DatePickerInputInner = styled.div`
   display: flex;
   align-items: center;
-  border-radius: 8px;
-  padding: ${props => {
-    switch (props.$size) {
-      case 'small': return spacing.xs;
-      case 'large': return spacing.md;
-      default: return spacing.sm;
-    }
-  }};
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.2s ease;
-  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
+  justify-content: space-between;
+  padding: 12px 16px;
+  height: 48px;
+  width: 100%;
+  font-size: 14px;
+`;
+
+const CalendarIcon = styled.div`
+  width: 20px;
+  height: 20px;
+  position: relative;
   
-  ${props => props.$focused && css`
-    border-color: ${colors.nebula.accentPrimary};
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
-  `}
+  &:before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-radius: 2px;
+    left: 2px;
+    top: 2px;
+  }
   
-  ${props => props.$hasError && css`
-    border-color: ${colors.nebula.stateCritical};
-    box-shadow: 0 0 0 1px ${colors.nebula.stateCritical}40;
-  `}
-  
-  ${props => props.$disabled && css`
-    opacity: 0.6;
-    pointer-events: none;
-  `}
-  
-  &:hover:not(:disabled) {
-    border-color: rgba(255, 255, 255, 0.3);
+  &:after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 4px;
+    background: currentColor;
+    left: 5px;
+    top: 0;
+    box-shadow: 9px 0 0 0 currentColor;
   }
 `;
 
-const Input = styled.input<{
-  $size: 'small' | 'medium' | 'large';
-  $disabled: boolean;
-}>`
-  background: transparent;
-  border: none;
-  flex: 1;
-  outline: none;
-  color: inherit;
-  font-size: ${props => {
-    switch (props.$size) {
-      case 'small': return typography.fontSize.sm;
-      case 'large': return typography.fontSize.md;
-      default: return typography.fontSize.sm;
-    }
-  }};
-  cursor: inherit;
-  font-family: ${typography.fontFamily.primary};
-  
-  &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
-  }
-  
-  &:disabled {
-    cursor: not-allowed;
-  }
+const CalendarContainer = styled.div`
+  position: absolute;
+  width: 280px;
+  margin-top: 8px;
+  z-index: 10;
 `;
 
-const CalendarButton = styled.span`
+const CalendarHeader = styled.div`
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  margin-left: ${spacing.xs};
-  color: inherit;
-  opacity: 0.7;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const ClearButton = styled.button`
-  background: none;
-  border: none;
+const MonthYearSelector = styled.div`
+  font-weight: 600;
+  font-size: 14px;
+`;
+
+const WeekDaysRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px 0;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const WeekDay = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const CalendarGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px;
+`;
+
+const CalendarDay = styled.div<{ empty?: boolean; isSelected?: boolean; isToday?: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  margin-left: ${spacing.xs};
-  color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: color 0.2s ease;
+  height: 32px;
+  font-size: 13px;
+  cursor: ${props => props.empty ? 'default' : 'pointer'};
+  border-radius: 50%;
+  color: ${props => {
+    if (props.empty) return 'transparent';
+    if (props.isSelected) return '#FFFFFF';
+    return 'inherit';
+  }};
+  background: ${props => props.isSelected ? 'rgba(100, 100, 255, 0.6)' : 'transparent'};
+  border: ${props => props.isToday ? '1px solid rgba(255, 255, 255, 0.5)' : 'none'};
   
   &:hover {
-    color: rgba(255, 255, 255, 0.8);
-  }
-  
-  svg {
-    font-size: 18px;
+    background: ${props => (!props.empty && !props.isSelected) ? 'rgba(255, 255, 255, 0.1)' : props.isSelected ? 'rgba(100, 100, 255, 0.6)' : 'transparent'};
   }
 `;
 
-const HelperText = styled.div<{
-  $hasError: boolean;
-}>`
-  ${glassText}
-  margin-top: ${spacing.xxs};
-  font-size: ${typography.fontSize.xs};
-  min-height: 16px;
-  color: ${props => props.$hasError 
-    ? colors.nebula.stateCritical 
-    : colors.nebula.textTertiary
-  };
-`;
-
-GlassDatePicker.displayName = 'GlassDatePicker'; 
+export default GlassDatePicker; 

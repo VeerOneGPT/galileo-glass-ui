@@ -53,13 +53,14 @@ export const PhysicsAnimationDemo: React.FC = () => {
     stiffness: 200,
     dampingRatio: 20,
     gravity: { x: 0, y: 0.5, z: 0, strength: 0.5 },
-    friction: 0.1,
+    velocityDecay: 0.1,
     bounds: {
       top: 0,
       right: 400,
       bottom: 400,
       left: 0
-    }
+    },
+    enableCollisions: true
   });
 
   // Magnetic Effect Demo
@@ -181,9 +182,9 @@ export const PhysicsAnimationDemo: React.FC = () => {
   stiffness: 200,
   dampingRatio: 20,
   gravity: { x: 0, y: 0.5, z: 0, strength: 0.5 },
-  friction: 0.1,
+  velocityDecay: 0.1,
   bounds: { top: 0, right: 400, bottom: 400, left: 0 },
-  collisionElasticity: 0.7
+  enableCollisions: true
 })`}</pre>
             </div>
           </div>
