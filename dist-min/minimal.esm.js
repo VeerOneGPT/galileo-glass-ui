@@ -1,58 +1,34 @@
 // This is a minimal placeholder that re-exports just the basic components
-// to ensure successful installation without heavy dependencies
+// with minimum dependencies for faster installation and simpler usage
 
-import { createContext, jsx } from 'styled-components';
-import styled from 'styled-components';
+import React, { createContext } from 'react';
+import { jsx } from 'styled-components';
+import { Button } from './components/Button.esm.js';
+import { Card } from './components/Card.esm.js';
 
-// Basic theme context
+// Default theme
 const defaultTheme = {
   colors: {
     primary: '#3f51b5',
     secondary: '#f50057',
-    background: 'rgba(255, 255, 255, 0.8)',
-    text: '#212121'
+    text: '#333333',
+    background: 'rgba(255, 255, 255, 0.85)'
   },
+  borderRadius: '4px',
+  spacing: (factor) => `${factor * 8}px`,
   glass: {
-    opacity: 0.7,
     blur: '10px',
-    border: '1px solid rgba(255, 255, 255, 0.3)'
+    transparency: 0.7
   }
 };
-
-const ThemeContext = createContext(defaultTheme);
 
 // Minimal ThemeProvider
-const ThemeProvider = ({ children, theme }) => {
-  return jsx(
-    ThemeContext.Provider,
-    { value: theme || defaultTheme },
-    children
-  );
+const ThemeContext = createContext(defaultTheme);
+
+const ThemeProvider = ({ children, theme = defaultTheme }) => {
+  const mergedTheme = { ...defaultTheme, ...theme };
+  return jsx(ThemeContext.Provider, { value: mergedTheme, children });
 };
 
-// Simple Button implementation
-const Button = styled.button`
-  background: ${props => props.theme.colors.primary};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 16px;
-  
-  &:hover {
-    opacity: 0.9;
-  }
-`;
-
-// Simple Card implementation
-const Card = styled.div`
-  background: ${props => props.theme.glass.background || 'rgba(255, 255, 255, 0.7)'};
-  backdrop-filter: blur(${props => props.theme.glass.blur || '10px'});
-  border-radius: 8px;
-  border: ${props => props.theme.glass.border || '1px solid rgba(255, 255, 255, 0.3)'};
-  padding: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-`;
-
-export { Button, Card, ThemeContext, ThemeProvider, defaultTheme };
+export { Button, Card, ThemeProvider, ThemeContext };
+export default { Button, Card, ThemeProvider, ThemeContext };

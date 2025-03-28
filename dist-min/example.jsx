@@ -1,19 +1,19 @@
 import React from 'react';
-import { ThemeProvider, Card, Button } from 'galileo-glass-ui-minimal';
+import { ThemeProvider, Button, Card } from '@veerone/galileo-glass-ui';
 
-// Simple example component showing how to use the minimal version
-function GlassExample() {
+// Example usage of the minimal Galileo Glass UI
+function App() {
   return (
     <ThemeProvider>
-      <div style={{ padding: '2rem', background: 'linear-gradient(45deg, #f3f4f6, #dbeafe)' }}>
-        <Card>
-          <h2 style={{ marginTop: 0 }}>Galileo Glass UI - Minimal Example</h2>
-          <p>This is a minimal example using the core components</p>
-          <Button>Click Me</Button>
-        </Card>
-      </div>
+      <Card style={{ padding: '20px', margin: '20px' }}>
+        <h2>Galileo Glass UI - Minimal Example</h2>
+        <p>This example uses the minimal build.</p>
+        <Button onClick={() => alert('Button clicked!')}>
+          Click Me
+        </Button>
+      </Card>
     </ThemeProvider>
   );
 }
 
-export default GlassExample;
+export default App;

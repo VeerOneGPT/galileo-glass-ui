@@ -1,65 +1,42 @@
 'use strict';
 
 // This is a minimal placeholder that re-exports just the basic components
-// to ensure successful installation without heavy dependencies
+// with minimum dependencies for faster installation and simpler usage
 
-Object.defineProperty(exports, '__esModule', { value: true });
+var React = require('react');
+var createContext = React.createContext;
+var styledComponents = require('styled-components');
+var Button = require('./components/Button.js').Button;
+var Card = require('./components/Card.js').Card;
 
-const styled = require('styled-components');
-
-// Basic theme context
-const defaultTheme = {
+// Default theme
+var defaultTheme = {
   colors: {
     primary: '#3f51b5',
     secondary: '#f50057',
-    background: 'rgba(255, 255, 255, 0.8)',
-    text: '#212121'
+    text: '#333333',
+    background: 'rgba(255, 255, 255, 0.85)'
   },
+  borderRadius: '4px',
+  spacing: function(factor) { return factor * 8 + 'px'; },
   glass: {
-    opacity: 0.7,
     blur: '10px',
-    border: '1px solid rgba(255, 255, 255, 0.3)'
+    transparency: 0.7
   }
 };
-
-const ThemeContext = styled.createContext(defaultTheme);
 
 // Minimal ThemeProvider
-const ThemeProvider = ({ children, theme }) => {
-  return styled.jsx(
-    ThemeContext.Provider,
-    { value: theme || defaultTheme },
-    children
-  );
+var ThemeContext = createContext(defaultTheme);
+
+var ThemeProvider = function(props) {
+  var children = props.children;
+  var theme = props.theme || defaultTheme;
+  var mergedTheme = Object.assign({}, defaultTheme, theme);
+  return styledComponents.jsx(ThemeContext.Provider, { value: mergedTheme, children: children });
 };
-
-// Simple Button implementation
-const Button = styled.styled.button`
-  background: ${props => props.theme.colors.primary};
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 16px;
-  
-  &:hover {
-    opacity: 0.9;
-  }
-`;
-
-// Simple Card implementation
-const Card = styled.styled.div`
-  background: ${props => props.theme.glass.background || 'rgba(255, 255, 255, 0.7)'};
-  backdrop-filter: blur(${props => props.theme.glass.blur || '10px'});
-  border-radius: 8px;
-  border: ${props => props.theme.glass.border || '1px solid rgba(255, 255, 255, 0.3)'};
-  padding: 16px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-`;
 
 exports.Button = Button;
 exports.Card = Card;
-exports.ThemeContext = ThemeContext;
 exports.ThemeProvider = ThemeProvider;
-exports.defaultTheme = defaultTheme;
+exports.ThemeContext = ThemeContext;
+exports.default = { Button: Button, Card: Card, ThemeProvider: ThemeProvider, ThemeContext: ThemeContext };
