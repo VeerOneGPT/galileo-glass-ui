@@ -15,13 +15,7 @@ This version is designed for quick testing, prototyping, or for users who need o
 
 ## Installation
 
-### NPM Package Installation (Recommended)
-
-```bash
-npm install @veerone/galileo-glass-ui styled-components
-```
-
-### Direct installation from GitHub (for development)
+### Direct installation from GitHub (recommended)
 
 ```bash
 npm install github:VeerOneGPT/galileo-glass-ui-minimal styled-components
@@ -116,10 +110,7 @@ If you start with the minimal version and later need additional components, you 
 # Remove minimal version
 npm uninstall galileo-glass-ui
 
-# Install full version via NPM (recommended)
-npm install @veerone/galileo-glass-ui styled-components
-
-# Or install from GitHub for development
+# Install full version
 npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 ```
 
@@ -130,4 +121,4 @@ If you experience installation issues with both versions:
 1. Make sure you have styled-components installed
 2. Clear your npm cache: `npm cache clean --force`
 3. Try using a different package manager (Yarn or pnpm)
-4. Add the `--force` flag to npm: `npm install @veerone/galileo-glass-ui styled-components --force`
+4. Add the `--force` flag to npm: `npm install github:VeerOneGPT/galileo-glass-ui#minimal-dist styled-components --force`

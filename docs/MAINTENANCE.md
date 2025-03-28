@@ -134,6 +134,23 @@ Our GitHub Actions workflow runs these verification tools on all pull requests:
 2. Reports issues in the PR comments
 3. Verifies the fixes before merging
 
+## Publishing to NPM
+
+The Galileo Glass UI package is published to NPM as `@veerone/galileo-glass-ui`. Follow these steps to publish a new version:
+
+1. Update the version in package.json: `npm version patch` (or `minor` or `major` as appropriate)
+2. Ensure all tests pass: `npm test`
+3. Run full verification: `./scripts/verify.sh`
+4. Build the production bundle: `npm run build:clean`
+5. Publish to NPM: `npm publish --access public`
+6. Create a GitHub release for the new version
+7. Update the documentation as needed
+
+When publishing to NPM, make sure to:
+- Use NODE_ENV=production to skip build process if needed
+- Include all distribution files (dist, dist-min)
+- Verify the package works correctly after publishing
+
 ## Release Process
 
 1. Ensure all tests pass: `npm test`

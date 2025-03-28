@@ -15,7 +15,20 @@ This version is designed for quick testing, prototyping, or for users who need o
 
 ## Installation
 
-### Direct installation from GitHub (recommended)
+### NPM Package Installation (Recommended)
+
+```bash
+# Install from NPM
+npm install @veerone/galileo-glass-ui styled-components
+```
+
+For the minimal experience, you can simply import only the components you need:
+
+```jsx
+import { Button, Card, ThemeProvider } from '@veerone/galileo-glass-ui';
+```
+
+### Direct installation from GitHub (for development)
 
 ```bash
 npm install github:VeerOneGPT/galileo-glass-ui-minimal styled-components

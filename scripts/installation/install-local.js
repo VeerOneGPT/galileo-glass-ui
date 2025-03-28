@@ -155,7 +155,11 @@ This is a minimal distribution with only core dependencies.
 console.log(`
 ✅ Minimal distribution created successfully!
 
-You can now install the minimal version with:
+You can install the minimal version using:
+
+   npm install @veerone/galileo-glass-ui styled-components
+
+Or install directly from the local directory:
 
    npm install ${path.resolve(minDistPath)} styled-components
 

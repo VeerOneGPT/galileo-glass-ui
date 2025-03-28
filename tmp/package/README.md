@@ -5,8 +5,8 @@
   <p><em>Modern glass morphism UI components for React, Next.js, and any TypeScript application</em></p>
 
   <p>
-    <a href="https://www.npmjs.com/package/@veerone/galileo-glass-ui"><img src="https://img.shields.io/npm/v/@veerone/galileo-glass-ui.svg" alt="npm version" /></a>
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui"><img src="https://img.shields.io/github/stars/VeerOneGPT/galileo-glass-ui.svg" alt="GitHub stars" /></a>
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/network/members"><img src="https://img.shields.io/github/forks/VeerOneGPT/galileo-glass-ui.svg" alt="GitHub forks" /></a>
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/VeerOneGPT/galileo-glass-ui.svg" alt="license" /></a>
   </p>
 </div>
@@ -37,44 +37,44 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 <div align="center">
   <table>
     <tr>
-      <th>NPM (Recommended)</th>
-      <th>Next.js Projects</th>
-      <th>Other Package Managers</th>
-      <th>GitHub (Development)</th>
+      <th>Standard (Recommended)</th>
+      <th>With Install Script</th>
+      <th>Minimal (Fastest)</th>
+      <th>Package Managers</th>
     </tr>
     <tr>
       <td>
         
 ```bash
-# Install from NPM (recommended)
-npm install @veerone/galileo-glass-ui styled-components
+# Install pre-built version (recommended)
+npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 ```
       </td>
       <td>
         
 ```bash
-# Install in Next.js project
-npm install @veerone/galileo-glass-ui styled-components
-
-# In next.config.js:
-transpilePackages: ['@veerone/galileo-glass-ui']
+# Clone the repo
+git clone https://github.com/VeerOneGPT/galileo-glass-ui.git
+cd galileo-glass-ui
+# Run the installation script
+./scripts/installation/install.sh
+```
+      </td>
+      <td>
+        
+```bash
+# Install minimal version (fastest installation)
+npm install github:VeerOneGPT/galileo-glass-ui-minimal styled-components
 ```
       </td>
       <td>
         
 ```bash
 # For yarn
-yarn add @veerone/galileo-glass-ui styled-components
+NODE_ENV=production yarn add github:VeerOneGPT/galileo-glass-ui styled-components
 
 # For pnpm
-pnpm add @veerone/galileo-glass-ui styled-components
-```
-      </td>
-      <td>
-        
-```bash
-# Install from GitHub repository
-npm install github:VeerOneGPT/galileo-glass-ui styled-components
+NODE_ENV=production pnpm add github:VeerOneGPT/galileo-glass-ui styled-components
 ```
       </td>
     </tr>
@@ -103,14 +103,14 @@ This keeps your bundle size small by only including what you need!
 
 > **Important**: For detailed installation instructions, see our installation guides:
 > - [Complete Installation Guide](./docs/installation/INSTALLATION.md) - Full installation options
-> - [NPM Package Reference](https://www.npmjs.com/package/@veerone/galileo-glass-ui) - Using the NPM package
-> - [Bundle Optimization Guide](./docs/performance/optimization/bundle-optimization.md) - Optimizing your bundle size
+> - [Pre-built Version Guide](./docs/installation/PREBUILD.md) - Using the pre-built distribution
+> - [Minimal Installation Guide](./docs/installation/MINIMAL.md) - Fast, minimal installation option
 
 ### Basic Usage
 
 ```jsx
 import React from 'react';
-import { ThemeProvider, Button, Card, Typography } from '@veerone/galileo-glass-ui';
+import { ThemeProvider, Button, Card, Typography } from 'galileo-glass-ui';
 import styled from 'styled-components';
 
 function App() {
@@ -136,7 +136,7 @@ export default App;
 
 ```jsx
 // pages/_app.js or app/layout.js
-import { ThemeProvider } from '@veerone/galileo-glass-ui';
+import { ThemeProvider } from 'galileo-glass-ui';
 
 export default function MyApp({ Component, pageProps }) {
   return (
@@ -149,7 +149,7 @@ export default function MyApp({ Component, pageProps }) {
 
 ```jsx
 // Any Next.js page or component
-import { Card, Button, Typography } from '@veerone/galileo-glass-ui';
+import { Card, Button, Typography } from 'galileo-glass-ui';
 
 export default function HomePage() {
   return (
@@ -172,17 +172,17 @@ Galileo Glass UI now supports multiple import patterns for optimal bundle size:
 
 ```jsx
 // Option 1: Slim bundle with essential components only (smallest bundle size)
-import { Button, Card, Typography, ThemeProvider } from '@veerone/galileo-glass-ui/slim';
+import { Button, Card, Typography, ThemeProvider } from 'galileo-glass-ui/slim';
 
 // Option 2: Direct component imports (optimal tree-shaking)
-import { Button } from '@veerone/galileo-glass-ui/components/Button';
-import { Card } from '@veerone/galileo-glass-ui/components/Card';
-import { ThemeProvider } from '@veerone/galileo-glass-ui/theme';
+import { Button } from 'galileo-glass-ui/components/Button';
+import { Card } from 'galileo-glass-ui/components/Card';
+import { ThemeProvider } from 'galileo-glass-ui/theme';
 
 // Option 3: Domain-specific imports
-import { accessibleAnimation } from '@veerone/galileo-glass-ui/animations';
-import { glassSurface, glassGlow } from '@veerone/galileo-glass-ui/core';
-import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks';
+import { accessibleAnimation } from 'galileo-glass-ui/animations';
+import { glassSurface, glassGlow } from 'galileo-glass-ui/core';
+import { usePhysicsInteraction } from 'galileo-glass-ui/hooks';
 ```
 
 <details>
@@ -269,8 +269,8 @@ const Component = styled.div`
 
 ```tsx
 // ✅ CORRECT: Pass themeContext to glass mixins
-import { glassSurface } from '@veerone/galileo-glass-ui/mixins';
-import { createThemeContext } from '@veerone/galileo-glass-ui/core';
+import { glassSurface } from 'galileo-glass-ui/mixins';
+import { createThemeContext } from 'galileo-glass-ui/core';
 
 const GlassComponent = styled.div`
   ${props => glassSurface({
@@ -426,9 +426,9 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
 
 ```jsx
 import { styled } from 'styled-components';
-import { Box } from '@veerone/galileo-glass-ui';
-import { glassSurface, glassGlow, innerGlow } from '@veerone/galileo-glass-ui/mixins';
-import { createThemeContext } from '@veerone/galileo-glass-ui/core';
+import { Box } from 'galileo-glass-ui';
+import { glassSurface, glassGlow, innerGlow } from 'galileo-glass-ui/mixins';
+import { createThemeContext } from 'galileo-glass-ui/core';
 
 const GlassCard = styled(Box)`
   ${props => glassSurface({
@@ -465,8 +465,8 @@ const GlassCard = styled(Box)`
 
 ```jsx
 import { styled } from 'styled-components';
-import { accessibleAnimation } from '@veerone/galileo-glass-ui/animations';
-import { fadeIn } from "@veerone/galileo-glass-ui"/animations/keyframes';
+import { accessibleAnimation } from 'galileo-glass-ui/animations';
+import { fadeIn } from 'galileo-glass-ui/animations/keyframes';
 
 const AnimatedComponent = styled.div`
   ${props => accessibleAnimation({
@@ -486,8 +486,8 @@ const AnimatedComponent = styled.div`
 
 ```jsx
 import { styled } from 'styled-components';
-import { zSpaceLayer } from '@veerone/galileo-glass-ui/mixins';
-import { createThemeContext } from '@veerone/galileo-glass-ui/core';
+import { zSpaceLayer } from 'galileo-glass-ui/mixins';
+import { createThemeContext } from 'galileo-glass-ui/core';
 
 const OverlayComponent = styled.div`
   ${props => zSpaceLayer({
@@ -507,7 +507,7 @@ const OverlayComponent = styled.div`
 <br>
 
 ```jsx
-import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks';
+import { usePhysicsInteraction } from 'galileo-glass-ui/hooks';
 
 function MagneticButton() {
   const { ref, style, eventHandlers } = usePhysicsInteraction({

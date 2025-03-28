@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "Galileo Glass UI - Installation Script"
-echo "====================================="
+echo "Galileo Glass UI - Enhanced Installation Script"
+echo "=============================================="
 
 # Set environment to production for smoother installation
 export NODE_ENV=production
@@ -35,13 +35,4 @@ echo "Installation path: $(pwd)/dist"
 echo ""
 echo "To install in another project:"
 echo "  npm install $(pwd)/dist styled-components"
-echo ""
-
-echo ""
-echo "Installation completed successfully!"
-echo ""
-echo "Remember, the easiest way to install is using NPM:"
-echo "npm install @veerone/galileo-glass-ui styled-components"
-echo ""
-echo "This script is primarily for development and contributors."
 echo ""

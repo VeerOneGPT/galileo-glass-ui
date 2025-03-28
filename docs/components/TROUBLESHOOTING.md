@@ -4,9 +4,24 @@ This guide helps you troubleshoot common issues when working with Galileo Glass 
 
 ## Installation Issues
 
-### Installation Fails with Build Errors
+### Installation Fails with NPM
 
-**Problem**: The package build process fails during installation.
+**Problem**: You encounter errors when installing the NPM package.
+
+**Solution**:
+- Clear your npm cache and try again:
+  ```bash
+  npm cache clean --force
+  npm install @veerone/galileo-glass-ui styled-components
+  ```
+- Try using the `--legacy-peer-deps` flag:
+  ```bash
+  npm install @veerone/galileo-glass-ui styled-components --legacy-peer-deps
+  ```
+
+### Installation Fails with Build Errors (GitHub)
+
+**Problem**: The package build process fails during installation from GitHub.
 
 **Solution**:
 - Use the production environment flag to skip build:
@@ -16,6 +31,10 @@ This guide helps you troubleshoot common issues when working with Galileo Glass 
 - Alternatively, use our installation script:
   ```bash
   ./install.sh
+  ```
+- Or simply install from NPM instead:
+  ```bash
+  npm install @veerone/galileo-glass-ui styled-components
   ```
 
 ### ENOTEMPTY Errors with chart.js

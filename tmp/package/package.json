@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "type": "module",
   "main": "dist/index.js",
@@ -17,10 +17,6 @@
       "import": "./dist/index.esm.js",
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./minimal": {
-      "import": "./dist-min/minimal.esm.js",
-      "require": "./dist-min/minimal.js"
     },
     "./slim": {
       "import": "./dist/slim.esm.js",

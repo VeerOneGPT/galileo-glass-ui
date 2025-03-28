@@ -211,6 +211,9 @@ console.log(`
 To use the pre-built version locally:
    npm install ${path.resolve(__dirname, 'dist')} styled-components
 
+For NPM installation (recommended):
+   npm install @veerone/galileo-glass-ui styled-components
+
 For direct GitHub installation (after committing and pushing):
    npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 

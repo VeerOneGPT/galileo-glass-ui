@@ -8,25 +8,15 @@ The pre-built version is a special distribution of Galileo Glass UI that has alr
 
 ## Installation Options
 
-### Option 1: NPM Package (Recommended)
+### Option 1: Install from GitHub with Pre-built Tag (Recommended)
 
-The simplest way to install the pre-built Galileo Glass UI:
-
-```bash
-npm install @veerone/galileo-glass-ui styled-components
-```
-
-This is the official NPM package, pre-built and ready to use.
-
-### Option 2: Install from GitHub with Pre-built Tag (Development)
-
-If you need the development version from GitHub:
+This is the recommended approach for most users:
 
 ```bash
 npm install github:VeerOneGPT/galileo-glass-ui#prebuild styled-components
 ```
 
-### Option 3: Install with Production Flag
+### Option 2: Install with Production Flag
 
 If you need the latest version but want to avoid build issues:
 
@@ -34,7 +24,7 @@ If you need the latest version but want to avoid build issues:
 NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui styled-components
 ```
 
-### Option 4: Clone Repository and Use Install Script
+### Option 3: Clone Repository and Use Install Script
 
 For development or customization:
 

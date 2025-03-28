@@ -4,41 +4,9 @@
 
 Galileo Glass UI can be installed in several ways, depending on your needs and environment.
 
-### Method 1: NPM Package (Recommended)
+### Method 1: Using the install.sh Script (Recommended)
 
-The simplest and most reliable way to install Galileo Glass UI:
-
-```bash
-# Install from NPM
-npm install @veerone/galileo-glass-ui styled-components
-
-# For yarn
-yarn add @veerone/galileo-glass-ui styled-components
-
-# For pnpm
-pnpm add @veerone/galileo-glass-ui styled-components
-```
-
-This installs the pre-built package that's ready to use without any build steps.
-
-### Method 2: GitHub Installation (Development)
-
-If you need the latest development version from GitHub:
-
-```bash
-# For npm
-NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui styled-components
-
-# For yarn
-NODE_ENV=production yarn add github:VeerOneGPT/galileo-glass-ui styled-components
-
-# For pnpm 
-NODE_ENV=production pnpm add github:VeerOneGPT/galileo-glass-ui styled-components
-```
-
-### Method 3: Using the install.sh Script (For Contributors)
-
-When contributing to the project or needing a local development setup:
+The most reliable way to install Galileo Glass UI is to use the provided installation script:
 
 ```bash
 # Clone the repository
@@ -55,6 +23,38 @@ This script:
 - Sets the environment to production to skip build processes
 - Cleans up any problematic dependencies
 - Runs the npm installation with optimal settings
+
+### Method 2: Direct Installation with NODE_ENV
+
+You can also install directly with npm by setting the NODE_ENV:
+
+```bash
+# For npm
+NODE_ENV=production npm install github:VeerOneGPT/galileo-glass-ui styled-components
+
+# For yarn
+NODE_ENV=production yarn add github:VeerOneGPT/galileo-glass-ui styled-components
+
+# For pnpm 
+NODE_ENV=production pnpm add github:VeerOneGPT/galileo-glass-ui styled-components
+```
+
+### Method 3: Using Pre-built Version (Recommended for Production)
+
+For the most stable experience with no build step required, install from the pre-built version:
+
+```bash
+# Install the pre-built version
+npm install github:VeerOneGPT/galileo-glass-ui#prebuild
+
+# For yarn
+yarn add github:VeerOneGPT/galileo-glass-ui#prebuild
+
+# For pnpm
+pnpm add github:VeerOneGPT/galileo-glass-ui#prebuild
+```
+
+This version has been pre-compiled and is the most reliable for production use.
 
 ## Dependencies
 

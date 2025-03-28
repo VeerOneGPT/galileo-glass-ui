@@ -1,6 +1,34 @@
 # Galileo Glass UI Documentation
 
-Welcome to the comprehensive documentation for Galileo Glass UI, a complete glass morphism UI framework for React applications.
+Welcome to the Galileo Glass UI documentation. This guide will help you get started with using and customizing the library.
+
+## Installation
+
+The simplest way to install Galileo Glass UI is via NPM:
+
+```bash
+npm install @veerone/galileo-glass-ui styled-components
+```
+
+For detailed installation instructions, see the [Installation Guide](./installation/INSTALLATION.md).
+
+## Quick Start
+
+```jsx
+import React from 'react';
+import { ThemeProvider, Button, Card } from '@veerone/galileo-glass-ui';
+
+function App() {
+  return (
+    <ThemeProvider>
+      <Card glass>
+        <h2>Hello Galileo Glass!</h2>
+        <Button variant="contained" glass>Click me</Button>
+      </Card>
+    </ThemeProvider>
+  );
+}
+```
 
 ## Core Framework
 

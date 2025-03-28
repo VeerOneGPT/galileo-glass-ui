@@ -20,6 +20,21 @@ Thank you for considering contributing to Galileo Glass UI! This document outlin
 5. Push to your fork: `git push origin feature/your-feature-name`
 6. Submit a pull request
 
+### Testing Your Changes
+
+You can test your changes locally by installing the package directly from your local directory:
+
+```bash
+# From another project
+npm install /path/to/your/galileo-glass-ui styled-components
+```
+
+For testing with the official release, install from NPM:
+
+```bash
+npm install @veerone/galileo-glass-ui styled-components
+```
+
 ## Code Quality Tools
 
 We've implemented several tools to maintain high code quality:

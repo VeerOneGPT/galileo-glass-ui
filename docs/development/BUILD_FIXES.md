@@ -44,6 +44,15 @@ This document summarizes the changes made to resolve the build and installation 
   - Provided configuration guidance for styled-components with Next.js
   - Enhanced peer dependency declarations
 
+### 6. NPM Package Publishing
+
+- **Problem**: Installation required GitHub-specific instructions and tags
+- **Fix**:
+  - Published package to NPM as `@veerone/galileo-glass-ui`
+  - Simplified installation process to `npm install @veerone/galileo-glass-ui styled-components`
+  - Updated documentation to prioritize NPM installation
+  - Maintained GitHub installation options for development workflows
+
 ## Technical Details
 
 ### Component Architecture Changes
