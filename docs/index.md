@@ -82,7 +82,7 @@ function App() {
 
 ## Component Library
 
-The Galileo Glass UI library includes over 40 components across the following categories:
+The Galileo Glass UI library includes 75+ components across the following categories:
 
 - **Layout Components**: Box, Container, Grid, Stack, Paper, Divider, PageGlassContainer
 - **Typography Components**: Typography, Link
@@ -97,7 +97,7 @@ For a complete component reference, see the [Framework Guide](./core/framework-g
 
 ## Key Features
 
-- **Premium Glass Components**: 40+ pure styled-components based UI components
+- **Premium Glass Components**: 75+ UI components including 48 specialized Glass components
 - **Enhanced Z-Space System**: Meaningful depth and layout hierarchy
 - **Physics-Based Animations**: Natural motion with spring animations and path physics
 - **Atmospheric Environments**: Dynamic backgrounds and contextual adaptations

@@ -30,6 +30,11 @@ export interface GlassSurfaceOptions {
   borderOpacity?: 'none' | 'subtle' | 'light' | 'medium' | 'strong' | number;
 
   /**
+   * Tint color for the glass surface
+   */
+  tintColor?: string;
+
+  /**
    * Theme context
    */
   themeContext?: any;
@@ -44,6 +49,7 @@ export const glassSurface = (options: GlassSurfaceOptions) => {
     blurStrength = 'standard',
     backgroundOpacity = 'medium',
     borderOpacity = 'subtle',
+    tintColor,
     themeContext,
   } = options;
 
@@ -105,9 +111,7 @@ export const glassSurface = (options: GlassSurfaceOptions) => {
 
   // Build the CSS
   return cssWithKebabProps`
-    background-color: ${
-      isDarkMode ? `rgba(15, 23, 42, ${bgOpacity})` : `rgba(255, 255, 255, ${bgOpacity})`
-    };
+    background-color: ${tintColor || (isDarkMode ? `rgba(15, 23, 42, ${bgOpacity})` : `rgba(255, 255, 255, ${bgOpacity})`)};
     backdrop-filter: blur(${blurValue});
     -webkit-backdrop-filter: blur(${blurValue});
     border: 1px solid ${

@@ -96,11 +96,18 @@ const baseExternal = [
   '@mui/material',
   'color',
   'csstype',
+  'date-fns',
   'framer-motion',
   'polished',
   'popmotion',
   'react-spring',
-  'react-window'
+  'react-window',
+  'react-intersection-observer',
+  'resize-observer-polyfill',
+  'scheduler',
+  'use-resize-observer',
+  'tiny-invariant',
+  'zustand'
 ];
 
 // Create config for each entry point
@@ -188,6 +195,35 @@ const entryPoints = [
       esm: 'dist/components/Charts.esm.js'
     }
   },
+  // New 1.0.3 components
+  {
+    input: 'src/components/MultiSelect/index.ts',
+    output: {
+      cjs: 'dist/components/MultiSelect.js',
+      esm: 'dist/components/MultiSelect.esm.js'
+    }
+  },
+  {
+    input: 'src/components/DateRangePicker/index.ts',
+    output: {
+      cjs: 'dist/components/DateRangePicker.js',
+      esm: 'dist/components/DateRangePicker.esm.js'
+    }
+  },
+  {
+    input: 'src/components/Masonry/index.ts',
+    output: {
+      cjs: 'dist/components/Masonry.js',
+      esm: 'dist/components/Masonry.esm.js'
+    }
+  },
+  {
+    input: 'src/components/Timeline/index.ts',
+    output: {
+      cjs: 'dist/components/Timeline.js',
+      esm: 'dist/components/Timeline.esm.js'
+    }
+  },
   {
     input: 'src/hooks/index.ts',
     output: {
@@ -237,13 +273,20 @@ const dtsExternal = [
   '../../styled',
   'chart.js',
   'react-chartjs-2',
+  'date-fns',
   'framer-motion', 
   'popmotion',
   'react-spring',
   'react-window',
+  'react-intersection-observer',
+  'resize-observer-polyfill',
+  'scheduler',
+  'use-resize-observer',
   'color',
   'csstype',
-  'polished'
+  'polished',
+  'tiny-invariant',
+  'zustand'
 ];
 
 // Create TypeScript definition configs with improved path handling
@@ -293,6 +336,31 @@ const dtsConfigs = [
   {
     input: 'dist/dts/components/Charts/index.d.ts',
     output: [{ file: 'dist/components/Charts.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  // New 1.0.3 component types
+  {
+    input: 'dist/dts/components/MultiSelect/index.d.ts',
+    output: [{ file: 'dist/components/MultiSelect.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  {
+    input: 'dist/dts/components/DateRangePicker/index.d.ts',
+    output: [{ file: 'dist/components/DateRangePicker.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  {
+    input: 'dist/dts/components/Masonry/index.d.ts',
+    output: [{ file: 'dist/components/Masonry.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  {
+    input: 'dist/dts/components/Timeline/index.d.ts',
+    output: [{ file: 'dist/components/Timeline.d.ts', format: 'es' }],
     plugins: [createDtsPlugin()],
     external: dtsExternal
   },

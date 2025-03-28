@@ -14,7 +14,7 @@ Galileo Glass is a React-based UI framework that implements glass morphism desig
 
 ### Key Features
 
-- **Premium Glass Components**: 40+ pure styled-components based UI components  
+- **Premium Glass Components**: 75+ UI components including 48 specialized Glass components  
 - **Enhanced Z-Space System**: Meaningful depth and layout hierarchy  
 - **Physics-Based Animations**: Natural motion with spring animations and path physics  
 - **Atmospheric Environments**: Dynamic backgrounds and contextual adaptations  

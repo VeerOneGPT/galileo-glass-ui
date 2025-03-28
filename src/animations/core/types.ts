@@ -40,6 +40,8 @@ export enum AnimationIntensity {
   STRONG = 'strong',
   HIGH = 'high',
   EXPRESSIVE = 'expressive',
+  PRONOUNCED = 'pronounced',
+  DRAMATIC = 'dramatic'
 }
 
 /**

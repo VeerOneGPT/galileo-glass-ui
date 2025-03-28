@@ -13,3 +13,5 @@ export * from './deviceCapabilities';
 export * from './performance';
 export * from './elementTypes';
 export * from './themeHelpers';
+export * from './fallback/strategies';
+export { default as withFallbackStrategies } from './fallback/withFallbackStrategies';

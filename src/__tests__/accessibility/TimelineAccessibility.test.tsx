@@ -12,8 +12,18 @@ import { ThemeProvider } from '../../theme';
 // Import type only to avoid naming collisions
 import type { TimelineItem as TimelineItemType } from '../../components/Timeline/types';
 
+// Define interface for mock timeline props
+interface MockTimelineProps {
+  items: TimelineItemType[];
+  onItemSelect?: (item: TimelineItemType) => void;
+  animation?: string;
+  ariaLabel?: string;
+  color?: string;
+  [key: string]: any; // Allow other props
+}
+
 // Mock GlassTimeline component with accessibility features
-const MockGlassTimeline = (props) => {
+const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
   const { items, onItemSelect, animation, ariaLabel, color } = props;
   
   return (
@@ -33,7 +43,7 @@ const MockGlassTimeline = (props) => {
             aria-labelledby={`title-${item.id}`}
             style={{ color: color === 'primary' ? 'rgba(255, 255, 255, 0.9)' : 'inherit' }}
             onClick={() => onItemSelect && onItemSelect(item)}
-            onKeyDown={(e) => {
+            onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 onItemSelect && onItemSelect(item);
               }
@@ -159,21 +169,21 @@ describe('GlassTimeline Accessibility', () => {
     );
     
     // Focus on the first timeline item
-    const firstItem = screen.getByText('Event 1').closest('[data-testid="timeline-item"]');
+    const firstItem = screen.getByText('Event 1').closest('[data-testid="timeline-item"]') as HTMLElement;
     firstItem.focus();
     
     // Verify it can be focused
-    expect(document.activeElement).toBe(firstItem);
+    expect(document.activeElement).toBe(firstItem as Element);
     
     // Press Enter to select
-    fireEvent.keyDown(document.activeElement, { key: 'Enter', code: 'Enter' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Enter', code: 'Enter' });
     expect(onItemSelect).toHaveBeenCalledWith(expect.objectContaining({
       id: '1',
       title: 'Event 1'
     }));
     
     // Test arrow key navigation (depends on implementation)
-    fireEvent.keyDown(document.activeElement, { key: 'ArrowDown', code: 'ArrowDown' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'ArrowDown', code: 'ArrowDown' });
     // Next item should get focus - implementation dependent
   });
   
@@ -246,7 +256,7 @@ describe('GlassTimeline Accessibility', () => {
     );
     
     // Items should be clickable
-    const firstItem = screen.getByText('Event 1').closest('[data-testid="timeline-item"]');
+    const firstItem = screen.getByText('Event 1').closest('[data-testid="timeline-item"]') as HTMLElement;
     fireEvent.click(firstItem);
     expect(onItemSelect).toHaveBeenCalled();
     
@@ -255,7 +265,7 @@ describe('GlassTimeline Accessibility', () => {
     expect(document.activeElement).toBe(firstItem);
     
     // Press Tab to move to next focusable element
-    fireEvent.keyDown(document.activeElement, { key: 'Tab', code: 'Tab' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Tab', code: 'Tab' });
     // Next focusable element should get focus - implementation dependent
   });
 });

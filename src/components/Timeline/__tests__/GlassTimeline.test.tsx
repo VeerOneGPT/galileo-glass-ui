@@ -12,17 +12,49 @@ import { ThemeProvider } from '../../../theme';
 import { TimelineItem } from '../types';
 import { parseDate } from '../TimelineUtils';
 
+// Define prop types for styled components
+interface MockContainerProps {
+  $orientation?: 'vertical' | 'horizontal';
+  $glassVariant?: string;
+}
+
+// Define simplified TimelineProps for mocking
+interface MockTimelineProps {
+  items: TimelineItem[];
+  orientation?: 'vertical' | 'horizontal';
+  markerPosition?: 'left' | 'right' | 'center' | 'alternate';
+  glassVariant?: string;
+  blurStrength?: string;
+  onItemClick?: (item: TimelineItem) => void;
+  showAxis?: boolean;
+  animation?: string;
+  filter?: { categories?: string[] };
+  renderContent?: (item: TimelineItem) => React.ReactNode;
+  groupByDate?: boolean;
+  groupThreshold?: number;
+  zoomLevel?: string;
+  zoomLevels?: string[];
+  allowWheelZoom?: boolean;
+  animateOnMount?: boolean;
+  physics?: { preset?: string };
+  markers?: { show?: boolean; showNow?: boolean };
+  [key: string]: any; // Allow other props
+}
+
 // Mock before importing
 jest.mock('../GlassTimeline', () => {
+  // Use TypeScript's import syntax for styled-components
   const styled = require('styled-components').default;
 
-  const MockTimelineContainer = styled.div`
+  // Define styled component with proper typing
+  const MockTimelineContainer = styled.div<MockContainerProps>`
     flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
     ${props => props.$glassVariant && `backdrop-filter: blur(8px);`}
   `;
 
   return {
-    GlassTimeline: (props) => {
+    // Use TypeScript arrow function with proper typing
+    GlassTimeline: (props: MockTimelineProps): JSX.Element => {
       const { 
         items, 
         orientation, 
@@ -35,7 +67,7 @@ jest.mock('../GlassTimeline', () => {
         renderContent 
       } = props;
       
-      // Filter items if a filter is provided
+      // Filter items if a filter is provided 
       const displayItems = filter?.categories 
         ? items.filter(item => filter.categories.includes(item.category || ''))
         : items;

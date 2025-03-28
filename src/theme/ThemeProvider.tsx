@@ -34,9 +34,13 @@ interface ColorModeContextType {
 
 const ColorModeContext = createContext<ColorModeContextType>({
   colorMode: 'system',
-  setColorMode: () => {},
+  setColorMode: (mode: ColorMode) => {
+    console.warn('setColorMode was called before ThemeProvider was initialized');
+  },
   isDarkMode: false,
-  toggleColorMode: () => {},
+  toggleColorMode: () => {
+    console.warn('toggleColorMode was called before ThemeProvider was initialized');
+  },
   systemPrefersDark: false,
 });
 
@@ -49,7 +53,9 @@ interface ThemeVariantContextType {
 
 const ThemeVariantContext = createContext<ThemeVariantContextType>({
   themeVariant: THEME_VARIANTS.STANDARD,
-  setThemeVariant: () => {},
+  setThemeVariant: (variant: string) => {
+    console.warn('setThemeVariant was called before ThemeProvider was initialized');
+  },
   availableThemes: Object.values(THEME_VARIANTS),
 });
 
@@ -87,7 +93,9 @@ interface GlassEffectsContextType {
 
 const GlassEffectsContext = createContext<GlassEffectsContextType>({
   qualityTier: 'high',
-  setQualityTier: () => {},
+  setQualityTier: (tier: 'ultra' | 'high' | 'medium' | 'low' | 'minimal') => {
+    console.warn('setQualityTier was called before ThemeProvider was initialized');
+  },
   getBlurStrength: () => '',
   getBackgroundOpacity: () => 0,
   getBorderOpacity: () => 0,
@@ -109,7 +117,9 @@ const PreferencesContext = createContext<PreferencesContextType>({
   reducedMotion: false,
   reducedTransparency: false,
   highContrastMode: false,
-  setPreference: () => {},
+  setPreference: (key: string, value: boolean) => {
+    console.warn('setPreference was called before ThemeProvider was initialized');
+  },
   getUserPreference: () => false,
 });
 

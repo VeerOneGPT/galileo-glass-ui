@@ -6,6 +6,7 @@
 import { css, FlattenSimpleInterpolation, Keyframes } from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationSpeed } from '../../hooks/useAnimationSpeed';
 import { presets } from '../presets';
 import { AnimationPreset, AccessibleAnimationOptions } from '../types';
 
@@ -13,9 +14,11 @@ import { animationMapper } from './AnimationMapper';
 import {
   MotionSensitivityLevel,
   AnimationComplexity,
+  AnimationCategory,
   getMotionSensitivity,
   getAdjustedAnimation,
 } from './MotionSensitivity';
+import { getSpeedController, applyAnimationSpeedAdjustment } from './AnimationSpeedController';
 
 /**
  * Options for accessible animations - local type that extends the global one
@@ -171,6 +174,9 @@ export const useAccessibleAnimation = (
   options?: AnimOptionsWithLocalProps
 ): FlattenSimpleInterpolation => {
   const prefersReducedMotion = useReducedMotion();
+  
+  // Get animation category for speed adjustments
+  const category = options?.category as AnimationCategory | undefined;
 
   // If reduced motion is preferred, check for alternatives
   if (prefersReducedMotion) {
@@ -184,16 +190,30 @@ export const useAccessibleAnimation = (
     // Use sensitivity if provided, otherwise motionSensitivity, or default to MEDIUM
     const _sensitivityLevel = sensitivity || motionSensitivity || MotionSensitivityLevel.MEDIUM;
 
-    // Use medium sensitivity for reduced motion preference
-    return accessibleAnimation(animation, {
+    // Create accessible animation with medium sensitivity for reduced motion preference
+    const baseAnimation = accessibleAnimation(animation, {
       ...restOptions,
-      complexity,
-      motionSensitivity: MotionSensitivityLevel.MEDIUM,
+      complexity: complexity as any,
+      motionSensitivity: MotionSensitivityLevel.MEDIUM as any,
     });
+    
+    // Apply animation speed adjustment
+    const duration = typeof restOptions.duration === 'number' 
+      ? restOptions.duration 
+      : 300;
+      
+    return applyAnimationSpeedAdjustment(baseAnimation, duration, category);
   }
 
-  // Otherwise use normal animation with provided options
-  return accessibleAnimation(animation, options);
+  // Otherwise use normal animation with provided options, but still apply speed adjustment
+  const baseAnimation = accessibleAnimation(animation, options);
+  
+  // Apply animation speed adjustment
+  const duration = typeof options?.duration === 'number' 
+    ? options.duration 
+    : 300;
+    
+  return applyAnimationSpeedAdjustment(baseAnimation, duration, category);
 };
 
 /**
@@ -212,7 +232,8 @@ export const conditionalAnimation = (
     return css``;
   }
 
-  return accessibleAnimation(animation, options);
+  // Use useAccessibleAnimation to get animation with speed adjustment
+  return useAccessibleAnimation(animation, options);
 };
 
 /**
@@ -258,8 +279,12 @@ export const getAccessibleKeyframes = (
       }
 
       // Check if this preset's keyframes name matches
-      if (preset.keyframes && preset.keyframes.name === animationName) {
-        return preset.keyframes;
+      if (preset.keyframes && 
+          typeof preset.keyframes === 'object' && 
+          'name' in preset.keyframes && 
+          preset.keyframes.name === animationName) {
+        // Force cast to Keyframes type to satisfy the interface requirements
+        return preset.keyframes as any;
       }
     }
 
@@ -271,7 +296,9 @@ export const getAccessibleKeyframes = (
   ) {
     return mapped.animation.keyframes;
   } else {
-    // If it's already a Keyframes object
-    return mapped.animation as unknown as Keyframes;
+    // If it's already a Keyframes object or needs to be cast as one
+    return (mapped.animation && typeof mapped.animation === 'object') 
+      ? (mapped.animation as any) 
+      : null;
   }
 };

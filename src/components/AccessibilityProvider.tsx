@@ -114,16 +114,32 @@ const DEFAULT_OPTIONS: AccessibilityOptions = {
 /**
  * Create context with default value
  */
-const AccessibilityContext = createContext<AccessibilityContextValue>({
+export const AccessibilityContext = createContext<AccessibilityContextValue>({
   ...DEFAULT_OPTIONS,
-  setReducedMotion: () => {},
-  setHighContrast: () => {},
-  setReduceTransparency: () => {},
-  setDisableAnimations: () => {},
-  setFontScale: () => {},
-  setEnhancedFocus: () => {},
-  setScreenReaderSupport: () => {},
-  setKeyboardNavigation: () => {},
+  setReducedMotion: (value: boolean) => {
+    console.warn('setReducedMotion was called before AccessibilityProvider was initialized');
+  },
+  setHighContrast: (value: boolean) => {
+    console.warn('setHighContrast was called before AccessibilityProvider was initialized');
+  },
+  setReduceTransparency: (value: boolean) => {
+    console.warn('setReduceTransparency was called before AccessibilityProvider was initialized');
+  },
+  setDisableAnimations: (value: boolean) => {
+    console.warn('setDisableAnimations was called before AccessibilityProvider was initialized');
+  },
+  setFontScale: (value: number) => {
+    console.warn('setFontScale was called before AccessibilityProvider was initialized');
+  },
+  setEnhancedFocus: (value: boolean) => {
+    console.warn('setEnhancedFocus was called before AccessibilityProvider was initialized');
+  },
+  setScreenReaderSupport: (value: boolean) => {
+    console.warn('setScreenReaderSupport was called before AccessibilityProvider was initialized');
+  },
+  setKeyboardNavigation: (value: boolean) => {
+    console.warn('setKeyboardNavigation was called before AccessibilityProvider was initialized');
+  },
 });
 
 /**

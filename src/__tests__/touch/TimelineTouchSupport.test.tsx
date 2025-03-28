@@ -11,8 +11,23 @@ import { ThemeProvider } from '../../theme';
 // Import type only to avoid collision
 import type { TimelineItem as TimelineItemType } from '../../components/Timeline/types';
 
+// Define interface for mock timeline props
+interface MockTimelineProps {
+  items: TimelineItemType[];
+  onItemClick?: (item: TimelineItemType) => void;
+  orientation?: 'vertical' | 'horizontal';
+  navigation?: string;
+  enableGestures?: boolean;
+  onNavigate?: (date: Date) => void;
+  zoomLevel?: string;
+  allowWheelZoom?: boolean;
+  onZoomChange?: (level: string) => void;
+  zoomLevels?: string[];
+  [key: string]: any; // Allow other props
+}
+
 // Create mock GlassTimeline to avoid import issues
-const MockGlassTimeline = (props) => {
+const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
   const { 
     items, 
     onItemClick,
@@ -28,7 +43,7 @@ const MockGlassTimeline = (props) => {
   } = props;
 
   // Handle touch events to call the provided callbacks
-  const handleTouch = (e) => {
+  const handleTouch = (e: React.TouchEvent): void => {
     if (e.type === 'touchend' && onItemClick) {
       const item = items.find(item => item.id === '1');
       if (item) onItemClick(item);
@@ -80,26 +95,26 @@ const fireEvent = {
   ...rtlFireEvent,
   touchStart: (element: Element, options: { touches: TouchPoint[], changedTouches: TouchPoint[] }): boolean => {
     const touchStartEvent = new Event('touchstart', { bubbles: true }) as any;
-    touchStartEvent.touches = options.touches;
-    touchStartEvent.changedTouches = options.changedTouches;
+    touchStartEvent.touches = options.touches as unknown as TouchList;
+    touchStartEvent.changedTouches = options.changedTouches as unknown as TouchList;
     return rtlFireEvent(element, touchStartEvent);
   },
   touchMove: (element: Element, options: { touches: TouchPoint[], changedTouches: TouchPoint[] }): boolean => {
     const touchMoveEvent = new Event('touchmove', { bubbles: true }) as any;
-    touchMoveEvent.touches = options.touches;
-    touchMoveEvent.changedTouches = options.changedTouches;
+    touchMoveEvent.touches = options.touches as unknown as TouchList;
+    touchMoveEvent.changedTouches = options.changedTouches as unknown as TouchList;
     return rtlFireEvent(element, touchMoveEvent);
   },
   touchEnd: (element: Element, options: { touches?: TouchPoint[], changedTouches: TouchPoint[] }): boolean => {
     const touchEndEvent = new Event('touchend', { bubbles: true }) as any;
-    touchEndEvent.touches = options.touches || [];
-    touchEndEvent.changedTouches = options.changedTouches;
+    touchEndEvent.touches = (options.touches || []) as unknown as TouchList;
+    touchEndEvent.changedTouches = options.changedTouches as unknown as TouchList;
     return rtlFireEvent(element, touchEndEvent);
   },
   touchCancel: (element: Element, options?: { touches?: TouchPoint[], changedTouches?: TouchPoint[] }): boolean => {
     const touchCancelEvent = new Event('touchcancel', { bubbles: true }) as any;
-    touchCancelEvent.touches = options?.touches || [];
-    touchCancelEvent.changedTouches = options?.changedTouches || [];
+    touchCancelEvent.touches = (options?.touches || []) as unknown as TouchList;
+    touchCancelEvent.changedTouches = (options?.changedTouches || []) as unknown as TouchList;
     return rtlFireEvent(element, touchCancelEvent);
   }
 };

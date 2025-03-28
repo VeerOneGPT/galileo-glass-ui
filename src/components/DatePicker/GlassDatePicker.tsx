@@ -53,17 +53,17 @@ interface DatePickerProps {
  */
 export const GlassDatePicker: React.FC<DatePickerProps> = ({
   initialDate,
-  onChange,
+    onChange,
   disabled = false,
-  placeholder = 'Select date',
+    placeholder = 'Select date',
   className = '',
   label = 'Date',
   dateFormat = 'MM/DD/YYYY',
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || null);
   const [displayValue, setDisplayValue] = useState('');
-  const pickerRef = useRef<HTMLDivElement>(null);
+    const pickerRef = useRef<HTMLDivElement>(null);
   
   // Get theme utilities
   const theme = useTheme();
@@ -93,9 +93,9 @@ export const GlassDatePicker: React.FC<DatePickerProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  
-  // Handle date selection
-  const handleDateSelect = (date: Date) => {
+    
+    // Handle date selection
+    const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setIsOpen(false);
     if (onChange) {
@@ -170,7 +170,7 @@ export const GlassDatePicker: React.FC<DatePickerProps> = ({
     return days;
   };
   
-  return (
+    return (
     <DatePickerContainer ref={pickerRef} className={className}>
       {label && <DatePickerLabel>{label}</DatePickerLabel>}
       
@@ -221,8 +221,8 @@ export const GlassDatePicker: React.FC<DatePickerProps> = ({
           </GlassSurface>
         </CalendarContainer>
       )}
-    </DatePickerContainer>
-  );
+      </DatePickerContainer>
+    );
 };
 
 // Styled components

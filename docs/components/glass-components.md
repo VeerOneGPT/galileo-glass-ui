@@ -2,6 +2,169 @@
 
 The Glass UI design system provides a collection of components with glass morphism styling for creating modern, elegant UIs.
 
+## New in 1.0.3: Advanced Physics-Based Components
+
+Version 1.0.3 introduces several new physics-based components that enhance the user experience with natural motion and interactions:
+
+### GlassTimeline Component
+
+The GlassTimeline component provides a sophisticated way to display chronological data with physics-based animations.
+
+```tsx
+import { GlassTimeline } from 'galileo-glass-ui';
+
+// Sample timeline data
+const timelineItems = [
+  {
+    id: '1',
+    date: '2023-01-15',
+    title: 'Project Launch',
+    content: 'Initial project kickoff meeting',
+    category: 'milestone',
+    icon: '🚀'
+  },
+  {
+    id: '2',
+    date: '2023-02-10',
+    title: 'Phase 1 Complete',
+    content: 'Successfully completed first development phase',
+    category: 'milestone',
+    icon: '✅'
+  }
+];
+
+// Basic implementation
+function MyTimeline() {
+  return (
+    <GlassTimeline
+      items={timelineItems}
+      orientation="vertical"
+      markerPosition="alternate"
+      zoomLevel="months"
+      animation="spring"
+      glassVariant="frosted"
+    />
+  );
+}
+```
+
+### GlassMasonry Component
+
+The GlassMasonry component provides a physics-based masonry layout for arranging content in a visually appealing grid.
+
+```tsx
+import { GlassMasonry } from 'galileo-glass-ui';
+
+// Sample masonry items
+const masonryItems = [
+  {
+    id: 'item-1',
+    height: 200,
+    width: 300,
+    data: {
+      title: 'Item 1',
+      description: 'This is item 1',
+      src: 'https://example.com/image1.jpg'
+    }
+  },
+  // More items...
+];
+
+// Basic implementation
+function MyMasonry() {
+  return (
+    <GlassMasonry
+      items={masonryItems}
+      columns={{
+        xs: 1,
+        sm: 2,
+        md: 3,
+        lg: 4
+      }}
+      placementAlgorithm="balanced"
+      itemAnimation="spring"
+      physics={{
+        preset: "default",
+        staggerDelay: 50
+      }}
+      glassVariant="frosted"
+    >
+      {(item) => (
+        <div>
+          <img src={item.data.src} alt={item.data.title} />
+          <h3>{item.data.title}</h3>
+          <p>{item.data.description}</p>
+        </div>
+      )}
+    </GlassMasonry>
+  );
+}
+```
+
+### GlassMultiSelect Component
+
+The GlassMultiSelect component provides a token-based multi-select with physics animations.
+
+```tsx
+import { GlassMultiSelect } from 'galileo-glass-ui';
+
+// Sample options
+const options = [
+  { value: 'react', label: 'React', category: 'frontend' },
+  { value: 'vue', label: 'Vue', category: 'frontend' },
+  { value: 'angular', label: 'Angular', category: 'frontend' },
+  { value: 'node', label: 'Node.js', category: 'backend' },
+  { value: 'express', label: 'Express', category: 'backend' }
+];
+
+// Basic implementation
+function MyMultiSelect() {
+  const [selected, setSelected] = useState([]);
+  
+  return (
+    <GlassMultiSelect
+      options={options}
+      value={selected}
+      onChange={setSelected}
+      label="Select Frameworks"
+      placeholder="Choose frameworks..."
+      animation="spring"
+      physics={{ preset: "bouncy" }}
+      glassVariant="frosted"
+    />
+  );
+}
+```
+
+### GlassDateRangePicker Component
+
+The GlassDateRangePicker component provides a date range picker with comparison mode and presets.
+
+```tsx
+import { GlassDateRangePicker } from 'galileo-glass-ui';
+
+// Basic implementation
+function MyDateRangePicker() {
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+  });
+  
+  return (
+    <GlassDateRangePicker
+      value={dateRange}
+      onChange={setDateRange}
+      label="Select Date Range"
+      presets={true}
+      comparisonMode={true}
+      animation="spring"
+      physics={{ preset: "gentle" }}
+      glassVariant="frosted"
+    />
+  );
+}
+```
+
 ## Using GlassSurfacePropTypes
 
 All Glass components share common styling props defined in `GlassSurfaceProps`. To ensure consistency and proper validation, we export `GlassSurfacePropTypes` from the ThemeProvider.

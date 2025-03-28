@@ -143,8 +143,23 @@ export {
 // Z-Space animations
 export { ZSpaceAnimator, useZSpaceAnimation, type ZSpaceAnimationOptions } from './dimensional';
 
+// Animation renderers
+export {
+  WaapiRenderer,
+  WaapiRendererExample,
+  type AnimationRenderer,
+  type AnimationOptions,
+  type KeyframeEffect,
+  type AnimationTarget,
+  type AnimationPerformanceMetrics,
+  type AnimationRendererFactory
+} from './renderers';
+
 // Performance optimizations
 export {
+  // GPU Acceleration
+  AnimationComplexity as AnimationPerformanceComplexity,
+  gpuAccelerationManager,
   isGPUAccelerationAvailable,
   getGPUAccelerationCSS,
   getOptimizedGPUAcceleration,
@@ -152,8 +167,39 @@ export {
   optimizeKeyframes,
   isGPUAcceleratedProperty,
   createGPUAcceleratedClass,
+  useGPUAcceleration,
+  analyzeElementComplexity,
+  getGPUFeatures,
+  detectGPUFeatures,
   type GPUAccelerationOptions,
+  type GPUAccelerationProperties,
+  type ElementAccelerationState,
+  // DOM Batching
+  domBatcher,
+  DomBatcher,
+  DomOperationType,
+  BatchPriority,
+  type DomTask,
+  type DomBatch,
+  type DomBatcherOptions,
+  // Transform Consolidation
+  transformConsolidator,
+  TransformConsolidator,
+  TransformType,
+  type TransformOptions,
+  type TransformOperation,
+  type ElementTransformState,
+  // Examples
+  DomBatcherExample,
+  TransformConsolidatorExample,
+  GPUAccelerationExample,
 } from './performance';
 
+// Unified Physics API (including renderers)
+export {
+  GalileoPhysics,
+  default as Physics
+} from './physics/unifiedPhysicsAPI';
+
 // Version
-export const animationsVersion = '1.2.0';
+export const animationsVersion = '1.3.0';

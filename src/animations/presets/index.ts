@@ -7,32 +7,20 @@
 // Export UI-specific animations
 export * from './ui';
 
-// Combine all presets for easier access
-import {
-  animationPresets,
-  animationTimings,
-  animationEasings,
-  AnimationIntensity,
-  useAccessibleAnimation,
-  getAccessibleAnimation,
-} from './accessibleAnimations';
-import { uiAnimations } from './ui';
+// Export animation preset categories
+export * from './accessibleAnimations';
+export * from './physicsAnimations';
+export * from './orchestrationAnimations';
+export * from './gestureAnimations';
 
-// Re-export animation elements
-export { animationTimings, animationEasings, AnimationIntensity };
+// Export unified animation presets library
+export * from './animationPresets';
 
-// Combined presets object
-export const presets = {
-  ...animationPresets,
-  ...uiAnimations,
+// Import main presets library
+import allAnimationPresets from './animationPresets';
 
-  // Categorized access
-  timings: animationTimings,
-  easings: animationEasings,
-  intensity: AnimationIntensity,
-  basic: animationPresets,
-  ui: uiAnimations,
-};
+// Export allAnimationPresets as presets for backward compatibility
+export { allAnimationPresets as presets };
 
-// Export utilities
-export { useAccessibleAnimation, getAccessibleAnimation };
+// Export the unified presets library as default
+export default allAnimationPresets;

@@ -16,7 +16,7 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 ## 🌟 Features
 
 - **Glass Morphism Styling**: Create beautiful glass-like UI elements with blur effects, transparency, and lighting
-- **Comprehensive Component Library**: Over 40 UI components with glass styling options
+- **Comprehensive Component Library**: 75+ UI components including 48 specialized Glass components with glass morphism styling options
 - **Physics-Based Animations**: Natural animations using spring physics, particle systems, and magnetic effects
 - **Accessibility-First Design**: Includes reduced motion support, high contrast mode, and keyboard navigation
 - **Performance Optimized**: Adapts to device capabilities for smooth performance on all devices
@@ -325,11 +325,14 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Select</li>
           <li>Slider</li>
           <li>Autocomplete</li>
-          <li>DatePicker (Icon Agnostic)</li>
+          <li>DatePicker</li>
           <li>TagInput</li>
-          <li>Form Components</li>
           <li>ToggleButton</li>
           <li>Rating</li>
+          <li>FormControl</li>
+          <li>FormGroup</li>
+          <li>FormLabel</li>
+          <li>FormHelperText</li>
         </ul>
       </td>
       <td>
@@ -341,7 +344,11 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>SpeedDial</li>
           <li>TreeView</li>
           <li>Breadcrumbs</li>
+          <li>Menu</li>
+          <li>MenuItem</li>
+          <li>Toolbar</li>
           <li>GlassNavigation</li>
+          <li>GlassTabBar</li>
           <li>ResponsiveNavigation</li>
           <li>PageTransition</li>
           <li>ZSpaceAppLayout</li>
@@ -359,13 +366,17 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
         <ul>
           <li>Alert</li>
           <li>Progress</li>
+          <li>Dialog</li>
           <li>Snackbar</li>
           <li>Loader</li>
+          <li>Skeleton</li>
           <li>VisualFeedback</li>
           <li>RippleButton</li>
           <li>FocusIndicator</li>
           <li>StateIndicator</li>
           <li>CookieConsent</li>
+          <li>GlobalCookieConsent</li>
+          <li>CompactCookieNotice</li>
         </ul>
       </td>
       <td>
@@ -377,6 +388,8 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Avatar</li>
           <li>Badge</li>
           <li>ImageList</li>
+          <li>ImageListItem</li>
+          <li>ImageListItemBar</li>
           <li>KpiCard</li>
           <li>PerformanceMetricCard</li>
           <li>InteractiveKpiCard</li>
@@ -390,11 +403,15 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Tooltip</li>
           <li>Icon</li>
           <li>Fab</li>
-          <li>ThemeComponents</li>
+          <li>GlassThemeSwitcher</li>
+          <li>GlassThemeDemo</li>
+          <li>ThemedGlassComponents</li>
           <li>PerformanceMonitor</li>
           <li>OptimizedGlassContainer</li>
           <li>DynamicAtmosphere</li>
           <li>GlassLocalizationProvider</li>
+          <li>AccessibilityProvider</li>
+          <li>AccessibilitySettings</li>
         </ul>
       </td>
       <td>
@@ -404,6 +421,11 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>AreaChart</li>
           <li>PieChart</li>
           <li>GlassChart</li>
+          <li>GlassDataChart</li>
+          <li>GlassTooltip</li>
+          <li>EnhancedGlassTabs</li>
+          <li>SafeChartRenderer</li>
+          <li>SimpleChart</li>
           <li>DimensionalGlass</li>
           <li>HeatGlass</li>
           <li>FrostedGlass</li>

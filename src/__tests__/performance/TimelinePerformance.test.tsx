@@ -12,8 +12,20 @@ import { ThemeProvider } from '../../theme';
 // Import type only to avoid collision
 import type { TimelineItem as TimelineItemType } from '../../components/Timeline/types';
 
+// Define interface for mock timeline props
+interface MockTimelineProps {
+  items: TimelineItemType[];
+  animation?: string;
+  animateOnMount?: boolean;
+  animateOnChange?: boolean;
+  groupByDate?: boolean;
+  groupThreshold?: number;
+  physics?: { preset: string; [key: string]: any };
+  [key: string]: any; // Allow other props
+}
+
 // Create mock GlassTimeline to avoid import issues
-const MockGlassTimeline = (props) => {
+const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
   const { 
     items, 
     animation, 
@@ -71,10 +83,10 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 
 // Mock requestAnimationFrame to control animation timing
 const originalRAF = global.requestAnimationFrame;
-const rafMock = jest.fn(callback => {
+const rafMock = jest.fn((callback: FrameRequestCallback): number => {
   // Simulate 16ms frame (approximately 60fps)
   elapsedTime += 16;
-  return setTimeout(() => callback(elapsedTime), 0);
+  return setTimeout(() => callback(elapsedTime), 0) as unknown as number;
 });
 
 // Create a large dataset for performance testing

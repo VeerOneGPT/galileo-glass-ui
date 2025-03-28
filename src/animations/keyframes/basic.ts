@@ -30,6 +30,34 @@ export const fadeOut = keyframes`
 `;
 
 /**
+ * Glass fade in animation with blur effect
+ */
+export const glassFadeIn = keyframes`
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
+`;
+
+/**
+ * Glass fade out animation with blur effect
+ */
+export const glassFadeOut = keyframes`
+  from {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+`;
+
+/**
  * Slide up animation
  */
 export const slideUp = keyframes`

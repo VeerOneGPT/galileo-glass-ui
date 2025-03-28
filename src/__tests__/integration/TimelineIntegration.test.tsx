@@ -3,13 +3,25 @@
  * 
  * Tests GlassTimeline integration with other components and the overall app structure
  */
-import React, { useState } from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import React, { useState, ReactNode } from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import 'jest-styled-components';
 import { ThemeProvider } from '../../theme';
 import { GlassButton } from '../../components/Button';
+
+// Import types directly to avoid name collision
+import type { TimelineItem as TimelineItemType } from '../../components/Timeline/types';
+
+// Define interface for GlassTooltip mock props
+interface TooltipProps {
+  children: ReactNode;
+  title?: string;
+  'data-testid'?: string;
+  [key: string]: any;
+}
+
 // Mock GlassTooltip to avoid errors
-const MockGlassTooltip = ({ children, title, ...props }) => (
+const MockGlassTooltip = ({ children, title, ...props }: TooltipProps): JSX.Element => (
   <div data-testid="event-details" title={title} {...props}>
     {children}
   </div>
@@ -18,11 +30,23 @@ const MockGlassTooltip = ({ children, title, ...props }) => (
 const GlassTooltip = MockGlassTooltip;
 import { GlassCard } from '../../components/Card';
 
-// Import types directly to avoid name collision
-import type { TimelineItem as TimelineItemType } from '../../components/Timeline/types';
+// Define interface for MockGlassTimeline props
+interface MockTimelineProps {
+  items: TimelineItemType[];
+  onItemClick?: (item: TimelineItemType) => void;
+  onItemSelect?: (item: TimelineItemType) => void;
+  filter?: { categories?: string[] };
+  orientation?: string;
+  markerPosition?: string;
+  glassVariant?: string;
+  'data-testid'?: string;
+  zoomLevel?: string;
+  onZoomChange?: (level: string) => void;
+  [key: string]: any;
+}
 
 // Mock GlassTimeline component to avoid naming conflicts
-const MockGlassTimeline = (props) => {
+const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
   // Extract props safely to avoid warnings
   const { 
     items, 
@@ -34,8 +58,7 @@ const MockGlassTimeline = (props) => {
     glassVariant, 
     'data-testid': dataTestId, 
     zoomLevel,
-    onZoomChange,
-    ...otherProps 
+    onZoomChange
   } = props;
   
   // Filter items if a filter is provided
@@ -127,7 +150,7 @@ const TimelineDashboard = () => {
           <h3>Filter Events</h3>
           <div className="category-filters">
             <GlassButton 
-              variant="standard"
+              variant="text"
               data-testid="clear-filter"
               onClick={() => setActiveCategory(null)}
             >
@@ -137,7 +160,8 @@ const TimelineDashboard = () => {
             {categories.map(category => (
               <GlassButton
                 key={category}
-                variant={activeCategory === category ? 'tinted' : 'frosted'}
+                variant="contained"
+                color={activeCategory === category ? "primary" : "default"}
                 data-testid={`filter-${category}`}
                 onClick={() => setActiveCategory(category)}
               >
@@ -153,7 +177,8 @@ const TimelineDashboard = () => {
             {['days', 'weeks', 'months', 'years'].map(level => (
               <GlassButton
                 key={level}
-                variant={zoomLevel === level ? 'tinted' : 'frosted'}
+                variant="outlined"
+                color={zoomLevel === level ? "primary" : "default"}
                 data-testid={`zoom-${level}`}
                 onClick={() => setZoomLevel(level)}
               >

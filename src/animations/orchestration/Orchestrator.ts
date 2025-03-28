@@ -499,3 +499,8 @@ export const withOrchestration = <P extends object>(
     return createElement(Component, props);
   };
 };
+
+const OrchestrationComponent = () => {
+  // Component implementation
+};
+OrchestrationComponent.displayName = 'OrchestrationComponent';

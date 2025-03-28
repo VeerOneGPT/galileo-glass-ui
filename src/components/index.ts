@@ -4,6 +4,10 @@
  * Core UI components with Glass styling.
  */
 
+// Accessibility components
+export * from './AccessibilityProvider';
+export * from './AccessibilitySettings';
+
 // Basic components
 export { Button, GlassButton } from './Button';
 export { Card, GlassCard } from './Card';
@@ -154,6 +158,23 @@ export { VisualFeedback, RippleButton, FocusIndicator, StateIndicator } from './
 
 // Background Components
 export { AtmosphericBackground, ParticleBackground } from './backgrounds';
+
+// Enhanced GlassTooltip component
+export * from './GlassTooltip';
+
+// Data visualization components
+export * from './DataChart';
+
+// Media components
+export * from './ImageViewer';
+
+// Form components with physics
+export * from './MultiSelect';
+export * from './DateRangePicker';
+
+// Layout components with physics
+export * from './Masonry';
+export * from './Timeline';
 
 // Glass Presets
 export {

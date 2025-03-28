@@ -5,7 +5,25 @@
  */
 import { Keyframes } from 'styled-components';
 
+// Import each animation preset individually to avoid importing the entire presets object
+import { 
+  fadeIn, 
+  fadeOut, 
+  glassFadeIn, 
+  glassFadeOut 
+} from '../keyframes/basic';
+
+// Import animation presets
 import { presets } from '../presets';
+
+// Define basic animations for alternatives
+const basicAnimations = {
+  fade: {
+    keyframes: fadeIn,
+    duration: '300ms',
+    easing: 'ease-in-out'
+  }
+};
 import { AnimationPreset } from '../types';
 
 import { AnimationMapping } from './AccessibilityTypes';
@@ -50,7 +68,7 @@ export interface AnimationMapperConfig {
 const DEFAULT_MAPPINGS: AnimationMapping[] = [
   // Fade animations are subtlest, keep them even for higher sensitivity levels
   {
-    source: presets.fade,
+    source: basicAnimations.fade,
     alternative: null, // Already subtle enough
     minimumSensitivity: MotionSensitivityLevel.HIGH,
     complexity: AnimationComplexity.MINIMAL,
@@ -59,29 +77,29 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
 
   // Mapping for slide animations
   {
-    source: presets.slideUp,
-    alternative: presets.fade,
+    source: null, // Will be defined at runtime
+    alternative: basicAnimations.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
     category: 'entrance',
   },
   {
-    source: presets.slideDown,
-    alternative: presets.fade,
+    source: null, // Will be defined at runtime
+    alternative: basicAnimations.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
     category: 'entrance',
   },
   {
-    source: presets.slideLeft,
-    alternative: presets.fade,
+    source: null, // Will be defined at runtime
+    alternative: basicAnimations.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
     category: 'entrance',
   },
   {
-    source: presets.slideRight,
-    alternative: presets.fade,
+    source: null, // Will be defined at runtime
+    alternative: basicAnimations.fade,
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
     category: 'entrance',
@@ -89,8 +107,8 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
 
   // Glass reveal animations
   {
-    source: presets.glassReveal,
-    alternative: presets.fade,
+    source: null, // Will be defined at runtime
+    alternative: basicAnimations.fade,
     minimumSensitivity: MotionSensitivityLevel.LOW,
     complexity: AnimationComplexity.ENHANCED,
     category: 'entrance',
@@ -98,21 +116,21 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
 
   // Button animations
   {
-    source: presets.button.ripple,
+    source: presets.ui.button.ripple,
     alternative: null, // Disable completely
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
-    complexity: AnimationComplexity.STANDARD,
-    category: 'feedback',
-  },
-  {
-    source: presets.button.hover,
-    alternative: null, // Disable hover effects
-    minimumSensitivity: MotionSensitivityLevel.HIGH,
-    complexity: AnimationComplexity.BASIC,
+    complexity: AnimationComplexity.ENHANCED,
     category: 'hover',
   },
   {
-    source: presets.button.press,
+    source: presets.ui.button.hover,
+    alternative: null, // Disable hover effects
+    minimumSensitivity: MotionSensitivityLevel.HIGH,
+    complexity: AnimationComplexity.STANDARD,
+    category: 'hover',
+  },
+  {
+    source: presets.ui.button.press,
     alternative: null, // Disable press animation
     minimumSensitivity: MotionSensitivityLevel.HIGH,
     complexity: AnimationComplexity.BASIC,
@@ -121,35 +139,34 @@ const DEFAULT_MAPPINGS: AnimationMapping[] = [
 
   // Card animations
   {
-    source: presets.card.hover,
+    source: presets.ui.card.hover,
     alternative: null, // Disable card hover
     minimumSensitivity: MotionSensitivityLevel.MEDIUM,
     complexity: AnimationComplexity.STANDARD,
     category: 'hover',
   },
   {
-    source: presets.card.flip,
-    alternative: presets.fade, // Replace flip with fade
+    source: presets.ui.card.flip,
+    alternative: presets.basic.fade, // Replace flip with fade
     minimumSensitivity: MotionSensitivityLevel.LOW,
     complexity: AnimationComplexity.ENHANCED,
     category: 'active',
   },
   {
-    source: presets.card.tilt3D,
+    source: presets.ui.card.tilt3D,
     alternative: null, // Disable 3D tilt
     minimumSensitivity: MotionSensitivityLevel.LOW,
-    complexity: AnimationComplexity.ENHANCED,
+    complexity: AnimationComplexity.COMPLEX,
     category: 'hover',
   },
 
   // Loading animations should remain unless at maximum sensitivity
   {
-    source: presets.button.loading,
+    source: presets.ui.button.loading,
     alternative: null, // Keep loading animations
     minimumSensitivity: MotionSensitivityLevel.MAXIMUM,
     complexity: AnimationComplexity.BASIC,
     category: 'loading',
-    duration: 1500, // Slow down loading animations
   },
 ];
 
