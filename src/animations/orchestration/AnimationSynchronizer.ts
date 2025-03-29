@@ -111,6 +111,9 @@ export interface SyncGroupOptions {
   /** Easing function to apply to the overall synchronization */
   easing?: (t: number) => number;
   
+  /** Custom timing calculator function */
+  customTimingCalculator?: TimingCalculator;
+  
   /** Function to call when a sync point is reached */
   onSyncPoint?: (point: SyncPoint, animations: string[]) => void;
   

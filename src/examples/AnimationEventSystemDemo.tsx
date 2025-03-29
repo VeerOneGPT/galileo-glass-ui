@@ -13,7 +13,7 @@ import {
   AnimationEvent,
   animationEventManager
 } from '../animations/orchestration/AnimationEventSystem';
-import { useAnimationStateMachine } from '../hooks/useAnimationStateMachine';
+import { useAnimationStateMachine } from '../animations/orchestration/useAnimationStateMachine';
 import { AnimationState } from '../animations/orchestration/AnimationStateMachine';
 
 // Styled components

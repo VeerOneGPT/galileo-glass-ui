@@ -3,7 +3,7 @@
  * 
  * Provides intelligent fallbacks for animations based on user preferences
  */
-import { css, FlattenSimpleInterpolation, Keyframes } from 'styled-components';
+import { css, keyframes, Keyframes, FlattenSimpleInterpolation } from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useEnhancedReducedMotion, EnhancedReducedMotionInfo } from '../../hooks/useEnhancedReducedMotion';
@@ -74,12 +74,13 @@ export interface AnimationFallbackConfig {
  * @returns Fade-only keyframes
  */
 export const generateFadeOnlyKeyframes = (): Keyframes => {
-  return css`
+  const fadeOnlyKeyframes = keyframes`
     @keyframes fade-only {
       0% { opacity: 0; }
       100% { opacity: 1; }
     }
   `;
+  return fadeOnlyKeyframes;
 };
 
 /**

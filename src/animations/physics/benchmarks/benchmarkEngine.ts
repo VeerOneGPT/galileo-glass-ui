@@ -340,10 +340,15 @@ export const runBenchmark = async <T extends unknown[]>(
   // Warm up phase
   for (let i = 0; i < warmupCount; i++) {
     await new Promise<void>(resolve => {
-      triggerAnimation(...args, () => {
+      // Create a new array with all arguments and the callback
+      const allArgs = [...args] as unknown[];
+      allArgs.push(() => {
         // Wait for animation to complete
         setTimeout(resolve, duration + 100);
       });
+      
+      // Apply the function with the arguments array
+      triggerAnimation.apply(null, allArgs as any);
     });
   }
   

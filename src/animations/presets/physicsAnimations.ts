@@ -19,7 +19,7 @@ import {
 } from './accessibleAnimations';
 
 // Define spring preset type to match what's expected
-interface SpringPreset {
+export interface SpringPreset {
   tension: number;
   friction: number;
   mass: number;
@@ -27,7 +27,7 @@ interface SpringPreset {
 }
 
 // Define extended SpringPresets including the missing ones
-const CustomSpringPresets: Record<string, SpringPreset> = {
+export const CustomSpringPresets: Record<string, SpringPreset> = {
   GENTLE: { tension: 120, friction: 14, mass: 1.0 },
   DEFAULT: { tension: 170, friction: 26, mass: 1.0 },
   SNAPPY: { tension: 300, friction: 24, mass: 1.0 },

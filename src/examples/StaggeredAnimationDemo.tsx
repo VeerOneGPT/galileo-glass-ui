@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { useStaggeredAnimation } from '../hooks/useStaggeredAnimation';
 import {
   DistributionPattern,
@@ -263,21 +263,16 @@ const StaggeredAnimationDemo: React.FC = () => {
     respectReducedMotion: true,
     initialConfig: {
       animation: {
-        keyframes: {
-          name: 'fadeIn',
-          styles: `
-            @keyframes fadeIn {
-              from {
-                opacity: 0;
-                transform: scale(0.5);
-              }
-              to {
-                opacity: 1;
-                transform: scale(1);
-              }
-            }
-          `
-        },
+        keyframes: keyframes`
+          from {
+            opacity: 0;
+            transform: scale(0.5);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        `,
         duration: 500,
         easing: 'ease-out',
         fillMode: 'forwards'

@@ -146,15 +146,15 @@ describe('useAnimationStateMachine', () => {
       }),
       {
         wrapper,
-        initialProps: { deps: [1] }
+        initialProps: { children: <></>, deps: [1] }
       }
     );
     
     // Verify the initial render creates the machine
-    expect(result.current.machine).toBeDefined();
+    expect((result.current as any).machine).toBeDefined();
     
     // Change dependencies to trigger recreation
-    rerender({ deps: [2] });
+    rerender({ children: <></>, deps: [2] });
     
     // Machine should be recreated
     const createStateMachine = require('../AnimationStateMachine').createAnimationStateMachine;

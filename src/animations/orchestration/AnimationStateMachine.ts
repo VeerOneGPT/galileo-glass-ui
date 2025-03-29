@@ -435,10 +435,29 @@ export class AnimationStateMachine {
       // Create a unique ID for this animation
       const animationId = `state-${this.currentState}-${phase}-${Date.now()}`;
       
+      // Process the animation to ensure it's a proper AnimationPreset
+      let processedAnimation: AnimationPreset;
+      if (typeof animation === 'string') {
+        // Create a minimal AnimationPreset with required properties
+        processedAnimation = {
+          duration: 300,
+          easing: 'ease',
+          keyframes: { 
+            name: animation,
+            id: animation,
+            rules: '',
+            toString: () => animation,
+            getName: () => animation
+          }
+        };
+      } else {
+        processedAnimation = animation;
+      }
+      
       // Create animation targets
       const targets = this.targetElements.map(element => ({
         target: element,
-        animation: typeof animation === 'string' ? { keyframes: { name: animation } } : animation,
+        animation: processedAnimation,
         waitForCompletion: true
       }));
       

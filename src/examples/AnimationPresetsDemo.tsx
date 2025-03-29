@@ -8,7 +8,6 @@ import allAnimationPresets, {
   OrchestrationPreset
 } from '../animations/presets/animationPresets';
 import { useGestureAnimation } from '../hooks/useGestureAnimation';
-import { GalileoPhysics } from '../animations/physics';
 
 // Container for the demo
 const DemoContainer = styled.div`

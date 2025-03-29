@@ -2,6 +2,15 @@
   "name": "@veerone/galileo-glass-ui",
   "version": "1.0.4",
   "description": "A comprehensive glass morphism design system for modern interfaces",
+  "homepage": "https://galileo-glass.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VeerOneGPT/galileo-glass-ui"
+  },
+  "bugs": {
+    "url": "https://github.com/VeerOneGPT/galileo-glass-ui/issues",
+    "email": "support@veerone.com"
+  },
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -9,6 +18,7 @@
   "files": [
     "dist",
     "dist-min",
+    "assets",
     "scripts/installation/install.sh",
     "docs/installation/INSTALLATION.md"
   ],
@@ -31,11 +41,6 @@
       "import": "./dist/core.esm.js",
       "require": "./dist/core.js",
       "types": "./dist/core.d.ts"
-    },
-    "./mixins": {
-      "import": "./dist/mixins.esm.js",
-      "require": "./dist/mixins.js",
-      "types": "./dist/mixins.d.ts"
     },
     "./theme": {
       "import": "./dist/theme.esm.js",
@@ -132,7 +137,7 @@
     "theme",
     "charts"
   ],
-  "author": "Galileo",
+  "author": "Gurbaksh Chahal",
   "license": "MIT",
   "peerDependencies": {
     "react": "^17.0.0 || ^18.0.0 || ^19.0.0",
@@ -187,6 +192,7 @@
     "@storybook/react": "^6.5.16",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
+    "@testing-library/react-hooks": "^7.0.2",
     "@testing-library/user-event": "^14.4.3",
     "@types/chart.js": "^2.9.37",
     "@types/jest": "^29.5.14",

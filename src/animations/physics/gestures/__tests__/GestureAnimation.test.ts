@@ -94,7 +94,8 @@ describe('GestureAnimation', () => {
     test('should apply preset configuration when specified', () => {
       const gestureAnimationWithPreset = new GestureAnimation({
         element,
-        preset: GestureAnimationPreset.SPRING_BOUNCE
+        preset: GestureAnimationPreset.SPRING_BOUNCE,
+        gestures: [GestureDetectorModule.GestureType.PAN]
       });
       
       // Should have applied the preset's settings
@@ -139,7 +140,8 @@ describe('GestureAnimation', () => {
       
       const gestureAnimationWithCallback = new GestureAnimation({
         element,
-        onTransformChange
+        onTransformChange,
+        gestures: [GestureDetectorModule.GestureType.PAN]
       });
       
       gestureAnimationWithCallback.setTransform({ translateX: 100 });

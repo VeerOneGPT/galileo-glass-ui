@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { performanceMonitor } from './monitor';
-import { MonitoringScope, PerformanceCategory, PerformanceIssue } from './types';
+import { MonitoringScope, PerformanceCategory, PerformanceIssue, PerformanceSeverity } from './types';
 
 /**
  * Hook to monitor component performance
@@ -139,7 +139,7 @@ export const usePerformanceMonitoring = (
             performanceMonitor.recordIssue({
               description: `Component ${componentName} unmounted after ${(mountDuration / 1000).toFixed(2)}s with ${renderCount.current} renders`,
               category: PerformanceCategory.GENERAL,
-              severity: 'info',
+              severity: PerformanceSeverity.INFO,
               target: componentName,
             });
           }

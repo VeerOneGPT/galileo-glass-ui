@@ -5,8 +5,6 @@
  */
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
-import { useReducedMotion } from '../hooks';
-
 /**
  * Accessibility options
  */
@@ -182,8 +180,13 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({
   storageKey = 'glass-ui-accessibility',
   children,
 }) => {
-  // Get system reduced motion preference
-  const systemReducedMotion = useReducedMotion();
+  // Replace hook with direct implementation to avoid circular dependency
+  const systemReducedMotion = (() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return false;
+    }
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  })();
 
   // Initialize state from localStorage, initial options, and system preferences
   const getInitialState = (): AccessibilityOptions => {

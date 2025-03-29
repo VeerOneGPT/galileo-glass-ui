@@ -152,11 +152,11 @@ export {
   type GestureTransform
 } from './gestures/GestureAnimation';
 
-// Unified Physics API
-export { 
-  GalileoPhysics,
-  default as Physics
-} from './unifiedPhysicsAPI';
+// Remove the circular reference to unifiedPhysicsAPI
+// export { 
+//   GalileoPhysics,
+//   default as Physics
+// } from './unifiedPhysicsAPI';
 
 // Export the unified API as the default
-export { default } from './unifiedPhysicsAPI';
+// export { default } from './unifiedPhysicsAPI';

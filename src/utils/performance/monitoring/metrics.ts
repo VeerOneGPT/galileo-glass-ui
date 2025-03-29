@@ -532,9 +532,9 @@ export const measureInteraction = async (
         });
         
         try {
+          // Observe interaction events
           interactionObserver.observe({
-            type: 'event',
-            durationThreshold: 16 // Only observe events that take more than 16ms (1 frame)
+            type: 'event'
           });
           
           // Disconnect after measurement

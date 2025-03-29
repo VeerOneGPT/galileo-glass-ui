@@ -16,6 +16,123 @@ export enum PerformanceSeverity {
 }
 
 /**
+ * Threshold configuration for a specific metric
+ */
+export interface MetricThreshold {
+  /** Critical threshold - immediate action needed */
+  critical: number;
+  
+  /** Warning threshold - performance is degraded */
+  warning: number;
+  
+  /** Good threshold - performance is acceptable */
+  good: number;
+  
+  /** Excellent threshold - performance is optimal */
+  excellent: number;
+}
+
+/**
+ * Performance metric thresholds
+ */
+export interface PerformanceMetricThresholds {
+  /** Frame rate thresholds in frames per second (fps) */
+  frameRate: MetricThreshold;
+  
+  /** Frame time thresholds in milliseconds */
+  frameTime: MetricThreshold;
+  
+  /** Layout thrashing thresholds (layout reads followed by writes causing reflow) */
+  layoutThrashing: MetricThreshold;
+  
+  /** Memory usage thresholds in MB (approximate heap size) */
+  memoryUsage: MetricThreshold;
+  
+  /** Animation complexity thresholds (complex properties being animated) */
+  animationComplexity: MetricThreshold;
+  
+  /** Long task thresholds in milliseconds */
+  longTask: MetricThreshold;
+  
+  /** DOM mutations per frame */
+  domMutations: MetricThreshold;
+  
+  /** Number of concurrent animations */
+  concurrentAnimations: MetricThreshold;
+}
+
+/**
+ * Monitoring options configuration
+ */
+export interface MonitoringOptions {
+  /** Whether to enable monitoring */
+  enabled: boolean;
+  
+  /** Monitor frame rate */
+  frameRate: boolean;
+  
+  /** Monitor memory usage */
+  memoryUsage: boolean;
+  
+  /** Monitor layout thrashing */
+  layoutThrashing: boolean;
+  
+  /** Monitor animation complexity */
+  animationComplexity: boolean;
+  
+  /** Monitor long tasks */
+  longTasks: boolean;
+  
+  /** Whether to automatically apply optimizations */
+  autoOptimize: boolean;
+  
+  /** Sampling rate (1 = monitor every frame, 2 = every other frame, etc.) */
+  samplingRate: number;
+  
+  /** Whether to log warnings to console */
+  logWarnings: boolean;
+  
+  /** Whether to collect performance timelines for later analysis */
+  collectTimelines: boolean;
+  
+  /** Maximum timeline length in frames */
+  maxTimelineLength: number;
+  
+  /** Monitoring detail level: 'basic', 'standard', or 'detailed' */
+  detailLevel: 'basic' | 'standard' | 'detailed';
+  
+  /** Whether to map performance issues to components */
+  mapToComponents: boolean;
+  
+  /** How many frames of low performance to tolerate before taking action */
+  lowPerformanceThreshold: number;
+  
+  /** Whether to track resource consumption (images, etc.) */
+  trackResources: boolean;
+  
+  /** Whether to monitor intersection with viewport */
+  trackVisibility: boolean;
+  
+  /** Whether to collect metrics for analytics */
+  analyticsCollection: boolean;
+  
+  /** Refresh interval for memory usage tracking in ms */
+  memoryRefreshInterval: number;
+  
+  /** Whether to use the Performance API */
+  usePerformanceAPI: boolean;
+  
+  /** Whether to track Web Animations API usage */
+  trackWAAPI: boolean;
+  
+  /** Whether to track requestAnimationFrame usage */
+  trackRAF: boolean;
+  
+  /** Device type specific adjustments */
+  deviceAdjustments: boolean;
+}
+
+/**
  * Performance issue categories
  */
 export enum PerformanceCategory {

@@ -9,7 +9,7 @@ import styled from 'styled-components';
 import { useSpring as useReactSpring, animated as animatedSpring } from 'react-spring';
 import { motion, useAnimation } from 'framer-motion';
 
-import { useSpring, springAnimation, GalileoPhysics, Physics } from '../../physics';
+import { useSpring, springAnimation } from '../../physics';
 import { runBenchmark, compareBenchmarks } from './benchmarkEngine';
 import { BenchmarkResult } from './types';
 
@@ -180,17 +180,33 @@ const PhysicsEngineBenchmark: React.FC = () => {
           
           // Apply animation
           const animation = springAnimation({
-            target: galileoRef.current,
-            properties: { 
-              left: testConfigs.spring.to.left, 
-              top: testConfigs.spring.to.top 
-            },
-            config: springConfig,
+            properties: ['left', 'top'],
+            mass: springConfig.mass,
+            stiffness: springConfig.stiffness,
+            dampingRatio: springConfig.damping / Math.sqrt(4 * springConfig.mass * springConfig.stiffness), // Convert damping to dampingRatio
             duration: testConfigs.duration,
-            onComplete: callback
+            from: {
+              left: testConfigs.spring.from.left, 
+              top: testConfigs.spring.from.top
+            },
+            to: {
+              left: testConfigs.spring.to.left, 
+              top: testConfigs.spring.to.top
+            }
           });
           
-          animation.start();
+          // Apply the animation CSS directly to the element
+          if (galileoRef.current) {
+            // Apply the CSS styles
+            Object.entries(animation).forEach(([key, value]) => {
+              galileoRef.current.style[key] = value;
+            });
+            
+            // Call the callback after the animation duration completes
+            if (callback) {
+              setTimeout(callback, testConfigs.duration);
+            }
+          }
         }
       },
       element: galileoRef.current,

@@ -1,18 +1,17 @@
 /**
- * useReducedMotionAlternative Hook
+ * Reduced Motion Alternative Hook
  * 
- * Hook for using reduced motion alternatives in components
+ * Provides alternatives for CSS animations that respect reduced motion preferences
  */
-import { useMemo } from 'react';
-import { FlattenSimpleInterpolation } from 'styled-components';
-
-import { 
-  getReducedMotionAlternative, 
-  AlternativeType
-} from '../animations/accessibility/ReducedMotionAlternatives';
+import { css, FlattenSimpleInterpolation } from 'styled-components';
 import { AnimationCategory } from '../animations/accessibility/MotionSensitivity';
 import { MotionIntensityLevel } from '../animations/accessibility/MotionIntensityProfiler';
+import { 
+  getReducedMotionAlternative, 
+  AlternativeType 
+} from '../animations/accessibility/ReducedMotionAlternatives';
 import { useReducedMotion } from './useReducedMotion';
+import { useMemo } from 'react';
 import { useEnhancedReducedMotion } from './useEnhancedReducedMotion';
 import { useMotionProfiler } from './useMotionProfiler';
 
@@ -238,7 +237,7 @@ export const useFlexibleAnimation = (
   const alternativeAnimation = useReducedMotionAlternative(originalAnimation, restOptions);
   
   // Return appropriate animation based on animate flag
-  return animate ? alternativeAnimation : '';
+  return animate ? alternativeAnimation : css``;
 };
 
 // Export types for convenience

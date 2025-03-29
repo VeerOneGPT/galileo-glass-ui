@@ -188,3 +188,12 @@ export interface PhysicsAnimationOptions {
   quality?: PhysicsQuality;
   initialVelocity?: Vector2D;
 }
+
+/**
+ * Threshold options for gesture detection
+ */
+export interface ThresholdOptions {
+  horizontal?: number;
+  vertical?: number;
+  diagonal?: number;
+}

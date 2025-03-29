@@ -12,7 +12,8 @@ import {
   getAccessibleKeyframes,
   useAccessibleAnimation,
 } from '../accessibleAnimation';
-import { AnimationComplexity as _AnimationComplexity, MotionSensitivityLevel } from '../MotionSensitivity';
+import { AnimationComplexity as _AnimationComplexity } from '../MotionSensitivity';
+import { MotionSensitivityLevel } from '../../core/types';
 
 // Mock useReducedMotion hook
 jest.mock('../../../hooks/useReducedMotion', () => ({

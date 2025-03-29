@@ -1,7 +1,7 @@
 # Galileo Glass UI
 
 <div align="center">
-  <img width="200" height="200" src="https://raw.githubusercontent.com/VeerOneGPT/galileo-glass-ui/main/assets/galileo-glass-logo.svg" alt="Galileo Glass UI Logo">
+  <img width="200" height="200" src="./assets/galileo-glass-logo.png" alt="Galileo Glass UI Logo">
   <p><em>Modern glass morphism UI components for React, Next.js, and any TypeScript application</em></p>
 
   <p>
@@ -706,7 +706,8 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
   <p>Made with ❤️ by the VeerOne UI Team</p>
   <p>
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui/stargazers">Star us on GitHub</a> •
-    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/issues">Report an Issue</a>
+    <a href="https://github.com/VeerOneGPT/galileo-glass-ui/issues">Report an Issue</a> •
+    <a href="mailto:support@veerone.com">Contact Support</a>
   </p>
 </div>
 

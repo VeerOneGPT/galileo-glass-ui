@@ -9,7 +9,11 @@ import styled from 'styled-components';
 import { DeviceCapabilityTier } from '../utils/deviceCapabilities';
 import { useFallbackStrategies } from '../hooks/useFallbackStrategies';
 import { withFallbackStrategies } from '../utils/fallback/withFallbackStrategies';
-import { AnimationFallbackStrategy, VisualEffectFallbackStrategy } from '../utils/fallback/strategies';
+import { 
+  AnimationFallbackStrategy, 
+  VisualEffectFallbackStrategy,
+  RenderingFallbackStrategy
+} from '../utils/fallback/strategies';
 
 // Demo components
 const DemoContainer = styled.div`

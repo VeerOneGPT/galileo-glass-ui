@@ -85,12 +85,11 @@ class MockAnimation {
 }
 
 // Create mock AnimationPlaybackEvent class
-class AnimationPlaybackEvent {
-  readonly type: string;
+class AnimationPlaybackEvent extends Event {
   readonly currentTime: number | null;
 
   constructor(type: string, init: { currentTime: number | null }) {
-    this.type = type;
+    super(type);
     this.currentTime = init.currentTime;
   }
 }

@@ -120,11 +120,10 @@ const detectHardwareAcceleration = (): boolean => {
   }
   
   try {
-    // Create a canvas element to test WebGL support
+    // Create canvas for WebGL context
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    const gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
     
-    // If we can't get a WebGL context, hardware acceleration is probably disabled
     if (!gl) {
       localStorage.setItem('galileo-glass-hw-accel-hint', 'false');
       return true;
@@ -133,7 +132,7 @@ const detectHardwareAcceleration = (): boolean => {
     // Check for WebGL renderer info which can indicate SW rendering
     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
     if (debugInfo) {
-      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL as number);
       const isSoftwareRenderer = 
         renderer.indexOf('SwiftShader') >= 0 || 
         renderer.indexOf('Software') >= 0 ||

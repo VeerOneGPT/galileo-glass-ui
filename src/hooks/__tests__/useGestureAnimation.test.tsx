@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import { useGestureAnimation, GestureAnimationPresets } from '../useGestureAnimation';
 import { GestureAnimation } from '../../animations/physics/gestures/GestureAnimation';
+import { GestureType } from '../../animations/physics/gestures/GestureDetector';
 import * as reducedMotionHook from '../useReducedMotion';
 
 // Mock the GestureAnimation class
@@ -49,7 +50,7 @@ describe('useGestureAnimation', () => {
       respectReducedMotion,
       onTransformChange,
       preset,
-      gestures: ['pan', 'pinch'] // simplified for test
+      gestures: [GestureType.PAN, GestureType.PINCH] // Use the enum values
     });
     
     return (
@@ -87,7 +88,7 @@ describe('useGestureAnimation', () => {
     expect(GestureAnimation).toHaveBeenCalledTimes(1);
     expect(GestureAnimation).toHaveBeenCalledWith(
       expect.objectContaining({
-        gestures: ['pan', 'pinch']
+        gestures: [GestureType.PAN, GestureType.PINCH]
       })
     );
   });

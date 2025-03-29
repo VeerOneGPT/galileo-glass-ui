@@ -10,6 +10,7 @@
 export * from './types';
 export { default as WaapiRenderer } from './WaapiRenderer';
 export { default as RafRenderer } from './RafRenderer';
-export { default as GalileoRendererFactory, RendererOptions } from './RendererFactory';
+export { default as GalileoRendererFactory } from './RendererFactory';
+export type { RendererOptions } from './RendererFactory';
 export { default as WaapiRendererExample } from './examples/WaapiRendererExample';
 export { default as RafRendererExample } from './examples/RafRendererExample';

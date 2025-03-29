@@ -17,14 +17,20 @@ import {
   AnimationPreset
 } from './accessibleAnimations';
 
-import { physicsAnimationPresets, createSpringAnimation, getPhysicsConfig } from './physicsAnimations';
+import { 
+  physicsAnimationPresets, 
+  createSpringAnimation, 
+  getPhysicsConfig,
+  CustomSpringPresets 
+} from './physicsAnimations';
 import { orchestrationPresets, OrchestrationPreset, getOrchestrationDelay, getOrchestrationAnimation } from './orchestrationAnimations';
 import { gestureAnimationPresets, GestureAnimationConfig, createGestureAnimationConfig } from './gestureAnimations';
 import { uiAnimations } from './ui';
 
 // Import system-specific components needed for the presets
-import { SpringPresets, GalileoPhysics, PhysicsAnimationMode } from '../physics';
-import { GestureAnimationPreset, GestureType } from '../physics/gestures/GestureAnimation';
+import { PhysicsAnimationMode } from '../physics';
+import { GestureAnimationPreset } from '../physics/gestures/GestureAnimation';
+import { GestureType } from '../physics/gestures/GestureDetector';
 
 /**
  * Unified animation presets combining all categories
@@ -79,8 +85,22 @@ export function getAnimationPreset(
   switch (category) {
     case AnimationCategory.BASIC:
       return animationPresets[presetName as keyof typeof animationPresets];
-    case AnimationCategory.UI:
-      return uiAnimations[presetName as keyof typeof uiAnimations];
+    case AnimationCategory.UI: {
+      // Handle UI animations differently as they have a nested structure
+      const [section, name] = presetName.includes('.') ? presetName.split('.') : [null, presetName];
+      
+      if (section && name) {
+        // Access nested animation (e.g., "button.hover")
+        const sectionAnimations = uiAnimations[section as keyof typeof uiAnimations];
+        if (sectionAnimations && typeof sectionAnimations === 'object') {
+          return sectionAnimations[name as keyof typeof sectionAnimations] as AnimationPreset;
+        }
+        return undefined;
+      } else {
+        // Direct access (e.g., "ripple")
+        return uiAnimations[presetName as keyof typeof uiAnimations] as AnimationPreset;
+      }
+    }
     case AnimationCategory.PHYSICS:
       return physicsAnimationPresets[presetName as keyof typeof physicsAnimationPresets];
     case AnimationCategory.ORCHESTRATION:
@@ -116,7 +136,7 @@ export function getPresetByName(fullName: string): AnimationPreset | Orchestrati
 export const PhysicsConfig = {
   createSpringAnimation,
   getPhysicsConfig,
-  springPresets: SpringPresets,
+  springPresets: CustomSpringPresets,
   animationModes: PhysicsAnimationMode,
 };
 
@@ -133,7 +153,6 @@ export const OrchestrationConfig = {
  */
 export const GestureConfig = {
   createGestureAnimationConfig,
-  gestureTypes: GestureType,
   presets: GestureAnimationPreset,
 };
 

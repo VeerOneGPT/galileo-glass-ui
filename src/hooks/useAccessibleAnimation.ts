@@ -4,7 +4,7 @@
  * Provides a way to make animations accessible with proper ARIA attributes
  * and respect for user motion preferences.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useContext } from 'react';
 import { FlattenSimpleInterpolation, css } from 'styled-components';
 
 import { 
@@ -24,8 +24,13 @@ import {
   useAnimationAccessibility, 
   AnnouncementType 
 } from '../animations/accessibility/AnimationAccessibilityUtils';
-import { useIsReducedMotion } from '../components/AccessibilityProvider';
+import {
+  MotionIntensityLevel 
+} from '../animations/accessibility/MotionIntensityProfiler';
 import { useReducedMotion } from './useReducedMotion';
+
+// Direct import of the context to avoid circular dependency
+import { AccessibilityContext } from '../components/AccessibilityProvider';
 
 /**
  * Options for useAccessibleAnimation hook
@@ -99,9 +104,10 @@ export const useAccessibleAnimation = (
     preferredAlternative,
   } = options;
   
-  // Check if reduced motion is enabled
+  // Check if reduced motion is enabled - direct implementation to avoid circular dependency
   const systemReducedMotion = useReducedMotion();
-  const userReducedMotion = useIsReducedMotion();
+  const accessibilityContext = useContext(AccessibilityContext);
+  const userReducedMotion = accessibilityContext?.reducedMotion || accessibilityContext?.disableAnimations || false;
   const reducedMotion = respectReducedMotion && (systemReducedMotion || userReducedMotion);
   
   // Get animation accessibility utilities
@@ -145,12 +151,29 @@ export const useAccessibleAnimation = (
     // If we should use alternative animation
     if (adjustedAnimation.shouldUseAlternative) {
       const alternativesRegistry = getAlternativesRegistry();
-      const alternativeCSS = alternativesRegistry.getReducedMotionAlternative(
+      
+      // Convert MotionSensitivityLevel to MotionIntensityLevel
+      const intensityLevel = reducedMotion 
+        ? MotionIntensityLevel.MINIMAL 
+        : MotionIntensityLevel.MODERATE;
+      
+      // Get the best alternative from the registry
+      const alternative = alternativesRegistry.getBestAlternative(
         category,
-        preferredAlternative,
-        { duration: adjustedAnimation.duration }
+        intensityLevel,
+        preferredAlternative
       );
-      return alternativeCSS;
+      
+      // Generate CSS from the alternative
+      return css`
+        animation-name: ${alternative.keyframes};
+        animation-duration: ${adjustedAnimation.duration}ms;
+        animation-timing-function: ${alternative.easing || 'ease'};
+        animation-delay: 0ms;
+        animation-fill-mode: both;
+        animation-iteration-count: ${alternative.iterations || 1};
+        animation-direction: normal;
+      `;
     }
     
     // Apply speed adjustments if enabled

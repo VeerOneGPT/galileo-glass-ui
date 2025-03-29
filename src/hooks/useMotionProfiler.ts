@@ -158,12 +158,11 @@ export const useGlobalMotionIntensity = () => {
 };
 
 /**
- * Register a keyframe animation with the profiler without using a hook
- * Useful for global or static animations
+ * Register an animation with the profiler
  * 
- * @param id Unique animation identifier
+ * @param id Animation identifier
  * @param keyframes Animation keyframes or preset
- * @param options Additional animation properties
+ * @param options Profiler options
  * @returns Motion intensity profile
  */
 export const registerAnimation = (
@@ -172,7 +171,22 @@ export const registerAnimation = (
   options: Omit<MotionProfilerOptions, 'keyframes'>
 ): MotionIntensityProfile => {
   const profiler = getMotionProfiler();
-  return profiler.registerAnimation(id, { ...options, keyframes });
+  
+  // Convert string keyframes to proper Keyframes object
+  let processedKeyframes: Keyframes | AnimationPreset;
+  if (typeof keyframes === 'string') {
+    processedKeyframes = {
+      name: keyframes,
+      id: keyframes,
+      rules: '',
+      toString: () => keyframes,
+      getName: () => keyframes
+    };
+  } else {
+    processedKeyframes = keyframes;
+  }
+  
+  return profiler.registerAnimation(id, { ...options, keyframes: processedKeyframes });
 };
 
 /**

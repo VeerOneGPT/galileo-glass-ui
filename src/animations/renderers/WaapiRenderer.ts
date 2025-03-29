@@ -96,9 +96,10 @@ export class WaapiRenderer implements AnimationRenderer {
     const id = this.generateAnimationId();
     
     // Merge options
-    const mergedOptions: Required<WaapiRendererOptions> = {
+    const mergedOptions = {
       ...this.defaultOptions,
-      ...options
+      ...options,
+      useComposite: options.useComposite ?? this.defaultOptions.useComposite
     };
     
     // Prepare animation options
@@ -215,7 +216,12 @@ export class WaapiRenderer implements AnimationRenderer {
   public updateTiming(id: string, options: KeyframeEffectOptions): void {
     const animation = this.animations.get(id);
     if (animation && animation.effect) {
-      (animation.effect as KeyframeEffect).updateTiming(options);
+      // KeyframeEffect.updateTiming exists in newer browsers but TypeScript doesn't know about it
+      // Use a type assertion to get around the TypeScript error
+      const effect = animation.effect as any;
+      if (typeof effect.updateTiming === 'function') {
+        effect.updateTiming(options);
+      }
     }
   }
   
@@ -232,7 +238,21 @@ export class WaapiRenderer implements AnimationRenderer {
    */
   public getCurrentTime(id: string): number | null {
     const animation = this.animations.get(id);
-    return animation ? animation.currentTime : null;
+    if (!animation) return null;
+    
+    const time = animation.currentTime;
+    // Handle null case first
+    if (time === null) return null;
+    
+    // Handle various types of the CSSNumberish union
+    if (typeof time === 'number') {
+      // Direct number
+      return time;
+    } else {
+      // CSSNumericValue - use type assertion to force TypeScript to accept our conversion
+      // The assertion is safe because we know it's a CSSNumericValue with a numeric value
+      return +(time as unknown as { valueOf(): number }).valueOf();
+    }
   }
   
   /**
@@ -241,6 +261,8 @@ export class WaapiRenderer implements AnimationRenderer {
   public setCurrentTime(id: string, time: number): void {
     const animation = this.animations.get(id);
     if (animation) {
+      // Use direct assignment - the browser's implementation accepts number
+      // despite the TypeScript type being more restrictive
       animation.currentTime = time;
     }
   }

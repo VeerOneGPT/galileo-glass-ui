@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { 
   performanceMonitor,
@@ -250,7 +250,7 @@ const PerformanceMonitorDemo: React.FC = () => {
           // Record an issue for demonstration
           monitoring.recordIssue({
             description: `Completed heavy work in ${duration.toFixed(0)}ms`,
-            severity: duration > 500 ? 'high' : duration > 200 ? 'medium' : 'low',
+            severity: duration > 500 ? PerformanceSeverity.HIGH : duration > 200 ? PerformanceSeverity.MEDIUM : PerformanceSeverity.LOW,
             category: PerformanceCategory.SCRIPT,
             recommendation: 'Consider moving intensive computations to a Web Worker'
           });

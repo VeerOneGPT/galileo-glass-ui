@@ -4,7 +4,7 @@
  * A demonstration of the core utilities in Glass UI
  */
 import React from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import {
   // Style utilities
@@ -140,12 +140,8 @@ const GlowDemo = styled.div<{ color: string; interactive?: boolean }>`
       themeContext: createThemeContext(props.theme, true),
     })}
 
-  ${props =>
-    glassGlow.glassGlow({
-      color: props.color,
-      intensity: 'medium',
-      themeContext: createThemeContext(props.theme, true),
-    })}
+  /* Apply glow effect */
+  box-shadow: 0 0 15px 0 ${props => props.color}50;
   
   /* Apply hover effects for interactive elements */
   ${props =>
@@ -230,8 +226,9 @@ const ZSpaceDemo = styled.div<{ layer: ZLayer; depth?: ZDepth }>`
   ${margin('sm')}
   background-color: ${props => getColorWithOpacity(props.color || '#6366F1', 0.2)};
 
-  /* Apply Z-layer and depth */
-  ${props => zLayer(props.layer, props.depth)}
+  /* Apply Z-layer - pass the enum value directly */
+  z-index: ${props => props.layer};
+  ${props => props.depth && `transform: translateZ(${props.depth}px);`}
 
   /* Add visual indicator of depth */
   ${props =>
@@ -509,27 +506,27 @@ export const CoreUtilitiesDemo: React.FC = () => {
 
 const ZSpaceGrid = () => (
   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-    <ZSpaceDemo layer={ZLayer.Background} color="#6366F1">
+    <ZSpaceDemo layer={ZLayer.BACKGROUND} color="#6366F1">
       Background Layer
     </ZSpaceDemo>
 
-    <ZSpaceDemo layer={ZLayer.Content} color="#8B5CF6">
+    <ZSpaceDemo layer={ZLayer.CONTENT} color="#8B5CF6">
       Content Layer
     </ZSpaceDemo>
 
-    <ZSpaceDemo layer={ZLayer.Surface} color="#10B981">
+    <ZSpaceDemo layer={ZLayer.SURFACE} color="#10B981">
       Surface Layer
     </ZSpaceDemo>
 
-    <ZSpaceDemo layer={ZLayer.Backdrop} color="#EC4899">
+    <ZSpaceDemo layer={ZLayer.OVERLAY} color="#EC4899">
       Overlay Layer
     </ZSpaceDemo>
 
-    <ZSpaceDemo layer={ZLayer.Modal} color="#F59E0B">
+    <ZSpaceDemo layer={ZLayer.MODAL} color="#F59E0B">
       Modal Layer
     </ZSpaceDemo>
 
-    <ZSpaceDemo layer={ZLayer.TopLayer} color="#EF4444">
+    <ZSpaceDemo layer={ZLayer.TOP} color="#EF4444">
       Top Layer
     </ZSpaceDemo>
   </div>

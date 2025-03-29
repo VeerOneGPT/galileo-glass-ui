@@ -214,7 +214,16 @@ describe('useAnimationSynchronization', () => {
       result.current.addAnimation({
         id: 'anim1',
         target: 'test1',
-        animation: { keyframes: { name: 'test1' } },
+        animation: { 
+          keyframes: { 
+            name: 'test1', 
+            id: 'test1', 
+            rules: 'test1-rules',
+            getName: () => 'test1'
+          },
+          duration: 1000,
+          easing: 'ease-in-out'
+        },
         duration: 1000
       });
     });
@@ -232,13 +241,31 @@ describe('useAnimationSynchronization', () => {
         {
           id: 'anim1',
           target: 'test1',
-          animation: { keyframes: { name: 'test1' } },
+          animation: { 
+            keyframes: { 
+              name: 'test1', 
+              id: 'test1', 
+              rules: 'test1-rules',
+              getName: () => 'test1'
+            },
+            duration: 1000,
+            easing: 'ease-in-out'
+          },
           duration: 1000
         },
         {
           id: 'anim2',
           target: 'test2',
-          animation: { keyframes: { name: 'test2' } },
+          animation: { 
+            keyframes: { 
+              name: 'test2', 
+              id: 'test2', 
+              rules: 'test2-rules',
+              getName: () => 'test2'
+            },
+            duration: 2000,
+            easing: 'ease-out'
+          },
           duration: 2000
         }
       ]);

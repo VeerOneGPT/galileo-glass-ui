@@ -229,4 +229,7 @@ export interface MasonryProps {
   
   /** Whether to apply glass effect to the container */
   glassContainer?: boolean;
+  
+  /** Callback when an item is clicked */
+  onItemClick?: (item: MasonryItem) => void;
 }

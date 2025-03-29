@@ -178,7 +178,12 @@ export function useStaggeredAnimation(
     const initialConfig: StaggeredAnimationConfig = {
       targets: [],
       animation: {
-        keyframes: { name: 'fadeIn' },
+        keyframes: { 
+          name: 'fadeIn',
+          id: 'fadeIn',
+          rules: '@keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }',
+          getName: () => 'fadeIn'
+        },
         duration: 300,
         easing: 'ease-out',
         fillMode: 'forwards'

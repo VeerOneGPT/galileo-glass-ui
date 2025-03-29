@@ -246,9 +246,9 @@ export const AnimationAnnouncer: React.FC<AnimationAnnouncerProps> = ({
   
   // Set live region attributes based on announcement type
   const liveRegionProps = {
-    'aria-live': announcementSettings.type === AnnouncementType.ASSERTIVE ? 'assertive' : 'polite',
+    'aria-live': announcementSettings.type === AnnouncementType.ASSERTIVE ? 'assertive' : 'polite' as 'assertive' | 'polite',
     role: 'status',
-    'aria-atomic': 'true',
+    'aria-atomic': true,
   };
   
   // Update announced state when animation starts

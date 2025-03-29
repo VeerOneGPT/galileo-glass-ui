@@ -378,7 +378,7 @@ const AnimationInterpolatorDemo: React.FC = () => {
       
       <DemoSection>
         <AnimationStage>
-          <InterpolatedElement ref={ref}>
+          <InterpolatedElement ref={ref as React.RefObject<HTMLDivElement>}>
             {currentStateId}
           </InterpolatedElement>
         </AnimationStage>

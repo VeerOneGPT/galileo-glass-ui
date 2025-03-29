@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { transformConsolidator, TransformType, BatchPriority } from '../TransformConsolidator';
+import { transformConsolidator, TransformType } from '../TransformConsolidator';
 
 const Container = styled.div`
   display: flex;

@@ -119,4 +119,9 @@ export interface AnimationOptions {
 /**
  * Animation function type
  */
-export type AnimationFunction = (options?: AnimationOptions) => FlattenSimpleInterpolation; 
+export type AnimationFunction = (options?: AnimationOptions) => FlattenSimpleInterpolation;
+
+/**
+ * Timing function type
+ */
+export type TimingFunction = (t: number) => number; 

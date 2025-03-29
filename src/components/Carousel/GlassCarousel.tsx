@@ -1537,7 +1537,7 @@ export const GlassCarousel: React.FC<GlassCarouselProps> = ({
   }, [slideWidth, slideCount, spacing, physics.snapStrength]);
   
   // Merge provided snap points with default slide snap points
-  const effectiveSnapPoints = useMemo(() => {
+  const effectiveSnapPoints: SnapPointConfig[] = useMemo(() => {
     if (snapPoints && snapPoints.length > 0) {
       return snapPoints.map(point => ({
         ...point,
@@ -2240,12 +2240,11 @@ export const GlassCarousel: React.FC<GlassCarouselProps> = ({
         if (isSwipe) {
           // Find snap points in swipe direction
           const direction = touchDeltaX > 0 ? -1 : 1;
-          const snapPointsInDirection = effectiveSnapPoints.filter(point => 
-            point.enabled && (
-              (direction > 0 && point.position < scrollPosition.x) ||
-              (direction < 0 && point.position > scrollPosition.x)
-            )
-          );
+          const snapPointsInDirection = effectiveSnapPoints.filter((point) => {
+            if (!point.enabled) return false;
+            return (direction > 0 && point.position < scrollPosition.x) ||
+                  (direction < 0 && point.position > scrollPosition.x);
+          });
           
           if (snapPointsInDirection.length > 0) {
             // Sort by distance from current position
@@ -2551,12 +2550,11 @@ export const GlassCarousel: React.FC<GlassCarouselProps> = ({
           const direction = velocity.velocityX > 0 ? -1 : 1;
           
           // Find potential snap points in the direction of the swipe
-          const snapPointsInDirection = effectiveSnapPoints.filter(point => 
-            point.enabled && (
-              (direction > 0 && point.position < scrollPosition.x) ||
-              (direction < 0 && point.position > scrollPosition.x)
-            )
-          );
+          const snapPointsInDirection = effectiveSnapPoints.filter((point) => {
+            if (!point.enabled) return false;
+            return (direction > 0 && point.position < scrollPosition.x) ||
+                  (direction < 0 && point.position > scrollPosition.x);
+          });
           
           if (snapPointsInDirection.length > 0) {
             // Sort by distance from current position
