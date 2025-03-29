@@ -1,8 +1,8 @@
 // This is a minimal placeholder that re-exports just the basic components
 // to ensure successful installation without heavy dependencies
 
-import { createContext, jsx } from 'styled-components';
-import styled from 'styled-components';
+import React from 'react';
+import { styled, jsx } from 'styled-components';
 
 // Basic theme context
 const defaultTheme = {
@@ -19,7 +19,7 @@ const defaultTheme = {
   }
 };
 
-const ThemeContext = createContext(defaultTheme);
+const ThemeContext = React.createContext(defaultTheme);
 
 // Minimal ThemeProvider
 const ThemeProvider = ({ children, theme }) => {

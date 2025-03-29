@@ -8,6 +8,7 @@ import dts from 'rollup-plugin-dts';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +29,6 @@ const typescriptPlugin = skipTypeCheck
       rootDir: './src',
       sourceMap: true,
       noEmitOnError: false, // Continue even with errors
-      noCheck: true,      // Skip type checking
       skipLibCheck: true  // Skip lib checks
     })
   : typescript({ 
@@ -42,6 +42,51 @@ const typescriptPlugin = skipTypeCheck
 if (skipTypeCheck) {
   console.log('🚨 Building with TypeScript checks disabled'); 
 }
+
+// Patch declaration files to fix path issues
+const patchDeclarationFiles = {
+  name: 'patch-declaration-files',
+  writeBundle: async () => {
+    // Custom fix for animations/presets
+    const presetsIndexDtsPath = path.join(__dirname, 'dist/dts/animations/presets/index.d.ts');
+    
+    if (fs.existsSync(presetsIndexDtsPath)) {
+      console.log('Patching declaration file imports...');
+      
+      let content = fs.readFileSync(presetsIndexDtsPath, 'utf8');
+      
+      // Replace problematic import with the correct path
+      content = content.replace(
+        /import\s+{([^}]+)}\s+from\s+['"]\.\/(animationPresets)['"]/g, 
+        'import {$1} from "../animationPresets"'
+      );
+
+      // Also handle default imports if present
+      content = content.replace(
+        /import\s+(\w+)\s+from\s+['"]\.\/(animationPresets)['"]/g, 
+        'import $1 from "../animationPresets"'
+      );
+      
+      fs.writeFileSync(presetsIndexDtsPath, content);
+      console.log('✅ Fixed imports in presets index declaration file');
+    }
+
+    // Also check for the final declaration file that might have the issue
+    const finalDtsPath = path.join(__dirname, 'dist/animations.d.ts');
+    if (fs.existsSync(finalDtsPath)) {
+      let content = fs.readFileSync(finalDtsPath, 'utf8');
+      
+      // Fix any problematic imports in the final bundled declaration file
+      content = content.replace(
+        /from\s+['"]\.\/(animationPresets)['"]/g, 
+        'from "./animationPresets"'
+      );
+      
+      fs.writeFileSync(finalDtsPath, content);
+      console.log('✅ Fixed imports in final animations declaration file');
+    }
+  }
+};
 
 const basePlugins = [
   peerDepsExternal(),
@@ -82,7 +127,8 @@ const basePlugins = [
     format: {
       comments: false
     }
-  })
+  }),
+  patchDeclarationFiles
 ];
 
 // Common external packages that shouldn't be bundled
@@ -146,10 +192,17 @@ const entryPoints = [
     }
   },
   {
-    input: 'src/core/index.ts',
+    input: 'src/core.ts',
     output: {
       cjs: 'dist/core.js',
       esm: 'dist/core.esm.js'
+    }
+  },
+  {
+    input: 'src/mixins.ts',
+    output: {
+      cjs: 'dist/mixins.js',
+      esm: 'dist/mixins.esm.js'
     }
   },
   {
@@ -300,6 +353,12 @@ const dtsConfigs = [
   {
     input: 'dist/dts/slim.d.ts',
     output: [{ file: 'dist/slim.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  {
+    input: 'dist/dts/mixins.d.ts',
+    output: [{ file: 'dist/mixins.d.ts', format: 'es' }],
     plugins: [createDtsPlugin()],
     external: dtsExternal
   },

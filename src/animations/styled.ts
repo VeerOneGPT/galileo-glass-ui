@@ -4,4 +4,10 @@
  */
 import type { AnimationPreset } from './types';
 
-export type { AnimationPreset }; 
+/**
+ * Re-export styled-components exports for animations
+ */
+import { css, keyframes } from 'styled-components';
+
+export type { AnimationPreset };
+export { css, keyframes }; 

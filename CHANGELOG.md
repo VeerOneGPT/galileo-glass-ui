@@ -1,58 +1,51 @@
-# Changelog
+# Galileo Glass UI Changelog
 
-All notable changes to the Galileo Glass UI library will be documented in this file.
+## [1.0.4] - 2024-08-23
 
-## [1.0.3] - 2025-03-29
+This maintenance release focuses on chart visualizations and data presentation capabilities, adding several improvements to the GlassDataChart component.
 
 ### Added
-- Enhanced Animation System
-  - Custom Physics Engine with spring physics, inertial movement, and momentum-based interactions
-  - Collision detection and response system
-  - Unified physics API with extensive interpolation functions
-  - Web Animations API (WAAPI) renderer with requestAnimationFrame fallback
-  - Performance optimizations with DOM operation batching and transform consolidation
-  - GPU acceleration for smooth animations
-  - Device capability detection for adaptive performance
-  - Enhanced accessibility features for motion sensitivity and reduced motion
-  - Animation composition with timing-agnostic synchronization
-  - Gesture-driven animation system for natural interactions
-
-- New Glass Components
-  - GlassTooltip: Physics-based glass tooltip with intelligent positioning
-  - GlassDataChart: Chart components with glass styling and physics interactions
-  - GlassTabBar: Advanced tab navigation with physics-based selection indicator
-  - GlassBreadcrumbs: Z-space depth navigation component
-  - GlassCarousel: Physics-based carousel with momentum scrolling
-  - GlassImageViewer: Interactive image viewer with physics-based zoom/pan
-  - GlassMultiSelect: Token-based multi-select with physics animations
-  - GlassDateRangePicker: Date range picker with comparison mode
-  - GlassMasonry: Physics-based masonry layout for content
-  - GlassTimeline: Chronological data visualization component
-
-### Changed
-- Updated dependencies to support React 19
-- Improved performance monitoring with detailed metrics
-- Enhanced TypeScript definitions with more comprehensive types
-- Reorganized project structure for better tree shaking
+- Enhanced legend interactivity with glass morphism styling
+- Advanced data formatting utilities for numbers, currency, and percentages
+- Improved chart export capabilities with better resolution and format options
+- Comprehensive documentation for new formatting features
 
 ### Fixed
-- Fixed server-side rendering issues with Window/Document references
-- Improved cross-browser compatibility, especially for Safari and Firefox
-- Fixed GlassTimeline tests with proper mocking and styled-components integration
-- Resolved naming conflicts in Timeline component tests
-- Fixed environment-specific date calculations in TimelineUtils tests
+- Resolved animation keyframe integration with styled-components
+- Fixed tooltip z-index issues to ensure proper layering
+- Improved overflow handling to prevent content clipping
+- Enhanced accessibility for screen readers and keyboard navigation
 
-## [1.0.2] - 2025-03-28
+## [1.0.3] - 2024-07-15
+
+Major feature release with significant enhancements to the animation system and component library.
+
+### Added
+- Custom physics engine with spring physics and inertial movement
+- 10 new Glass-prefixed components including GlassTooltip and GlassDataChart
+- Enhanced theming capabilities with dynamic atmosphere effects
+- Comprehensive accessibility improvements
+- Expanded documentation and examples
 
 ### Fixed
-- Fixed TypeScript errors in `AnimationPipeline.test.tsx` related to inconsistent `AnimationPreset` interface definitions
-- Properly implemented `GlassDatePicker` component to fix import errors
-- Updated `PhysicsAnimationDemo` to use correct properties (`velocityDecay` instead of `friction`) 
-- Added proper mocking in test files to support Jest methods
-- Fixed require statements not being part of import statements in test files
+- Performance optimizations for glass effects on larger surfaces
+- Improved touch interaction responsiveness
+- Better cross-browser compatibility
+- Z-index management for complex component layouts
 
-### Changed
-- Added ts-ignore comments to temporarily resolve complex type conflicts in test files
+## [1.0.2] - 2024-05-10
+
+Stability release with performance enhancements and bug fixes.
+
+### Added
+- Animation optimization via hardware acceleration
+- Improved responsive behavior for all components
+- Better support for dark mode transitions
+
+### Fixed
+- Memory leaks in animation system
+- Glass effect rendering on certain mobile browsers
+- Type definitions for better TypeScript support
 
 ## [1.0.1] - 2025-03-27
 

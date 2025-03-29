@@ -14,7 +14,7 @@ Galileo Glass is a React-based UI framework that implements glass morphism desig
 
 ### Key Features
 
-- **Premium Glass Components**: 75+ UI components including 48 specialized Glass components  
+- **Premium Glass Components**: 85+ UI components including 58 specialized Glass components  
 - **Enhanced Z-Space System**: Meaningful depth and layout hierarchy  
 - **Physics-Based Animations**: Natural motion with spring animations and path physics  
 - **Atmospheric Environments**: Dynamic backgrounds and contextual adaptations  
@@ -762,14 +762,17 @@ const CustomComponent: React.FC = () => {
 - **GlassSlider**: Range slider  
 - **GlassAutocomplete**: Autocomplete input with suggestions
 - **GlassDatePicker**: Date picker with calendar
+- **GlassDateRangePicker**: Date range picker with comparison mode
+- **GlassMultiSelect**: Token-based multi-select with physics animations
 - **GlassTagInput**: Input for managing tags/labels
-- **GlassForm**: Form control components (FormControl, FormGroup, FormHelperText, FormLabel)
 - **GlassToggleButton**: Toggleable button group
 - **GlassRating**: Star rating component
+- **GlassForm**: Form control components (FormControl, FormGroup, FormHelperText, FormLabel)
 
 ### Navigation Components
 
 - **GlassTabs**: Tab navigation  
+- **GlassTabBar**: Physics-based animated tab bar
 - **GlassPagination**: Pagination controls  
 - **GlassBottomNavigation**: Mobile navigation  
 - **GlassBreadcrumbs**: Breadcrumb navigation  
@@ -781,6 +784,8 @@ const CustomComponent: React.FC = () => {
 - **GlassResponsiveNavigation**: Responsive navigation system
 - **GlassPageTransition**: Page transition effects
 - **GlassZSpaceAppLayout**: Advanced 3D layout with Z-space layering
+- **GlassCarousel**: Carousel with physics-based animations
+- **GlassTimeline**: Chronological data display with physics animations
 
 ### Feedback Components
 
@@ -805,6 +810,7 @@ const CustomComponent: React.FC = () => {
 - **GlassBadge**: Badge indicators  
 - **GlassImageList**: Grid of images with optional captions
 - **GlassKpiCard**: Key performance indicator cards
+- **GlassDataChart**: Data visualization with physics animations
 - **GlassPerformanceMetricCard**: Performance metric visualization
 - **GlassInteractiveKpiCard**: Interactive data visualization card
 
@@ -815,6 +821,7 @@ const CustomComponent: React.FC = () => {
 - **GlassDrawer**: Side drawer  
 - **GlassModal**: Modal dialog  
 - **GlassTooltip**: Contextual tooltips  
+- **GlassImageViewer**: Interactive image viewer with zoom and pan
 - **GlassThemeComponents**: Theme management (GlassThemeSwitcher, GlassThemeDemo)
 - **GlassPerformanceMonitor**: Performance monitoring utilities
 - **GlassOptimizedContainer**: Performance-optimized container

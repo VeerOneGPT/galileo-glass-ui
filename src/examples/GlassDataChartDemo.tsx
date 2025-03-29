@@ -290,6 +290,9 @@ export const GlassDataChartDemo: React.FC = () => {
   const productData = generateProductData();
   const multiDataset = createMultiDataset(5);
   
+  // State for chart options
+  const [tooltipStyle, setTooltipStyle] = useState<'frosted' | 'dynamic'>('dynamic');
+  
   // Tab content based on active tab
   const tabContent = [
     // Basic Charts Tab
@@ -482,7 +485,7 @@ export const GlassDataChartDemo: React.FC = () => {
             datasets={stockDatasets}
             interaction={{
               showTooltips: true,
-              tooltipStyle: 'glass',
+              tooltipStyle: tooltipStyle,
               physicsHoverEffects: true,
             }}
             height={400}
@@ -593,6 +596,14 @@ export const GlassDataChartDemo: React.FC = () => {
             Show Grid
           </ControlLabel>
         </div>
+        
+        <div className="control-group">
+          <label>Tooltip Style:</label>
+          <select value={tooltipStyle} onChange={(e) => setTooltipStyle(e.target.value as any)}>
+            <option value="frosted">Frosted</option>
+            <option value="dynamic">Dynamic</option>
+          </select>
+        </div>
       </ControlsCard>
       
       <ChartContainer>
@@ -624,7 +635,7 @@ export const GlassDataChartDemo: React.FC = () => {
           }}
           interaction={{
             showTooltips: true,
-            tooltipStyle: 'glass',
+            tooltipStyle: tooltipStyle,
             tooltipFollowCursor: false,
           }}
           height={400}

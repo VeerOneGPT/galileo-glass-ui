@@ -1,7 +1,7 @@
 # Galileo Glass UI
 
 <div align="center">
-  <img width="200" height="200" src="./assets/galileo-glass-logo.svg?v=2" alt="Galileo Glass UI Logo">
+  <img width="200" height="200" src="https://raw.githubusercontent.com/VeerOneGPT/galileo-glass-ui/main/assets/galileo-glass-logo.svg" alt="Galileo Glass UI Logo">
   <p><em>Modern glass morphism UI components for React, Next.js, and any TypeScript application</em></p>
 
   <p>
@@ -16,7 +16,7 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 ## 🌟 Features
 
 - **Glass Morphism Styling**: Create beautiful glass-like UI elements with blur effects, transparency, and lighting
-- **Comprehensive Component Library**: 75+ UI components including 48 specialized Glass components with glass morphism styling options
+- **Comprehensive Component Library**: 85+ UI components including 58 specialized Glass components with glass morphism styling options
 - **Physics-Based Animations**: Natural animations using spring physics, particle systems, and magnetic effects
 - **Accessibility-First Design**: Includes reduced motion support, high contrast mode, and keyboard navigation
 - **Performance Optimized**: Adapts to device capabilities for smooth performance on all devices
@@ -80,6 +80,32 @@ npm install github:VeerOneGPT/galileo-glass-ui styled-components
     </tr>
   </table>
 </div>
+
+#### What's New in v1.0.3
+
+#### Enhanced Animation System
+- **Custom Physics Engine**: Spring physics with inertial movement and momentum-based interactions
+- **Collision Detection**: Intelligent collision detection and response system
+- **Unified Physics API**: Comprehensive API with extensive interpolation functions
+- **Web Animations API**: WAAPI renderer with requestAnimationFrame fallback
+- **Performance Optimizations**: DOM operation batching and transform consolidation
+- **GPU Acceleration**: Hardware acceleration for smooth animations
+- **Device Capability Detection**: Adaptive performance based on device capabilities
+- **Enhanced Accessibility**: Improved support for motion sensitivity and reduced motion
+- **Animation Composition**: Timing-agnostic synchronization for complex animations
+- **Gesture-Driven System**: Natural gesture interactions with physics-based response
+
+#### New Glass Components
+- **GlassTooltip**: Physics-based glass tooltip with intelligent positioning
+- **GlassDataChart**: Chart components with glass styling and physics interactions
+- **GlassTabBar**: Advanced tab navigation with physics-based selection indicator
+- **GlassBreadcrumbs**: Z-space depth navigation component
+- **GlassCarousel**: Physics-based carousel with momentum scrolling
+- **GlassImageViewer**: Interactive image viewer with physics-based zoom/pan
+- **GlassMultiSelect**: Token-based multi-select with physics animations
+- **GlassDateRangePicker**: Date range picker with comparison mode
+- **GlassMasonry**: Physics-based masonry layout for content
+- **GlassTimeline**: Chronological data visualization component
 
 #### Optional Feature Dependencies
 
@@ -307,6 +333,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Grid</li>
           <li>Stack</li>
           <li>Divider</li>
+          <li>GlassMasonry</li>
         </ul>
       </td>
       <td>
@@ -326,6 +353,8 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Slider</li>
           <li>Autocomplete</li>
           <li>DatePicker</li>
+          <li>GlassDateRangePicker</li>
+          <li>GlassMultiSelect</li>
           <li>TagInput</li>
           <li>ToggleButton</li>
           <li>Rating</li>
@@ -344,14 +373,17 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>SpeedDial</li>
           <li>TreeView</li>
           <li>Breadcrumbs</li>
+          <li>GlassBreadcrumbs</li>
           <li>Menu</li>
           <li>MenuItem</li>
           <li>Toolbar</li>
           <li>GlassNavigation</li>
           <li>GlassTabBar</li>
+          <li>GlassCarousel</li>
           <li>ResponsiveNavigation</li>
           <li>PageTransition</li>
           <li>ZSpaceAppLayout</li>
+          <li>GlassTimeline</li>
         </ul>
       </td>
     </tr>
@@ -401,6 +433,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Modal</li>
           <li>Drawer</li>
           <li>Tooltip</li>
+          <li>GlassTooltip</li>
           <li>Icon</li>
           <li>Fab</li>
           <li>GlassThemeSwitcher</li>
@@ -412,6 +445,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>GlassLocalizationProvider</li>
           <li>AccessibilityProvider</li>
           <li>AccessibilitySettings</li>
+          <li>GlassImageViewer</li>
         </ul>
       </td>
       <td>

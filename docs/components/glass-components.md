@@ -366,6 +366,124 @@ interface DateAdapter {
 | `createDateFnsAdapter` | Creates a DateAdapter using date-fns |
 | `useDateAdapter` | Hook to access the current date adapter in components |
 
+### GlassBreadcrumbs
+
+A breadcrumb navigation component with glass morphism styling that provides a subtle way to show navigation hierarchy.
+
+```tsx
+import { GlassBreadcrumbs } from '../Glass';
+
+<GlassBreadcrumbs 
+  items={[
+    { label: 'Home', href: '/' },
+    { label: 'Category', href: '/category' },
+    { label: 'Subcategory', href: '/category/subcategory' },
+    { label: 'Current Page' }
+  ]}
+  separator="/"
+  maxItems={4}
+  itemsBeforeCollapse={1}
+  itemsAfterCollapse={2}
+  variant="frosted"
+  elevation={1}
+/>
+```
+
+#### Additional Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | Array<{ label: string; href?: string; onClick?: () => void; icon?: ReactNode }> | required | The breadcrumb items to display |
+| `separator` | string \| ReactNode | '/' | The separator between breadcrumb items |
+| `maxItems` | number | undefined | Maximum number of items to display before collapsing |
+| `itemsBeforeCollapse` | number | 1 | Number of items to show before collapsed items |
+| `itemsAfterCollapse` | number | 1 | Number of items to show after collapsed items |
+| `expandOnHover` | boolean | false | Whether to expand collapsed items on hover |
+| `collapsedLabel` | string | '...' | Label for collapsed section |
+| `onNavigate` | (href: string, event: React.MouseEvent) => void | undefined | Callback for handling navigation |
+
+### GlassCarousel
+
+A carousel component with glass morphism styling that supports physics-based animations for smooth transitions.
+
+```tsx
+import { GlassCarousel } from '../Glass';
+
+<GlassCarousel
+  items={[
+    { id: '1', content: <img src="/slide1.jpg" alt="Slide 1" /> },
+    { id: '2', content: <img src="/slide2.jpg" alt="Slide 2" /> },
+    { id: '3', content: <img src="/slide3.jpg" alt="Slide 3" /> }
+  ]}
+  autoPlay={true}
+  interval={5000}
+  animation="spring"
+  physics={{ preset: "gentle" }}
+  variant="frosted"
+  controls={true}
+  indicators={true}
+  elevation={2}
+/>
+```
+
+#### Additional Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `items` | Array<{ id: string; content: ReactNode }> | required | The carousel items to display |
+| `autoPlay` | boolean | false | Whether to automatically advance slides |
+| `interval` | number | 5000 | Time between auto-advancing slides (ms) |
+| `animation` | 'slide' \| 'fade' \| 'spring' | 'slide' | The transition animation type |
+| `physics` | { preset?: string; mass?: number; stiffness?: number; damping?: number } | undefined | Physics animation configuration |
+| `controls` | boolean | true | Whether to show next/previous controls |
+| `indicators` | boolean | true | Whether to show position indicators |
+| `indicatorVariant` | 'dots' \| 'bars' \| 'numbers' | 'dots' | Style of position indicators |
+| `swipeable` | boolean | true | Whether to allow swipe gestures |
+| `animateHeight` | boolean | false | Whether to animate height changes |
+| `onChange` | (index: number) => void | undefined | Callback when active slide changes |
+| `onSwipeStart` | (direction: 'left' \| 'right') => void | undefined | Callback when swipe gesture starts |
+| `onSwipeEnd` | (direction: 'left' \| 'right') => void | undefined | Callback when swipe gesture ends |
+
+### GlassImageViewer
+
+An interactive image viewer with glass morphism styling that supports zooming, panning, and gallery functionality.
+
+```tsx
+import { GlassImageViewer } from '../Glass';
+
+<GlassImageViewer
+  src="/large-image.jpg"
+  alt="Large viewable image"
+  thumbnailSrc="/thumbnail.jpg"
+  zoomable={true}
+  maxZoom={3}
+  pannable={true}
+  controls={true}
+  fullscreenEnabled={true}
+  variant="dimensional"
+  elevation={3}
+/>
+```
+
+#### Additional Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `src` | string | required | URL of the main image |
+| `alt` | string | required | Alt text for the image |
+| `thumbnailSrc` | string | undefined | URL of thumbnail image (for optimization) |
+| `zoomable` | boolean | true | Whether image can be zoomed |
+| `maxZoom` | number | 3 | Maximum zoom level |
+| `zoomStep` | number | 0.5 | Increment for each zoom step |
+| `pannable` | boolean | true | Whether image can be panned when zoomed |
+| `controls` | boolean | true | Whether to show zoom/pan controls |
+| `fullscreenEnabled` | boolean | true | Whether fullscreen mode is enabled |
+| `gallery` | Array<{ src: string; alt: string; thumbnailSrc?: string }> | undefined | Gallery of additional images |
+| `thumbnailPosition` | 'bottom' \| 'top' \| 'left' \| 'right' | 'bottom' | Position of gallery thumbnails |
+| `onZoomChange` | (zoomLevel: number) => void | undefined | Callback when zoom level changes |
+| `onFullscreenChange` | (isFullscreen: boolean) => void | undefined | Callback when fullscreen mode changes |
+| `onGalleryItemChange` | (index: number) => void | undefined | Callback when gallery image changes |
+
 ## Best Practices
 
 1. **Consistent Variant Usage**: Use the same variant for related components to maintain visual consistency

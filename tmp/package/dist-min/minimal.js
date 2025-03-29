@@ -5,6 +5,7 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
+const React = require('react');
 const styled = require('styled-components');
 
 // Basic theme context
@@ -22,7 +23,7 @@ const defaultTheme = {
   }
 };
 
-const ThemeContext = styled.createContext(defaultTheme);
+const ThemeContext = React.createContext(defaultTheme);
 
 // Minimal ThemeProvider
 const ThemeProvider = ({ children, theme }) => {

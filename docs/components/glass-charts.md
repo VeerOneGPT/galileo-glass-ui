@@ -131,7 +131,7 @@ This document presents a comprehensive plan to **update all chart components** i
 - **Window Resize Handling**  
   Global resize event handling with debouncing for performance.  
 - **Container-Based Sizing**  
-  Charts use 100% of the container’s width and height.
+  Charts use 100% of the container's width and height.
 
 ### 3. Proportional Bar Heights
 - **Data-Driven Scaling**  
@@ -171,7 +171,7 @@ This document presents a comprehensive plan to **update all chart components** i
 
 ### 6. Performance Optimizations
 - **Device Capability Detection**  
-  Dynamically adjusts rendering quality to the device’s specifications.  
+  Dynamically adjusts rendering quality to the device's specifications.  
 - **Quality Tiers**  
   Offers high, medium, low, and minimal quality tiers.  
 - **Battery Optimization**  
@@ -1309,3 +1309,386 @@ By integrating the Galileo Glass UI system into chart components, you gain a pre
 ---
 
 *Galileo Glass UI v1.0 • MIT License*
+
+# Glass Chart Components
+
+The Galileo Glass UI library provides a powerful set of glass-styled chart components for data visualization with beautiful, interactive displays that integrate seamlessly with your application's theme and provide a premium user experience.
+
+## GlassDataChart
+
+The `GlassDataChart` component is an advanced visualization tool that combines beautiful glass morphism styling with powerful data visualization capabilities. It features physics-based interactions, smooth animations, and rich customization options.
+
+### Key Features
+
+- **Glass Morphism Styling**: Beautiful glass-like surfaces with blur effects and transparency
+- **Physics-Based Animations**: Natural animations using spring physics for smooth transitions
+- **Interactive Tooltips**: Contextual tooltips with glass styling and dynamic positioning
+- **Atmospheric Backgrounds**: Subtle gradient backgrounds that enhance visual appeal
+- **Accessibility Support**: Respects user preferences for reduced motion
+- **Responsive Design**: Adapts to different screen sizes and device capabilities
+- **Multiple Chart Types**: Support for line, bar, area, pie, doughnut, radar, and more
+- **Custom Color Palettes**: Flexible color theming that integrates with your application
+
+### Installation
+
+The GlassDataChart component requires Chart.js and react-chartjs-2 as peer dependencies:
+
+```bash
+npm install chart.js react-chartjs-2
+```
+
+### Basic Usage
+
+```jsx
+import { GlassDataChart } from '@veerone/galileo-glass-ui';
+
+function MyChart() {
+  // Sample data for the chart
+  const datasets = [
+    {
+      id: 'revenue',
+      label: 'Revenue',
+      data: [
+        { x: 'Jan', y: 3200000 },
+        { x: 'Feb', y: 4800000 },
+        { x: 'Mar', y: 4100000 },
+        { x: 'Apr', y: 5600000 },
+        { x: 'May', y: 8240000 },
+        { x: 'Jun', y: 9100000 },
+        { x: 'Jul', y: 10500000 },
+        { x: 'Aug', y: 11200000 }
+      ],
+      style: {
+        lineColor: '#6366F1',
+        fillOpacity: 0.4,
+        glowEffect: true
+      }
+    },
+    {
+      id: 'profit',
+      label: 'Profit',
+      data: [
+        { x: 'Jan', y: 1100000 },
+        { x: 'Feb', y: 1500000 },
+        { x: 'Mar', y: 2100000 },
+        { x: 'Apr', y: 2400000 },
+        { x: 'May', y: 3800000 },
+        { x: 'Jun', y: 4200000 },
+        { x: 'Jul', y: 5700000 },
+        { x: 'Aug', y: 6300000 }
+      ],
+      style: {
+        lineColor: '#10B981',
+        fillOpacity: 0.4,
+        glowEffect: true
+      }
+    }
+  ];
+
+  return (
+    <GlassDataChart
+      title="Performance Metrics"
+      subtitle="Monthly revenue and profit analysis"
+      variant="line"
+      datasets={datasets}
+      height={400}
+      glassVariant="frosted"
+      color="primary"
+      animation={{
+        physicsEnabled: true,
+        duration: 1000,
+        staggerDelay: 100
+      }}
+      interaction={{
+        showTooltips: true,
+        tooltipStyle: 'dynamic',
+        physicsHoverEffects: true
+      }}
+    />
+  );
+}
+```
+
+### Props
+
+The GlassDataChart component accepts the following props:
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | string | - | Chart heading title |
+| `subtitle` | string | - | Chart subtitle or description |
+| `variant` | 'line' \| 'bar' \| 'area' \| 'bubble' \| 'pie' \| 'doughnut' \| 'radar' \| 'polarArea' | 'line' | Chart variant type |
+| `datasets` | ChartDataset[] | [] | Array of datasets to display |
+| `width` | string \| number | '100%' | Chart width |
+| `height` | string \| number | 400 | Chart height |
+| `glassVariant` | 'clear' \| 'frosted' \| 'tinted' \| 'luminous' | 'frosted' | Chart glass appearance |
+| `blurStrength` | 'light' \| 'standard' \| 'strong' | 'standard' | Blur strength for glass effect |
+| `color` | 'primary' \| 'secondary' \| 'info' \| 'success' \| 'warning' \| 'error' \| 'default' | 'primary' | Base color theme |
+| `animation` | ChartAnimationOptions | - | Chart animation options |
+| `interaction` | ChartInteractionOptions | - | Chart interaction options |
+| `legend` | ChartLegendOptions | - | Chart legend options |
+| `axis` | ChartAxisOptions | - | Chart axis options |
+| `elevation` | 1 \| 2 \| 3 \| 4 \| 5 | 3 | Card elevation level |
+| `borderRadius` | string \| number | 12 | Border radius for chart container |
+| `onDataPointClick` | (datasetIndex, dataIndex, data) => void | - | Callback when a data point is clicked |
+| `onSelectionChange` | (selectedIndices) => void | - | Callback when data selection changes |
+| `onTypeChange` | (chartType) => void | - | Callback when chart type is changed |
+
+### Dataset Configuration
+
+Each dataset in the `datasets` array accepts the following properties:
+
+```typescript
+interface ChartDataset {
+  id: string;
+  label: string;
+  data: DataPoint[];
+  style?: {
+    fillColor?: string | string[] | CanvasGradient;
+    lineColor?: string;
+    pointColor?: string;
+    shadowColor?: string;
+    fillOpacity?: number;
+    lineWidth?: number;
+    pointSize?: number;
+    pointStyle?: 'circle' | 'cross' | 'crossRot' | 'dash' | 'line' | 'rect' | 'rectRounded' | 'rectRot' | 'star' | 'triangle';
+    lineStyle?: 'solid' | 'dashed' | 'dotted';
+    glassEffect?: boolean;
+    glowEffect?: boolean;
+    glowIntensity?: 'subtle' | 'medium' | 'strong';
+  };
+  useRightYAxis?: boolean;
+  order?: number;
+  hidden?: boolean;
+}
+```
+
+### Animation Options
+
+The `animation` prop accepts the following options:
+
+```typescript
+interface ChartAnimationOptions {
+  physicsEnabled?: boolean;
+  duration?: number;
+  tension?: number;
+  friction?: number;
+  mass?: number;
+  easing?: 'linear' | 'easeInQuad' | /* ...other easing options... */;
+  staggerDelay?: number;
+}
+```
+
+### Interaction Options
+
+The `interaction` prop accepts the following options:
+
+```typescript
+interface ChartInteractionOptions {
+  zoomPanEnabled?: boolean;
+  zoomMode?: 'x' | 'y' | 'xy';
+  physicsHoverEffects?: boolean;
+  hoverSpeed?: number;
+  showTooltips?: boolean;
+  tooltipStyle?: 'glass' | 'frosted' | 'tinted' | 'luminous' | 'dynamic';
+  tooltipFollowCursor?: boolean;
+}
+```
+
+## Advanced Usage Examples
+
+### Area Chart with Atmospheric Background
+
+```jsx
+<GlassDataChart
+  title="User Growth"
+  subtitle="Monthly active users"
+  variant="area"
+  color="info"
+  glassVariant="luminous"
+  datasets={[
+    {
+      id: 'users',
+      label: 'Active Users',
+      data: userGrowthData,
+      style: {
+        fillOpacity: 0.6,
+        glowEffect: true,
+        glowIntensity: 'medium'
+      }
+    }
+  ]}
+  interaction={{
+    tooltipStyle: 'dynamic',
+    physicsHoverEffects: true
+  }}
+/>
+```
+
+### Multi-Series Bar Chart
+
+```jsx
+<GlassDataChart
+  title="Quarterly Performance"
+  variant="bar"
+  color="secondary"
+  datasets={[
+    {
+      id: 'q1',
+      label: 'Q1 2025',
+      data: q1Data,
+      style: {
+        glassEffect: true
+      }
+    },
+    {
+      id: 'q2',
+      label: 'Q2 2025',
+      data: q2Data,
+      style: {
+        glassEffect: true
+      }
+    }
+  ]}
+  legend={{
+    position: 'top',
+    style: 'pills',
+    glassEffect: true
+  }}
+/>
+```
+
+### Accessible Chart with Reduced Motion
+
+```jsx
+<GlassDataChart
+  // ...other props
+  animation={{
+    // This will respect the user's reduced motion preferences
+    physicsEnabled: true,
+    duration: 800
+  }}
+/>
+```
+
+## Best Practices
+
+1. **Match your theme**: Use color values that match your application's theme for consistent styling
+2. **Respect data visualization principles**: Choose chart types appropriate for your data
+3. **Consider accessibility**: Set reasonable animation durations and enable accessibility features
+4. **Optimize for performance**: For large datasets, consider limiting animations or using staggered load
+5. **Mobile responsiveness**: Test charts on various screen sizes to ensure they render properly
+
+## Customization
+
+The GlassDataChart component offers extensive customization options through its props. You can customize:
+
+- Visual appearance (glass variant, color, blur strength)
+- Animation behavior (physics, durations, delays)
+- Interaction modes (tooltips, hover effects)
+- Chart components (axes, legend, grid)
+- Data point styling (colors, sizes, effects)
+
+## Compatibility
+
+GlassDataChart works seamlessly with:
+
+- React 16.8+
+- Next.js (with the `transpilePackages` option in next.config.js)
+- All modern browsers supporting CSS backdrop-filter
+- Chart.js 3.x and react-chartjs-2 4.x
+
+For older browsers without backdrop-filter support, a fallback styling is automatically applied to maintain functionality while providing a degraded visual experience.
+
+## New Features in 1.0.3.1
+
+### Enhanced Legend Interactivity
+
+The GlassDataChart now features enhanced legends with glass morphism effects and improved interactivity:
+
+- **Glass-styled legends** with hover effects matching the atmospheric backgrounds
+- **Active state visualization** with glow effects for better visual hierarchy
+- **Enhanced interactivity** with subtle animation effects
+- **Customizable styles** for better integration with your application's design
+
+### Advanced Data Formatting
+
+New formatting utilities have been added for better data visualization:
+
+- **Smart value formatting** - automatic formatting based on data type
+- **Currency formatting** with locale support and customizable symbols
+- **Compact number display** for large values (1K, 1M, 1B)
+- **Percentage formatting** with customizable precision and sign display
+- **Unit formatting** with intelligent unit selection based on value magnitude
+- **Date and duration formatting** with multiple presentation styles
+
+```jsx
+// Example: Configure dataset with formatting options
+const datasets = [
+  {
+    id: 'revenue',
+    label: 'Revenue',
+    data: revenueData,
+    // Specify format type for the entire dataset
+    formatType: 'currency',
+    formatOptions: {
+      currencySymbol: '$',
+      compact: true
+    },
+    style: {
+      lineColor: '#6366F1',
+      fillOpacity: 0.4
+    }
+  },
+  {
+    id: 'growth',
+    label: 'Growth',
+    data: growthData.map(point => ({
+      x: point.x,
+      y: point.y,
+      // Override format for individual points
+      formatType: 'percentage',
+      formatOptions: {
+        showPlus: true,
+        decimals: 1
+      }
+    })),
+    style: {
+      lineColor: '#10B981',
+      fillOpacity: 0.4
+    }
+  }
+];
+```
+
+### Enhanced Export Capabilities
+
+The chart export functionality has been greatly improved:
+
+- **High-quality exports** with proper resolution scaling for crisp images
+- **Multiple export formats** including PNG and JPEG
+- **Customizable filenames** with automatic timestamps
+- **Title and subtitle inclusion** in exported images
+- **Background color options** for better integration with design systems
+- **Customizable quality settings** for optimizing file size
+- **Styled export button** that integrates with the glass UI
+
+```jsx
+<GlassDataChart
+  // ...other props
+  exportOptions={{
+    filename: 'quarterly-report',
+    format: 'png',
+    quality: 0.9,
+    backgroundColor: 'transparent',
+    includeTitle: true,
+    includeTimestamp: true
+  }}
+  // Custom export button renderer (optional)
+  renderExportButton={(handleExport) => (
+    <MyCustomButton onClick={handleExport}>
+      Export Chart
+    </MyCustomButton>
+  )}
+/>
+```

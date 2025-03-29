@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "type": "module",
   "main": "dist/index.js",
@@ -31,6 +31,11 @@
       "import": "./dist/core.esm.js",
       "require": "./dist/core.js",
       "types": "./dist/core.d.ts"
+    },
+    "./mixins": {
+      "import": "./dist/mixins.esm.js",
+      "require": "./dist/mixins.js",
+      "types": "./dist/mixins.d.ts"
     },
     "./theme": {
       "import": "./dist/theme.esm.js",
@@ -70,7 +75,10 @@
     "preinstall": "echo '\\n💡 Galileo Glass UI - Installation in progress\\n'",
     "postinstall": "echo '\\n✅ Galileo Glass UI installed successfully!\\n'",
     "preuninstall": "echo '\\n🧹 Cleaning up Galileo Glass UI...\\n'",
-    "build": "rollup -c",
+    "build": "rm -rf dist && rollup -c",
+    "quick-build": "SKIP_TS_CHECK=true npm run build",
+    "build:skip-ts": "SKIP_TS_CHECK=true npm run build",
+    "build:production": "SKIP_TS_CHECK=true npm run build && node scripts/fix-declarations.js",
     "build:with-checks": "npm run typecheck:build && (npm run lint:build || true) && rollup -c",
     "build:fix": "npm run lint:fix && prettier --write \"src/**/*.{ts,tsx}\" && npm run build",
     "build:clean": "rm -rf dist && npm run build:fix",

@@ -21,7 +21,8 @@ import {
   ChartData,
   ChartType,
   Filler,
-  defaults
+  defaults,
+  Plugin
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
@@ -31,6 +32,19 @@ import { createThemeContext } from '../../core/themeContext';
 import { useGlassTheme } from '../../hooks/useGlassTheme';
 import { useSpring } from '../../animations/physics/useSpring';
 import { GlassTooltip, GlassTooltipContent } from '../GlassTooltip';
+import { formatValue, formatWithUnits, formatCurrency, formatPercentage } from './GlassDataChartUtils';
+// Import keyframes from the new file
+import {
+  drawLine,
+  fadeIn,
+  popIn,
+  fadeSlideUp,
+  glowPulse,
+  shimmer,
+  activePoint,
+  tooltipFade,
+  atmosphericMovement
+} from '../../animations/keyframes/chartAnimations';
 
 // Register required Chart.js components
 ChartJS.register(
@@ -45,6 +59,58 @@ ChartJS.register(
   Legend,
   Filler
 );
+
+// Custom SVG path animation plugin
+const pathAnimationPlugin: Plugin<ChartType> = {
+  id: 'pathAnimation',
+  afterDraw: (chart) => {
+    const ctx = chart.ctx;
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (meta.type === 'line' && meta.dataset) {
+        const element = meta.dataset as any;
+        if (element && element._path) {
+          const path = element._path;
+          
+          // Check if we already processed this path
+          if (!path._animationApplied && path.getTotalLength) {
+            try {
+              // Mark as processed to avoid reapplying
+              path._animationApplied = true;
+              
+              // Get path length for animation
+              const pathLength = path.getTotalLength();
+              
+              // Apply stroke dash settings
+              path.style.strokeDasharray = `${pathLength} ${pathLength}`;
+              path.style.strokeDashoffset = `${pathLength}`;
+              
+              // Create animation with WAAPI
+              path.animate(
+                [
+                  { strokeDashoffset: pathLength },
+                  { strokeDashoffset: 0 }
+                ],
+                {
+                  duration: 1500,
+                  delay: datasetIndex * 150,
+                  fill: 'forwards',
+                  easing: 'ease-out'
+                }
+              );
+            } catch (err) {
+              // Fallback for browsers that don't support these features
+              console.log('Advanced path animation not supported in this browser');
+            }
+          }
+        }
+      }
+    });
+  }
+};
+
+// Register the custom plugin
+ChartJS.register(pathAnimationPlugin);
 
 // Adjust Chart.js defaults for better glass UI compatibility
 defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -186,6 +252,20 @@ export interface DataPoint {
   label?: string;
   /** Extra data for tooltips or display */
   extra?: Record<string, any>;
+  /** Format type for this data point ('number', 'currency', 'percentage', 'units') */
+  formatType?: 'number' | 'currency' | 'percentage' | 'units';
+  /** Format options for this data point */
+  formatOptions?: {
+    decimals?: number;
+    currencySymbol?: string;
+    locale?: string;
+    compact?: boolean;
+    showPlus?: boolean;
+    suffix?: string;
+    prefix?: string;
+  };
+  /** Formatted value (available in event handlers) */
+  formattedValue?: string;
 }
 
 /**
@@ -206,6 +286,18 @@ export interface ChartDataset {
   order?: number;
   /** If true, this dataset is hidden by default */
   hidden?: boolean;
+  /** Default format type for all data points in this dataset */
+  formatType?: 'number' | 'currency' | 'percentage' | 'units';
+  /** Default format options for all data points in this dataset */
+  formatOptions?: {
+    decimals?: number;
+    currencySymbol?: string;
+    locale?: string;
+    compact?: boolean;
+    showPlus?: boolean;
+    suffix?: string;
+    prefix?: string;
+  };
 }
 
 /**
@@ -268,6 +360,23 @@ export interface GlassDataChartProps {
   onZoomPan?: (chart: any) => void;
   /** Callback when chart type is changed */
   onTypeChange?: (chartType: ChartVariant) => void;
+  /** Enhanced export options */
+  exportOptions?: {
+    /** Default filename for exported images */
+    filename?: string;
+    /** Image quality (0-1) for JPEG exports */
+    quality?: number;
+    /** Format for export (png/jpeg) */
+    format?: 'png' | 'jpeg';
+    /** Background color for exported image */
+    backgroundColor?: string;
+    /** Include chart title in exported image */
+    includeTitle?: boolean;
+    /** Include timestamp in filename */
+    includeTimestamp?: boolean;
+  };
+  /** Custom export button renderer */
+  renderExportButton?: (handleExport: () => void) => React.ReactNode;
 }
 
 // Styled components
@@ -285,7 +394,6 @@ const ChartContainer = styled.div<{
   border: 1px solid ${props => props.$borderColor || 'rgba(255, 255, 255, 0.1)'};
   height: 100%;
   width: 100%;
-  overflow: hidden;
   transition: all 0.3s ease;
   
   ${props => {
@@ -357,6 +465,54 @@ const ChartContainer = styled.div<{
   }
 `;
 
+// New component for atmospheric background effects
+const AtmosphericBackground = styled.div<{
+  $color: string;
+}>`
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: ${props => {
+      if (props.$color === 'primary') return 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)';
+      if (props.$color === 'secondary') return 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%)';
+      if (props.$color === 'info') return 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)';
+      if (props.$color === 'success') return 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%)';
+      if (props.$color === 'warning') return 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(239, 68, 68, 0.08) 100%)';
+      if (props.$color === 'error') return 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%)';
+      return 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)';
+    }};
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    right: 25%;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: ${props => {
+      if (props.$color === 'primary') return 'rgba(99, 102, 241, 0.1)';
+      if (props.$color === 'secondary') return 'rgba(139, 92, 246, 0.1)';
+      if (props.$color === 'info') return 'rgba(59, 130, 246, 0.1)';
+      if (props.$color === 'success') return 'rgba(16, 185, 129, 0.1)';
+      if (props.$color === 'warning') return 'rgba(245, 158, 11, 0.1)';
+      if (props.$color === 'error') return 'rgba(239, 68, 68, 0.1)';
+      return 'rgba(99, 102, 241, 0.1)';
+    }};
+    filter: blur(50px);
+    animation: ${atmosphericMovement} 8s infinite ease-in-out;
+  }
+`;
+
 const ChartHeader = styled.div`
   margin-bottom: 1rem;
 `;
@@ -366,6 +522,7 @@ const ChartTitle = styled.h3`
   font-weight: 600;
   margin: 0 0 0.25rem 0;
   color: #fff;
+  animation: ${fadeSlideUp} 0.6s ease-out forwards;
 `;
 
 const ChartSubtitle = styled.p`
@@ -373,6 +530,7 @@ const ChartSubtitle = styled.p`
   margin: 0;
   opacity: 0.7;
   color: #fff;
+  animation: ${fadeSlideUp} 0.6s ease-out forwards 0.1s;
 `;
 
 const ChartToolbar = styled.div`
@@ -418,14 +576,54 @@ const ToolbarButton = styled.button`
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
   
   &:hover {
     background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    
+    &::after {
+      opacity: 0.2;
+    }
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
   
   svg {
     width: 16px;
     height: 16px;
+    position: relative;
+    z-index: 1;
+  }
+`;
+
+const EnhancedExportButton = styled(ToolbarButton)`
+  background: rgba(46, 196, 182, 0.15);
+  border: 1px solid rgba(46, 196, 182, 0.3);
+  
+  &:hover {
+    background: rgba(46, 196, 182, 0.25);
+    border: 1px solid rgba(46, 196, 182, 0.4);
+  }
+  
+  &::after {
+    background: radial-gradient(circle at center, rgba(46, 196, 182, 0.3) 0%, transparent 70%);
   }
 `;
 
@@ -449,37 +647,99 @@ const ChartLegend = styled.div<{ $position: string; $style: string; $glassEffect
   `}
 `;
 
-const LegendItem = styled.div<{ $style: string }>`
+const LegendItem = styled.div<{ 
+  $style: string;
+  $active: boolean;
+  $color: string;
+}>`
   display: flex;
   align-items: center;
   padding: ${props => props.$style === 'pills' ? '0.25rem 0.75rem' : '0.25rem 0.5rem'};
   font-size: 0.75rem;
   border-radius: ${props => props.$style === 'pills' ? '20px' : '4px'};
-  background: ${props => props.$style === 'pills' ? 'rgba(255, 255, 255, 0.1)' : 'transparent'};
+  background: ${props => {
+    if (props.$style === 'pills') {
+      return props.$active 
+        ? `rgba(${props.$color}, 0.2)` 
+        : 'rgba(255, 255, 255, 0.1)';
+    }
+    return props.$active ? `rgba(${props.$color}, 0.1)` : 'transparent';
+  }};
   cursor: pointer;
   transition: all 0.2s ease;
+  animation: ${fadeIn} 0.5s ease-out forwards;
+  position: relative;
+  overflow: hidden;
   
+  /* Glass effect for pills style */
+  ${props => props.$style === 'pills' && `
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  `}
+  
+  /* Interactive hover effect */
   &:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: ${props => props.$active 
+      ? `rgba(${props.$color}, 0.25)` 
+      : 'rgba(255, 255, 255, 0.15)'};
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    
+    /* Subtle glow effect on hover */
+    &::after {
+      opacity: 0.5;
+    }
+  }
+  
+  /* Active state styling */
+  ${props => props.$active && `
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(${props.$color}, 0.2);
+  `}
+  
+  /* Glow effect element */
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba(${props => props.$color}, 0.3) 0%, transparent 70%);
+    opacity: ${props => props.$active ? 0.3 : 0};
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: -1;
   }
 `;
 
-const LegendColor = styled.div<{ $color: string }>`
+const LegendColor = styled.div<{ $color: string; $active: boolean }>`
   width: 12px;
   height: 12px;
   border-radius: 3px;
   background-color: ${props => props.$color};
   margin-right: 0.5rem;
+  transition: transform 0.2s ease;
+  box-shadow: ${props => props.$active ? `0 0 8px ${props.$color}` : 'none'};
+  
+  ${props => props.$active && `
+    transform: scale(1.2);
+  `}
 `;
 
-const LegendLabel = styled.span`
-  color: #fff;
+const LegendLabel = styled.span<{ $active: boolean }>`
+  color: ${props => props.$active ? '#fff' : 'rgba(255, 255, 255, 0.8)'};
+  transition: color 0.2s ease;
 `;
 
 const ChartWrapper = styled.div`
   position: relative;
   width: 100%;
   height: 100%;
+  z-index: 1;
+  /* Ensure the chart doesn't clip its content - important for tooltips and animations */
+  overflow: visible;
 `;
 
 /**
@@ -699,6 +959,15 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
   onSelectionChange,
   onZoomPan,
   onTypeChange,
+  exportOptions = {
+    filename: 'chart',
+    quality: 0.9,
+    format: 'png',
+    backgroundColor: 'transparent',
+    includeTitle: true,
+    includeTimestamp: true,
+  },
+  renderExportButton,
 }) => {
   // Hooks
   const theme = useGlassTheme();
@@ -751,11 +1020,74 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     return chartType as unknown as ChartType;
   };
   
-  // Format data for Chart.js - fix type issues by adding proper type casting
+  // SVG Filter Definitions - Add this to the component
+  const svgFilters = (
+    <svg width="0" height="0" style={{ position: 'absolute', visibility: 'hidden' }}>
+      <defs>
+        {/* Gradient definitions */}
+        {palette.map((color, i) => (
+          <React.Fragment key={`gradient-${i}`}>
+            <linearGradient id={`areaGradient${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={`${color}CC`} />
+              <stop offset="100%" stopColor={`${color}00`} />
+            </linearGradient>
+            
+            {/* Glow filter for lines */}
+            <filter id={`glow${i}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+            
+            {/* Point highlight filter */}
+            <filter id={`pointGlow${i}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </React.Fragment>
+        ))}
+      </defs>
+    </svg>
+  );
+
+  // Enhanced conversion function with SVG effects
+  const convertToChartJsDatasetWithEffects = (
+    dataset: ChartDataset, 
+    index: number, 
+    chartType: ChartType,
+    palette: string[],
+    animations?: ChartAnimationOptions
+  ) => {
+    const baseDataset = convertToChartJsDataset(dataset, index, chartType, palette, animations);
+    
+    // Add SVG filter effects based on chart type
+    if (chartType === 'line') {
+      return {
+        ...baseDataset,
+        borderWidth: dataset.style?.lineWidth || 2,
+        // Use the SVG filter for the line
+        borderColor: dataset.style?.glowEffect ? palette[index % palette.length] : baseDataset.borderColor,
+        // Sequential animation delays based on dataset index
+        animation: {
+          delay: index * (animation?.staggerDelay || 100),
+        }
+      };
+    }
+    
+    return baseDataset;
+  };
+
+  // Use the enhanced dataset conversion in the chartData
   const chartData = {
-    datasets: datasets.map((dataset, i) => 
-      convertToChartJsDataset(dataset, i, getChartJsType(), palette, animation)
-    ) as any,
+    datasets: datasets.map((dataset, i) => {
+      const baseDataset = convertToChartJsDatasetWithEffects(dataset, i, getChartJsType(), palette, animation);
+      
+      // Store format information in the dataset's custom properties
+      return {
+        ...baseDataset,
+        formatType: dataset.formatType || 'number',
+        formatOptions: dataset.formatOptions || {},
+      };
+    }) as any,
     // Labels are used for pie/doughnut/polarArea charts
     labels: chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea'
       ? datasets[0]?.data.map(point => point.label || point.x.toString())
@@ -767,7 +1099,18 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     responsive: true,
     maintainAspectRatio: false,
     animation: usePhysicsAnimation 
-      ? false // We'll handle physics animations ourselves
+      ? {
+          duration: isReducedMotion ? 0 : animation.duration,
+          delay: (context) => {
+            // Enhanced staggered delay for more natural animation
+            if (animation.staggerDelay && context.datasetIndex !== undefined) {
+              return context.datasetIndex * (animation.staggerDelay || 0) + (context.dataIndex || 0) * 20;
+            }
+            return 0;
+          },
+          // Add easing based on physics principles
+          easing: 'easeOutExpo',
+        }
       : {
           duration: isReducedMotion ? 0 : animation.duration,
           easing: animation.easing as any || 'easeOutQuart',
@@ -793,7 +1136,13 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       },
       tooltip: {
         enabled: false, // We'll create our own custom tooltip
-      }
+      },
+      // Use custom animation for path effects
+      // Note: Chart.js options type doesn't include custom plugins, but they work at runtime
+      ...(usePhysicsAnimation && (chartType === 'line' || chartType === 'area') ? {
+        // @ts-ignore - Custom plugin configuration
+        pathAnimation: { enabled: true }
+      } : {})
     },
     
     // Simplify scales configuration to make it compatible with Chart.js types
@@ -961,7 +1310,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     }
   };
   
-  // Handle chart data point click
+  // Handle chart data point click with formatted value feedback
   const handleDataPointClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!chartRef.current) return;
     
@@ -980,8 +1329,20 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       const dataset = datasets[datasetIndex];
       const dataPoint = dataset.data[dataIndex];
       
+      // Format the value for the click handler
+      const formatType = dataPoint.formatType || dataset.formatType || 'number';
+      const formatOptions = {
+        ...(dataset.formatOptions || {}),
+        ...(dataPoint.formatOptions || {}),
+      };
+      
+      // We'll provide both raw and formatted value to the handler
       if (onDataPointClick) {
-        onDataPointClick(datasetIndex, dataIndex, dataPoint);
+        const formattedValue = formatValue(dataPoint.y, formatType as any, formatOptions);
+        onDataPointClick(datasetIndex, dataIndex, {
+          ...dataPoint,
+          formattedValue: formattedValue
+        });
       }
     }
   };
@@ -1033,22 +1394,93 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     setHoveredPoint(null);
   };
   
-  // Handle download chart as image
-  const handleDownloadChart = () => {
+  // Handle enhanced chart export
+  const handleExportChart = useCallback(() => {
     if (!chartRef.current) return;
+
+    const chart = chartRef.current;
     
-    // Create a temporary link
+    // Create a temporary canvas for the export
+    const exportCanvas = document.createElement('canvas');
+    const exportContext = exportCanvas.getContext('2d');
+    
+    if (!exportContext) return;
+    
+    // Determine dimensions and scaling
+    const sourceCanvas = chart.canvas;
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    
+    // Set the export canvas size with device pixel ratio for high-quality exports
+    exportCanvas.width = sourceCanvas.width * devicePixelRatio;
+    exportCanvas.height = sourceCanvas.height * devicePixelRatio;
+    
+    // If title should be included, make room for it
+    let titleHeight = 0;
+    if (exportOptions.includeTitle && (title || subtitle)) {
+      titleHeight = title && subtitle ? 60 : 40;
+      exportCanvas.height += titleHeight * devicePixelRatio;
+    }
+    
+    // Fill background if specified
+    if (exportOptions.backgroundColor && exportOptions.backgroundColor !== 'transparent') {
+      exportContext.fillStyle = exportOptions.backgroundColor;
+      exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+    }
+    
+    // Add title and subtitle if needed
+    if (exportOptions.includeTitle && (title || subtitle)) {
+      exportContext.textAlign = 'center';
+      exportContext.textBaseline = 'middle';
+      
+      if (title) {
+        exportContext.font = `bold ${16 * devicePixelRatio}px Inter, sans-serif`;
+        exportContext.fillStyle = '#ffffff';
+        exportContext.fillText(title, exportCanvas.width / 2, 25 * devicePixelRatio);
+      }
+      
+      if (subtitle) {
+        exportContext.font = `${14 * devicePixelRatio}px Inter, sans-serif`;
+        exportContext.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        exportContext.fillText(subtitle, exportCanvas.width / 2, title ? 45 * devicePixelRatio : 25 * devicePixelRatio);
+      }
+    }
+
+    // Draw the chart onto the export canvas
+    exportContext.drawImage(
+      sourceCanvas, 
+      0, 
+      0, 
+      sourceCanvas.width, 
+      sourceCanvas.height,
+      0, 
+      titleHeight * devicePixelRatio, 
+      exportCanvas.width, 
+      exportCanvas.height - (titleHeight * devicePixelRatio)
+    );
+    
+    // Generate a filename with optional timestamp
+    let filename = exportOptions.filename || 'chart';
+    
+    if (exportOptions.includeTimestamp) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+      filename += `_${timestamp}`;
+    }
+    
+    // Determine format and quality
+    const format = exportOptions.format === 'jpeg' ? 'image/jpeg' : 'image/png';
+    const quality = exportOptions.format === 'jpeg' ? exportOptions.quality : undefined;
+    
+    // Create a data URL for the export
+    const dataUrl = exportCanvas.toDataURL(format, quality);
+    
+    // Create a temporary link and trigger download
     const link = document.createElement('a');
-    link.download = `${title || 'chart'}.png`;
-    
-    // Set the link href to the chart data URL
-    link.href = chartRef.current.toBase64Image();
-    
-    // Click the link to trigger download
+    link.download = `${filename}.${exportOptions.format}`;
+    link.href = dataUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, [chartRef, title, subtitle, exportOptions]);
   
   // Initialize the chart with physics animations
   useEffect(() => {
@@ -1075,6 +1507,92 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     availableTypes.push('pie', 'doughnut');
   }
   
+  // Enhanced implementation of custom tooltips
+  const renderCustomTooltip = useCallback(() => {
+    if (!hoveredPoint || !interaction.showTooltips) return null;
+
+    // Get the data point's format type and options
+    const dataset = datasets[hoveredPoint.datasetIndex];
+    const dataPoint = dataset.data[hoveredPoint.dataIndex];
+    
+    // Determine the format type with fallbacks
+    const formatType = dataPoint.formatType || dataset.formatType || 'number';
+    
+    // Merge format options with fallbacks
+    const formatOptions = {
+      ...(dataset.formatOptions || {}),
+      ...(dataPoint.formatOptions || {}),
+    };
+    
+    // Format the value based on type
+    const formattedValue = formatValue(
+      hoveredPoint.value.value, 
+      formatType as any, 
+      formatOptions
+    );
+
+    return (
+      <div 
+        style={{
+          position: 'absolute',
+          left: hoveredPoint.x,
+          top: hoveredPoint.y - 10,
+          transform: 'translate(-50%, -100%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '4px',
+          padding: '8px 12px',
+          pointerEvents: 'none',
+          zIndex: 100,
+          color: '#fff',
+          animation: 'tooltipFade 0.2s ease-out forwards',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          minWidth: '120px',
+        }}
+      >
+        <div style={{ 
+          marginBottom: '4px', 
+          fontWeight: 600, 
+          color: hoveredPoint.value.color,
+          fontSize: '12px',
+        }}>
+          {hoveredPoint.value.dataset}
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          fontSize: '14px', 
+          fontWeight: 'bold' 
+        }}>
+          <span>{typeof hoveredPoint.value.label === 'string' ? hoveredPoint.value.label : 'Value'}: </span>
+          <span>{formattedValue}</span>
+        </div>
+        {hoveredPoint.value.extra && Object.entries(hoveredPoint.value.extra).map(([key, value]) => {
+          // Format extra values if they're numbers
+          let displayValue = value;
+          if (typeof value === 'number') {
+            // Check if it's a percentage or currency by key name
+            if (key.toLowerCase().includes('percent') || key.toLowerCase().includes('change')) {
+              displayValue = formatPercentage(value, { showPlus: true });
+            } else if (key.toLowerCase().includes('price') || key.toLowerCase().includes('revenue') || key.toLowerCase().includes('cost')) {
+              displayValue = formatCurrency(value, { compact: true });
+            } else if (value > 1000) {
+              displayValue = formatWithUnits(value);
+            }
+          }
+          
+          return (
+            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+              <span>{key}: </span>
+              <span>{displayValue as any}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }, [hoveredPoint, interaction.showTooltips, datasets]);
+  
   return (
     <ChartContainer
       ref={containerRef}
@@ -1091,6 +1609,12 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       $borderRadius={borderRadius}
       $borderColor={borderColor}
     >
+      {/* SVG Filters */}
+      {svgFilters}
+      
+      {/* Atmospheric Background */}
+      <AtmosphericBackground $color={color} />
+      
       {/* Chart Header */}
       {(title || subtitle) && (
         <ChartHeader>
@@ -1117,15 +1641,19 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
             </ChartTypeSelector>
           )}
           
-          {/* Download button */}
+          {/* Enhanced Export button */}
           {allowDownload && (
-            <ToolbarButton onClick={handleDownloadChart} title="Download as image">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
-              </svg>
-            </ToolbarButton>
+            renderExportButton ? (
+              renderExportButton(handleExportChart)
+            ) : (
+              <EnhancedExportButton onClick={handleExportChart} title="Export chart as image">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </EnhancedExportButton>
+            )
           )}
         </ChartToolbar>
       )}
@@ -1137,16 +1665,32 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
           $style={legend.style || 'default'} 
           $glassEffect={legend.glassEffect || false}
         >
-          {datasets.map((dataset, index) => (
-            <LegendItem 
-              key={dataset.id} 
-              $style={legend.style || 'default'} 
-              onClick={() => handleLegendClick(index)}
-            >
-              <LegendColor $color={dataset.style?.lineColor || palette[index % palette.length]} />
-              <LegendLabel>{dataset.label}</LegendLabel>
-            </LegendItem>
-          ))}
+          {datasets.map((dataset, index) => {
+            // Convert hex color to RGB for rgba usage
+            const hexToRgb = (hex: string) => {
+              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+              return result 
+                ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+                : '255, 255, 255';
+            };
+            
+            const color = dataset.style?.lineColor || palette[index % palette.length];
+            const rgbColor = hexToRgb(color);
+            const isActive = !selectedDatasets.includes(index);
+            
+            return (
+              <LegendItem 
+                key={dataset.id} 
+                $style={legend.style || 'default'} 
+                $active={isActive}
+                $color={rgbColor}
+                onClick={() => handleLegendClick(index)}
+              >
+                <LegendColor $color={color} $active={isActive} />
+                <LegendLabel $active={isActive}>{dataset.label}</LegendLabel>
+              </LegendItem>
+            );
+          })}
         </ChartLegend>
       )}
       
@@ -1154,7 +1698,8 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       <ChartWrapper 
         style={usePhysicsAnimation ? {
           transform: `scale(${springValue})`,
-          opacity: springValue
+          opacity: springValue,
+          transition: `transform ${animation.duration}ms, opacity ${animation.duration}ms`
         } : undefined}
       >
         <Chart
@@ -1175,58 +1720,77 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
           $style={legend.style || 'default'} 
           $glassEffect={legend.glassEffect || false}
         >
-          {datasets.map((dataset, index) => (
-            <LegendItem 
-              key={dataset.id} 
-              $style={legend.style || 'default'} 
-              onClick={() => handleLegendClick(index)}
-            >
-              <LegendColor $color={dataset.style?.lineColor || palette[index % palette.length]} />
-              <LegendLabel>{dataset.label}</LegendLabel>
-            </LegendItem>
-          ))}
+          {datasets.map((dataset, index) => {
+            // Convert hex color to RGB for rgba usage
+            const hexToRgb = (hex: string) => {
+              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+              return result 
+                ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
+                : '255, 255, 255';
+            };
+            
+            const color = dataset.style?.lineColor || palette[index % palette.length];
+            const rgbColor = hexToRgb(color);
+            const isActive = !selectedDatasets.includes(index);
+            
+            return (
+              <LegendItem 
+                key={dataset.id} 
+                $style={legend.style || 'default'} 
+                $active={isActive}
+                $color={rgbColor}
+                onClick={() => handleLegendClick(index)}
+              >
+                <LegendColor $color={color} $active={isActive} />
+                <LegendLabel $active={isActive}>{dataset.label}</LegendLabel>
+              </LegendItem>
+            );
+          })}
         </ChartLegend>
       )}
       
-      {/* Custom Tooltip */}
-      {hoveredPoint && interaction.showTooltips && (
-        <GlassTooltip
-          title={
-            <GlassTooltipContent
-              title={hoveredPoint.value.dataset}
-              titleColor={hoveredPoint.value.color}
-              items={[
-                { 
-                  label: typeof hoveredPoint.value.label === 'string' 
-                    ? hoveredPoint.value.label 
-                    : 'Value', 
-                  value: hoveredPoint.value.value
-                },
-                // Add extra data items if available
-                ...(hoveredPoint.value.extra 
-                  ? Object.entries(hoveredPoint.value.extra).map(([key, value]) => ({
-                      label: key,
-                      value: value as any
-                    }))
-                  : [])
-              ]}
-            />
-          }
-          placement="top"
-          glassStyle={'frosted' as 'clear' | 'frosted' | 'tinted' | 'luminous' | 'dynamic'}
-          arrow
-          followCursor={interaction.tooltipFollowCursor}
-          interactive={false}
-        >
-          <div style={{ 
-            position: 'absolute', 
-            top: hoveredPoint.y, 
-            left: hoveredPoint.x,
-            width: 1,
-            height: 1,
-            pointerEvents: 'none',
-          }} />
-        </GlassTooltip>
+      {/* Custom SVG Tooltip (replacing the component tooltip) */}
+      {interaction.tooltipStyle === 'dynamic' ? renderCustomTooltip() : (
+        hoveredPoint && interaction.showTooltips && (
+          <GlassTooltip
+            title={
+              <GlassTooltipContent
+                title={hoveredPoint.value.dataset}
+                titleColor={hoveredPoint.value.color}
+                items={[
+                  { 
+                    label: typeof hoveredPoint.value.label === 'string' 
+                      ? hoveredPoint.value.label 
+                      : 'Value', 
+                    value: hoveredPoint.value.value
+                  },
+                  // Add extra data items if available
+                  ...(hoveredPoint.value.extra 
+                    ? Object.entries(hoveredPoint.value.extra).map(([key, value]) => ({
+                        label: key,
+                        value: value as any
+                      }))
+                    : [])
+                ]}
+              />
+            }
+            placement="top"
+            glassStyle={'frosted' as 'clear' | 'frosted' | 'tinted' | 'luminous' | 'dynamic'}
+            arrow
+            followCursor={interaction.tooltipFollowCursor}
+            interactive={false}
+          >
+            <div style={{ 
+              position: 'absolute', 
+              top: hoveredPoint.y, 
+              left: hoveredPoint.x,
+              width: 1,
+              height: 1,
+              pointerEvents: 'none',
+              zIndex: 100
+            }} />
+          </GlassTooltip>
+        )
       )}
     </ChartContainer>
   );

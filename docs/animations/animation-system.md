@@ -2,6 +2,23 @@
 
 This comprehensive manual documents the Galileo Glass UI Animation System, a sophisticated animation framework designed specifically for glass morphism interfaces. It provides everything you need to implement beautiful, accessible, and performant animations in your Galileo Glass UI components.
 
+## **What's New in v1.0.3**
+
+Version 1.0.3 introduces major enhancements to the animation system:
+
+### **Enhanced Animation System**
+
+- **Custom Physics Engine**: Advanced spring physics with inertial movement and momentum-based interactions for natural-feeling animations
+- **Collision System**: Intelligent collision detection and response system for realistic interactions
+- **Unified Physics API**: Comprehensive API with extensive interpolation functions for consistent animation control
+- **WAAPI Integration**: Web Animations API renderer with requestAnimationFrame fallback for optimal performance
+- **Performance Optimizations**: DOM operation batching and transform consolidation for smoother animations
+- **GPU Acceleration**: Advanced GPU optimizations for fluid, high-performance animations
+- **Device Capability Detection**: Adaptive performance based on device capabilities
+- **Enhanced Accessibility**: Improved support for motion sensitivity and reduced motion preferences
+- **Animation Composition**: Sophisticated timing-agnostic synchronization for complex animation sequences
+- **Gesture-Driven System**: Natural gesture interactions that drive physics-based animations
+
 ## What's Inside
 
 1. **Galileo Glass UI Animation System Core Concepts**  

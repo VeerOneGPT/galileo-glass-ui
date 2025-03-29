@@ -9,8 +9,29 @@
 export * from './components';
 
 // Explicitly re-export core modules
-export { createThemeContext } from './core';
-export type { GlassSurfaceProps, Theme, ThemeVariant, ColorMode } from './core';
+export { createThemeContext } from './core/themeContext';
+
+// Re-export mixins for backward compatibility
+export { 
+  glassSurface, 
+  glassBorder,
+  glowEffects, 
+  innerGlow, 
+  interactiveGlass,
+  zSpaceLayer 
+} from './core/mixins';
+
+// Import GlassSurfaceOptions from the correct file
+export type { GlassSurfaceOptions } from './core/mixins/glassSurface';
+
+// Re-export core types
+export type { 
+  GlassSurfaceProps, 
+  Theme, 
+  ThemeVariant, 
+  ColorMode,
+  ThemeOptions
+} from './core/types';
 
 // Explicitly re-export theme modules
 export {
@@ -30,10 +51,15 @@ export {
 } from './theme';
 
 // Explicitly re-export animations
-export { accessibleAnimation, animateWithPhysics, useZSpaceAnimation } from './animations';
+export { 
+  accessibleAnimation, 
+  animateWithPhysics, 
+  useZSpaceAnimation,
+  springAnimation
+} from './animations';
 
 // Explicitly re-export hooks
 export { useGlassTheme, usePhysicsInteraction, useOrchestration } from './hooks';
 
 // Main version (consolidated)
-export const version = '1.0.0'; // Main package version
+export const version = '1.0.4'; // Updated package version

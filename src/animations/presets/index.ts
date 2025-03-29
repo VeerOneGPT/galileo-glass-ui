@@ -16,6 +16,24 @@ export * from './gestureAnimations';
 // Export unified animation presets library
 export * from './animationPresets';
 
+// Export chart animation presets directly
+// NOTE: These are defined in this file to avoid circular imports
+export const chartAnimationPresets = {
+  chart: {
+    entry: 'smooth-in',
+    line: 'draw-sequential',
+    tooltip: 'fade-in',
+    dataPoint: 'pop-in',
+    atmospheric: 'gentle-pulse'
+  }
+};
+
+export const chartEntryAnimation = chartAnimationPresets.chart.entry;
+export const chartLineAnimation = chartAnimationPresets.chart.line;
+export const tooltipAnimation = chartAnimationPresets.chart.tooltip;
+export const dataPointAnimation = chartAnimationPresets.chart.dataPoint;
+export const atmosphericAnimation = chartAnimationPresets.chart.atmospheric;
+
 // Import main presets library
 import allAnimationPresets from './animationPresets';
 
