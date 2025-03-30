@@ -377,99 +377,99 @@ const dtsConfigs = [
   {
     input: 'dist/dts/index.d.ts',
     output: [{ file: 'dist/index.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/slim.d.ts',
     output: [{ file: 'dist/slim.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/mixins.d.ts',
     output: [{ file: 'dist/mixins.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/animations/index.d.ts',
     output: [{ file: 'dist/animations.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/core/index.d.ts',
     output: [{ file: 'dist/core.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/index.d.ts',
     output: [{ file: 'dist/components.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/Button/index.d.ts',
     output: [{ file: 'dist/components/Button.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/Card/index.d.ts',
     output: [{ file: 'dist/components/Card.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/Charts/index.d.ts',
     output: [{ file: 'dist/components/Charts.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   // New 1.0.3 component types
   {
     input: 'dist/dts/components/MultiSelect/index.d.ts',
     output: [{ file: 'dist/components/MultiSelect.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/DateRangePicker/index.d.ts',
     output: [{ file: 'dist/components/DateRangePicker.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/Masonry/index.d.ts',
     output: [{ file: 'dist/components/Masonry.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/components/Timeline/index.d.ts',
     output: [{ file: 'dist/components/Timeline.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/hooks/index.d.ts',
     output: [{ file: 'dist/hooks.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   {
     input: 'dist/dts/theme/index.d.ts',
     output: [{ file: 'dist/theme.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
   // Examples types (optional)
   {
     input: 'dist/dts/examples/index.d.ts',
     output: [{ file: 'dist/examples.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin()],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   }
 ];
@@ -479,14 +479,11 @@ const dtsConfigs = [
 // Let's modify the main config generation slightly
 const mainConfigs = entryPoints.map(entry => createConfig(entry.input, entry.output));
 
-// Add the patching plugin to the *last* main config's plugin list
-// This assumes writeBundle in a plugin added here runs after all bundling is complete.
+// Remove the patchDeclarationFiles plugin from the main configs as it's now handled in dtsConfigs
 if (mainConfigs.length > 0) {
-    // Find the main index config or just use the last one
-    const targetConfigIndex = mainConfigs.findIndex(c => c.input === 'src/index.ts');
-    const configToPatch = mainConfigs[targetConfigIndex !== -1 ? targetConfigIndex : mainConfigs.length - 1];
-    // Ensure plugins array exists before spreading
-    configToPatch.plugins = [...(configToPatch.plugins || []), patchDeclarationFiles];
+    mainConfigs.forEach(config => {
+      config.plugins = config.plugins.filter(plugin => plugin.name !== 'patch-declaration-files');
+    });
 }
 
 // Final export (combine modified mainConfigs and dtsConfigs)
