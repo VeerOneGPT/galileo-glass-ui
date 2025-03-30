@@ -3,7 +3,7 @@
 <div align="center">
   <img width="200" height="200" src="./assets/galileo-glass-logo.png" alt="Galileo Glass UI Logo">
   <p><em>Modern glass morphism UI components for React, Next.js, and any TypeScript application</em></p>
-
+  <!-- 💡 Add GIF showcasing main UI features and effects here! 💡 -->
   <p>
     <a href="https://www.npmjs.com/package/@veerone/galileo-glass-ui"><img src="https://img.shields.io/npm/v/@veerone/galileo-glass-ui.svg" alt="npm version" /></a>
     <a href="https://github.com/VeerOneGPT/galileo-glass-ui"><img src="https://img.shields.io/github/stars/VeerOneGPT/galileo-glass-ui.svg" alt="GitHub stars" /></a>
@@ -11,24 +11,41 @@
   </p>
 </div>
 
-A comprehensive Glass UI framework for modern web applications, featuring glass morphism styling, performant animations, accessibility features, and a complete set of UI components. This versatile package works seamlessly with React, Next.js, and any TypeScript project, providing all the tools you need to create beautiful, accessible, and performant interfaces with a glass-like aesthetic.
+**Galileo Glass UI** is more than just a component library; it's a complete framework for building stunning, modern web applications with a unique **glass morphism** aesthetic. Blend beautiful visual effects with a powerful, integrated **physics-based animation system** to create interfaces that feel alive and intuitive.
 
-## 🌟 Features
+Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides a comprehensive set of **accessible, performant, and highly customizable** components designed to elevate your user experience.
 
-- **Glass Morphism Styling**: Create beautiful glass-like UI elements with blur effects, transparency, and lighting
-- **Comprehensive Component Library**: 85+ UI components including 58 specialized Glass components with glass morphism styling options
-- **Advanced Physics-Based Animation System**: Create complex, performant, and natural-feeling animations using an integrated spring physics engine. Features include interaction hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`), sequence orchestration (`useAnimationSequence`), gesture physics, magnetic effects, and more.
-- **Accessibility-First Design**: Comprehensive support including configurable reduced motion (`useReducedMotion`), motion sensitivity levels, animation categories, high contrast mode adaptations, and keyboard navigation.
-- **Performance Optimized**: Adapts to device capabilities for smooth performance on all devices
-- **Bundle Optimization**: Multiple import options including granular component imports and a slim bundle
-- **Tree-Shaking Support**: Fully optimized for modern bundlers with extensive tree-shaking capabilities
-- **Extensive Customization**: Powerful styling mixins for creating your own custom glass effects
-- **Environmental Awareness**: Dynamic adaptation to light conditions and surrounding content
-- **Z-Space System**: Sophisticated depth management for creating meaningful layering
-- **Specialized Surfaces**: HeatGlass, FrostedGlass, DimensionalGlass and other advanced surface types
-- **Chart Components**: Glass-style data visualization components built on Chart.js
-- **Typed API**: Comprehensive TypeScript support with flexible type configurations
-- **Tested & Reliable**: Extensive test coverage for components, animations, and core utilities
+---
+
+## ✨ Why Galileo Glass UI?
+
+*   **Unique Aesthetic:** Stand out with sophisticated glass morphism styling, complete with configurable blurs, reflections, glows, and dynamic transparency.
+*   **Dynamic Interactions:** Go beyond static interfaces. Leverage the integrated physics engine and intuitive hooks (`usePhysicsInteraction`, `useMagneticElement`, `useGesturePhysics`) to create engaging, natural-feeling user experiences.
+*   **Performant Animations:** Achieve smooth, 60fps animations thanks to a purpose-built system that replaces heavy dependencies and adapts to user device capabilities.
+*   **Orchestration Power:** Easily create complex, coordinated animation sequences with `useAnimationSequence` for delightful entrances, exits, and state transitions.
+*   **Accessibility Baked In:** Deliver inclusive experiences with fine-grained reduced motion controls, high-contrast adaptations, and full keyboard support.
+*   **Developer Experience:** Enjoy a fully typed API, extensive documentation, flexible customization options, and optimized bundling.
+
+---
+
+## 🚀 Key Features
+
+- ✨ **Glass Morphism Styling**: Configurable frosted glass effects, reflections, shadows, inner/outer glows, and adaptive transparency.
+- 📦 **Comprehensive Component Library**: 90+ components including specialized Glass versions (e.g., `GlassButton`, `GlassCard`, `GlassTabs`, `GlassDataChart`). See list below.
+- 🚀 **Advanced Physics-Based Animation System**:
+    - Integrated Physics Engine: Springs, collisions, forces, object sleeping.
+    - Intuitive Hooks: `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`.
+    - Orchestration: `useAnimationSequence` for complex sequences & staggering.
+    - Specialized Effects: Z-space, 3D transforms, parallax, particles.
+    - Performance: GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
+- ♿ **Accessibility-First Design**: Configurable `useReducedMotion`, sensitivity levels, animation categories, high contrast support, keyboard navigation, focus management.
+- ⚡ **Performance Optimized**: Adaptive quality (`useQualityTier`), style caching, GPU acceleration, animation batching (`DomBatcher`).
+- 📦 **Bundle Optimization**: Fine-grained imports (`/components`, `/hooks`, `/animations`, etc.), `slim` bundle, tree-shaking.
+- 🎨 **Extensive Customization**: Powerful mixins (`glassSurface`, `glassGlow`, `zSpaceLayer`) & flexible `ThemeProvider`.
+- ⚙️ **Modern Tech Stack**: React 18/19, TypeScript 4.9+, Styled Components 5/6.
+- 🧪 **Tested & Reliable**: Comprehensive Jest & RTL test coverage.
+
+---
 
 ## 🚀 Getting Started
 
@@ -207,11 +224,13 @@ import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks';
 ```
 
 <details>
-<summary><strong>Live Demo</strong></summary>
-
+<summary><strong>🎬 Live Demo / Examples</strong></summary>
+<!-- 💡 Add link to Storybook or deployed examples site here! 💡 -->
 Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass-ui/blob/main/examples/README.md) to see Galileo Glass UI in action!
 
 </details>
+
+---
 
 ## 📋 Documentation
 
@@ -242,7 +261,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/components/advanced-components.md">Advanced Components</a></td>
       <td><a href="./docs/core/framework-guide.md#common-patterns">Common Patterns</a></td>
       <td><a href="./docs/animations/context-config.md">Context & Configuration</a></td>
-      <td><a href="./docs/animations/physics-animations.md">Physics System (Legacy)</a></td> 
+      <td>{/* Removed Legacy Physics Link */}</td> 
       <td><a href="./docs/development/component-patterns.md">Component Patterns</a></td>
     </tr>
     <tr>
@@ -255,12 +274,14 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
     <tr>
       <td></td>
       <td></td>
-      <td><a href="./docs/animations/transition-hooks.md">(WIP) Transition Hooks</a></td>
+      <td>{/* Removed WIP Transition Hooks Link */}</td>
       <td></td>
       <td><a href="./docs/development/implementation-notes.md">Implementation Notes</a></td>
     </tr>
   </table>
 </div>
+
+---
 
 ## ⚠️ Critical Implementation Requirements
 
@@ -268,55 +289,60 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
 <summary><b>1. CSS Property Naming in Styled Components</b></summary>
 <br>
 
-**ALWAYS use kebab-case (not camelCase) for CSS properties in styled-components template literals:**
+> **ALWAYS use kebab-case (not camelCase) for CSS properties in styled-components template literals:**
+>
+> ```tsx
+> // ✅ CORRECT: Use kebab-case for CSS properties
+> const Component = styled.div`
+>   background-color: rgba(255, 255, 255, 0.1);  // ✅ Correct!
+>   backdrop-filter: blur(10px);                // ✅ Correct!
+>   border-radius: 8px;                         // ✅ Correct!
+> `;
+> 
+> // ❌ INCORRECT: Will cause runtime errors!
+> const Component = styled.div`
+>   backgroundColor: rgba(255, 255, 255, 0.1);  // ❌ Wrong!
+>   backdropFilter: blur(10px);                // ❌ Wrong!
+>   borderRadius: 8px;                         // ❌ Wrong!
+> `;
+> ```
+>
+> > **Note**: Use camelCase only for inline styles: `<div style={{ backgroundColor: 'red' }} />`
 
-```tsx
-// ✅ CORRECT: Use kebab-case for CSS properties
-const Component = styled.div`
-  background-color: rgba(255, 255, 255, 0.1);  // ✅ Correct!
-  backdrop-filter: blur(10px);                // ✅ Correct!
-  border-radius: 8px;                         // ✅ Correct!
-`;
-
-// ❌ INCORRECT: Will cause runtime errors!
-const Component = styled.div`
-  backgroundColor: rgba(255, 255, 255, 0.1);  // ❌ Wrong!
-  backdropFilter: blur(10px);                // ❌ Wrong!
-  borderRadius: 8px;                         // ❌ Wrong!
-`;
-```
-
-> **Note**: Use camelCase only for inline styles: `<div style={{ backgroundColor: 'red' }} />`
 </details>
 
 <details open>
 <summary><b>2. Always Pass Theme Context to Glass Mixins</b></summary>
 <br>
 
-**ALWAYS pass themeContext to glass mixins:**
+> **ALWAYS pass themeContext to glass mixins:**
+>
+> ```tsx
+> // ✅ CORRECT: Pass themeContext to glass mixins
+> import { glassSurface } from '@veerone/galileo-glass-ui/mixins';
+> import { createThemeContext } from '@veerone/galileo-glass-ui/core';
+> 
+> const GlassComponent = styled.div`
+>   ${props => glassSurface({
+>     elevation: 2,
+>     blurStrength: 'standard',
+>     themeContext: createThemeContext(props.theme) // ✅ Important!
+>   })}
+> `;
+> ```
+>
+> > **Why?** The theme context provides color mode, variant, and other critical styling information
 
-```tsx
-// ✅ CORRECT: Pass themeContext to glass mixins
-import { glassSurface } from '@veerone/galileo-glass-ui/mixins';
-import { createThemeContext } from '@veerone/galileo-glass-ui/core';
-
-const GlassComponent = styled.div`
-  ${props => glassSurface({
-    elevation: 2,
-    blurStrength: 'standard',
-    themeContext: createThemeContext(props.theme) // ✅ Important!
-  })}
-`;
-```
-
-> **Why?** The theme context provides color mode, variant, and other critical styling information
 </details>
 
 For a complete implementation guide, see the [Glass UI Framework Documentation](./docs/core/framework-guide.md).
 
+---
+
 ## 📦 Component Library
 
 Galileo Glass UI offers a comprehensive set of components that work universally across React, Next.js, and TypeScript applications:
+<!-- 💡 Add GIF showcasing component variety here! 💡 -->
 
 <div align="center">
   <table>
@@ -346,15 +372,15 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
       </td>
       <td>
         <ul>
-          <li>Button</li>
+          <li>Button / GlassButton</li>
           <li>TextField</li>
           <li>Checkbox</li>
           <li>Radio</li>
-          <li>Switch</li>
+          <li>Switch / GlassSwitch</li>
           <li>Select</li>
           <li>Slider</li>
           <li>Autocomplete</li>
-          <li>DatePicker</li>
+          <li>DatePicker / GlassDatePicker</li>
           <li>GlassDateRangePicker</li>
           <li>GlassMultiSelect</li>
           <li>TagInput</li>
@@ -368,24 +394,23 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
       </td>
       <td>
         <ul>
-          <li>Tabs, Tab</li>
+          <li>Tabs / GlassTabs</li>
           <li>Pagination</li>
           <li>BottomNavigation</li>
           <li>Accordion</li>
           <li>SpeedDial</li>
           <li>TreeView</li>
-          <li>Breadcrumbs</li>
-          <li>GlassBreadcrumbs</li>
-          <li>Menu</li>
+          <li>Breadcrumbs / GlassBreadcrumbs</li>
+          <li>Menu / GlassMenu</li>
           <li>MenuItem</li>
           <li>Toolbar</li>
           <li>GlassNavigation</li>
           <li>GlassTabBar</li>
           <li>GlassCarousel</li>
-          <li>ResponsiveNavigation</li>
           <li>PageTransition</li>
           <li>ZSpaceAppLayout</li>
           <li>GlassTimeline</li>
+          <li>GlassCardLink</li> 
         </ul>
       </td>
     </tr>
@@ -400,7 +425,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
         <ul>
           <li>Alert</li>
           <li>Progress</li>
-          <li>Dialog</li>
+          <li>Dialog / GlassDialog</li>
           <li>Snackbar</li>
           <li>Loader</li>
           <li>Skeleton</li>
@@ -415,7 +440,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
       </td>
       <td>
         <ul>
-          <li>Card</li>
+          <li>Card / GlassCard</li>
           <li>Table</li>
           <li>List</li>
           <li>Chip</li>
@@ -432,10 +457,9 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
       <td>
         <ul>
           <li>Backdrop</li>
-          <li>Modal</li>
+          <li>Modal / GlassModal</li>
           <li>Drawer</li>
-          <li>Tooltip</li>
-          <li>GlassTooltip</li>
+          <li>Tooltip / GlassTooltip</li>
           <li>Icon</li>
           <li>Fab</li>
           <li>GlassThemeSwitcher</li>
@@ -452,16 +476,13 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
       </td>
       <td>
         <ul>
+          <li>ChartWrapper</li>
           <li>BarChart</li>
           <li>LineChart</li>
           <li>AreaChart</li>
           <li>PieChart</li>
           <li>GlassChart</li>
           <li>GlassDataChart</li>
-          <li>GlassTooltip</li>
-          <li>EnhancedGlassTabs</li>
-          <li>SafeChartRenderer</li>
-          <li>SimpleChart</li>
           <li>DimensionalGlass</li>
           <li>HeatGlass</li>
           <li>FrostedGlass</li>
@@ -476,11 +497,14 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
   </table>
 </div>
 
+---
+
 ## 🧩 Code Examples
 
 <details open>
 <summary><b>🎭 Glass Card with Hover Effects</b></summary>
 <br>
+<!-- 💡 Add GIF for Glass Card Hover effect here! 💡 -->
 
 ```jsx
 import { styled } from 'styled-components';
@@ -524,18 +548,19 @@ const GlassCard = styled(Box)`
 ```jsx
 import { styled } from 'styled-components';
 import { accessibleAnimation } from '@veerone/galileo-glass-ui/animations';
-import { fadeIn } from "@veerone/galileo-glass-ui"/animations/keyframes';
+import { fadeIn } from '@veerone/galileo-glass-ui/animations/keyframes'; // Corrected path
 
 const AnimatedComponent = styled.div`
   ${props => accessibleAnimation({
     animation: fadeIn,
     duration: 0.3,
     easing: 'ease-out'
+    // No need to manually check prefers-reduced-motion here
   })}
 `;
 ```
 
-> **Accessibility**: This animation automatically respects the user's `prefers-reduced-motion` settings
+> **Accessibility**: This animation automatically respects the user's `prefers-reduced-motion` settings via the `accessibleAnimation` utility.
 </details>
 
 <details>
@@ -549,36 +574,42 @@ import { createThemeContext } from '@veerone/galileo-glass-ui/core';
 
 const OverlayComponent = styled.div`
   ${props => zSpaceLayer({
-    layer: 'OVERLAY',
-    position: 'top',
+    layer: 'OVERLAY', // Use predefined ZLayer enum for consistency
+    position: 'fixed', // Example position
     depth: 3,
     themeContext: createThemeContext(props.theme)
   })}
 `;
 ```
 
-> **Z-Space** creates meaningful depth in interfaces by controlling elevation and visual hierarchy
+> **Z-Space** creates meaningful depth in interfaces by controlling elevation and visual hierarchy using predefined layers.
 </details>
 
 <details>
-<summary><b>🧲 Physics Interactions</b></summary>
+<summary><b>🧲 Physics Interactions (Magnetic Effect)</b></summary>
 <br>
+<!-- 💡 Add GIF for Magnetic Button interaction here! 💡 -->
 
 ```jsx
-import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks';
+import { useRef } from 'react';
+import { useMagneticElement } from '@veerone/galileo-glass-ui/hooks'; // Correct hook import
 
 function MagneticButton() {
-  const { ref, style, eventHandlers } = usePhysicsInteraction({
-    type: 'magnetic',
-    strength: 0.4,
-    radius: 150
+  const elementRef = useRef<HTMLButtonElement>(null);
+  const { style, eventHandlers } = useMagneticElement({ // Use the specific hook
+    elementRef,
+    options: {
+      strength: 0.5, // Attraction force
+      radius: 100,   // Activation distance
+      easeFactor: 0.8 // Smoothness
+    }
   });
   
   return (
     <button 
-      ref={ref} 
-      style={style} 
-      {...eventHandlers}
+      ref={elementRef} 
+      style={style} // Apply the dynamic style from the hook
+      {...eventHandlers} // Attach pointer event handlers
     >
       Magnetic Button
     </button>
@@ -586,8 +617,67 @@ function MagneticButton() {
 }
 ```
 
-> **Magnetic Interactions** create natural-feeling UI elements that respond to user movements
+> **Magnetic Interactions** create natural-feeling UI elements that respond to user movements using hooks like `useMagneticElement`.
 </details>
+
+<details>
+<summary><b>🎶 Animation Orchestration (Staggered List)</b></summary>
+<br>
+<!-- 💡 Add GIF for Staggered List entrance animation here! 💡 -->
+
+```jsx
+import React, { useRef, useEffect } from 'react';
+import { styled } from 'styled-components';
+import { useAnimationSequence, AnimationStage } from '@veerone/galileo-glass-ui/animations';
+import { Box } from '@veerone/galileo-glass-ui'; // Assuming Box component exists
+
+const items = ['Item 1', 'Item 2', 'Item 3', 'Item 4'];
+
+const StaggeredItem = styled(Box)`
+  opacity: 0;
+  transform: translateY(20px);
+  margin-bottom: 8px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+`;
+
+function StaggeredList() {
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const { run } = useAnimationSequence();
+
+  useEffect(() => {
+    const stages: AnimationStage[] = items.map((_, index) => ({
+      target: itemRefs.current[index],
+      animations: [
+        { property: 'opacity', to: 1, duration: 300 },
+        { property: 'transform', to: 'translateY(0px)', duration: 300, easing: 'easeOutQuad' }
+      ],
+      options: {
+        delay: index * 100 // Stagger delay
+      }
+    }));
+
+    run(stages);
+  }, [run]);
+
+  return (
+    <div>
+      {items.map((item, index) => (
+        <StaggeredItem key={item} ref={el => itemRefs.current[index] = el}>
+          {item}
+        </StaggeredItem>
+      ))}
+    </div>
+  );
+}
+```
+
+> **Orchestration** using `useAnimationSequence` allows complex, timed animations across multiple elements, like this staggered entrance effect.
+
+</details>
+
+---
 
 ## 🌐 Browser Support
 
@@ -631,6 +721,8 @@ function MagneticButton() {
   </table>
 </div>
 
+---
+
 ## ⚡ Performance Optimization
 
 Galileo Glass UI is designed for optimal performance in production environments:
@@ -655,6 +747,8 @@ We've implemented several strategies to minimize bundle size:
 - **Optimized Glass Effects**: Simplified effects for large surfaces on low-end devices
 
 For detailed optimization guidelines, see our [performance documentation](./docs/performance/optimization/bundle-optimization.md).
+
+---
 
 ## 🧪 Testing & Development
 
@@ -694,9 +788,13 @@ To run a specific test:
 npm test -- -t "Button Component"
 ```
 
+---
+
 ## 📄 License
 
 [MIT License](./LICENSE) © Galileo Glass UI
+
+---
 
 ## 🤝 Contributing
 
@@ -713,11 +811,13 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
   </p>
 </div>
 
-## Verification Tools
+---
 
-We've implemented several tools to help maintain code quality:
+## 🛠️ Development & Verification Tools
 
-#### 1. Comprehensive Verification
+We've implemented several tools and practices to help maintain code quality:
+
+#### 1. Comprehensive Verification Script
 
 Run the complete verification process including typechecking, linting, and building:
 
@@ -731,107 +831,44 @@ To automatically fix common issues:
 ./scripts/verify.sh --fix
 ```
 
-#### 2. Fix Unused Variables
+#### 2. Code Quality Scripts
 
-Automatically prefix unused variables with underscores to suppress warnings:
+*   **Fix Unused Variables:** Automatically prefix unused variables with underscores (`_`) to suppress warnings:
+    ```bash
+    node scripts/fix-unused-vars.js [--dry-run]
+    ```
+*   **Fix React Hook Dependencies:** Identify and fix (when possible) missing dependencies in React hooks:
+    ```bash
+    node scripts/fix-hooks.js [--fix]
+    ```
 
-```bash
-node scripts/fix-unused-vars.js
-```
+#### 3. Pre-commit Hooks (Husky & lint-staged)
 
-Run in dry-run mode to preview changes:
+Automatic checks run before each commit:
 
-```bash
-node scripts/fix-unused-vars.js --dry-run
-```
+*   ESLint checks for code style and potential errors.
+*   Prettier formats code.
+*   (Potentially add TypeScript check here if desired via lint-staged config)
 
-#### 3. Fix React Hook Dependencies
+#### 4. Code Style Guidelines
 
-Identify and suggest fixes for React Hook dependency issues:
+1.  **CSS Properties**: Always use kebab-case in styled-components (e.g., `background-color`).
+2.  **Glass Mixins**: Always pass `themeContext` using `createThemeContext(props.theme)`.
+3.  **Component Structure**: Export both standard and `Glass`-prefixed versions where applicable.
+4.  **Naming**: PascalCase for components, camelCase for functions/variables.
+5.  **TypeScript**: Define prop interfaces with JSDoc comments.
+6.  **Imports**: Group imports: React, third-party, internal modules, relative.
+7.  **Styled Components**: Use `$` prefix for transient props (e.g., `$isActive`).
+8.  **Error Handling**: Provide graceful fallbacks for user interactions.
+9.  **Animation**: Use integrated hooks (`usePhysicsInteraction`, `useAnimationSequence`, etc.). Respect `useReducedMotion`.
+10. **Performance**: Use memoization (`React.memo`, `useMemo`) where appropriate.
 
-```bash
-node scripts/fix-hooks.js
-```
+For complete styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).
 
-Apply automatic fixes when possible:
 
-```bash
-node scripts/fix-hooks.js --fix
-```
+## Documentation Site
 
-### Code Style Guidelines
-
-1. **CSS Properties**: Always use kebab-case in styled-components (e.g., `background-color`, not `backgroundColor`).
-2. **Glass Mixins**: Always pass `themeContext` to glass mixins using `createThemeContext(props.theme)`.
-3. **Component Structure**: Export both standard and Glass-prefixed versions of components.
-4. **Naming**: Use PascalCase for components, camelCase for functions and variables.
-5. **TypeScript**: Define prop interfaces with JSDoc comments for all components.
-6. **Imports**: Group imports: React, third-party, internal modules, relative imports.
-7. **Styled Components**: Use `$` prefix for transient props (e.g., `$variant`).
-8. **Error Handling**: For user interactions, provide graceful fallbacks with feedback.
-9. **Animation**: Utilize the integrated Galileo Animation System hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useAnimationSequence`). Respect user preferences via `useReducedMotion`.
-10. **Performance**: Use memoization for complex components and computations.
-
-For complete documentation on glass morphism styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).
-
-## Development Tools
-
-We've created several tools to maintain code quality and fix common issues:
-
-### Automated Verification
-
-Run comprehensive verification including type checking, linting, and building:
-
-```bash
-./scripts/verify.sh
-```
-
-To automatically fix common issues:
-
-```bash
-./scripts/verify.sh --fix
-```
-
-### Fix Unused Variables
-
-Automatically prefix unused variables with underscores to suppress ESLint warnings:
-
-```bash
-node scripts/fix-unused-vars.js
-```
-
-Run in dry-run mode to preview changes:
-
-```bash
-node scripts/fix-unused-vars.js --dry-run
-```
-
-### Fix React Hook Dependencies
-
-Identify and fix missing dependencies in React hooks:
-
-```bash
-node scripts/fix-hooks.js
-```
-
-Apply automatic fixes when possible:
-
-```bash
-node scripts/fix-hooks.js --fix
-```
-
-### Pre-commit Hooks
-
-We've configured automatic checks to run before each commit to maintain code quality:
-
-- TypeScript type checking
-- ESLint for code style and best practices
-- Automatic prefixing of unused variables
-- Hook dependency validation
-
-## Documentation
-
-For detailed documentation, see our [documentation site](https://docs.galileo-glass.dev).
+For the most detailed and up-to-date documentation, visit our [documentation site](https://docs.galileo-glass.dev) (Link needs to be updated if this is not the correct URL).
 
 ### Optional Peer Dependencies
 
