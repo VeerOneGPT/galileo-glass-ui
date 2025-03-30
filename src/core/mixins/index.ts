@@ -12,6 +12,8 @@ export { glowEffects } from './effects/glowEffects';
 export { edgeHighlight } from './effects/edgeEffects';
 export { innerGlow } from './effects/innerEffects';
 export { ambientEffects } from './effects/ambientEffects';
+export { shadowEffect, type ShadowEffectOptions } from './effects/shadow';
+export { reflectionEffect, type ReflectionEffectOptions } from './effects/reflection';
 
 // Enhanced Effects mixins
 export { enhancedGlowEffects, enhancedGlow } from '../effects/enhancedGlowEffects';

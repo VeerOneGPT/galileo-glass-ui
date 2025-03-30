@@ -1,5 +1,7 @@
 import { ReactNode, CSSProperties } from 'react';
 import { DefaultTheme } from 'styled-components';
+import React from 'react';
+import type { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 /**
  * Props for the GlassNavigation component
@@ -112,39 +114,53 @@ export interface ResponsiveNavigationProps extends GlassNavigationProps {
 }
 
 /**
- * Props for the PageTransition component
+ * PageTransition Props
  */
 export interface PageTransitionProps {
-  /** The content to be animated */
-  children: ReactNode;
-  /** The transition mode */
-  mode?: 'fade' | 'slide' | 'zoom' | 'flip' | 'glass-fade' | 'glass-reveal';
-  /** A key that changes when the page/content changes */
+  /** Children to render */
+  children?: ReactNode;
+
+  /** Transition mode */
+  mode?: 'fade' | 'slide' | 'zoom' | 'flip' | 'glass-fade' | 'glass-reveal' | 'physics' | 'zSpace';
+
+  /** Unique key to trigger transition (e.g., route path) */
   locationKey?: string | number;
-  /** Duration of the animation in ms */
+
+  /** Duration in milliseconds */
   duration?: number;
-  /** Whether to disable the transition */
+
+  /** If true, disable transitions */
   disabled?: boolean;
-  /** Custom CSS class */
+
+  /** Override or extend the styles applied to the component */
   className?: string;
-  /** Custom inline styles */
+
+  /** CSS styles */
   style?: CSSProperties;
-  /** Depth perspective amount for 3D transitions */
+
+  /** Perspective for 3D transitions */
   perspective?: number;
-  /** Direction for directional transitions */
+
+  /** Direction for slide/reveal transitions */
   direction?: 'up' | 'down' | 'left' | 'right';
-  /** Transition timing function */
-  easing?: string;
-  /** Whether the transition is currently in progress */
-  inTransition?: boolean;
-  /** Callback when the transition starts */
+  
+  /** Configuration for physics transitions */
+  physicsConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
+
+  /** Callback when transition starts */
   onStart?: () => void;
-  /** Callback when the transition ends */
+
+  /** Callback when transition completes */
   onComplete?: () => void;
-  /** Glass effect intensity during transition */
+
+  /** Intensity for glass transitions (0-1) */
   glassTransitionIntensity?: number;
-  /** Whether to respect reduced motion preferences */
+
+  /** If true, respects reduced motion preferences */
   respectReducedMotion?: boolean;
+
+  /** Additional props */
+  [key: string]: any;
 }
 
 /**

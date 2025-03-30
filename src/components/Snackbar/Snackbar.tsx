@@ -1,15 +1,21 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { forwardRef, useState, useEffect, CSSProperties, useRef, useCallback, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
-import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { slideUp, slideDown, slideInLeft, slideRight } from '../../animations/keyframes/basic';
+// Import AnimationProps
+import { AnimationProps } from '../../animations/types'; 
+import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 
-export interface SnackbarProps {
+// Extend SnackbarProps with AnimationProps
+export interface SnackbarProps extends AnimationProps {
   /**
    * If true, the snackbar is open
    */
@@ -69,6 +75,11 @@ export interface SnackbarProps {
    * Z-index of the snackbar
    */
   zIndex?: number;
+
+  /**
+   * Deprecated: No longer used.
+   */
+  motionSensitivity?: any;
 }
 
 // Get color by severity
@@ -84,19 +95,6 @@ const getColorBySeverity = (severity: string): string => {
       return '#3B82F6'; // blue
     default:
       return '#6366F1'; // indigo (primary)
-  }
-};
-
-// Keyframes mapping based on position
-const getAnimationByPosition = (position: string) => {
-  if (position.startsWith('top')) {
-    return { in: slideDown, out: slideUp };
-  } else if (position.endsWith('left')) {
-    return { in: slideRight, out: slideInLeft };
-  } else if (position.endsWith('right')) {
-    return { in: slideInLeft, out: slideRight };
-  } else {
-    return { in: slideUp, out: slideDown };
   }
 };
 
@@ -150,12 +148,11 @@ const SnackbarContainer = styled.div<{
   $zIndex: number;
   $variant: string;
   $severity: string;
-  $open: boolean;
   $elevation: boolean;
 }>`
   position: fixed;
   z-index: ${props => props.$zIndex};
-  display: ${props => (props.$open ? 'flex' : 'none')};
+  display: flex;
   flex-direction: row;
   align-items: center;
   min-width: 288px;
@@ -222,19 +219,6 @@ const SnackbarContainer = styled.div<{
       position: 'all',
       themeContext: createThemeContext({}),
     })}
-  
-  /* Animation for the snackbar */
-  ${props => {
-    const { in: inAnimation } = getAnimationByPosition(props.$position);
-    return (
-      props.$open &&
-      accessibleAnimation({
-        animation: inAnimation,
-        duration: 0.3,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-      })
-    );
-  }}
 `;
 
 const MessageContainer = styled.div`
@@ -290,32 +274,114 @@ export const Snackbar = forwardRef<HTMLDivElement, SnackbarProps>((props, ref) =
     className,
     elevation = true,
     zIndex = 1400,
+    // Destructure AnimationProps
+    animationConfig,
+    disableAnimation,
+    motionSensitivity, // Keep for potential future use
     ...rest
   } = props;
 
-  const [isOpen, setIsOpen] = useState(open);
+  const [isRendered, setIsRendered] = useState(open);
+  const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring } = useAnimationContext(); 
 
-  // Handle auto-hide
+  // Resolve disable animation flag
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const shouldAnimate = !finalDisableAnimation;
+
+  // Merge Spring Config using AnimationProps
+  const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      const contextSource = defaultSpring;
+      if (typeof contextSource === 'string' && contextSource in SpringPresets) {
+          contextConfig = SpringPresets[contextSource as keyof typeof SpringPresets];
+      } else if (typeof contextSource === 'object') {
+          contextConfig = contextSource ?? {};
+      }
+
+      let propConfig: Partial<SpringConfig> = {};
+      // Use animationConfig from props
+      const propSource = animationConfig;
+      if (typeof propSource === 'string' && propSource in SpringPresets) {
+          propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+      } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+          propConfig = propSource as Partial<SpringConfig>;
+      }
+      // Merge: Prop > Context > Base
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]); // Update dependencies
+
+  // --- Define Animation Targets --- 
+  const targetOpacity = open ? 1 : 0;
+  const targetScale = open ? 1 : 0.95;
+
+  let targetTranslateX = 0;
+  let targetTranslateY = 0;
+  const distance = 20;
+
+  if (!open) {
+    if (position.startsWith('top')) {
+      targetTranslateY = -distance;
+    } else if (position.endsWith('left')) {
+      targetTranslateX = -distance;
+    } else if (position.endsWith('right')) {
+      targetTranslateX = distance;
+    } else {
+      targetTranslateY = distance;
+    }
+  }
+
+  const animationTargets = {
+      opacity: targetOpacity,
+      scale: targetScale,
+      translateX: targetTranslateX,
+      translateY: targetTranslateY,
+  };
+  // --- End Define Animation Targets ---
+
+  // Define the onRest handler
+  const handleRest = useCallback((result: SpringsAnimationResult) => {
+    if (result.finished && !open) {
+      setIsRendered(false);
+    }
+  }, [open]);
+
+  // Use the new hook for all animated values
+  const animatedValues = useGalileoSprings(animationTargets, {
+      config: finalSpringConfig,
+      immediate: !shouldAnimate,
+      onRest: handleRest,
+  });
+
+  // Simpler useEffect for initial rendering state
   useEffect(() => {
-    setIsOpen(open);
+    if (open) {
+      setIsRendered(true);
+    }
+  }, [open]);
 
+  // Auto-hide timer (remains the same)
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
     if (open && autoHideDuration && onClose) {
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         onClose({} as React.SyntheticEvent, 'timeout');
       }, autoHideDuration);
-
-      return () => clearTimeout(timer);
     }
-  }, [open, autoHideDuration, onClose]);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [open, autoHideDuration, onClose]); 
 
   // Handle close click
   const handleClose = (event: React.SyntheticEvent) => {
     if (onClose) {
-      onClose(event, 'closeClick');
+      onClose(event, 'closeClick'); // Let parent control the 'open' state
     }
   };
 
-  // Close icon (X)
+  // Close icon
   const closeIcon = (
     <CloseButton onClick={handleClose} aria-label="Close notification">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -324,12 +390,17 @@ export const Snackbar = forwardRef<HTMLDivElement, SnackbarProps>((props, ref) =
     </CloseButton>
   );
 
-  // Don't render anything if not open
-  if (!isOpen) {
+  // Construct style object using values from the new hook
+  const animatedStyle: CSSProperties = {
+    opacity: animatedValues.opacity,
+    transform: `translateX(${animatedValues.translateX}px) translateY(${animatedValues.translateY}px) scale(${animatedValues.scale})`,
+  };
+
+  // Render logic
+  if (!isRendered) {
     return null;
   }
-
-  // Render the snackbar using a portal
+  
   return ReactDOM.createPortal(
     <SnackbarContainer
       ref={ref}
@@ -340,8 +411,8 @@ export const Snackbar = forwardRef<HTMLDivElement, SnackbarProps>((props, ref) =
       $zIndex={zIndex}
       $variant={variant}
       $severity={severity}
-      $open={isOpen}
       $elevation={elevation}
+      style={animatedStyle} // Apply calculated style
       {...rest}
     >
       <MessageContainer>{message}</MessageContainer>

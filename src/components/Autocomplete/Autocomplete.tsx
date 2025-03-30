@@ -3,17 +3,64 @@
  *
  * A comprehensive autocomplete component with glass morphism styling.
  */
-import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo, CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
+import { innerGlow } from '../../core/mixins/effects/innerEffects';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings';
+import { AnimationProps } from '../../animations/types';
 import ClearIcon from '../icons/ClearIcon';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets } from '../../animations/physics/springPhysics'; // Added missing import
 
 // Import types
 import { AutocompleteOption, AutocompleteProps } from './types';
+
+// Helper functions (copied from TextField for now)
+const mapGlowIntensity = (progress: number): 'none' | 'subtle' | 'medium' => {
+  if (progress < 0.1) return 'none';
+  if (progress < 0.7) return 'subtle';
+  return 'medium';
+};
+
+const mapBorderOpacity = (progress: number): 'subtle' | 'medium' | 'strong' => {
+  if (progress < 0.1) return 'subtle';
+  if (progress < 0.8) return 'medium';
+  return 'strong';
+};
+
+const interpolateColor = (startColor: string, endColor: string, progress: number): string => {
+  try {
+    const parse = (color: string): number[] => {
+      if (color.startsWith('rgba')) {
+        const parts = color.match(/\d+\.?\d*/g)?.map(Number);
+        return parts?.length === 4 ? parts : [0, 0, 0, 1];
+      } else if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const a = hex.length === 8 ? parseInt(hex.substring(6, 8), 16) / 255 : 1;
+        return [r, g, b, a];
+      }
+      return [0, 0, 0, 1];
+    };
+    const start = parse(startColor);
+    const end = parse(endColor);
+    const r = Math.round(start[0] + (end[0] - start[0]) * progress);
+    const g = Math.round(start[1] + (end[1] - start[1]) * progress);
+    const b = Math.round(start[2] + (end[2] - start[2]) * progress);
+    const a = start[3] + (end[3] - start[3]) * progress;
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
+  } catch (e) {
+    return endColor;
+  }
+};
 
 // Styled components
 const AutocompleteRoot = styled.div<{
@@ -45,31 +92,51 @@ const InputContainer = styled.div<{
   $focused: boolean;
   $disabled: boolean;
   $hasError: boolean;
+  $theme: any;
+  $focusProgress: number;
 }>`
   position: relative;
   display: flex;
   align-items: center;
   width: 100%;
 
-  /* Enhanced glass styling */
-  ${props =>
-    glassSurface({
-      elevation: 1,
-      blurStrength: 'light',
-      borderOpacity: 'medium',
-      themeContext: createThemeContext(props.theme),
-    })}
+  /* Glass styling using focusProgress */
+  ${props => {
+    const borderOpacity = mapBorderOpacity(props.$focusProgress);
+    const glowIntensity = mapGlowIntensity(props.$focusProgress);
+    // Interpolate border color (similar to TextField)
+    const borderColor = interpolateColor(
+      props.$hasError ? 'rgba(240, 82, 82, 0.5)' : 'rgba(255, 255, 255, 0.12)', // Start (error or default subtle)
+      props.$hasError ? 'rgba(240, 82, 82, 0.9)' : 'rgba(99, 102, 241, 0.8)', // End (error or primary focus)
+      props.$focusProgress
+    );
 
-  border-radius: 8px;
-  border: 1px solid
-    ${props =>
-      props.$hasError
-        ? 'rgba(240, 82, 82, 0.8)'
-        : props.$focused
-        ? 'rgba(99, 102, 241, 0.8)'
-        : 'rgba(255, 255, 255, 0.12)'};
-  background-color: rgba(255, 255, 255, 0.03);
-  transition: all 0.2s ease;
+    return (
+      glassSurface({
+        elevation: 1,
+        blurStrength: 'light',
+        borderOpacity: borderOpacity, // Use animated border opacity
+        themeContext: createThemeContext(props.theme),
+      }) +
+      `
+      border-radius: 8px;
+      border: 1px solid ${borderColor}; // Use interpolated border color
+      background-color: rgba(255, 255, 255, 0.03);
+      // Remove transition: all 0.2s ease;
+
+      /* Add inner glow based on focusProgress */
+      ${
+        glowIntensity !== 'none' &&
+        innerGlow({
+          color: props.$hasError ? 'error' : 'primary',
+          intensity: glowIntensity, // Use animated glow intensity
+          spread: 4,
+          themeContext: createThemeContext(props.theme),
+        })
+      }
+      `
+    );
+  }}
 
   /* Size variations */
   ${props => {
@@ -91,22 +158,6 @@ const InputContainer = styled.div<{
         `;
     }
   }}
-
-  /* Focused state */
-  ${props =>
-    props.$focused &&
-    `
-    border-color: rgba(99, 102, 241, 0.8);
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
-  `}
-  
-  /* Error state */
-  ${props =>
-    props.$hasError &&
-    `
-    border-color: rgba(240, 82, 82, 0.8);
-    box-shadow: 0 0 0 1px rgba(240, 82, 82, 0.3);
-  `}
   
   /* Disabled state */
   ${props =>
@@ -172,7 +223,8 @@ const Dropdown = styled.div<{
   right: 0;
   margin-top: 8px;
   z-index: 1000;
-  display: ${props => (props.$open ? 'block' : 'none')};
+  visibility: ${props => (props.$open ? 'visible' : 'hidden')};
+  
   ${props =>
     glassSurface({
       elevation: 3,
@@ -185,19 +237,6 @@ const Dropdown = styled.div<{
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.12);
-
-  /* Enhanced dropdown animation */
-  ${props =>
-    !props.$reducedMotion &&
-    `
-    animation: reveal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: top center;
-    
-    @keyframes reveal {
-      from { opacity: 0; transform: scaleY(0.9) translateY(-8px); }
-      to { opacity: 1; transform: scaleY(1) translateY(0); }
-    }
-  `}
 
   /* Subtle scrollbar styling */
   &::-webkit-scrollbar {
@@ -398,23 +437,108 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
     disablePortal = false,
     popperContainer,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
-  const prefersReducedMotion = useReducedMotion();
+  const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+  const { defaultSpring: contextDefaultSpring } = useAnimationContext();
+
+  // State
+  const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [inputValue, setInputValue] = useState<string>(
+    value !== undefined && value !== null ? (multiple ? '' : getOptionLabel(value as T)) : ''
+  );
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const [selectedItems, setSelectedItems] = useState<T[]>([]);
+  
+  // Determine if animation should run
+  const shouldAnimate = !disableAnimation && !reducedMotion;
+
+  // Spring for focus animation
+  const finalFocusConfig = useMemo(() => {
+    const baseConfig = { tension: 210, friction: 20 }; // Default values
+    // Resolve context config (use defaultSpring)
+    let resolvedContextConfig: Partial<GalileoSpringConfig> = {};
+    if (typeof contextDefaultSpring === 'string' && contextDefaultSpring in SpringPresets) {
+      resolvedContextConfig = SpringPresets[contextDefaultSpring as keyof typeof SpringPresets];
+    } else if (typeof contextDefaultSpring === 'object') {
+      resolvedContextConfig = contextDefaultSpring;
+    }
+
+    const propConfig = (animationConfig && typeof animationConfig !== 'string' && 'tension' in animationConfig) ? animationConfig : {};
+    return { ...baseConfig, ...resolvedContextConfig, ...propConfig };
+  }, [animationConfig, contextDefaultSpring]);
+
+  const { value: focusProgress } = useGalileoStateSpring(focused ? 1 : 0, {
+    ...finalFocusConfig,
+    immediate: reducedMotion,
+  });
+
+  // --- Dropdown Animation using useGalileoSprings ---
+  // Resolve dropdown animation config
+  const finalDropdownConfig = useMemo(() => {
+    const baseConfig = SpringPresets.DEFAULT; // Base default for dropdown
+    // Resolve context config (check defaultSpring from context)
+    let resolvedContextConfig: Partial<GalileoSpringConfig> = {};
+    if (typeof contextDefaultSpring === 'string' && contextDefaultSpring in SpringPresets) {
+      resolvedContextConfig = SpringPresets[contextDefaultSpring as keyof typeof SpringPresets];
+    } else if (typeof contextDefaultSpring === 'object') {
+      resolvedContextConfig = contextDefaultSpring;
+    }
+    // Resolve prop config (animationConfig)
+    let resolvedPropConfig: Partial<GalileoSpringConfig> = {};
+    if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+        resolvedPropConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+    } else if (typeof animationConfig === 'object') {
+        resolvedPropConfig = animationConfig as GalileoSpringConfig; // Add type assertion
+    }
+    // Priority: Prop -> Context -> Base
+    return { ...baseConfig, ...resolvedContextConfig, ...resolvedPropConfig };
+  }, [animationConfig, contextDefaultSpring]);
+
+  const dropdownTargets = {
+      opacity: open ? 1 : 0,
+      scaleY: open ? 1 : 0.9,
+      translateY: open ? 0 : -8,
+  };
+  
+  // Store dropdown visibility state for onRest
+  const dropdownVisibleRef = useRef(open);
+  useEffect(() => { dropdownVisibleRef.current = open; }, [open]);
+  
+  const [isDropdownRendered, setIsDropdownRendered] = useState(open);
+  
+  const handleDropdownRest = useCallback((result: SpringsAnimationResult) => {
+      if (result.finished && !dropdownVisibleRef.current) {
+          setIsDropdownRendered(false); // Hide after exit animation
+      }
+  }, []);
+  
+  const dropdownAnimatedValues = useGalileoSprings(dropdownTargets, {
+      config: finalDropdownConfig, // Pass the resolved config object
+      immediate: !shouldAnimate,
+      onRest: handleDropdownRest,
+  });
+  
+  // Construct dropdown style
+  const dropdownStyle: CSSProperties = {
+      opacity: dropdownAnimatedValues.opacity,
+      transform: `scaleY(${dropdownAnimatedValues.scaleY}) translateY(${dropdownAnimatedValues.translateY}px)`,
+      transformOrigin: 'top center',
+      // Apply visibility based on render state
+      visibility: isDropdownRendered ? 'visible' : 'hidden',
+  };
+  // --- End Dropdown Animation ---
 
   // Refs
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // State
-  const [internalInputValue, setInternalInputValue] = useState('');
-  const [focused, setFocused] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [selectedItems, setSelectedItems] = useState<T[]>([]);
 
   // Controlled/uncontrolled logic
   const isControlled = value !== undefined;
@@ -462,7 +586,7 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
 
   // Filter options based on input value
   const filteredOptions = useMemo(() => {
-    if (!internalInputValue.trim()) {
+    if (!inputValue.trim()) {
       // Filter out already selected items in multiple mode
       return multiple
         ? options.filter(option => !selectedItems.some(item => item.value === option.value))
@@ -470,13 +594,13 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
     }
 
     // Apply custom filter
-    const filtered = filterOptions(options, internalInputValue);
+    const filtered = filterOptions(options, inputValue);
 
     // In multiple mode, filter out selected items
     return multiple
       ? filtered.filter(option => !selectedItems.some(item => item.value === option.value))
       : filtered;
-  }, [options, internalInputValue, filterOptions, multiple, selectedItems]);
+  }, [options, inputValue, filterOptions, multiple, selectedItems]);
 
   // Reset highlight when options change
   useEffect(() => {
@@ -487,11 +611,18 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
     }
   }, [filteredOptions, autoHighlight]);
 
+  // Update dropdown render state when opening
+  useEffect(() => {
+      if (open) {
+          setIsDropdownRendered(true);
+      }
+  }, [open]);
+
   // Handlers
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
-      setInternalInputValue(newValue);
+      setInputValue(newValue);
 
       if (!open && newValue) {
         setOpen(true);
@@ -509,39 +640,33 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
 
   const handleInputFocus = useCallback(() => {
     setFocused(true);
-    if (internalInputValue || selectedItems.length === 0) {
+    if (inputValue || selectedItems.length === 0) {
       setOpen(true);
     }
-  }, [internalInputValue, selectedItems]);
+  }, [inputValue, selectedItems]);
 
   const handleInputBlur = useCallback(() => {
     setFocused(false);
 
     // If freeSolo and there's a value, create a custom option
-    if (freeSolo && internalInputValue && !multiple) {
-      const existingOption = options.find(
-        option => getOptionLabel(option).toLowerCase() === internalInputValue.toLowerCase()
-      );
-
-      if (!existingOption) {
-        const customOption = {
-          label: internalInputValue,
-          value: internalInputValue,
-        } as unknown as T;
-        handleSelectOption(customOption);
-      }
+    if (freeSolo && inputValue && !selectedItems.some(item => getOptionLabel(item) === inputValue)) {
+      const customOption = {
+        label: inputValue,
+        value: inputValue,
+      } as unknown as T;
+      handleSelectOption(customOption);
     }
 
     // Clear input value if not freeSolo
     if (!freeSolo && !multiple) {
       // Restore the selected value's label
       if (selectedItems.length > 0) {
-        setInternalInputValue(getOptionLabel(selectedItems[0]));
+        setInputValue(getOptionLabel(selectedItems[0]));
       } else {
-        setInternalInputValue('');
+        setInputValue('');
       }
     }
-  }, [freeSolo, internalInputValue, multiple, options, getOptionLabel, selectedItems]);
+  }, [freeSolo, inputValue, multiple, options, getOptionLabel, selectedItems]);
 
   const handleSelectOption = useCallback(
     (option: T) => {
@@ -549,10 +674,10 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
 
       if (multiple) {
         newSelectedItems = [...selectedItems, option];
-        setInternalInputValue('');
+        setInputValue('');
       } else {
         newSelectedItems = [option];
-        setInternalInputValue(getOptionLabel(option));
+        setInputValue(getOptionLabel(option));
         setOpen(false);
       }
 
@@ -586,7 +711,7 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
 
   const handleClear = useCallback(() => {
     setSelectedItems([]);
-    setInternalInputValue('');
+    setInputValue('');
 
     if (onChange) {
       onChange(null);
@@ -620,10 +745,10 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
           e.preventDefault();
           if (open && highlightedIndex >= 0 && filteredOptions[highlightedIndex]) {
             handleSelectOption(filteredOptions[highlightedIndex]);
-          } else if (freeSolo && internalInputValue) {
+          } else if (freeSolo && inputValue) {
             const customOption = {
-              label: internalInputValue,
-              value: internalInputValue,
+              label: inputValue,
+              value: inputValue,
             } as unknown as T;
             handleSelectOption(customOption);
           }
@@ -635,7 +760,7 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
           break;
 
         case 'Backspace':
-          if (multiple && internalInputValue === '' && selectedItems.length > 0) {
+          if (multiple && inputValue === '' && selectedItems.length > 0) {
             // Remove the last item when pressing backspace with empty input
             handleRemoveItem(selectedItems.length - 1);
           }
@@ -647,7 +772,7 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
       highlightedIndex,
       filteredOptions,
       freeSolo,
-      internalInputValue,
+      inputValue,
       multiple,
       selectedItems.length,
       handleSelectOption,
@@ -684,51 +809,51 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
   };
 
   const renderDropdown = () => {
-    if (!open) return null;
+    if (!isDropdownRendered) return null; // Don't render if hidden
 
-    const dropdownContent = (
-      <Dropdown ref={dropdownRef} $open={open} $reducedMotion={prefersReducedMotion}>
-        {loading ? (
-          <LoadingText>Loading</LoadingText>
-        ) : filteredOptions.length === 0 ? (
-          <NoOptions>No options</NoOptions>
-        ) : (
-          filteredOptions.map((option, index) => {
-            const isHighlighted = index === highlightedIndex;
-            const isSelected = selectedItems.some(item => item.value === option.value);
+    const listContent = loading ? (
+      <LoadingText>Loading...</LoadingText>
+    ) : filteredOptions.length === 0 ? (
+      <NoOptions>No options</NoOptions>
+    ) : (
+      filteredOptions.map((option, index) => {
+        const selected = selectedItems.some(item => item.value === option.value);
+        const highlighted = index === highlightedIndex;
+        // Custom render or default
+        const optionContent = renderOption
+          ? renderOption(option, { selected, highlighted })
+          : getOptionLabel(option);
+        
+        return (
+          <OptionItem
+            key={`${option.value}-${index}`}
+            $highlighted={highlighted}
+            $selected={selected}
+            onClick={() => handleSelectOption(option)}
+            onMouseEnter={() => setHighlightedIndex(index)}
+            role="option"
+            aria-selected={selected}
+          >
+            {optionContent}
+          </OptionItem>
+        );
+      })
+    );
 
-            // Custom render function if provided
-            if (renderOption) {
-              return renderOption(option, {
-                selected: isSelected,
-                highlighted: isHighlighted,
-                inputValue: internalInputValue,
-              });
-            }
-
-            return (
-              <OptionItem
-                key={`${option.value}-${index}`}
-                $highlighted={isHighlighted}
-                $selected={isSelected}
-                onClick={() => handleSelectOption(option)}
-                onMouseEnter={() => setHighlightedIndex(index)}
-              >
-                {getOptionLabel(option)}
-              </OptionItem>
-            );
-          })
-        )}
+    const dropdownElement = (
+      <Dropdown
+        ref={dropdownRef}
+        $open={open}
+        $reducedMotion={reducedMotion}
+        style={dropdownStyle} // Apply animated style
+      >
+        {listContent}
       </Dropdown>
     );
 
-    // Use portal if not disabled
-    if (!disablePortal) {
-      const portalTarget = popperContainer || document.body;
-      return createPortal(dropdownContent, portalTarget);
-    }
-
-    return dropdownContent;
+    return disablePortal
+      ? dropdownElement
+      : createPortal(dropdownElement, popperContainer || document.body);
   };
 
   // Determine helper text content
@@ -742,7 +867,7 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
     !disabled &&
     ((multiple && selectedItems.length > 0) ||
       (!multiple && selectedItems.length > 0) ||
-      (!multiple && !selectedItems.length && internalInputValue));
+      (!multiple && !selectedItems.length && inputValue));
 
   return (
     <AutocompleteRoot
@@ -751,26 +876,28 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
       style={style}
       $fullWidth={fullWidth}
       $animate={animate}
-      $reducedMotion={prefersReducedMotion}
+      $reducedMotion={reducedMotion}
     >
-      {label && <Label>{label}</Label>}
+      {label && <Label htmlFor={inputRef.current?.id}>{label}</Label>}
 
       <InputContainer
         $size={size}
         $focused={focused}
         $disabled={disabled}
         $hasError={hasError}
+        $theme={theme}
+        $focusProgress={focusProgress}
         onClick={() => {
           if (!disabled && inputRef.current) {
             inputRef.current.focus();
           }
         }}
       >
-        {renderTags()}
+        {multiple && renderTags()}
 
         <Input
           ref={inputRef}
-          value={internalInputValue}
+          value={inputValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
@@ -782,6 +909,9 @@ function AutocompleteComponent<T extends AutocompleteOption = AutocompleteOption
           }
           $size={size}
           $disabled={disabled}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={open}
           {...rest}
         />
 

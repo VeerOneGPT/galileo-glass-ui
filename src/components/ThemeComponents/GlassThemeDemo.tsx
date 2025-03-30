@@ -20,7 +20,7 @@ import { Radio } from '../Radio';
 import { Select } from '../Select';
 import { Slider } from '../Slider';
 import { Switch } from '../Switch';
-import { Tabs, Tab } from '../Tabs';
+import { Tabs, TabPanel } from '../Tabs';
 import { TextField } from '../TextField';
 import { Typography } from '../Typography';
 
@@ -346,16 +346,16 @@ export const GlassThemeDemo = forwardRef<HTMLDivElement, GlassThemeDemoProps>(
           <ComponentCard>
             <ComponentTitle variant="subtitle1">Tabs</ComponentTitle>
             <Tabs value={0}>
-              <Tab label="Tab 1" />
-              <Tab label="Tab 2" />
-              <Tab label="Tab 3" />
+              <TabPanel value={0} index={0}>Tab 1 Content</TabPanel>
+              <TabPanel value={0} index={1}>Tab 2 Content</TabPanel>
+              <TabPanel value={0} index={2}>Tab 3 Content</TabPanel>
             </Tabs>
             {showCode && (
               <CodePreview>
                 {`<Tabs value={0}>
-  <Tab label="Tab 1" />
-  <Tab label="Tab 2" />
-  <Tab label="Tab 3" />
+   <TabPanel value={0} index={0}>Tab 1 Content</TabPanel>
+   <TabPanel value={0} index={1}>Tab 2 Content</TabPanel>
+   <TabPanel value={0} index={2}>Tab 3 Content</TabPanel>
 </Tabs>`}
               </CodePreview>
             )}
@@ -467,20 +467,15 @@ export const GlassThemeDemo = forwardRef<HTMLDivElement, GlassThemeDemoProps>(
             {useTabs && filteredCategories.length > 1 ? (
               <>
                 <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-                  {filteredCategories.map(({ key, label }) => (
-                    <Tab key={key} label={label} />
+                  {filteredCategories.map(({ key, label }, index) => (
+                    <button key={key} onClick={() => setActiveTab(index)}>{label}</button>
                   ))}
                 </Tabs>
-                <Box mt={2}>
-                  {filteredCategories.map(
-                    ({ key }, index) =>
-                      activeTab === index && (
-                        <Box key={key}>
-                          {categoryExamples[key as keyof typeof categoryExamples]}
-                        </Box>
-                      )
-                  )}
-                </Box>
+                {filteredCategories.map(({ key, label }, index) => (
+                  <TabPanel key={key} value={activeTab} index={index}>
+                    {categoryExamples[key as keyof typeof categoryExamples]}
+                  </TabPanel>
+                ))}
               </>
             ) : (
               // Show all categories without tabs

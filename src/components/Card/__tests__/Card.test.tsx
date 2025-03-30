@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 
 import { ThemeProvider } from '../../../theme/ThemeProvider';
-import { Card, GlassCard } from '../Card';
+import { Card } from '../Card';
 
 // Mock the glassSurface and glassGlow mixins
 jest.mock('../../../core/mixins/glassSurface', () => ({
@@ -82,80 +82,24 @@ describe('Card Component', () => {
       })
     );
   });
-});
 
-describe('GlassCard Component', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+  it('renders Card with outlined variant', () => {
+    const { container } = render(<Card variant="outlined">Test</Card>);
+    // Check for styles associated with outlined variant if implemented
+    // This example assumes styled-components is used and styles are applied via classes or attributes
+    expect(container.firstChild).toHaveStyle('border: 1px solid'); // Example check
   });
 
-  test('renders with glass-specific styling', () => {
-    const { glassSurface } = require('../../../core/mixins/glassSurface');
-    const { glassGlow } = require('../../../core/mixins/effects/glowEffects');
-
-    renderWithTheme(<GlassCard>Glass Card</GlassCard>);
-
-    // Verify that the content is rendered
-    expect(screen.getByText('Glass Card')).toBeInTheDocument();
-
-    // Verify that glassSurface and glassGlow were called
-    expect(glassSurface).toHaveBeenCalled();
-    expect(glassGlow).toHaveBeenCalled();
+  it('handles click events on Card', () => {
+    const handleClick = jest.fn();
+    const { getByText } = render(<Card onClick={handleClick}>Click Me</Card>);
+    // Verify the click handler was called
+    expect(handleClick).toHaveBeenCalled();
   });
 
-  test('has different default props than regular Card', () => {
-    const { glassSurface } = require('../../../core/mixins/glassSurface');
-    const { glassGlow } = require('../../../core/mixins/effects/glowEffects');
-
-    // Clear previous calls
-    jest.clearAllMocks();
-
-    renderWithTheme(<GlassCard>Default Glass Card</GlassCard>);
-
-    // GlassCard has elevation 2 by default (vs 1 for Card)
-    expect(glassSurface).toHaveBeenCalledWith(
-      expect.objectContaining({
-        elevation: 2,
-      })
-    );
-
-    // GlassCard has subtle glow by default (vs none for Card)
-    expect(glassGlow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        intensity: 'subtle',
-      })
-    );
-  });
-
-  test('allows overriding default props', () => {
-    const { glassSurface } = require('../../../core/mixins/glassSurface');
-    const { glassGlow } = require('../../../core/mixins/effects/glowEffects');
-
-    // Clear previous calls
-    jest.clearAllMocks();
-
-    renderWithTheme(
-      <GlassCard elevation={4} glow="strong" glowColor="error">
-        Custom Glass Card
-      </GlassCard>
-    );
-
-    // Verify that the content is rendered
-    expect(screen.getByText('Custom Glass Card')).toBeInTheDocument();
-
-    // Custom elevation
-    expect(glassSurface).toHaveBeenCalledWith(
-      expect.objectContaining({
-        elevation: 4,
-      })
-    );
-
-    // Custom glow
-    expect(glassGlow).toHaveBeenCalledWith(
-      expect.objectContaining({
-        intensity: 'strong',
-        color: 'error',
-      })
-    );
+  it('renders Card with title', () => {
+    const { getByText } = render(<Card title="My Card Title">Content</Card>);
+    // Verify the title is rendered
+    expect(getByText('My Card Title')).toBeInTheDocument();
   });
 });

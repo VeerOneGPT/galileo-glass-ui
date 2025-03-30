@@ -50,11 +50,9 @@ function SettingsPage() {
 
 ### Motion and Animation Accessibility
 
-Galileo Glass UI provides extensive options for motion control:
+Galileo Glass UI provides extensive options for motion control, integrated directly into the animation system:
 
-- [Animation Accessibility](./animation-accessibility.md) - ARIA attributes and screen reader support for animations
-- [Motion Preferences](./motion-preferences.md) - Comprehensive motion sensitivity system
-- [Reduced Motion](./reduced-motion.md) - Alternative animations with reduced motion
+- [Animation Accessibility](../animations/accessibility.md) - Describes how the new physics-based animation system handles accessibility, including the `useReducedMotion` hook and respecting user preferences.
 
 ### Visual Accessibility
 

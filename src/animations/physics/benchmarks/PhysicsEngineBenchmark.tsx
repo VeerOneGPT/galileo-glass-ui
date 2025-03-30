@@ -6,10 +6,14 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { useSpring as useReactSpring, animated as animatedSpring } from 'react-spring';
-import { motion, useAnimation } from 'framer-motion';
+// import { useSpring as useReactSpring, animated as animatedSpring } from 'react-spring'; // REMOVED
+// import { motion, useAnimation } from 'framer-motion'; // REMOVED
 
-import { useSpring, springAnimation } from '../../physics';
+import { GalileoPhysics } from '../unifiedPhysicsAPI';
+import { springAnimation } from '../../physics';
+import { useGalileoStateSpring } from '../../../hooks/useGalileoStateSpring';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { Button } from '../../../components/Button';
 import { runBenchmark, compareBenchmarks } from './benchmarkEngine';
 import { BenchmarkResult } from './types';
 
@@ -54,26 +58,6 @@ const Controls = styled.div`
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 20px;
-`;
-
-const Button = styled.button`
-  padding: 8px 16px;
-  background: #4361ee;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-  
-  &:hover {
-    background: #3a56d4;
-  }
-  
-  &:disabled {
-    background: #a0a0a0;
-    cursor: not-allowed;
-  }
 `;
 
 const Select = styled.select`
@@ -124,8 +108,8 @@ const PhysicsEngineBenchmark: React.FC = () => {
   // DOM refs
   const testAreaRef = useRef<HTMLDivElement>(null);
   const galileoRef = useRef<HTMLDivElement>(null);
-  const reactSpringRef = useRef<HTMLDivElement>(null);
-  const framerMotionRef = useRef<HTMLDivElement>(null);
+  // const reactSpringRef = useRef<HTMLDivElement>(null); // REMOVED
+  // const framerMotionRef = useRef<HTMLDivElement>(null); // REMOVED
   
   // State
   const [benchmarkType, setBenchmarkType] = useState<'simple' | 'complex'>('simple');
@@ -135,21 +119,21 @@ const PhysicsEngineBenchmark: React.FC = () => {
   const [comparison, setComparison] = useState<string>('');
   
   // Animation controllers
-  const framerControls = useAnimation();
+  // const framerControls = useAnimation(); // REMOVED
 
   // React Spring animation
-  const [springProps, springApi] = useReactSpring(() => ({
-    from: { 
-      left: testConfigs.spring.from.left, 
-      top: testConfigs.spring.from.top,
-      transform: 'translate(-50%, -50%)'
-    },
-    config: {
-      mass: testConfigs.spring.mass,
-      tension: testConfigs.spring.stiffness * 10, // React Spring uses different units
-      friction: testConfigs.spring.damping * 10 // React Spring uses different units
-    }
-  }));
+  // const [springProps, springApi] = useReactSpring(() => ({ // REMOVED
+  //   from: { 
+  //     left: testConfigs.spring.from.left, 
+  //     top: testConfigs.spring.from.top,
+  //     transform: 'translate(-50%, -50%)'
+  //   },
+  //   config: {
+  //     mass: testConfigs.spring.mass,
+  //     tension: testConfigs.spring.stiffness * 10, // React Spring uses different units
+  //     friction: testConfigs.spring.damping * 10 // React Spring uses different units
+  //   }
+  // }));
 
   // Run Galileo physics benchmark
   const runGalileoBenchmark = async () => {
@@ -230,7 +214,8 @@ const PhysicsEngineBenchmark: React.FC = () => {
     setIsRunning(false);
   };
   
-  // Run React Spring benchmark
+  // Run React Spring benchmark (Commented out as library is removed)
+  /*
   const runReactSpringBenchmark = async () => {
     setIsRunning(true);
     setLastRun('spring');
@@ -301,7 +286,8 @@ const PhysicsEngineBenchmark: React.FC = () => {
     setIsRunning(false);
   };
   
-  // Run Framer Motion benchmark
+  // Run Framer Motion benchmark (Commented out as library is removed)
+  /*
   const runFramerMotionBenchmark = async () => {
     setIsRunning(true);
     setLastRun('framer');
@@ -382,8 +368,9 @@ const PhysicsEngineBenchmark: React.FC = () => {
     
     setIsRunning(false);
   };
+  */
   
-  // Run all benchmarks in sequence
+  // Function to run all benchmarks
   const runAllBenchmarks = async () => {
     setIsRunning(true);
     setLastRun('all');
@@ -393,8 +380,8 @@ const PhysicsEngineBenchmark: React.FC = () => {
     
     // Run each benchmark in sequence
     await runGalileoBenchmark();
-    await runReactSpringBenchmark();
-    await runFramerMotionBenchmark();
+    // await runReactSpringBenchmark(); // REMOVED
+    // await runFramerMotionBenchmark(); // REMOVED
     
     setIsRunning(false);
   };
@@ -420,15 +407,9 @@ const PhysicsEngineBenchmark: React.FC = () => {
         <Button onClick={runGalileoBenchmark} disabled={isRunning}>
           Run Galileo Benchmark
         </Button>
-        <Button onClick={runReactSpringBenchmark} disabled={isRunning}>
-          Run React Spring Benchmark
-        </Button>
-        <Button onClick={runFramerMotionBenchmark} disabled={isRunning}>
-          Run Framer Motion Benchmark
-        </Button>
-        <Button onClick={runAllBenchmarks} disabled={isRunning}>
-          Run All Benchmarks
-        </Button>
+        {/* <Button onClick={runReactSpringBenchmark} disabled={isRunning}>Run React Spring</Button> // REMOVED */}
+        {/* <Button onClick={runFramerMotionBenchmark} disabled={isRunning}>Run Framer Motion</Button> // REMOVED */}
+        <Button onClick={runAllBenchmarks} disabled={isRunning}>Run All</Button>
       </Controls>
       
       <TestArea ref={testAreaRef}>
@@ -447,7 +428,8 @@ const PhysicsEngineBenchmark: React.FC = () => {
           </TestObject>
         )}
         
-        {(lastRun === 'spring' || lastRun === 'all') && (
+        {/* React Spring Element - REMOVED */}
+        {/* {(lastRun === 'spring' || lastRun === 'all') && (
           <animatedSpring.div 
             ref={reactSpringRef} 
             style={{
@@ -455,45 +437,33 @@ const PhysicsEngineBenchmark: React.FC = () => {
               position: 'absolute',
               width: '100px',
               height: '100px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-              background: 'linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%)'
+              // ... other styles ...
             }}
           >
             Spring
           </animatedSpring.div>
-        )}
+        )} */}
         
-        {(lastRun === 'framer' || lastRun === 'all') && (
+        {/* Framer Motion Element - REMOVED */}
+        {/* {(lastRun === 'framer' || lastRun === 'all') && (
           <motion.div
             ref={framerMotionRef}
             animate={framerControls}
             initial={{
-              position: 'absolute',
               left: testConfigs.spring.from.left,
               top: testConfigs.spring.from.top,
-              x: '-50%',
-              y: '-50%',
+              transform: 'translate(-50%, -50%)'
+            }}
+            style={{
+              position: 'absolute',
               width: '100px',
               height: '100px',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-              background: 'linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%)'
+              // ... other styles ...
             }}
           >
             Framer
           </motion.div>
-        )}
+        )} */}
       </TestArea>
       
       {results.length > 0 && (

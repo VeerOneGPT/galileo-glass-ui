@@ -7,13 +7,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import GalileoPhysics, { 
-  useSpring, 
-  useMomentum,
-  Vector2D,
-  PhysicsAnimationMode,
-  PhysicsQuality
-} from '../unifiedPhysicsAPI';
+import { GalileoPhysics } from '../unifiedPhysicsAPI';
+import { useGalileoStateSpring } from '../../../hooks/useGalileoStateSpring';
+import { Vector2D } from '../../physics/types';
 
 // Import specific hooks and use them directly with their own interfaces
 import { useInertialMovement2D } from '../useInertialMovement2D';
@@ -134,11 +130,12 @@ export const UnifiedPhysicsAPIExample: React.FC = () => {
   }, []);
   
   // Spring animation example
-  const springProps = useSpring({
-    from: 0,
-    to: 100,
-    config: GalileoPhysics.SpringPresets.BOUNCY,
-    autoStart: false
+  const [isToggled, setIsToggled] = useState(false);
+  const targetValue = isToggled ? 100 : 0;
+  const springProps = useGalileoStateSpring(targetValue, {
+    tension: 180, 
+    friction: 12, 
+    mass: 1,
   });
   
   // Mouse tracking for physics objects
@@ -237,7 +234,7 @@ export const UnifiedPhysicsAPIExample: React.FC = () => {
           top: '25%',
           transform: 'translate(-50%, -50%)'
         }}
-        onClick={() => springProps.start({ to: springProps.value < 50 ? 100 : 0 })}
+        onClick={() => setIsToggled(!isToggled)}
       >
         Spring
       </PhysicsObject>
@@ -331,24 +328,9 @@ export const UnifiedPhysicsAPIExample: React.FC = () => {
         {showSprings && (
           <div style={{ width: '100%', display: 'flex', gap: '8px', marginBottom: '12px' }}>
             <ControlButton
-              onClick={() => springProps.start({ to: 0 })}
+              onClick={() => setIsToggled(!isToggled)}
             >
-              Spring to Left
-            </ControlButton>
-            <ControlButton
-              onClick={() => springProps.start({ to: 100 })}
-            >
-              Spring to Right
-            </ControlButton>
-            <ControlButton
-              onClick={() => springProps.start({ to: 50 })}
-            >
-              Spring to Center
-            </ControlButton>
-            <ControlButton
-              onClick={() => springProps.stop()}
-            >
-              Stop Spring
+              Toggle Spring
             </ControlButton>
           </div>
         )}
@@ -376,13 +358,13 @@ export const UnifiedPhysicsAPIExample: React.FC = () => {
       <CodeBlock>
 {`// Import the unified physics API
 import GalileoPhysics, { 
-  useSpring, 
+  useGalileoStateSpring, 
   useMomentum, 
   useInertialMovement 
 } from 'galileo-glass-ui/animations/physics';
 
 // Spring animation
-const springProps = useSpring({
+const springProps = useGalileoStateSpring({
   from: 0,
   to: 100,
   config: GalileoPhysics.SpringPresets.BOUNCY,

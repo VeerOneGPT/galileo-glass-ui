@@ -3,16 +3,30 @@
  *
  * A grid of images with glass morphism styling.
  */
-import React, { forwardRef, createContext, useMemo } from 'react';
+import React, { forwardRef, createContext, useMemo, useRef, useEffect } from 'react';
 import styled from 'styled-components';
+
+// Import animation sequence hook and types
+import { 
+  useAnimationSequence, 
+  type AnimationSequenceConfig, 
+  type StaggerAnimationStage, 
+  type SequenceControls // Import SequenceControls
+} from '../../animations/orchestration/useAnimationSequence'; 
+import { Easings } from '../../animations/physics/interpolation'; // Import Easings
+
+// Hook for reduced motion
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 
-import { ImageListProps } from './types';
+// Import types (assuming types.ts is updated)
+import { ImageListProps } from './types'; 
+import { AnimationProps } from '../../animations/types';
 
 // Create ImageList context
-export interface ImageListContextProps {
+export interface ImageListContextProps extends AnimationProps { // Extend with AnimationProps
   variant: 'standard' | 'quilted' | 'masonry' | 'woven';
   rowHeight: number | 'auto';
   gap: number;
@@ -30,6 +44,10 @@ export const ImageListContext = createContext<ImageListContextProps>({
   glass: false,
   variableSize: false,
   rounded: false,
+  // Default animation props
+  animationConfig: undefined,
+  disableAnimation: false,
+  motionSensitivity: undefined,
 });
 
 // Styled components
@@ -131,10 +149,73 @@ function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLU
     glass = false,
     rounded = false,
     variableSize = false,
+    enableEntranceAnimation = true,
+    animationConfig, 
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Create context value
+  // Check for reduced motion preference
+  const prefersReducedMotion = useReducedMotion();
+
+  // Determine if the entrance animation should run
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const shouldAnimateEntrance = enableEntranceAnimation && !finalDisableAnimation;
+
+  // Ref for the root ul element
+  const rootRef = useRef<HTMLUListElement>(null);
+
+  // --- Entrance Animation Setup --- 
+  // Define the sequence configuration MEMOIZED
+  const entranceSequenceConfig = useMemo((): AnimationSequenceConfig => {
+    const entranceStage: StaggerAnimationStage = {
+      id: 'list-item-entrance',
+      type: 'stagger',
+      targets: '.galileo-image-list-item', // Target the class name
+      from: { opacity: 0, transform: 'translateY(20px)' },
+      to: { opacity: 1, transform: 'translateY(0px)' },
+      duration: 400, 
+      staggerDelay: 50,
+      easing: 'easeOutCubic',
+    };
+    return {
+      id: `imagelist-entrance-${Date.now()}`,
+      stages: [entranceStage],
+      autoplay: false, // We will trigger play manually in useEffect
+      // Pass animation config details if useAnimationSequence supports them
+      // e.g., could pass disableAnimation directly if supported
+      // For now, we control via shouldAnimateEntrance flag
+    };
+  }, []); // Empty dependency array - config doesn't change
+
+  // Instantiate the sequence hook at the TOP LEVEL
+  const { play: playEntranceAnimation }: SequenceControls = useAnimationSequence(entranceSequenceConfig);
+
+  // Trigger the entrance animation on mount if enabled
+  useEffect(() => {
+    if (shouldAnimateEntrance) {
+      // Small delay to ensure elements are rendered before targeting
+      const timer = setTimeout(() => {
+        playEntranceAnimation();
+      }, 50); // Adjust delay if needed
+      return () => clearTimeout(timer);
+    }
+    // Dependency: only run when shouldAnimateEntrance changes (or on mount)
+  }, [shouldAnimateEntrance, playEntranceAnimation]);
+  // --- End Entrance Animation Setup ---
+
+  // Assign forwarded ref to internal ref if provided
+  useEffect(() => {
+    if (!ref) return;
+    if (typeof ref === 'function') {
+      ref(rootRef.current);
+    } else {
+      ref.current = rootRef.current;
+    }
+  }, [ref]);
+
+  // Create context value including animation props
   const contextValue = useMemo<ImageListContextProps>(
     () => ({
       variant,
@@ -144,14 +225,21 @@ function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLU
       glass,
       variableSize,
       rounded,
+      // Pass down animation props
+      animationConfig,
+      disableAnimation: finalDisableAnimation, // Pass the resolved value
+      motionSensitivity,
     }),
-    [variant, rowHeight, gap, cols, glass, variableSize, rounded]
+    [
+      variant, rowHeight, gap, cols, glass, variableSize, rounded, 
+      animationConfig, finalDisableAnimation, motionSensitivity
+    ]
   );
 
   return (
     <ImageListContext.Provider value={contextValue}>
       <ImageListRoot
-        ref={ref}
+        ref={rootRef}
         className={className}
         style={style}
         $variant={variant}
@@ -162,7 +250,16 @@ function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLU
         $rounded={rounded}
         {...rest}
       >
-        {children}
+        {/* Ensure children (ImageListItem) have the class name */}
+        {React.Children.map(children, (child) => {
+          if (React.isValidElement(child)) {
+            // Add the target class name for the entrance animation
+            return React.cloneElement(child as React.ReactElement<any>, {
+              className: `${child.props.className || ''} galileo-image-list-item`,
+            });
+          }
+          return child;
+        })}
       </ImageListRoot>
     </ImageListContext.Provider>
   );
@@ -173,7 +270,7 @@ function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLU
  *
  * A grid of images.
  */
-const ImageList = forwardRef(ImageListComponent);
+const ImageList = forwardRef<HTMLUListElement, ImageListProps>(ImageListComponent);
 
 /**
  * GlassImageList Component

@@ -2,28 +2,21 @@
  * Common type definitions for the animation system
  * @deprecated Import from core/types.ts directly to avoid circular dependencies
  */
-import { Keyframes, FlattenSimpleInterpolation } from 'styled-components';
+import { Keyframes } from 'styled-components';
 import { 
   AnimationComplexity,
   MotionSensitivityLevel,
-  AnimationIntensity,
-  AnimationDirection,
-  AnimationFillMode,
-  AnimationPlayState,
   AnimationPreset,
   KeyframeDefinition,
   AnimationOptions,
   AnimationFunction
 } from './core/types';
+import { SpringConfig, SpringPresets } from './physics/springPhysics';
 
 // Re-export types from core for backward compatibility
 export type { 
   AnimationComplexity,
   MotionSensitivityLevel,
-  AnimationIntensity,
-  AnimationDirection,
-  AnimationFillMode,
-  AnimationPlayState,
   AnimationPreset,
   KeyframeDefinition,
   AnimationOptions,
@@ -151,4 +144,29 @@ export function createKeyframes(name: string, frames: Keyframes): KeyframeDefini
     name,
     keyframes: frames,
   };
+}
+
+/**
+ * Common Animation Props Interface
+ *
+ * Defines standard properties to control animation behavior across components.
+ */
+export interface AnimationProps {
+  /**
+   * Optional spring physics configuration or preset name.
+   * Overrides default animation settings for the component.
+   */
+  animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
+  
+  /**
+   * If true, explicitly disables animations for this component instance,
+   * overriding other settings like reduced motion preferences.
+   */
+  disableAnimation?: boolean;
+  
+  /**
+   * Optional override for the motion sensitivity level for this component instance.
+   * Influences how animations adapt to performance or user preference.
+   */
+  motionSensitivity?: MotionSensitivityLevel;
 }

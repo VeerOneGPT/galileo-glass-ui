@@ -14,10 +14,8 @@ All major dependencies are now marked as external:
 - styled-components
 - chart.js
 - react-chartjs-2
-- framer-motion
 - polished
 - popmotion
-- react-spring
 - react-window
 
 This ensures that these libraries aren't bundled multiple times when used alongside Galileo Glass UI.
@@ -100,6 +98,15 @@ We've created `IMPORT_OPTIMIZATION.md` with detailed guidelines for users on how
 4. **Precompiled CSS**
    - Extract common styles to CSS files
    - Reduce runtime style computation
+
+## Identifying Large Dependencies
+
+Use tools like `webpack-bundle-analyzer` or `source-map-explorer` to visualize your bundle and identify large dependencies. Common culprits might include:
+
+- Large charting libraries (consider lazy loading or lighter alternatives)
+- Moment.js (use date-fns or Day.js instead)
+- Lodash (import specific functions, e.g., `import get from 'lodash/get'`) 
+- Unused components from UI libraries
 
 ## Conclusion
 

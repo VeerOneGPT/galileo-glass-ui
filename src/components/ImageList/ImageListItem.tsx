@@ -3,15 +3,18 @@
  *
  * An item component for the ImageList with glass morphism styling.
  */
-import React, { forwardRef, useContext, useState } from 'react';
+import React, { forwardRef, useContext, useState, useMemo } from 'react';
 import styled from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useMultiSpring } from '../../animations/physics/useMultiSpring';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 import { ImageListContext } from './ImageList';
 import { ImageListItemProps } from './types';
+import { AnimationProps } from '../../animations/types';
 
 // Styled components
 const ImageListItemRoot = styled.li<{
@@ -29,6 +32,8 @@ const ImageListItemRoot = styled.li<{
   display: block;
   overflow: hidden;
   z-index: 1;
+  /* Ensure it's focusable */
+  outline: none; 
 
   /* Handle different variants */
   ${props =>
@@ -90,28 +95,10 @@ const ImageListItemRoot = styled.li<{
     overflow: hidden;
   `}
   
-  /* Hover effects */
-  transition: ${props => (!props.$reducedMotion ? 'transform 0.3s, box-shadow 0.3s' : 'none')};
+  /* REMOVE Hover effects - These will be handled by useMultiSpring */
+  /* transition: ${props => (!props.$reducedMotion ? 'transform 0.3s, box-shadow 0.3s' : 'none')}; */
 
-  &:hover {
-    ${props =>
-      props.$elevation > 0 &&
-      !props.$glass &&
-      `
-      box-shadow: ${
-        props.$elevation === 1
-          ? '0 3px 6px rgba(0, 0, 0, 0.15)'
-          : props.$elevation === 2
-          ? '0 5px 10px rgba(0, 0, 0, 0.2)'
-          : props.$elevation === 3
-          ? '0 8px 16px rgba(0, 0, 0, 0.25)'
-          : props.$elevation === 4
-          ? '0 12px 24px rgba(0, 0, 0, 0.3)'
-          : '0 16px 32px rgba(0, 0, 0, 0.35)'
-      };
-      transform: translateY(-2px);
-    `}
-  }
+  /* &:hover { ... remove entire block ... } */
 `;
 
 const ImageContainer = styled.div<{
@@ -167,19 +154,25 @@ function ImageListItemComponent(props: ImageListItemProps, ref: React.ForwardedR
     alt,
     src,
     srcSet,
+    animationConfig: itemAnimationConfig,
+    disableAnimation: itemDisableAnimation,
+    motionSensitivity: itemMotionSensitivity,
     ...rest
   } = props;
 
   // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
 
-  // Get ImageList context
+  // Get ImageList context, including animation props
   const {
     variant,
     cols: contextCols,
     glass: contextGlass,
     variableSize,
     rounded: contextRounded,
+    animationConfig: contextAnimationConfig,
+    disableAnimation: contextDisableAnimation,
+    motionSensitivity: contextMotionSensitivity,
   } = useContext(ImageListContext);
 
   // Calculate cols and rows based on variableSize
@@ -197,8 +190,37 @@ function ImageListItemComponent(props: ImageListItemProps, ref: React.ForwardedR
   const glass = propGlass !== undefined ? propGlass : contextGlass;
   const rounded = propRounded !== undefined ? propRounded : contextRounded;
 
-  // State for hover
+  // Determine final animation settings: Item Prop > Context Prop > Reduced Motion
+  const finalDisableAnimation = itemDisableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
+  const finalMotionSensitivity = itemMotionSensitivity ?? contextMotionSensitivity;
+  // Combine item and context animationConfig (item takes precedence if structure matches)
+  const finalAnimationProp = itemAnimationConfig ?? contextAnimationConfig;
+
+  // State for hover and focus
+  const [isFocused, setIsFocused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
+  // Calculate final spring config for hover/focus effect
+  const finalSpringConfig = useMemo(() => {
+    const baseConfig: SpringConfig = SpringPresets.DEFAULT; // Base defaults
+    let resolvedContextConfig: Partial<SpringConfig> = {};
+    // Use contextAnimationConfig or defaultSpring from a hypothetical AnimationContext if needed
+    if (typeof finalAnimationProp === 'string' && finalAnimationProp in SpringPresets) {
+      resolvedContextConfig = SpringPresets[finalAnimationProp as keyof typeof SpringPresets];
+    } else if (typeof finalAnimationProp === 'object') {
+      resolvedContextConfig = finalAnimationProp ?? {};
+    }
+    // Simple merge: context config overrides base
+    return { ...baseConfig, ...resolvedContextConfig };
+  }, [finalAnimationProp]);
+
+  // Add physics interaction for hover/focus scale effect
+  const { values: animatedValues } = useMultiSpring({
+    from: { scale: 1 },
+    to: { scale: (isHovered || isFocused) && !finalDisableAnimation ? 1.03 : 1 },
+    animationConfig: finalSpringConfig, // Use calculated config
+    immediate: finalDisableAnimation, // Respect disable flag
+  });
 
   // Prepare image element if src is provided
   const image = src ? (
@@ -208,8 +230,8 @@ function ImageListItemComponent(props: ImageListItemProps, ref: React.ForwardedR
   return (
     <ImageListItemRoot
       ref={ref}
-      className={className}
-      style={style}
+      className={`${className || ''} galileo-image-list-item`.trim()}
+      style={{ ...style, transform: `scale(${animatedValues.scale})` }}
       $cols={cols}
       $rows={rows}
       $variant={variant}
@@ -218,15 +240,18 @@ function ImageListItemComponent(props: ImageListItemProps, ref: React.ForwardedR
       $elevation={elevation}
       $rounded={rounded}
       $reducedMotion={prefersReducedMotion}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      tabIndex={0}
+      onMouseEnter={() => { setIsHovered(true); }}
+      onMouseLeave={() => { setIsHovered(false); }}
+      onFocus={() => { setIsFocused(true); }}
+      onBlur={() => { setIsFocused(false); }}
     >
       <ImageContainer $glass={glass}>
         {image}
         {children}
 
         {hoverOverlay && (
-          <HoverOverlay $visible={isHovered} $reducedMotion={prefersReducedMotion} />
+          <HoverOverlay $visible={isHovered || isFocused} $reducedMotion={prefersReducedMotion} />
         )}
       </ImageContainer>
     </ImageListItemRoot>
@@ -238,7 +263,7 @@ function ImageListItemComponent(props: ImageListItemProps, ref: React.ForwardedR
  *
  * An item component for the ImageList.
  */
-const ImageListItem = forwardRef(ImageListItemComponent);
+const ImageListItem = forwardRef<HTMLLIElement, ImageListItemProps>(ImageListItemComponent);
 
 /**
  * GlassImageListItem Component

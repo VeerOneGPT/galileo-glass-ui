@@ -57,6 +57,10 @@ export { animationSynchronizer } from './AnimationSynchronizer';
 export * from './AnimationEventSystem';
 export { animationEventBus, animationEventManager } from './AnimationEventSystem';
 
+// Export Animation Sequence hook
+export * from './useAnimationSequence';
+export { default as useAnimationSequence } from './useAnimationSequence';
+
 // Export Staggered Animation Utilities - explicit exports to resolve ambiguity
 export { 
   staggeredAnimator 

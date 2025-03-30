@@ -119,12 +119,6 @@ import {
   CollisionOptions
 } from './collisionAPI';
 
-// Import from existing physics hooks with proper types
-import { useSpring } from './useSpring';
-// Just declare the types needed for now, we'll fix the source files later
-interface SpringOptions {}
-interface SpringHookResult {}
-
 import { useInertialMovement } from './useInertialMovement';
 // Just declare the types needed for now, we'll fix the source files later
 interface InertialMovementOptions {}
@@ -202,7 +196,6 @@ export class GalileoPhysics {
   public static materialDesign = materialDesign;
   
   // Physics React hooks
-  public static useSpring = useSpring;
   public static useInertialMovement = useInertialMovement;
   public static useMomentum = useMomentum;
   public static useMultiSpring = useMultiSpring;
@@ -648,7 +641,6 @@ export {
   PhysicsQuality,
   
   // Hooks
-  useSpring,
   useInertialMovement,
   useMomentum,
   useMultiSpring,
@@ -665,8 +657,6 @@ export type { CollisionResult };
 export type { CollisionOptions };
 
 // Hook-related types
-export type { SpringOptions };
-export type { SpringHookResult };
 export type { InertialMovementOptions };
 export type { InertialMovementResult };
 export type { MomentumOptions };

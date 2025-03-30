@@ -749,6 +749,9 @@ export class MotionIntensityProfiler {
       [AnimationCategory.BACKGROUND]: 0,
       [AnimationCategory.SCROLL]: 0,
       [AnimationCategory.ATTENTION]: 0,
+      [AnimationCategory.INTERACTION]: 0,
+      [AnimationCategory.GAME]: 0,
+      [AnimationCategory.ANIMATION]: 0,
     };
     
     for (const profile of this.profiles.values()) {

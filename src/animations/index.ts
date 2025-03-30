@@ -143,6 +143,30 @@ export {
 // Z-Space animations
 export { ZSpaceAnimator, useZSpaceAnimation, type ZSpaceAnimationOptions } from './dimensional';
 
+// Game animations
+export {
+  useGameAnimation,
+  TransitionType,
+  TransitionDirection,
+  type GameAnimationState,
+  type StateTransition,
+  type GameAnimationConfig,
+  type GameAnimationController,
+} from './game';
+
+// Scene transitions and level changes
+export {
+  useSceneTransition,
+  SceneTransitionManager,
+  SceneType,
+  TransitionEffect,
+  SceneDepthEffect,
+  ContentPreservation,
+  type SceneTransitionConfig,
+  type SceneTransitionResult,
+  type SceneTransitionActions,
+} from './physics/useSceneTransition';
+
 // Animation renderers
 export {
   WaapiRenderer,
@@ -194,6 +218,9 @@ export {
   TransformConsolidatorExample,
   GPUAccelerationExample,
 } from './performance';
+
+// Animation Effects (Parallax, etc.)
+export * from './effects';
 
 // Unified Physics API (including renderers)
 export {

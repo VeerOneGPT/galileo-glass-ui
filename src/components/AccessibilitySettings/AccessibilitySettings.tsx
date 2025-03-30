@@ -297,7 +297,7 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
   const [speedSettings, setSpeedSettings] = useState(speedController.getConfig());
   
   // Initialize category-specific settings
-  const [categorySettings, setCategorySettings] = useState<Record<AnimationCategory, any>>({
+  const initialSettings = {
     [AnimationCategory.ENTRANCE]: { 
       speed: AnimationSpeedPreference.NORMAL, 
       enabled: true 
@@ -334,11 +334,30 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
       speed: AnimationSpeedPreference.NORMAL, 
       enabled: true 
     },
-    [AnimationCategory.ESSENTIAL]: { 
+    [AnimationCategory.ESSENTIAL]: {
+      speed: AnimationSpeedPreference.NORMAL,
+      enabled: true
+    },
+    [AnimationCategory.INTERACTION]: {
       speed: AnimationSpeedPreference.NORMAL, 
       enabled: true 
     },
-  });
+    [AnimationCategory.GAME]: {
+      speed: AnimationSpeedPreference.NORMAL, 
+      enabled: true 
+    },
+    [AnimationCategory.ANIMATION]: {
+      speed: AnimationSpeedPreference.NORMAL, 
+      enabled: true 
+    },
+  };
+  
+  // Initialize missing categories if necessary
+  if (!initialSettings[AnimationCategory.INTERACTION]) initialSettings[AnimationCategory.INTERACTION] = { speed: AnimationSpeedPreference.NORMAL, enabled: true };
+  if (!initialSettings[AnimationCategory.GAME]) initialSettings[AnimationCategory.GAME] = { speed: AnimationSpeedPreference.NORMAL, enabled: true };
+  if (!initialSettings[AnimationCategory.ANIMATION]) initialSettings[AnimationCategory.ANIMATION] = { speed: AnimationSpeedPreference.NORMAL, enabled: true };
+
+  const [categorySettings, setCategorySettings] = useState<Record<AnimationCategory, any>>(initialSettings);
   
   // Initialize settings from current configuration
   useEffect(() => {

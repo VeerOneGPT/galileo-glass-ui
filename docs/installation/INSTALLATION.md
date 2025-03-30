@@ -74,13 +74,10 @@ We use a modular approach where specialized features only require dependencies w
 # Only if using chart components (BarChart, LineChart, PieChart, etc.)
 npm install chart.js react-chartjs-2
 
-# Only if using physics animations (spring animations, magnetic effects, etc.)
-npm install react-spring
-
-# Only if using advanced animations and motion effects
-npm install framer-motion popmotion
-
 # Only if using virtualized lists for large datasets
+npm install react-virtual
+
+# Only if using advanced data grids
 npm install react-window
 ```
 

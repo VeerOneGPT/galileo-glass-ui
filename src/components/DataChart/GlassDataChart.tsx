@@ -4,7 +4,7 @@
  * An advanced glass-styled chart component with physics-based interactions,
  * smooth animations, and rich customization options.
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 import { 
   Chart as ChartJS, 
@@ -30,7 +30,7 @@ import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 import { useGlassTheme } from '../../hooks/useGlassTheme';
-import { useSpring } from '../../animations/physics/useSpring';
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
 import { GlassTooltip, GlassTooltipContent } from '../GlassTooltip';
 import { formatValue, formatWithUnits, formatCurrency, formatPercentage } from './GlassDataChartUtils';
 // Import keyframes from the new file
@@ -45,6 +45,79 @@ import {
   tooltipFade,
   atmosphericMovement
 } from '../../animations/keyframes/chartAnimations';
+
+// Import our modularized components
+import {
+  ChartContainer,
+  AtmosphericBackground,
+  ChartHeader,
+  ChartTitle,
+  ChartSubtitle,
+  ChartWrapper
+} from './styles/ChartContainerStyles';
+
+import {
+  ChartToolbar,
+  ChartTypeSelector,
+  TypeButton,
+  ToolbarButton,
+  EnhancedExportButton,
+  ChartLegend,
+  LegendItem,
+  LegendColor,
+  LegendLabel,
+  KpiContainer,
+  KpiTitle,
+  KpiValue,
+  KpiSubtitle,
+  KpiTrend
+} from './styles/ChartElementStyles';
+
+import {
+  TooltipContainer,
+  TooltipContent,
+  TooltipHeader,
+  TooltipRow,
+  TooltipLabel,
+  TooltipValue,
+  DynamicTooltip
+} from './styles/TooltipStyles';
+
+// Import types from the types directory
+import { 
+  ChartVariant, 
+  DataPoint, 
+  ChartDataset
+} from './types/ChartTypes';
+
+import {
+  GlassDataChartProps,
+  GlassDataChartRef,
+  ChartAnimationOptions,
+  ChartInteractionOptions,
+  ChartLegendOptions,
+  ChartAxisOptions
+} from './types/ChartProps';
+
+// Import hooks
+import { 
+  useQualityTier, 
+  QualityTier, 
+  PhysicsParams,
+  GlassParams,
+  getQualityBasedPhysicsParams,
+  getQualityBasedGlassParams
+} from './hooks/useQualityTier';
+
+import { usePhysicsAnimation } from './hooks/usePhysicsAnimation';
+
+// Import utilities
+import {
+  convertToChartJsDataset,
+  convertToChartJsDatasetWithEffects,
+  hexToRgb,
+  generateColors
+} from './utils/ChartDataUtils';
 
 // Register required Chart.js components
 ChartJS.register(
@@ -119,862 +192,138 @@ defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
 defaults.plugins.tooltip.enabled = false; // We'll use our custom tooltip
 
 /**
- * Chart types supported by GlassDataChart
- * Note: 'area' is not a native Chart.js type, we'll map it to 'line' with fill
+ * Register required Chart.js components
  */
-export type ChartVariant = 'line' | 'bar' | 'area' | 'bubble' | 'pie' | 'doughnut' | 'radar' | 'polarArea';
-
-/**
- * Dataset style options
- */
-export interface DatasetStyle {
-  /** Fill color or gradient */
-  fillColor?: string | string[] | CanvasGradient;
-  /** Line/border color */
-  lineColor?: string;
-  /** Point color */
-  pointColor?: string;
-  /** Shadow color */
-  shadowColor?: string;
-  /** Fill opacity (0-1) */
-  fillOpacity?: number;
-  /** Line width */
-  lineWidth?: number;
-  /** Point size */
-  pointSize?: number;
-  /** Point style */
-  pointStyle?: 'circle' | 'cross' | 'crossRot' | 'dash' | 'line' | 'rect' | 'rectRounded' | 'rectRot' | 'star' | 'triangle';
-  /** Line style */
-  lineStyle?: 'solid' | 'dashed' | 'dotted';
-  /** Add glass effect to dataset */
-  glassEffect?: boolean;
-  /** Add glow effect to dataset */
-  glowEffect?: boolean;
-  /** Glow intensity */
-  glowIntensity?: 'subtle' | 'medium' | 'strong';
-}
-
-/**
- * Animation options for chart
- */
-export interface ChartAnimationOptions {
-  /** Enable physics-based animations */
-  physicsEnabled?: boolean;
-  /** Animation duration (ms) */
-  duration?: number;
-  /** Spring tension */
-  tension?: number;
-  /** Spring friction */
-  friction?: number;
-  /** Spring mass */
-  mass?: number;
-  /** Animation easing function */
-  easing?: 'linear' | 'easeInQuad' | 'easeOutQuad' | 'easeInOutQuad' | 'easeInCubic' | 'easeOutCubic' | 'easeInOutCubic' | 'easeInQuart' | 'easeOutQuart' | 'easeInOutQuart' | 'easeInQuint' | 'easeOutQuint' | 'easeInOutQuint' | 'easeInSine' | 'easeOutSine' | 'easeInOutSine' | 'easeInExpo' | 'easeOutExpo' | 'easeInOutExpo' | 'easeInCirc' | 'easeOutCirc' | 'easeInOutCirc' | 'easeInElastic' | 'easeOutElastic' | 'easeInOutElastic' | 'easeInBack' | 'easeOutBack' | 'easeInOutBack' | 'easeInBounce' | 'easeOutBounce' | 'easeInOutBounce';
-  /** Staggered delay between datasets (ms) */
-  staggerDelay?: number;
-}
-
-/**
- * Interaction options for chart
- */
-export interface ChartInteractionOptions {
-  /** Enable zoom/pan capabilities */
-  zoomPanEnabled?: boolean;
-  /** Zoom mode */
-  zoomMode?: 'x' | 'y' | 'xy';
-  /** Enable physics-based hover effects */
-  physicsHoverEffects?: boolean;
-  /** Hover animation speed */
-  hoverSpeed?: number;
-  /** Show tooltips on hover */
-  showTooltips?: boolean;
-  /** Tooltip style */
-  tooltipStyle?: 'glass' | 'frosted' | 'tinted' | 'luminous' | 'dynamic';
-  /** Follow cursor option for tooltips */
-  tooltipFollowCursor?: boolean;
-}
-
-/**
- * Legend options
- */
-export interface ChartLegendOptions {
-  /** Show legend */
-  show?: boolean;
-  /** Legend position */
-  position?: 'top' | 'right' | 'bottom' | 'left';
-  /** Legend alignment */
-  align?: 'start' | 'center' | 'end';
-  /** Legend style */
-  style?: 'default' | 'glass' | 'pills';
-  /** Use glass styling for legend */
-  glassEffect?: boolean;
-}
-
-/**
- * Axis options
- */
-export interface ChartAxisOptions {
-  /** Show x-axis grid */
-  showXGrid?: boolean;
-  /** Show y-axis grid */
-  showYGrid?: boolean;
-  /** Show x-axis labels */
-  showXLabels?: boolean;
-  /** Show y-axis labels */
-  showYLabels?: boolean;
-  /** X-axis title */
-  xTitle?: string;
-  /** Y-axis title */
-  yTitle?: string;
-  /** X-axis ticks count */
-  xTicksCount?: number;
-  /** Y-axis ticks count */
-  yTicksCount?: number;
-  /** Axis line color */
-  axisColor?: string;
-  /** Grid line color */
-  gridColor?: string;
-  /** Grid line style */
-  gridStyle?: 'solid' | 'dashed' | 'dotted';
-}
-
-/**
- * Data point for charts
- */
-export interface DataPoint {
-  /** X value (usually a label for category scales) */
-  x: string | number;
-  /** Y value */
-  y: number | null;
-  /** Custom color for this specific data point */
-  color?: string;
-  /** Custom label for this data point */
-  label?: string;
-  /** Extra data for tooltips or display */
-  extra?: Record<string, any>;
-  /** Format type for this data point ('number', 'currency', 'percentage', 'units') */
-  formatType?: 'number' | 'currency' | 'percentage' | 'units';
-  /** Format options for this data point */
-  formatOptions?: {
-    decimals?: number;
-    currencySymbol?: string;
-    locale?: string;
-    compact?: boolean;
-    showPlus?: boolean;
-    suffix?: string;
-    prefix?: string;
-  };
-  /** Formatted value (available in event handlers) */
-  formattedValue?: string;
-}
-
-/**
- * Chart dataset
- */
-export interface ChartDataset {
-  /** Dataset identifier */
-  id: string;
-  /** Dataset label */
-  label: string;
-  /** Dataset data points */
-  data: DataPoint[];
-  /** Dataset styling */
-  style?: DatasetStyle;
-  /** Whether this dataset uses the right y-axis */
-  useRightYAxis?: boolean;
-  /** Dataset order (lower numbers draw first) */
-  order?: number;
-  /** If true, this dataset is hidden by default */
-  hidden?: boolean;
-  /** Default format type for all data points in this dataset */
-  formatType?: 'number' | 'currency' | 'percentage' | 'units';
-  /** Default format options for all data points in this dataset */
-  formatOptions?: {
-    decimals?: number;
-    currencySymbol?: string;
-    locale?: string;
-    compact?: boolean;
-    showPlus?: boolean;
-    suffix?: string;
-    prefix?: string;
-  };
-}
-
-/**
- * GlassDataChart Component Props
- */
-export interface GlassDataChartProps {
-  /** Chart heading title */
-  title?: string;
-  /** Chart subtitle or description */
-  subtitle?: string;
-  /** Chart variant type */
-  variant?: ChartVariant;
-  /** Chart datasets */
-  datasets: ChartDataset[];
-  /** Chart width (px or %) */
-  width?: string | number;
-  /** Chart height (px or %) */
-  height?: string | number;
-  /** Chart glass appearance */
-  glassVariant?: 'clear' | 'frosted' | 'tinted' | 'luminous';
-  /** Blur strength for glass effect */
-  blurStrength?: 'light' | 'standard' | 'strong';
-  /** Base color theme */
-  color?: 'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error' | 'default';
-  /** Chart animation options */
-  animation?: ChartAnimationOptions;
-  /** Chart interaction options */
-  interaction?: ChartInteractionOptions;
-  /** Chart legend options */
-  legend?: ChartLegendOptions;
-  /** Chart axis options */
-  axis?: ChartAxisOptions;
-  /** Initial selection (index or array of indices) */
-  initialSelection?: number | number[];
-  /** Whether to show the chart toolbar */
-  showToolbar?: boolean;
-  /** Allow users to download chart as image */
-  allowDownload?: boolean;
-  /** Palette colors for datasets (will be used if dataset colors aren't specified) */
-  palette?: string[];
-  /** Allow switching between chart types */
-  allowTypeSwitch?: boolean;
-  /** Background color/gradient */
-  backgroundColor?: string | CanvasGradient;
-  /** Border radius for chart container */
-  borderRadius?: string | number;
-  /** Border color for chart container */
-  borderColor?: string;
-  /** Card elevation (1-5) */
-  elevation?: 1 | 2 | 3 | 4 | 5;
-  /** Additional class name */
-  className?: string;
-  /** Additional style */
-  style?: React.CSSProperties;
-  /** Callback when a data point is clicked */
-  onDataPointClick?: (datasetIndex: number, dataIndex: number, data: DataPoint) => void;
-  /** Callback when data selection changes */
-  onSelectionChange?: (selectedIndices: number[]) => void;
-  /** Callback when chart is zoomed or panned */
-  onZoomPan?: (chart: any) => void;
-  /** Callback when chart type is changed */
-  onTypeChange?: (chartType: ChartVariant) => void;
-  /** Enhanced export options */
-  exportOptions?: {
-    /** Default filename for exported images */
-    filename?: string;
-    /** Image quality (0-1) for JPEG exports */
-    quality?: number;
-    /** Format for export (png/jpeg) */
-    format?: 'png' | 'jpeg';
-    /** Background color for exported image */
-    backgroundColor?: string;
-    /** Include chart title in exported image */
-    includeTitle?: boolean;
-    /** Include timestamp in filename */
-    includeTimestamp?: boolean;
-  };
-  /** Custom export button renderer */
-  renderExportButton?: (handleExport: () => void) => React.ReactNode;
-}
-
-// Styled components
-const ChartContainer = styled.div<{
-  $glassVariant: string;
-  $blurStrength: string;
-  $color: string;
-  $elevation: number;
-  $borderRadius: string | number;
-  $borderColor?: string;
-}>`
-  position: relative;
-  padding: 1.5rem;
-  border-radius: ${props => typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
-  border: 1px solid ${props => props.$borderColor || 'rgba(255, 255, 255, 0.1)'};
-  height: 100%;
-  width: 100%;
-  transition: all 0.3s ease;
-  
-  ${props => {
-    // Get theme context for glass styling
-    const themeContext = createThemeContext({});
-    
-    // Apply glass effect based on variant
-    switch (props.$glassVariant) {
-      case 'clear':
-        return glassSurface({
-          elevation: props.$elevation,
-          blurStrength: props.$blurStrength as any,
-          backgroundOpacity: 'light',
-          borderOpacity: 'subtle',
-          themeContext,
-        });
-      case 'frosted':
-        return glassSurface({
-          elevation: props.$elevation,
-          blurStrength: props.$blurStrength as any,
-          backgroundOpacity: 'medium',
-          borderOpacity: 'subtle',
-          themeContext,
-        });
-      case 'tinted':
-        return `
-          ${glassSurface({
-            elevation: props.$elevation,
-            blurStrength: props.$blurStrength as any,
-            backgroundOpacity: 'medium',
-            borderOpacity: 'subtle',
-            themeContext,
-          })}
-          
-          background-color: ${props.$color !== 'default' 
-            ? `var(--color-${props.$color}-transparent)`
-            : 'rgba(30, 41, 59, 0.5)'};
-        `;
-      case 'luminous':
-        return `
-          ${glassSurface({
-            elevation: props.$elevation,
-            blurStrength: props.$blurStrength as any,
-            backgroundOpacity: 'medium',
-            borderOpacity: 'subtle',
-            themeContext,
-          })}
-          
-          ${props.$color !== 'default' && glassGlow({
-            intensity: 'subtle',
-            color: props.$color,
-            themeContext,
-          })}
-        `;
-      default:
-        return glassSurface({
-          elevation: props.$elevation,
-          blurStrength: props.$blurStrength as any,
-          backgroundOpacity: 'medium',
-          borderOpacity: 'subtle',
-          themeContext,
-        });
-    }
-  }}
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-// New component for atmospheric background effects
-const AtmosphericBackground = styled.div<{
-  $color: string;
-}>`
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  overflow: hidden;
-  z-index: 0;
-  pointer-events: none;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: ${props => {
-      if (props.$color === 'primary') return 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)';
-      if (props.$color === 'secondary') return 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%)';
-      if (props.$color === 'info') return 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)';
-      if (props.$color === 'success') return 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(245, 158, 11, 0.08) 100%)';
-      if (props.$color === 'warning') return 'linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(239, 68, 68, 0.08) 100%)';
-      if (props.$color === 'error') return 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(236, 72, 153, 0.08) 100%)';
-      return 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%)';
-    }};
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 25%;
-    right: 25%;
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background: ${props => {
-      if (props.$color === 'primary') return 'rgba(99, 102, 241, 0.1)';
-      if (props.$color === 'secondary') return 'rgba(139, 92, 246, 0.1)';
-      if (props.$color === 'info') return 'rgba(59, 130, 246, 0.1)';
-      if (props.$color === 'success') return 'rgba(16, 185, 129, 0.1)';
-      if (props.$color === 'warning') return 'rgba(245, 158, 11, 0.1)';
-      if (props.$color === 'error') return 'rgba(239, 68, 68, 0.1)';
-      return 'rgba(99, 102, 241, 0.1)';
-    }};
-    filter: blur(50px);
-    animation: ${atmosphericMovement} 8s infinite ease-in-out;
-  }
-`;
-
-const ChartHeader = styled.div`
-  margin-bottom: 1rem;
-`;
-
-const ChartTitle = styled.h3`
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0 0 0.25rem 0;
-  color: #fff;
-  animation: ${fadeSlideUp} 0.6s ease-out forwards;
-`;
-
-const ChartSubtitle = styled.p`
-  font-size: 0.875rem;
-  margin: 0;
-  opacity: 0.7;
-  color: #fff;
-  animation: ${fadeSlideUp} 0.6s ease-out forwards 0.1s;
-`;
-
-const ChartToolbar = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-  gap: 0.5rem;
-`;
-
-const ChartTypeSelector = styled.div`
-  display: flex;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 20px;
-  padding: 0.25rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-`;
-
-const TypeButton = styled.button<{ $active: boolean }>`
-  background: ${props => props.$active ? 'rgba(255, 255, 255, 0.15)' : 'transparent'};
-  border: none;
-  color: ${props => props.$active ? '#fff' : 'rgba(255, 255, 255, 0.7)'};
-  padding: 0.25rem 0.75rem;
-  border-radius: 16px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: ${props => props.$active ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)'};
-  }
-`;
-
-const ToolbarButton = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  width: 32px;
-  height: 32px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    
-    &::after {
-      opacity: 0.2;
-    }
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  
-  svg {
-    width: 16px;
-    height: 16px;
-    position: relative;
-    z-index: 1;
-  }
-`;
-
-const EnhancedExportButton = styled(ToolbarButton)`
-  background: rgba(46, 196, 182, 0.15);
-  border: 1px solid rgba(46, 196, 182, 0.3);
-  
-  &:hover {
-    background: rgba(46, 196, 182, 0.25);
-    border: 1px solid rgba(46, 196, 182, 0.4);
-  }
-  
-  &::after {
-    background: radial-gradient(circle at center, rgba(46, 196, 182, 0.3) 0%, transparent 70%);
-  }
-`;
-
-const ChartLegend = styled.div<{ $position: string; $style: string; $glassEffect: boolean }>`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: ${props => props.$position === 'bottom' ? '1rem 0 0' : '0 0 1rem'};
-  justify-content: ${props => {
-    if (props.$position === 'left') return 'flex-start';
-    if (props.$position === 'right') return 'flex-end';
-    return 'center';
-  }};
-  
-  ${props => props.$glassEffect && `
-    padding: 0.5rem;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  `}
-`;
-
-const LegendItem = styled.div<{ 
-  $style: string;
-  $active: boolean;
-  $color: string;
-}>`
-  display: flex;
-  align-items: center;
-  padding: ${props => props.$style === 'pills' ? '0.25rem 0.75rem' : '0.25rem 0.5rem'};
-  font-size: 0.75rem;
-  border-radius: ${props => props.$style === 'pills' ? '20px' : '4px'};
-  background: ${props => {
-    if (props.$style === 'pills') {
-      return props.$active 
-        ? `rgba(${props.$color}, 0.2)` 
-        : 'rgba(255, 255, 255, 0.1)';
-    }
-    return props.$active ? `rgba(${props.$color}, 0.1)` : 'transparent';
-  }};
-  cursor: pointer;
-  transition: all 0.2s ease;
-  animation: ${fadeIn} 0.5s ease-out forwards;
-  position: relative;
-  overflow: hidden;
-  
-  /* Glass effect for pills style */
-  ${props => props.$style === 'pills' && `
-    backdrop-filter: blur(4px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  `}
-  
-  /* Interactive hover effect */
-  &:hover {
-    background: ${props => props.$active 
-      ? `rgba(${props.$color}, 0.25)` 
-      : 'rgba(255, 255, 255, 0.15)'};
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    
-    /* Subtle glow effect on hover */
-    &::after {
-      opacity: 0.5;
-    }
-  }
-  
-  /* Active state styling */
-  ${props => props.$active && `
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(${props.$color}, 0.2);
-  `}
-  
-  /* Glow effect element */
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at center, rgba(${props => props.$color}, 0.3) 0%, transparent 70%);
-    opacity: ${props => props.$active ? 0.3 : 0};
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    z-index: -1;
-  }
-`;
-
-const LegendColor = styled.div<{ $color: string; $active: boolean }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background-color: ${props => props.$color};
-  margin-right: 0.5rem;
-  transition: transform 0.2s ease;
-  box-shadow: ${props => props.$active ? `0 0 8px ${props.$color}` : 'none'};
-  
-  ${props => props.$active && `
-    transform: scale(1.2);
-  `}
-`;
-
-const LegendLabel = styled.span<{ $active: boolean }>`
-  color: ${props => props.$active ? '#fff' : 'rgba(255, 255, 255, 0.8)'};
-  transition: color 0.2s ease;
-`;
-
-const ChartWrapper = styled.div`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  /* Ensure the chart doesn't clip its content - important for tooltips and animations */
-  overflow: visible;
-`;
-
-/**
- * Helper function to generate chart dataset colors
- */
-const generateColors = (count: number, palette: string[], baseOpacity = 0.7): string[] => {
-  // If palette has enough colors, use them
-  if (palette.length >= count) {
-    return palette.slice(0, count);
-  }
-  
-  // Otherwise, generate colors based on the palette
-  const colors: string[] = [...palette];
-  
-  // Generate more colors by adjusting lightness of palette colors
-  while (colors.length < count) {
-    const baseColor = palette[colors.length % palette.length];
-    
-    // Convert hex to rgba with adjusted alpha
-    const r = parseInt(baseColor.slice(1, 3), 16);
-    const g = parseInt(baseColor.slice(3, 5), 16);
-    const b = parseInt(baseColor.slice(5, 7), 16);
-    
-    // Adjust the alpha based on how many times we've cycled through the palette
-    const cycleCount = Math.floor(colors.length / palette.length);
-    const adjustedOpacity = Math.max(0.3, baseOpacity - cycleCount * 0.15);
-    
-    colors.push(`rgba(${r}, ${g}, ${b}, ${adjustedOpacity})`);
-  }
-  
-  return colors;
-};
-
-/**
- * Helper to convert dataset to Chart.js format
- */
-const convertToChartJsDataset = (
-  dataset: ChartDataset, 
-  index: number, 
-  chartType: ChartType,
-  palette: string[],
-  animations?: ChartAnimationOptions
-) => {
-  const { id, label, data, style, useRightYAxis, order, hidden } = dataset;
-  
-  // Generate color from palette if not specified
-  const baseColor = style?.lineColor || palette[index % palette.length];
-  const fillColor = style?.fillColor || baseColor;
-  
-  // Line dash settings based on style
-  let lineDash: number[] = [];
-  if (style?.lineStyle === 'dashed') {
-    lineDash = [5, 5];
-  } else if (style?.lineStyle === 'dotted') {
-    lineDash = [2, 2];
-  }
-  
-  // Common dataset properties
-  const baseDataset = {
-    id,
-    label,
-    data: data.map(point => ({ 
-      x: point.x, 
-      y: point.y,
-      extra: point.extra
-    })),
-    backgroundColor: fillColor,
-    borderColor: style?.lineColor || baseColor,
-    pointBackgroundColor: style?.pointColor || baseColor,
-    borderWidth: style?.lineWidth || 2,
-    pointRadius: style?.pointSize || 3,
-    pointStyle: style?.pointStyle || 'circle',
-    order: order || index,
-    hidden: hidden || false,
-    yAxisID: useRightYAxis ? 'y1' : 'y',
-    borderDash: lineDash,
-    hoverBorderWidth: (style?.lineWidth || 2) + 1,
-    hoverBorderColor: style?.glowEffect ? baseColor : undefined,
-    hoverBackgroundColor: style?.glowEffect ? baseColor : undefined,
-    tension: 0.4, // Smooth lines a bit
-  };
-  
-  // Type-specific properties
-  switch (chartType as string) {
-    case 'line':
-      return {
-        ...baseDataset,
-        fill: style?.fillOpacity ? true : false,
-        backgroundColor: style?.fillOpacity ? `${baseColor}${Math.round(style.fillOpacity * 255).toString(16).padStart(2, '0')}` : 'transparent',
-      };
-      
-    case 'bar':
-      return {
-        ...baseDataset,
-        borderRadius: 4,
-        hoverBackgroundColor: style?.glowEffect ? `${baseColor}E6` : `${baseColor}CC`,
-      };
-      
-    case 'area':
-      return {
-        ...baseDataset,
-        fill: true,
-        type: 'line', // Explicitly set type to 'line' for area charts
-        backgroundColor: Array.isArray(fillColor) 
-          ? { colors: fillColor }
-          : typeof fillColor === 'string'
-            ? `${fillColor}${Math.round((style?.fillOpacity || 0.4) * 255).toString(16).padStart(2, '0')}`
-            : fillColor,
-      };
-      
-    case 'bubble':
-      return {
-        ...baseDataset,
-        pointRadius: data.map(point => (point.y === null ? 0 : (point.y / 10) + 5)),
-        hoverRadius: data.map(point => (point.y === null ? 0 : (point.y / 10) + 7)),
-      };
-      
-    case 'pie':
-    case 'doughnut':
-      return {
-        ...baseDataset,
-        backgroundColor: data.map((point, i) => 
-          point.color || palette[i % palette.length]
-        ),
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
-        hoverOffset: 10,
-      };
-      
-    case 'radar':
-      return {
-        ...baseDataset,
-        fill: true,
-        backgroundColor: `${baseColor}66`,
-      };
-      
-    case 'polarArea':
-      return {
-        ...baseDataset,
-        backgroundColor: data.map((point, i) => 
-          `${point.color || palette[i % palette.length]}C0`
-        ),
-      };
-      
-    default:
-      return baseDataset;
-  }
-};
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  RadialLinearScale,
+  Tooltip,
+  Legend,
+  Filler // Required for area charts
+);
 
 /**
  * GlassDataChart Component
  */
-export const GlassDataChart: React.FC<GlassDataChartProps> = ({
-  title,
-  subtitle,
-  variant = 'line',
-  datasets,
-  width = '100%',
-  height = 400,
-  glassVariant = 'frosted',
-  blurStrength = 'standard',
-  color = 'primary',
-  animation = {
-    physicsEnabled: true,
-    duration: 1000,
-    tension: 300,
-    friction: 30,
-    mass: 1,
-    easing: 'easeOutQuart',
-    staggerDelay: 100,
-  },
-  interaction = {
-    zoomPanEnabled: false,
-    physicsHoverEffects: true,
-    hoverSpeed: 150,
-    showTooltips: true,
-    tooltipStyle: 'frosted',
-    tooltipFollowCursor: false,
-  },
-  legend = {
-    show: true,
-    position: 'top',
-    align: 'center',
-    style: 'default',
-    glassEffect: false,
-  },
-  axis = {
-    showXGrid: true,
-    showYGrid: true,
-    showXLabels: true,
-    showYLabels: true,
-    axisColor: 'rgba(255, 255, 255, 0.3)',
-    gridColor: 'rgba(255, 255, 255, 0.1)',
-    gridStyle: 'solid',
-  },
-  initialSelection,
-  showToolbar = true,
-  allowDownload = true,
-  palette = [
-    '#6366F1', // primary
-    '#8B5CF6', // secondary
-    '#3B82F6', // blue
-    '#10B981', // green
-    '#F59E0B', // yellow
-    '#EF4444', // red
-    '#EC4899', // pink
-    '#6B7280', // gray
-  ],
-  allowTypeSwitch = true,
-  backgroundColor,
-  borderRadius = 12,
-  borderColor,
-  elevation = 3,
-  className,
-  style,
-  onDataPointClick,
-  onSelectionChange,
-  onZoomPan,
-  onTypeChange,
-  exportOptions = {
-    filename: 'chart',
-    quality: 0.9,
-    format: 'png',
-    backgroundColor: 'transparent',
-    includeTitle: true,
-    includeTimestamp: true,
-  },
-  renderExportButton,
-}) => {
+export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChartProps>((props, ref) => {
+  const {
+    title,
+    subtitle,
+    variant = 'line',
+    datasets,
+    width = '100%',
+    height = 400,
+    glassVariant = 'frosted',
+    blurStrength = 'standard',
+    color = 'primary',
+    animation = {
+      physicsEnabled: true,
+      duration: 1000,
+      tension: 300,
+      friction: 30,
+      mass: 1,
+      easing: 'easeOutQuart',
+      staggerDelay: 100,
+    },
+    interaction = {
+      zoomPanEnabled: false,
+      physicsHoverEffects: true,
+      hoverSpeed: 150,
+      showTooltips: true,
+      tooltipStyle: 'frosted',
+      tooltipFollowCursor: false,
+    },
+    legend = {
+      show: true,
+      position: 'top',
+      align: 'center',
+      style: 'default',
+      glassEffect: false,
+    },
+    axis = {
+      showXGrid: true,
+      showYGrid: true,
+      showXLabels: true,
+      showYLabels: true,
+      axisColor: 'rgba(255, 255, 255, 0.3)',
+      gridColor: 'rgba(255, 255, 255, 0.1)',
+      gridStyle: 'solid',
+    },
+    initialSelection,
+    showToolbar = true,
+    allowDownload = true,
+    palette = [
+      '#6366F1', // primary
+      '#8B5CF6', // secondary
+      '#3B82F6', // blue
+      '#10B981', // green
+      '#F59E0B', // yellow
+      '#EF4444', // red
+      '#EC4899', // pink
+      '#6B7280', // gray
+    ],
+    allowTypeSwitch = true,
+    backgroundColor,
+    borderRadius = 12,
+    borderColor,
+    elevation = 3,
+    className,
+    style,
+    onDataPointClick,
+    onSelectionChange,
+    onZoomPan,
+    onTypeChange,
+    exportOptions = {
+      filename: 'chart',
+      quality: 0.9,
+      format: 'png',
+      backgroundColor: 'transparent',
+      includeTitle: true,
+      includeTimestamp: true,
+    },
+    renderExportButton,
+    kpi,
+    useAdaptiveQuality = true,
+  } = props;
+  
   // Hooks
   const theme = useGlassTheme();
   const isDarkMode = theme ? theme.isDarkMode : false;
   const { isReducedMotion } = useAccessibilitySettings();
   const chartRef = useRef<ChartJS | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  
+  // Quality tier system integration
+  const qualityTier = useQualityTier();
+  const activeQuality = useAdaptiveQuality ? qualityTier : 'high';
+  
+  // Get physics parameters based on quality tier
+  const qualityPhysicsParams = getQualityBasedPhysicsParams(activeQuality);
+  const qualityGlassParams = getQualityBasedGlassParams(activeQuality);
+  
+  // Adapt quality based on user's settings
+  const adaptedBlurStrength = qualityGlassParams.blurStrength as 'low' | 'medium' | 'high' || blurStrength;
+  
+  // Physics animation for main chart
+  const { 
+    value: springValue, 
+    isAnimating, 
+    applyOscillation, 
+    applyPopIn 
+  } = usePhysicsAnimation({
+    type: isReducedMotion ? 'none' : (animation.physicsEnabled ? 'spring' : 'none'),
+    stiffness: qualityPhysicsParams.stiffness,
+    damping: qualityPhysicsParams.dampingRatio * 2 * Math.sqrt(qualityPhysicsParams.stiffness * qualityPhysicsParams.mass),
+    mass: qualityPhysicsParams.mass,
+    precision: qualityPhysicsParams.precision,
+    adaptiveMotion: true,
+    respectReducedMotion: true
+  });
   
   // State
   const [chartType, setChartType] = useState<ChartVariant>(variant);
@@ -992,89 +341,90 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     value: any;
   } | null>(null);
   
-  // State for animation
-  const { value: springValue, isAnimating } = useSpring({
-    from: 0,
-    to: 1,
-    config: {
-      tension: animation.tension || 300,
-      friction: animation.friction || 30,
-      mass: animation.mass || 1,
-    }
-  });
-  
   // Update the tooltip style to ensure it's a valid type
   const safeTooltipStyle = interaction.tooltipStyle === 'glass' ? 'frosted' : interaction.tooltipStyle;
   
   // Determine if we're using physics-based animations
-  const usePhysicsAnimation = animation.physicsEnabled && !isReducedMotion;
+  const enablePhysicsAnimation = animation.physicsEnabled && !isReducedMotion;
+  
+  // Apply initial animations based on quality tier
+  useEffect(() => {
+    if (enablePhysicsAnimation) {
+      // Trigger a pop-in animation on mount for better visual impact
+      if (activeQuality !== 'low') {
+        applyPopIn();
+      }
+    }
+  }, [enablePhysicsAnimation, activeQuality, applyPopIn]);
   
   // Derive chartjs type from our variant
   const getChartJsType = (): ChartType => {
+    // Special handling for KPI type (we'll render our own component)
+    if (chartType === 'kpi') {
+      return 'bar' as ChartType; // Just a placeholder, we won't render the chart
+    }
+    
     // Map area to line type since it's not a native Chart.js type
     if (chartType === 'area') {
       // Use direct assignment for the most compatibility
       return 'line' as unknown as ChartType;
     }
+    
     // For all other chart types
     return chartType as unknown as ChartType;
   };
   
-  // SVG Filter Definitions - Add this to the component
+  // SVG Filter Definitions
   const svgFilters = (
     <svg width="0" height="0" style={{ position: 'absolute', visibility: 'hidden' }}>
       <defs>
         {/* Gradient definitions */}
-        {palette.map((color, i) => (
-          <React.Fragment key={`gradient-${i}`}>
-            <linearGradient id={`areaGradient${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor={`${color}CC`} />
-              <stop offset="100%" stopColor={`${color}00`} />
-            </linearGradient>
-            
-            {/* Glow filter for lines */}
-            <filter id={`glow${i}`} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="2" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            
-            {/* Point highlight filter */}
-            <filter id={`pointGlow${i}`} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </React.Fragment>
-        ))}
+        {palette.map((color, i) => {
+          // Ensure color is a valid value to prevent SVG errors
+          const safeColor = color || '#6366F1'; // Default to primary color if undefined
+          
+          return (
+            <React.Fragment key={`gradient-${i}`}>
+              <linearGradient 
+                id={`areaGradient${i}`} 
+                x1="0%" 
+                y1="0%" 
+                x2="0%" 
+                y2="100%"
+              >
+                <stop offset="0%" stopColor={`${safeColor}CC`} />
+                <stop offset="100%" stopColor={`${safeColor}00`} />
+              </linearGradient>
+              
+              {/* Glow filter for lines */}
+              <filter 
+                id={`glow${i}`} 
+                x="-20%" 
+                y="-20%" 
+                width="140%" 
+                height="140%"
+              >
+                <feGaussianBlur stdDeviation={activeQuality === 'low' ? 1 : 2} result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+              
+              {/* Point highlight filter */}
+              <filter 
+                id={`pointGlow${i}`} 
+                x="-50%" 
+                y="-50%" 
+                width="200%" 
+                height="200%"
+              >
+                <feGaussianBlur stdDeviation={activeQuality === 'low' ? 2 : 3} result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </React.Fragment>
+          );
+        })}
       </defs>
     </svg>
   );
-
-  // Enhanced conversion function with SVG effects
-  const convertToChartJsDatasetWithEffects = (
-    dataset: ChartDataset, 
-    index: number, 
-    chartType: ChartType,
-    palette: string[],
-    animations?: ChartAnimationOptions
-  ) => {
-    const baseDataset = convertToChartJsDataset(dataset, index, chartType, palette, animations);
-    
-    // Add SVG filter effects based on chart type
-    if (chartType === 'line') {
-      return {
-        ...baseDataset,
-        borderWidth: dataset.style?.lineWidth || 2,
-        // Use the SVG filter for the line
-        borderColor: dataset.style?.glowEffect ? palette[index % palette.length] : baseDataset.borderColor,
-        // Sequential animation delays based on dataset index
-        animation: {
-          delay: index * (animation?.staggerDelay || 100),
-        }
-      };
-    }
-    
-    return baseDataset;
-  };
 
   // Use the enhanced dataset conversion in the chartData
   const chartData = {
@@ -1090,7 +440,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     }) as any,
     // Labels are used for pie/doughnut/polarArea charts
     labels: chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea'
-      ? datasets[0]?.data.map(point => point.label || point.x.toString())
+      ? datasets[0]?.data.map(point => point.label || String(point.x))
       : undefined,
   };
   
@@ -1098,7 +448,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
   const chartOptions: ChartOptions<ChartType> = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: usePhysicsAnimation 
+    animation: enablePhysicsAnimation 
       ? {
           duration: isReducedMotion ? 0 : animation.duration,
           delay: (context) => {
@@ -1139,7 +489,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       },
       // Use custom animation for path effects
       // Note: Chart.js options type doesn't include custom plugins, but they work at runtime
-      ...(usePhysicsAnimation && (chartType === 'line' || chartType === 'area') ? {
+      ...(enablePhysicsAnimation && (chartType === 'line' || chartType === 'area') ? {
         // @ts-ignore - Custom plugin configuration
         pathAnimation: { enabled: true }
       } : {})
@@ -1329,6 +679,11 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       const dataset = datasets[datasetIndex];
       const dataPoint = dataset.data[dataIndex];
       
+      // Apply oscillation if physics enabled
+      if (interaction.physicsHoverEffects && !isReducedMotion) {
+        applyOscillation(0.5);
+      }
+      
       // Format the value for the click handler
       const formatType = dataPoint.formatType || dataset.formatType || 'number';
       const formatOptions = {
@@ -1396,15 +751,33 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
   
   // Handle enhanced chart export
   const handleExportChart = useCallback(() => {
-    if (!chartRef.current) return;
+    if (!chartRef.current && chartType !== 'kpi') return;
 
     const chart = chartRef.current;
+    
+    // For KPI display, use a different export method
+    if (chartType === 'kpi' && containerRef.current) {
+      // Use html2canvas or another library to capture the KPI display
+      try {
+        // Simplified export - in a real implementation we'd use something like html2canvas
+        const link = document.createElement('a');
+        link.download = `${exportOptions.filename || 'kpi'}.png`;
+        link.href = '#';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      } catch (e) {
+        console.error('Failed to export KPI', e);
+        return;
+      }
+    }
     
     // Create a temporary canvas for the export
     const exportCanvas = document.createElement('canvas');
     const exportContext = exportCanvas.getContext('2d');
     
-    if (!exportContext) return;
+    if (!exportContext || !chart) return;
     
     // Determine dimensions and scaling
     const sourceCanvas = chart.canvas;
@@ -1480,15 +853,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }, [chartRef, title, subtitle, exportOptions]);
-  
-  // Initialize the chart with physics animations
-  useEffect(() => {
-    if (usePhysicsAnimation) {
-      // Animation is now controlled by the useSpring hook itself
-      // No need to manually control it
-    }
-  }, [usePhysicsAnimation]);
+  }, [chartRef, containerRef, chartType, title, subtitle, exportOptions, kpi]);
   
   // Chart reference callback for getting chart instance
   const chartRefCallback = useCallback((chart: ChartJS | null) => {
@@ -1498,9 +863,14 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
   // Available chart types for switching
   const availableTypes: ChartVariant[] = ['line', 'bar', 'area'];
   
+  // Add KPI type if kpi props are provided
+  if (kpi) {
+    availableTypes.push('kpi');
+  }
+  
   // Only offer pie/doughnut switching if data format is compatible
   const canShowPieChart = datasets.length === 1 && datasets[0].data.every(point => 
-    typeof point.y === 'number' && point.y > 0
+    typeof point.y === 'number' && point.y !== null && point.y > 0
   );
   
   if (canShowPieChart) {
@@ -1512,86 +882,75 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
     if (!hoveredPoint || !interaction.showTooltips) return null;
 
     // Get the data point's format type and options
-    const dataset = datasets[hoveredPoint.datasetIndex];
-    const dataPoint = dataset.data[hoveredPoint.dataIndex];
+    const currentDataset = datasets[hoveredPoint.datasetIndex] || datasets[0];
+    const currentDataPoint = currentDataset?.data[hoveredPoint.dataIndex] || { x: '', y: null };
     
     // Determine the format type with fallbacks
-    const formatType = dataPoint.formatType || dataset.formatType || 'number';
+    const formatType = currentDataPoint.formatType || currentDataset.formatType || 'number';
     
     // Merge format options with fallbacks
     const formatOptions = {
-      ...(dataset.formatOptions || {}),
-      ...(dataPoint.formatOptions || {}),
+      ...(currentDataset.formatOptions || {}),
+      ...(currentDataPoint.formatOptions || {}),
     };
     
-    // Format the value based on type
+    // Format the value based on type - with safe default
+    const value = hoveredPoint.value?.value ?? 0;
     const formattedValue = formatValue(
-      hoveredPoint.value.value, 
+      value,
       formatType as any, 
       formatOptions
     );
 
+    // Ensure position values are numbers with defaults
+    const xPos = hoveredPoint.x ?? 0;
+    const yPos = hoveredPoint.y ?? 0;
+
+    // Use the new enhanced dynamic tooltip with quality tier
     return (
-      <div 
-        style={{
-          position: 'absolute',
-          left: hoveredPoint.x,
-          top: hoveredPoint.y - 10,
-          transform: 'translate(-50%, -100%)',
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '4px',
-          padding: '8px 12px',
-          pointerEvents: 'none',
-          zIndex: 100,
-          color: '#fff',
-          animation: 'tooltipFade 0.2s ease-out forwards',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          minWidth: '120px',
-        }}
+      <DynamicTooltip
+        $color={color}
+        $quality={activeQuality}
+        style={{ left: `${xPos}px`, top: `${yPos - 10}px` }}
       >
-        <div style={{ 
-          marginBottom: '4px', 
-          fontWeight: 600, 
-          color: hoveredPoint.value.color,
-          fontSize: '12px',
-        }}>
-          {hoveredPoint.value.dataset}
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          fontSize: '14px', 
-          fontWeight: 'bold' 
-        }}>
-          <span>{typeof hoveredPoint.value.label === 'string' ? hoveredPoint.value.label : 'Value'}: </span>
-          <span>{formattedValue}</span>
-        </div>
-        {hoveredPoint.value.extra && Object.entries(hoveredPoint.value.extra).map(([key, value]) => {
-          // Format extra values if they're numbers
-          let displayValue = value;
-          if (typeof value === 'number') {
-            // Check if it's a percentage or currency by key name
-            if (key.toLowerCase().includes('percent') || key.toLowerCase().includes('change')) {
-              displayValue = formatPercentage(value, { showPlus: true });
-            } else if (key.toLowerCase().includes('price') || key.toLowerCase().includes('revenue') || key.toLowerCase().includes('cost')) {
-              displayValue = formatCurrency(value, { compact: true });
-            } else if (value > 1000) {
-              displayValue = formatWithUnits(value);
-            }
-          }
-          
-          return (
-            <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-              <span>{key}: </span>
-              <span>{displayValue as any}</span>
-            </div>
-          );
-        })}
-      </div>
+        <TooltipHeader $color={hoveredPoint.value?.color || '#FFFFFF'}>
+          {hoveredPoint.value?.dataset || 'Data'}
+        </TooltipHeader>
+        
+        <TooltipRow>
+          <TooltipLabel>{typeof hoveredPoint.value?.label === 'string' 
+            ? hoveredPoint.value.label 
+            : 'Value'}: </TooltipLabel>
+          <TooltipValue $highlighted>{formattedValue}</TooltipValue>
+        </TooltipRow>
+        
+        {hoveredPoint.value?.extra && Object.entries(hoveredPoint.value.extra).map(([key, value]) => (
+          <TooltipRow key={key}>
+            <TooltipLabel>{key}:</TooltipLabel>
+            <TooltipValue>{String(value)}</TooltipValue>
+          </TooltipRow>
+        ))}
+      </DynamicTooltip>
     );
-  }, [hoveredPoint, interaction.showTooltips, datasets]);
+  }, [hoveredPoint, interaction.showTooltips, datasets, color, activeQuality]);
+  
+  // Render KPI display
+  const renderKPI = () => {
+    if (!kpi) return null;
+    
+    return (
+      <KpiContainer $compact={kpi.compact}>
+        <KpiTitle>{kpi.title}</KpiTitle>
+        <KpiValue $trend={kpi.trend}>{kpi.value}</KpiValue>
+        {kpi.subtitle && <KpiSubtitle>{kpi.subtitle}</KpiSubtitle>}
+        {kpi.trend && kpi.trend !== 'neutral' && (
+          <KpiTrend $trend={kpi.trend}>
+            {kpi.trend === 'positive' ? 'Increased' : 'Decreased'}
+          </KpiTrend>
+        )}
+      </KpiContainer>
+    );
+  };
   
   return (
     <ChartContainer
@@ -1603,7 +962,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
         ...style
       }}
       $glassVariant={glassVariant}
-      $blurStrength={blurStrength}
+      $blurStrength={adaptedBlurStrength}
       $color={color}
       $elevation={elevation}
       $borderRadius={borderRadius}
@@ -1666,9 +1025,11 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
           $glassEffect={legend.glassEffect || false}
         >
           {datasets.map((dataset, index) => {
-            // Convert hex color to RGB for rgba usage
+            // Convert hex color to RGB for rgba usage - with safe defaults
             const hexToRgb = (hex: string) => {
-              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+              // Provide a default color if hex is undefined
+              const safeHex = hex || '#FFFFFF';
+              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(safeHex);
               return result 
                 ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
                 : '255, 255, 255';
@@ -1686,7 +1047,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
                 $color={rgbColor}
                 onClick={() => handleLegendClick(index)}
               >
-                <LegendColor $color={color} $active={isActive} />
+                <LegendColor $color={color || '#FFFFFF'} $active={isActive} />
                 <LegendLabel $active={isActive}>{dataset.label}</LegendLabel>
               </LegendItem>
             );
@@ -1696,10 +1057,10 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       
       {/* Chart */}
       <ChartWrapper 
-        style={usePhysicsAnimation ? {
-          transform: `scale(${springValue})`,
-          opacity: springValue,
-          transition: `transform ${animation.duration}ms, opacity ${animation.duration}ms`
+        style={enablePhysicsAnimation ? {
+          transform: `scale(${springValue ?? 0})`, // Provide fallback if springValue is undefined
+          opacity: springValue ?? 0,
+          transition: `transform ${animation.duration ?? 0}ms, opacity ${animation.duration ?? 0}ms`
         } : undefined}
       >
         <Chart
@@ -1721,9 +1082,11 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
           $glassEffect={legend.glassEffect || false}
         >
           {datasets.map((dataset, index) => {
-            // Convert hex color to RGB for rgba usage
+            // Convert hex color to RGB for rgba usage - with safe defaults
             const hexToRgb = (hex: string) => {
-              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+              // Provide a default color if hex is undefined
+              const safeHex = hex || '#FFFFFF';
+              const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(safeHex);
               return result 
                 ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
                 : '255, 255, 255';
@@ -1741,7 +1104,7 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
                 $color={rgbColor}
                 onClick={() => handleLegendClick(index)}
               >
-                <LegendColor $color={color} $active={isActive} />
+                <LegendColor $color={color || '#FFFFFF'} $active={isActive} />
                 <LegendLabel $active={isActive}>{dataset.label}</LegendLabel>
               </LegendItem>
             );
@@ -1794,6 +1157,11 @@ export const GlassDataChart: React.FC<GlassDataChartProps> = ({
       )}
     </ChartContainer>
   );
-};
+});
 
+// Add displayName for better debugging
+GlassDataChart.displayName = 'GlassDataChart';
+
+// ESLint disable for TypeScript forwardRef type issues in some configurations
+// @ts-ignore
 export default GlassDataChart;

@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Structure for each autocomplete option item
@@ -12,13 +13,16 @@ import React from 'react';
 export interface AutocompleteOption {
   value: string | number;
   label: string;
+  disabled?: boolean;
+  group?: string;
   [key: string]: any;
 }
 
 /**
  * Props for the Autocomplete component
  */
-export interface AutocompleteProps<T extends AutocompleteOption = AutocompleteOption> {
+export interface AutocompleteProps<T extends AutocompleteOption = AutocompleteOption>
+  extends AnimationProps {
   /** Array of options for the autocomplete */
   options: T[];
 

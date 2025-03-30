@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Base KPI Card Props
@@ -68,7 +69,7 @@ export interface KpiCardBaseProps {
 /**
  * Basic KPI Card Props
  */
-export interface KpiCardProps extends KpiCardBaseProps {
+export interface KpiCardProps extends KpiCardBaseProps, AnimationProps {
   /** Format string for the value (e.g., "+0.0%") */
   valueFormat?: string;
 
@@ -94,7 +95,7 @@ export interface KpiCardProps extends KpiCardBaseProps {
 /**
  * Performance Metric Card Props
  */
-export interface PerformanceMetricCardProps extends KpiCardBaseProps {
+export interface PerformanceMetricCardProps extends KpiCardBaseProps, AnimationProps {
   /** Current value */
   value: number;
 
@@ -135,7 +136,7 @@ export interface PerformanceMetricCardProps extends KpiCardBaseProps {
 /**
  * Interactive KPI Card Props
  */
-export interface InteractiveKpiCardProps extends KpiCardBaseProps {
+export interface InteractiveKpiCardProps extends KpiCardBaseProps, AnimationProps {
   /** Data for the mini chart */
   chartData?: Array<number | { x: number | string; y: number }>;
 

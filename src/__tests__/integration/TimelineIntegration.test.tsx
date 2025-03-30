@@ -8,6 +8,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import 'jest-styled-components';
 import { ThemeProvider } from '../../theme';
 import { GlassButton } from '../../components/Button';
+import { Card } from '../../components/Card';
 
 // Import types directly to avoid name collision
 import type { TimelineItem as TimelineItemType } from '../../components/Timeline/types';
@@ -28,7 +29,6 @@ const MockGlassTooltip = ({ children, title, ...props }: TooltipProps): JSX.Elem
 );
 
 const GlassTooltip = MockGlassTooltip;
-import { GlassCard } from '../../components/Card';
 
 // Define interface for MockGlassTimeline props
 interface MockTimelineProps {
@@ -146,7 +146,7 @@ const TimelineDashboard = () => {
   return (
     <div data-testid="timeline-dashboard">
       <div className="timeline-controls">
-        <GlassCard data-testid="filter-card">
+        <Card data-testid="filter-card">
           <h3>Filter Events</h3>
           <div className="category-filters">
             <GlassButton 
@@ -169,9 +169,9 @@ const TimelineDashboard = () => {
               </GlassButton>
             ))}
           </div>
-        </GlassCard>
+        </Card>
         
-        <GlassCard data-testid="zoom-card">
+        <Card data-testid="zoom-card">
           <h3>Zoom Level</h3>
           <div className="zoom-controls">
             {['days', 'weeks', 'months', 'years'].map(level => (
@@ -186,7 +186,7 @@ const TimelineDashboard = () => {
               </GlassButton>
             ))}
           </div>
-        </GlassCard>
+        </Card>
       </div>
       
       <GlassTimeline
@@ -206,12 +206,12 @@ const TimelineDashboard = () => {
           title={selectedEvent.title}
           data-testid="event-details"
         >
-          <GlassCard>
+          <Card>
             <h3>{selectedEvent.title}</h3>
             <p>Date: {new Date(selectedEvent.date).toLocaleDateString()}</p>
             <p>Category: {selectedEvent.category}</p>
             <p>{selectedEvent.content}</p>
-          </GlassCard>
+          </Card>
         </GlassTooltip>
       )}
     </div>

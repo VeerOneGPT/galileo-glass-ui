@@ -3,8 +3,15 @@
  *
  * A backdrop component for modals, dialogs, and other overlays with glass effect
  */
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
+
+// Physics/Animation Imports
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { createThemeContext } from '../../core/themeUtils';
@@ -12,7 +19,7 @@ import { createThemeContext } from '../../core/themeUtils';
 /**
  * Backdrop props
  */
-export interface BackdropProps {
+export interface BackdropProps extends AnimationProps {
   /**
    * If true, the backdrop is open
    */
@@ -103,15 +110,12 @@ const getBlurValue = (blur?: 'none' | 'light' | 'medium' | 'strong' | number): s
 /**
  * Styled backdrop component
  */
-const BackdropRoot = styled.div<BackdropProps & { theme: any }>`
+const BackdropRoot = styled.div<Omit<BackdropProps, 'animated' | 'animationDuration' | 'animationConfig' > & { theme: any, $effectiveOpacity: number }>`
   ${props => {
     const isDarkMode = props.theme?.palette?.mode === 'dark' || false;
     const blurValue = getBlurValue(props.blur);
-    const defaultOpacity = props.glass ? 0.6 : 0.8;
-    const opacity = props.opacity !== undefined ? props.opacity : defaultOpacity;
     const defaultColor = isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)';
     const color = props.color || defaultColor;
-    const animationDuration = props.animationDuration || 300;
 
     return cssWithKebabProps`
       position: fixed;
@@ -119,67 +123,51 @@ const BackdropRoot = styled.div<BackdropProps & { theme: any }>`
       left: 0;
       right: 0;
       bottom: 0;
-      display: ${props.open ? 'flex' : 'none'};
+      display: flex;
       align-items: center;
       justify-content: center;
       z-index: ${props.zIndex || 1200};
       touch-action: none;
+      pointer-events: ${props.open ? 'auto' : 'none'};
       
       /* Background styles */
       ${
         props.invisible
-          ? `
-        background-color: transparent;
-      `
+          ? `background-color: transparent;`
           : props.gradient
           ? `
-        ${
-          props.gradient === 'radial'
-            ? `background: radial-gradient(circle, ${
-                isDarkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(20, 20, 20, 0.85)'
-              } 0%, ${isDarkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(0, 0, 0, 0.92)'} 100%);`
-            : `background: linear-gradient(180deg, ${
-                isDarkMode ? 'rgba(25, 25, 25, 0.85)' : 'rgba(20, 20, 20, 0.8)'
-              } 0%, ${isDarkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(0, 0, 0, 0.9)'} 100%);`
-        }
-        opacity: ${opacity};
-      `
+            ${
+              props.gradient === 'radial'
+                ? `background: radial-gradient(circle, ${
+                    isDarkMode ? 'rgba(30, 30, 30, 0.9)' : 'rgba(20, 20, 20, 0.85)'
+                  } 0%, ${isDarkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(0, 0, 0, 0.92)'} 100%);`
+                : `background: linear-gradient(180deg, ${
+                    isDarkMode ? 'rgba(25, 25, 25, 0.85)' : 'rgba(20, 20, 20, 0.8)'
+                  } 0%, ${isDarkMode ? 'rgba(10, 10, 10, 0.95)' : 'rgba(0, 0, 0, 0.9)'} 100%);`
+            }
+            opacity: ${props.$effectiveOpacity};
+          `
           : `
-        background-color: ${color};
-        opacity: ${opacity};
-      `
+            background-color: ${color};
+            opacity: ${props.$effectiveOpacity};
+          `
       }
       
       /* Glass effect */
       ${
         props.glass
           ? `
-        backdrop-filter: blur(${blurValue});
-        -webkit-backdrop-filter: blur(${blurValue});
-      `
+            backdrop-filter: blur(${blurValue});
+            -webkit-backdrop-filter: blur(${blurValue});
+          `
           : ''
       }
       
-      /* Animation */
-      ${
-        props.animated
-          ? `
-        transition: opacity ${animationDuration}ms cubic-bezier(0.4, 0, 0.2, 1);
-        
-        ${
-          !props.open
-            ? `
-          opacity: 0;
-          visibility: hidden;
-        `
-            : `
-          opacity: ${opacity};
-          visibility: visible;
-        `
-        }
-      `
-          : ''
-      }
+      /* Animation - Removed CSS transition */
+      will-change: opacity;
+      
+      /* Visibility controlled by conditional rendering and pointer-events */
+      visibility: ${props.open || props.$effectiveOpacity > 0 ? 'visible' : 'hidden'};
       
       /* Ensure children are visible above backdrop */
       & > * {
@@ -198,20 +186,75 @@ export const Backdrop = forwardRef<HTMLDivElement, BackdropProps>(function Backd
     open = false,
     glass = true,
     blur = 'medium',
-    opacity,
+    opacity: propOpacity,
     color,
     zIndex,
     invisible = false,
     animated = true,
-    animationDuration = 300,
     component = 'div',
     className,
     style,
     onClick,
     children,
     gradient = false,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
+
+  const context = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+
+  // Determine final animation state
+  const finalDisableAnimation = disableAnimation ?? context.disableAnimation ?? prefersReducedMotion;
+  const shouldAnimate = animated && !finalDisableAnimation;
+
+  // Determine target opacity
+  const targetOpacity = useMemo(() => {
+      if (!open) return 0;
+      if (invisible) return 0;
+      if (propOpacity !== undefined) return propOpacity;
+      // Default opacity based on glass/gradient
+      return glass ? 0.6 : (gradient ? 1 : 0.8); // Gradient needs opacity 1
+  }, [open, invisible, propOpacity, glass, gradient]);
+
+  // Resolve spring config using AnimationProps
+  const finalSpringConfig = useMemo(() => {
+    const baseConfig = SpringPresets.DEFAULT;
+    let resolvedContextConfig = {};
+    // Use context defaultSpring
+    const contextSource = context.defaultSpring;
+    if (typeof contextSource === 'string' && contextSource in SpringPresets) {
+      resolvedContextConfig = SpringPresets[contextSource as keyof typeof SpringPresets];
+    } else if (typeof contextSource === 'object') {
+      resolvedContextConfig = contextSource ?? {};
+    }
+    let propConfig = {};
+    // Use animationConfig from props
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in SpringPresets) {
+      propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+    } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+      propConfig = propSource as Partial<SpringConfig>;
+    }
+    // Priority: Prop -> Context -> Base
+    return { ...baseConfig, ...resolvedContextConfig, ...propConfig };
+  }, [context.defaultSpring, animationConfig]);
+
+  // Animation Hook
+  const { value: animatedOpacity, isAnimating } = useGalileoStateSpring(
+      open ? targetOpacity : 0,
+      {
+          ...finalSpringConfig,
+          immediate: !shouldAnimate,
+      }
+  );
+
+  // Only render if open or animating closed
+  if (!open && !isAnimating) {
+      return null;
+  }
 
   return (
     <BackdropRoot
@@ -220,16 +263,14 @@ export const Backdrop = forwardRef<HTMLDivElement, BackdropProps>(function Backd
       open={open}
       glass={glass}
       blur={blur}
-      opacity={opacity}
       color={color}
       zIndex={zIndex}
       invisible={invisible}
-      animated={animated}
-      animationDuration={animationDuration}
       className={className}
-      style={style}
+      style={{ ...style, opacity: animatedOpacity }}
       onClick={onClick}
       gradient={gradient}
+      $effectiveOpacity={animatedOpacity}
       {...rest}
     >
       {children}

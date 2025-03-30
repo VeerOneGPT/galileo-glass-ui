@@ -1,6 +1,6 @@
 // TypeScript-friendly PropTypes implementation
 import React from 'react';
-import PropTypes from 'prop-types';
+// import PropTypes from 'prop-types'; // Removed import
 import styled from 'styled-components';
 
 // Define our own prop types without relying on external imports
@@ -167,26 +167,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
 };
 
 // Define propTypes for runtime validation
-// Using type assertion to avoid TypeScript errors with PropTypes
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-GlassCard.propTypes = {
-  variant: PropTypes.oneOf(['standard', 'frosted', 'dimensional', 'heat']),
-  blurStrength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  backgroundOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  borderOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  glowIntensity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  elevation: PropTypes.oneOfType([
-    PropTypes.number,
-    PropTypes.oneOf(['none', 'low', 'medium', 'high'])
-  ]),
-  interactive: PropTypes.bool,
-  darkMode: PropTypes.bool,
-  children: PropTypes.node,
-  title: PropTypes.string,
-  className: PropTypes.string,
-  onClick: PropTypes.func,
-  padding: PropTypes.oneOf(['none', 'small', 'medium', 'large']),
-  maxWidth: PropTypes.string
-} as any;
+// Removed GlassCard.propTypes definition
+// GlassCard.propTypes = { ... };
 
 export default GlassCard; 

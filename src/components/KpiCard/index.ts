@@ -3,7 +3,7 @@
  */
 
 import InteractiveKpiCard, { GlassInteractiveKpiCard } from './InteractiveKpiCard';
-import KpiCard, { GlassKpiCard } from './KpiCard';
+import KpiCard from './KpiCard';
 import PerformanceMetricCard, { GlassPerformanceMetricCard } from './PerformanceMetricCard';
 
 export type {
@@ -13,12 +13,10 @@ export type {
   InteractiveKpiCardProps,
 } from './types';
 
-export default KpiCard;
-export {
+export { 
   KpiCard,
-  GlassKpiCard,
-  PerformanceMetricCard,
-  GlassPerformanceMetricCard,
+  PerformanceMetricCard, 
+  GlassPerformanceMetricCard, 
   InteractiveKpiCard,
   GlassInteractiveKpiCard,
 };

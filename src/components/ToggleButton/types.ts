@@ -5,11 +5,12 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Props for the ToggleButton component
  */
-export interface ToggleButtonProps {
+export interface ToggleButtonProps extends AnimationProps {
   /** The value of the button */
   value: any;
 

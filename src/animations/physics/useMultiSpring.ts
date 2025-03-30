@@ -1,6 +1,9 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { SpringConfig, SpringPresets } from './springPhysics';
 import { MultiSpring, SpringVector, SpringTarget } from './multiSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { AnimationProps } from '../../animations/types';
 
 export interface MultiSpringOptions<T extends SpringVector> {
   /**
@@ -14,9 +17,9 @@ export interface MultiSpringOptions<T extends SpringVector> {
   to?: T;
   
   /**
-   * Spring configuration
+   * Spring configuration (aligns with AnimationProps)
    */
-  config?: Partial<SpringConfig> | keyof typeof SpringPresets;
+  animationConfig?: AnimationProps['animationConfig'];
   
   /**
    * Initial velocities
@@ -90,42 +93,60 @@ export function useMultiSpring<T extends SpringVector>(
   const {
     from,
     to,
-    config = 'DEFAULT',
+    animationConfig,
     velocity,
-    immediate = false,
+    immediate: propImmediate,
     autoStart = true
   } = options;
   
-  // State for the current values
+  const { defaultSpring: contextConfig } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  
+  const immediate = propImmediate ?? prefersReducedMotion;
+  
+  const finalConfig = useMemo(() => {
+    const baseConfig = SpringPresets.DEFAULT;
+    let resolvedContextConfig = {};
+    if (typeof contextConfig === 'string' && contextConfig in SpringPresets) {
+        resolvedContextConfig = SpringPresets[contextConfig as keyof typeof SpringPresets];
+    } else if (typeof contextConfig === 'object' && contextConfig !== null) {
+        resolvedContextConfig = contextConfig;
+    }
+    let resolvedAnimConfig = {};
+    if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+        resolvedAnimConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+    } else if (typeof animationConfig === 'object' && animationConfig !== null) {
+         if ('tension' in animationConfig || 'friction' in animationConfig || 'mass' in animationConfig) {
+            resolvedAnimConfig = animationConfig as Partial<SpringConfig>;
+         }
+    }
+    return { ...baseConfig, ...resolvedContextConfig, ...resolvedAnimConfig };
+  }, [animationConfig, contextConfig]);
+  
   const [values, setValues] = useState<T>({ ...from });
   const [isAnimating, setIsAnimating] = useState<boolean>(false);
   
-  // Refs for the spring system and animation frame
   const springRef = useRef<MultiSpring<T> | null>(null);
   const rafRef = useRef<number | null>(null);
   
-  // Initialize the multi-spring system
   useEffect(() => {
     if (!springRef.current) {
-      springRef.current = new MultiSpring<T>(from, config);
+      springRef.current = new MultiSpring<T>(from, finalConfig);
     }
     
     return () => {
-      // Clean up animation frame on unmount
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, []);
+  }, [from]);
   
-  // Update spring config when it changes
   useEffect(() => {
     if (springRef.current) {
-      springRef.current.updateConfig(config);
+      springRef.current.updateConfig(finalConfig);
     }
-  }, [config]);
+  }, [finalConfig]);
   
-  // Animation loop
   const animate = useCallback(() => {
     if (springRef.current) {
       const newValues = springRef.current.update();
@@ -139,23 +160,25 @@ export function useMultiSpring<T extends SpringVector>(
     }
   }, []);
   
-  // Start animation function
   const start = useCallback((target: SpringTarget<T>) => {
     if (springRef.current) {
       springRef.current.setTarget(target);
       
-      // Cancel existing animation frame if any
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
       
-      // Start animation loop
-      setIsAnimating(true);
-      rafRef.current = requestAnimationFrame(animate);
+      if (!immediate) { 
+          setIsAnimating(true);
+          rafRef.current = requestAnimationFrame(animate);
+      } else {
+          const endValues = springRef.current.getTargetValues();
+          setValues(endValues);
+          setIsAnimating(false);
+      }
     }
-  }, [animate]);
+  }, [animate, immediate]);
   
-  // Stop animation function
   const stop = useCallback(() => {
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
@@ -164,11 +187,11 @@ export function useMultiSpring<T extends SpringVector>(
     }
   }, []);
   
-  // Reset function
   const reset = useCallback((resetValues?: T) => {
     if (springRef.current) {
-      springRef.current.reset(resetValues || from);
-      setValues(resetValues || from);
+      const finalResetValues = resetValues || from;
+      springRef.current.reset(finalResetValues);
+      setValues(finalResetValues);
       
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
@@ -179,24 +202,35 @@ export function useMultiSpring<T extends SpringVector>(
     }
   }, [from]);
   
-  // Update config function
   const updateConfig = useCallback((newConfig: Partial<SpringConfig> | keyof typeof SpringPresets) => {
     if (springRef.current) {
       springRef.current.updateConfig(newConfig);
     }
   }, []);
   
-  // Start animation immediately if specified
   useEffect(() => {
-    if (immediate && springRef.current && to) {
-      start({ to });
+    if (immediate && springRef.current && to && !autoStart) {
+      const targetState = { ...from, ...to };
+      setValues(targetState);
+      springRef.current.reset(targetState);
+      setIsAnimating(false);
     }
-  }, [immediate, to, start]);
+  }, [immediate, to, autoStart, from]);
   
-  // Auto-start when the 'to' value changes
   useEffect(() => {
     if (autoStart && springRef.current && to) {
-      start({ to });
+      const currentTarget = springRef.current.getTargetValues();
+      let targetChanged = false;
+      for (const key in to) {
+          if (to.hasOwnProperty(key) && currentTarget[key] !== to[key]) {
+              targetChanged = true;
+              break;
+          }
+      }
+      
+      if (targetChanged) {
+        start({ to });
+      }
     }
   }, [to, autoStart, start]);
   

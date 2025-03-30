@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Children, forwardRef } from 'react';
+import React, { useState, useEffect, useRef, Children, forwardRef, useMemo, cloneElement, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
@@ -6,8 +6,15 @@ import { fadeIn, slideRight } from '../../animations/keyframes/basic';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useMultiSpring } from '../../animations/physics/useMultiSpring';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { AnimationProps } from '../../animations/types';
+import { MotionSensitivityLevel } from '../../animations/accessibility/MotionSensitivity';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
 
-export interface TabsProps {
+export interface TabsProps extends AnimationProps {
   /**
    * The currently selected tab index
    */
@@ -49,14 +56,19 @@ export interface TabsProps {
   size?: 'small' | 'medium' | 'large';
 
   /**
-   * If true, adds animation to the tab indicator
-   */
-  animated?: boolean;
-
-  /**
    * Additional CSS class
    */
   className?: string;
+
+  /**
+   * Optional spring configuration or preset name for the indicator animation.
+   */
+  animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
+
+  /**
+   * If true, disables all animations.
+   */
+  disableAnimation?: boolean;
 }
 
 export interface TabProps {
@@ -189,6 +201,7 @@ const TabListContainer = styled.div<{
   position: relative;
 `;
 
+// StyledTab is a button directly
 const StyledTab = styled.button<{
   $selected: boolean;
   $disabled: boolean;
@@ -214,6 +227,7 @@ const StyledTab = styled.button<{
   position: relative;
   opacity: ${props => (props.$disabled ? 0.5 : 1)};
   overflow: hidden;
+  will-change: color, background-color, opacity;
 
   /* Size styles */
   ${props => {
@@ -294,38 +308,21 @@ const TabLabel = styled.span`
 `;
 
 const TabIndicator = styled.span<{
-  $left: number;
-  $top: number;
-  $width: number;
-  $height: number;
   $color: string;
   $orientation: 'horizontal' | 'vertical';
-  $animated: boolean;
 }>`
   position: absolute;
   background-color: ${props => getColorByName(props.$color)};
-  transition: ${props =>
-    props.$animated
-      ? 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), top 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-      : 'none'};
 
   ${props =>
     props.$orientation === 'horizontal'
-      ? `
-      bottom: 0;
-      left: ${props.$left}px;
-      width: ${props.$width}px;
-      height: 2px;
-    `
-      : `
-      left: 0;
-      top: ${props.$top}px;
-      width: 2px;
-      height: ${props.$height}px;
-    `}
+      ? `bottom: 0; height: 2px;`
+      : `left: 0; width: 2px;`
+  }
 
   border-radius: 1px;
   box-shadow: 0 0 4px ${props => getColorByName(props.$color)}80;
+  will-change: left, top, width, height;
 `;
 
 const TabPanelsContainer = styled.div<{
@@ -341,24 +338,6 @@ const TabPanelsContainer = styled.div<{
       easing: 'ease-out',
     })}
 `;
-
-/**
- * Tab Component
- *
- * Individual tab within a Tabs component
- */
-export const Tab = forwardRef<HTMLButtonElement, TabProps>((props, ref) => {
-  const { label, disabled = false, icon, className, onClick, children, ...rest } = props;
-
-  return (
-    <button ref={ref} className={className} disabled={disabled} onClick={onClick} {...rest}>
-      {icon && <TabIcon>{icon}</TabIcon>}
-      <TabLabel>{label}</TabLabel>
-    </button>
-  );
-});
-
-Tab.displayName = 'Tab';
 
 /**
  * TabPanel Component
@@ -393,6 +372,136 @@ export const TabPanel = forwardRef<
 
 TabPanel.displayName = 'TabPanel';
 
+// --- Internal Physics Tab Wrapper --- 
+interface PhysicsTabProps extends TabProps, AnimationProps {
+  selected: boolean;
+  orientation: 'horizontal' | 'vertical';
+  color: string;
+  size: 'small' | 'medium' | 'large';
+  appearance: 'default' | 'glass' | 'elevated' | 'minimal';
+  onSelect: (event: React.MouseEvent<HTMLButtonElement>) => void; // Simplified click handler prop
+  tabIndexRef: (el: HTMLButtonElement | null) => void;
+}
+
+const PhysicsTab = forwardRef<HTMLButtonElement, PhysicsTabProps>((props, ref) => {
+  const {
+    label,
+    icon,
+    disabled = false,
+    selected,
+    orientation,
+    color,
+    size,
+    appearance,
+    onClick, // Original onClick from child props
+    onSelect, // Mapped onClick from parent Tabs
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
+    className,
+    tabIndexRef,
+    ...rest // rest should ideally be empty if props are explicit
+  } = props;
+
+  const { defaultSpring } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const usePhysics = !finalDisableAnimation && !disabled;
+
+  // Calculate final interaction config (similar to other components)
+  const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+    const baseOptions: Partial<PhysicsInteractionOptions> = {
+      affectsScale: true,
+      scaleAmplitude: 0.03, 
+    };
+    let contextConf: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextConf = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object') {
+      contextConf = defaultSpring ?? {};
+    }
+    let propConf: Partial<PhysicsInteractionOptions> = {};
+    const configProp = animationConfig;
+    // ... (Handle string preset, spring config, physics options) ...
+    if (typeof configProp === 'string' && configProp in SpringPresets) {
+      const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+      propConf = { stiffness: preset.tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, mass: preset.mass };
+    } else if (typeof configProp === 'object' && configProp !== null) {
+      if ('stiffness' in configProp || 'dampingRatio' in configProp) {
+        propConf = configProp as Partial<PhysicsInteractionOptions>;
+      } else if ('tension' in configProp || 'friction' in configProp) {
+         const preset = configProp as Partial<SpringConfig>;
+         propConf = { stiffness: preset.tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt((preset.tension ?? SpringPresets.DEFAULT.tension) * (preset.mass ?? 1))) : undefined, mass: preset.mass };
+      }
+      if ('scaleAmplitude' in configProp && typeof configProp.scaleAmplitude === 'number') propConf.scaleAmplitude = configProp.scaleAmplitude;
+      // Add other relevant physics props if needed
+    }
+
+    const finalStiffness = propConf.stiffness ?? contextConf.tension ?? baseOptions.stiffness ?? SpringPresets.DEFAULT.tension;
+    const calculatedMass = propConf.mass ?? contextConf.mass ?? baseOptions.mass ?? 1;
+    const finalDampingRatio = propConf.dampingRatio ?? (contextConf.friction ? contextConf.friction / (2 * Math.sqrt(finalStiffness * calculatedMass)) : baseOptions.dampingRatio ?? 0.5);
+    const finalMass = calculatedMass;
+
+    return {
+      ...baseOptions,
+      stiffness: finalStiffness,
+      dampingRatio: finalDampingRatio,
+      mass: finalMass,
+      ...(propConf.scaleAmplitude !== undefined && { scaleAmplitude: propConf.scaleAmplitude }),
+      ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+    };
+  }, [defaultSpring, animationConfig, motionSensitivity]);
+
+  const { style: physicsStyle, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
+    ...finalInteractionConfig,
+    reducedMotion: !usePhysics,
+  });
+
+  // Combine event handlers
+  const combinedClickHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!disabled) {
+      onSelect(event); // Call parent onChange mapped to onSelect
+      if (onClick) {
+        onClick(event); // Call original child onClick
+      }
+      // Trigger physics click handler if needed (might be redundant with mouse down/up)
+      // eventHandlers.onClick?.(event);
+    }
+  };
+
+  const combinedRef = useCallback((node: HTMLButtonElement | null) => {
+    tabIndexRef(node); // Call ref callback passed from Tabs
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref, tabIndexRef]);
+
+  return (
+    <StyledTab
+      ref={combinedRef}
+      onClick={combinedClickHandler}
+      disabled={disabled}
+      $selected={selected}
+      $disabled={disabled}
+      $orientation={orientation}
+      $color={color}
+      $size={size}
+      $appearance={appearance}
+      className={className}
+      style={usePhysics ? physicsStyle : {}} // Apply physics style only if enabled
+      // Spread physics handlers if enabled
+      {...(usePhysics ? eventHandlers : {})}
+      {...rest} // Spread any remaining standard HTML attributes
+    >
+      {icon && <TabIcon>{icon}</TabIcon>}
+      <TabLabel>{label}</TabLabel>
+    </StyledTab>
+  );
+});
+PhysicsTab.displayName = 'PhysicsTab';
+
 /**
  * Tabs Component
  *
@@ -408,114 +517,130 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
     color = 'primary',
     appearance = 'default',
     size = 'medium',
-    animated = true,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  const [tabRefs, setTabRefs] = useState<Map<number, HTMLElement>>(new Map());
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, top: 0, width: 0, height: 0 });
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tabListRef = useRef<HTMLDivElement>(null);
+  const { defaultSpring } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
 
-  // Update indicator position when selected tab changes
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+
+  const initialIndicatorStyle = { left: 0, top: 0, width: 0, height: 0, opacity: 0 };
+  const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+          contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object') {
+          contextConfig = defaultSpring ?? {};
+      }
+
+      let propConfig: Partial<SpringConfig> = {};
+      if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+          propConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+      } else if (typeof animationConfig === 'object') {
+          propConfig = animationConfig ?? {};
+      }
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]);
+
+  const { values: indicatorStyle, start: animateIndicator } = useMultiSpring({
+      from: initialIndicatorStyle,
+      animationConfig: finalSpringConfig,
+      immediate: finalDisableAnimation,
+      autoStart: false,
+  });
+
   useEffect(() => {
-    const selectedTabElement = tabRefs.get(value);
+    const selectedTabElement = tabRefs.current[value];
     if (selectedTabElement && tabListRef.current) {
       const tabRect = selectedTabElement.getBoundingClientRect();
       const tabListRect = tabListRef.current.getBoundingClientRect();
 
+      let newStyle: typeof initialIndicatorStyle;
       if (orientation === 'horizontal') {
-        setIndicatorStyle({
+        newStyle = {
           left: selectedTabElement.offsetLeft,
           top: 0,
           width: tabRect.width,
           height: 2,
-        });
+          opacity: 1,
+        };
       } else {
-        setIndicatorStyle({
+        newStyle = {
           left: 0,
           top: selectedTabElement.offsetTop,
           width: 2,
           height: tabRect.height,
-        });
+          opacity: 1,
+        };
       }
+      animateIndicator({ to: newStyle });
+    } else {
+        animateIndicator({ to: { ...initialIndicatorStyle, opacity: 0 } });
     }
-  }, [value, tabRefs, orientation]);
+  }, [value, tabRefs, orientation, animateIndicator]);
 
-  // Handle tab selection
-  const handleTabClick = (index: number, event: React.MouseEvent) => {
-    if (onChange) {
-      onChange(event, index);
-    }
-  };
+  // Map children, rendering PhysicsTab wrapper
+  const tabElements: React.ReactNode[] = [];
+  const panelElements: React.ReactNode[] = [];
 
-  // Collect tab elements and properties
-  const tabs: React.ReactElement[] = [];
-  const tabPanels: React.ReactElement[] = [];
-
-  Children.forEach(children, (child: React.ReactElement | null, index) => {
+  Children.map(children, (child, index) => {
     if (!React.isValidElement(child)) return;
 
-    // Check if component type is Tab using proper type guards
-    const isTabComponent =
-      typeof child.type === 'function' &&
-      (child.type === Tab || (child.type as any).displayName === 'Tab');
+    const childElement = child as React.ReactElement<TabProps>; 
+    const childProps = childElement.props;
+    const isDisabled = childProps.disabled ?? false;
+    const isSelected = value === index;
 
-    // Check if component type is TabPanel using proper type guards
-    const isTabPanelComponent =
-      typeof child.type === 'function' &&
-      (child.type === TabPanel || (child.type as any).displayName === 'TabPanel');
-
-    if (isTabComponent) {
-      // Type assertion for props to handle them safely with TypeScript
-      const childProps = child.props as TabProps;
-
-      const tabProps = {
-        key: `tab-${index}`,
-        ref: (node: HTMLElement | null) => {
-          if (node) {
-            setTabRefs(prev => new Map(prev).set(index, node));
+    tabElements.push(
+      <PhysicsTab
+        key={`tab-${index}`}
+        // Pass necessary props
+        label={childProps.label}
+        icon={childProps.icon}
+        disabled={isDisabled}
+        selected={isSelected}
+        orientation={orientation}
+        color={color}
+        size={size}
+        appearance={appearance}
+        className={childProps.className} 
+        onClick={childProps.onClick} 
+        onSelect={(event) => {
+          if (onChange) {
+            onChange(event, index);
           }
-        },
-        'aria-selected': value === index,
-        'aria-controls': `tabpanel-${index}`,
-        id: `tab-${index}`,
-        role: 'tab',
-        onClick: (event: React.MouseEvent) => {
-          handleTabClick(index, event);
-          if (childProps.onClick) {
-            childProps.onClick(event);
-          }
-        },
-        label: childProps.label,
-        disabled: childProps.disabled,
-        icon: childProps.icon,
-        className: childProps.className,
-      };
+        }}
+        // Pass animation props
+        animationConfig={animationConfig}
+        disableAnimation={finalDisableAnimation}
+        motionSensitivity={motionSensitivity}
+        // Pass ref setting function
+        tabIndexRef={(el: HTMLButtonElement | null) => (tabRefs.current[index] = el)}
+        // Add accessibility props
+        aria-controls={`tabpanel-${index}`} 
+        aria-selected={value === index}
+      />
+    );
 
-      tabs.push(React.cloneElement(child, tabProps));
-
-      // Check if children exist with type guard
-      if (childProps.children) {
-        tabPanels.push(
-          <TabPanel key={`tabpanel-${index}`} value={value} index={index}>
-            {childProps.children}
-          </TabPanel>
-        );
-      }
-    } else if (isTabPanelComponent) {
-      // Type assertion for TabPanel props
-      const panelProps = {
-        key: `tabpanel-${index}`,
-        value,
-        index,
-        children: (child.props as { children?: React.ReactNode }).children,
-      };
-
-      tabPanels.push(React.cloneElement(child, panelProps));
+    // Create the corresponding TabPanel (remains the same)
+    if (childProps.children) {
+      panelElements.push(
+        <TabPanel key={`tabpanel-${index}`} value={value} index={index}>
+          {childProps.children}
+        </TabPanel>
+      );
     }
   });
 
+  // Render Tabs structure
   return (
     <TabsContainer
       ref={ref}
@@ -530,34 +655,17 @@ export const Tabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
         $orientation={orientation}
         $variant={variant}
       >
-        {tabs.map((tab, index) => (
-          <StyledTab
-            key={tab.key}
-            $selected={value === index}
-            $disabled={tab.props.disabled || false}
-            $orientation={orientation}
-            $color={color}
-            $size={size}
-            $appearance={appearance}
-            {...tab.props}
-          >
-            {tab.props.icon && <TabIcon>{tab.props.icon}</TabIcon>}
-            <TabLabel>{tab.props.label}</TabLabel>
-          </StyledTab>
-        ))}
-
+        {tabElements} 
         <TabIndicator
-          $left={indicatorStyle.left}
-          $top={indicatorStyle.top}
-          $width={indicatorStyle.width}
-          $height={indicatorStyle.height}
+          style={{ 
+            opacity: indicatorStyle.opacity,
+            transform: `translate(${indicatorStyle.left}px, ${indicatorStyle.top}px) scaleX(${indicatorStyle.width ? indicatorStyle.width / 100 : 0}) scaleY(${indicatorStyle.height ? indicatorStyle.height / 100 : 0})`
+          }}
           $color={color}
           $orientation={orientation}
-          $animated={animated}
         />
       </TabListContainer>
-
-      <TabPanelsContainer $animated={animated}>{tabPanels}</TabPanelsContainer>
+      <TabPanelsContainer $animated={!finalDisableAnimation}>{panelElements}</TabPanelsContainer>
     </TabsContainer>
   );
 });
@@ -578,16 +686,3 @@ export const GlassTabs = forwardRef<HTMLDivElement, TabsProps>((props, ref) => {
 });
 
 GlassTabs.displayName = 'GlassTabs';
-
-/**
- * GlassTab Component
- *
- * A tab component with glass morphism styling
- */
-export const GlassTab = forwardRef<HTMLButtonElement, TabProps>((props, ref) => {
-  const { className, ...rest } = props;
-
-  return <Tab ref={ref} className={`glass-tab ${className || ''}`} {...rest} />;
-});
-
-GlassTab.displayName = 'GlassTab';

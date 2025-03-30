@@ -1,5 +1,5 @@
-import React, { forwardRef, useState, useCallback, useRef, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useState, useCallback, useRef, useEffect, CSSProperties, useMemo } from 'react';
+import styled, { useTheme } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { fadeIn, slideUp } from '../../animations/keyframes/basic';
@@ -8,6 +8,11 @@ import { innerGlow } from '../../core/mixins/effects/innerEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { AnimationProps } from '../../animations/types';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 // Option interface for select options
 export interface SelectOption {
@@ -28,7 +33,7 @@ export interface SelectOption {
 }
 
 // Select component props interface
-export interface SelectProps {
+export interface SelectProps extends AnimationProps {
   /**
    * The value of the select
    */
@@ -95,6 +100,47 @@ export interface SelectProps {
   variant?: 'outlined' | 'standard' | 'filled';
 }
 
+// Helper functions (copied from TextField/Autocomplete)
+const mapGlowIntensity = (progress: number): 'none' | 'subtle' | 'medium' => {
+  if (progress < 0.1) return 'none';
+  if (progress < 0.7) return 'subtle';
+  return 'medium';
+};
+
+const mapBorderOpacity = (progress: number): 'subtle' | 'medium' | 'strong' => {
+  if (progress < 0.1) return 'subtle';
+  if (progress < 0.8) return 'medium';
+  return 'strong';
+};
+
+const interpolateColor = (startColor: string, endColor: string, progress: number): string => {
+  try {
+    const parse = (color: string): number[] => {
+      if (color.startsWith('rgba')) {
+        const parts = color.match(/\d+\.?\d*/g)?.map(Number);
+        return parts?.length === 4 ? parts : [0, 0, 0, 1];
+      } else if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const a = hex.length === 8 ? parseInt(hex.substring(6, 8), 16) / 255 : 1;
+        return [r, g, b, a];
+      }
+      return [0, 0, 0, 1];
+    };
+    const start = parse(startColor);
+    const end = parse(endColor);
+    const r = Math.round(start[0] + (end[0] - start[0]) * progress);
+    const g = Math.round(start[1] + (end[1] - start[1]) * progress);
+    const b = Math.round(start[2] + (end[2] - start[2]) * progress);
+    const a = start[3] + (end[3] - start[3]) * progress;
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
+  } catch (e) {
+    return endColor;
+  }
+};
+
 // Styled components
 const SelectContainer = styled.div<{
   $fullWidth: boolean;
@@ -124,6 +170,8 @@ const StyledSelect = styled.div<{
   $error: boolean;
   $focused: boolean;
   $disabled: boolean;
+  $theme: any;
+  $focusProgress: number;
 }>`
   position: relative;
   width: 100%;
@@ -151,23 +199,23 @@ const StyledSelect = styled.div<{
     }
   }}
 
-  /* Variant styles */
+  /* Variant styles using focusProgress */
   ${props => {
+    const startColor = props.$error ? '#EF4444' : props.$variant === 'outlined' ? 'rgba(0, 0, 0, 0.23)' : 'rgba(0, 0, 0, 0.42)';
+    const endColor = props.$error ? '#EF4444' : '#6366F1';
+    const borderColor = interpolateColor(startColor, endColor, props.$focusProgress);
+
     switch (props.$variant) {
       case 'outlined':
         return `
-          border: 1px solid ${
-            props.$error ? '#EF4444' : props.$focused ? '#6366F1' : 'rgba(0, 0, 0, 0.23)'
-          };
+          border: 1px solid ${borderColor};
           background-color: transparent;
         `;
       case 'filled':
         return `
           border: none;
           background-color: rgba(0, 0, 0, 0.06);
-          border-bottom: 1px solid ${
-            props.$error ? '#EF4444' : props.$focused ? '#6366F1' : 'rgba(0, 0, 0, 0.42)'
-          };
+          border-bottom: 1px solid ${borderColor};
           border-top-left-radius: 4px;
           border-top-right-radius: 4px;
           border-bottom-left-radius: 0;
@@ -176,58 +224,47 @@ const StyledSelect = styled.div<{
       default: // standard
         return `
           border: none;
-          border-bottom: 1px solid ${
-            props.$error ? '#EF4444' : props.$focused ? '#6366F1' : 'rgba(0, 0, 0, 0.42)'
-          };
+          border-bottom: 1px solid ${borderColor};
           border-radius: 0;
           background-color: transparent;
         `;
     }
   }}
   
-  /* Glass effects for focused state */
-  ${props =>
-    props.$focused &&
-    !props.$disabled &&
-    glassSurface({
-      elevation: 1,
-      blurStrength: 'minimal',
-      backgroundOpacity: 'subtle',
-      borderOpacity: 'medium',
-      themeContext: createThemeContext({}),
-    })}
-  
-  /* Error state additional styling */
-  ${props =>
-    props.$error &&
-    !props.$disabled &&
-    innerGlow({
-      color: 'error',
-      intensity: 'subtle',
-      spread: 2,
-      themeContext: createThemeContext({}),
-    })}
-  
-  /* Focus state glow effect */
-  ${props =>
-    props.$focused &&
-    !props.$disabled &&
-    !props.$error &&
-    innerGlow({
-      color: 'primary',
-      intensity: 'subtle',
-      spread: 2,
-      themeContext: createThemeContext({}),
-    })}
-  
-  /* Transition effect */
-  transition: all 0.2s ease;
+  /* Glass effects and glow based on focusProgress */
+  ${props => {
+    const glowIntensity = mapGlowIntensity(props.$focusProgress);
+    const borderOpacity = mapBorderOpacity(props.$focusProgress);
+    let effects = '';
+
+    // Apply glass surface based on focus progress
+    if (props.$focusProgress > 0.1) { // Apply glass only when focused starts
+      effects += glassSurface({
+        elevation: 1,
+        blurStrength: 'minimal', // Keep minimal blur
+        backgroundOpacity: 'subtle', // Keep subtle background
+        borderOpacity: borderOpacity, // Use animated border opacity
+        themeContext: createThemeContext(props.$theme),
+      });
+    }
+
+    // Apply inner glow (error or primary based on focus)
+    if (glowIntensity !== 'none' && !props.$disabled) {
+       effects += innerGlow({
+        color: props.$error ? 'error' : 'primary',
+        intensity: glowIntensity,
+        spread: 2,
+        themeContext: createThemeContext(props.$theme),
+      });
+    }
+    return effects;
+  }}
 
   &:hover {
     ${props =>
       !props.$disabled &&
       `
-      background-color: rgba(0, 0, 0, 0.03);
+      background-color: rgba(0, 0, 0, 0.03); // Keep hover effect
     `}
   }
 `;
@@ -264,8 +301,7 @@ const DropdownIcon = styled.div<{
   position: absolute;
   right: 8px;
   top: 50%;
-  transform: translateY(-50%) ${props => (props.$open ? 'rotate(180deg)' : 'rotate(0)')};
-  transition: transform 0.2s ease;
+  transform: translateY(-50%) rotate(${props => (props.$open ? 180 : 0) + 'deg'});
 
   &::before {
     content: '';
@@ -279,7 +315,7 @@ const DropdownIcon = styled.div<{
 `;
 
 const OptionsContainer = styled.div<{
-  $open: boolean;
+  $theme: any;
 }>`
   position: absolute;
   top: 100%;
@@ -290,7 +326,6 @@ const OptionsContainer = styled.div<{
   z-index: 10;
   border-radius: 4px;
   margin-top: 4px;
-  display: ${props => (props.$open ? 'block' : 'none')};
 
   ${props =>
     glassSurface({
@@ -298,18 +333,11 @@ const OptionsContainer = styled.div<{
       blurStrength: 'standard',
       backgroundOpacity: 'medium',
       borderOpacity: 'medium',
-      themeContext: createThemeContext({}),
+      themeContext: createThemeContext(props.$theme),
     })}
 
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-
-  ${props =>
-    props.$open &&
-    accessibleAnimation({
-      animation: fadeIn,
-      duration: 0.2,
-      easing: 'ease-out',
-    })}
+  transform-origin: top center;
 `;
 
 const Option = styled.div<{
@@ -370,104 +398,150 @@ export const Select = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
     fullWidth = false,
     className,
     variant = 'outlined',
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  const [selectedValue, setSelectedValue] = useState<string | undefined>(value || defaultValue);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const theme = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [internalValue, setInternalValue] = useState(defaultValue ?? value ?? '');
+  const [isOpen, setIsOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
-  // Handle controlled component updates
-  useEffect(() => {
-    if (value !== undefined) {
-      setSelectedValue(value);
-    }
-  }, [value]);
+  // Animation Context
+  const { defaultSpring, focusSpringConfig, modalSpringConfig } = useAnimationContext();
 
-  // Handle outside click to close dropdown
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setIsFocused(false);
-      }
-    }
+  // Resolve final disable animation flag from props/context/reducedMotion
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  // Focus Animation Spring
+  // Priority: prop animationConfig -> context focusSpringConfig -> Default Preset
+  const focusPresetOrConfig = animationConfig ?? focusSpringConfig ?? 'FOCUS_HIGHLIGHT';
+  const { value: focusProgress } = useGalileoStateSpring(focused ? 1 : 0, {
+      ...(typeof focusPresetOrConfig === 'string' && focusPresetOrConfig in SpringPresets ? SpringPresets[focusPresetOrConfig] : typeof focusPresetOrConfig === 'object' ? focusPresetOrConfig : SpringPresets.DEFAULT),
+      immediate: finalDisableAnimation,
+  });
 
-  // Toggle dropdown
-  const handleToggle = useCallback(() => {
+  // Dropdown Animation Spring
+  // Priority: context modalSpringConfig -> context defaultSpring -> Default Preset
+  // We don't use the component's animationConfig here to keep separate control
+  const dropdownPresetOrConfig = modalSpringConfig ?? defaultSpring ?? 'DEFAULT';
+  const { value: openProgress } = useGalileoStateSpring(isOpen ? 1 : 0, {
+    ...(typeof dropdownPresetOrConfig === 'string' && dropdownPresetOrConfig in SpringPresets ? SpringPresets[dropdownPresetOrConfig] : typeof dropdownPresetOrConfig === 'object' ? dropdownPresetOrConfig : SpringPresets.DEFAULT),
+    immediate: finalDisableAnimation,
+  });
+
+  const currentValue = value !== undefined ? value : internalValue;
+  const displayLabel = options.find(opt => opt.value === currentValue)?.label || placeholder;
+  const hasValue = currentValue !== undefined && currentValue !== null;
+
+  const handleOpen = useCallback(() => {
     if (!disabled) {
-      setIsOpen(prev => !prev);
-      setIsFocused(true);
+      setIsOpen(true);
+      setFocused(true);
     }
   }, [disabled]);
 
-  // Handle option selection
-  const handleSelect = useCallback(
-    (option: SelectOption) => {
-      if (disabled || option.disabled) return;
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    setFocused(false);
+  }, []);
 
-      setSelectedValue(option.value);
-      setIsOpen(false);
+  const handleSelect = useCallback((optionValue: string) => {
+    if (value === undefined) {
+      setInternalValue(optionValue);
+    }
+    onChange?.(optionValue);
+    handleClose();
+  }, [value, onChange, handleClose]);
 
-      if (onChange) {
-        onChange(option.value);
-      }
-    },
-    [disabled, onChange]
-  );
+  function handleClickOutside(event: MouseEvent) {
+    if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      handleClose();
+    }
+  }
 
-  // Find the currently selected option
-  const selectedOption = options.find(option => option.value === selectedValue);
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, handleClose]);
 
   return (
     <SelectContainer
       ref={containerRef}
-      className={className}
       $fullWidth={fullWidth}
       $disabled={disabled}
+      className={className}
+      {...rest}
     >
-      {label && (
-        <SelectLabel $error={error} $focused={isFocused}>
-          {label}
-        </SelectLabel>
-      )}
-
+      {label && <SelectLabel $error={error} $focused={focused}>{label}</SelectLabel>}
       <StyledSelect
         ref={ref}
-        onClick={handleToggle}
+        role="combobox"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-labelledby={label ? `label-${label}` : undefined}
+        tabIndex={disabled ? -1 : 0}
+        onClick={isOpen ? handleClose : handleOpen}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') isOpen ? handleClose() : handleOpen(); }}
+        onFocus={() => { setFocused(true); }}
+        onBlur={() => { if (!isOpen) { setFocused(false); } }}
         $variant={variant}
         $size={size}
         $error={error}
-        $focused={isFocused}
+        $focused={focused}
         $disabled={disabled}
-        {...rest}
+        $theme={theme}
+        $focusProgress={focusProgress}
       >
-        <SelectValue $hasValue={!!selectedOption} $size={size}>
-          {selectedOption ? selectedOption.label : placeholder}
+        <SelectValue $hasValue={hasValue} $size={size}>
+          {displayLabel}
         </SelectValue>
+        <DropdownIcon $open={isOpen} style={{ transform: `translateY(-50%) rotate(${isOpen ? 180 : 0}deg)` }} />
+      </StyledSelect>
 
-        <DropdownIcon $open={isOpen} />
-
-        <OptionsContainer $open={isOpen}>
-          {options.map(option => (
+      {(isOpen) && (
+        <OptionsContainer
+          key="options"
+          role="listbox"
+          aria-labelledby={label ? `label-${label}` : undefined}
+          $theme={theme}
+          style={{
+            opacity: openProgress,
+            transform: `scaleY(${openProgress})`,
+            pointerEvents: isOpen ? 'auto' : 'none',
+            visibility: (isOpen) ? 'visible' : 'hidden',
+          }}
+        >
+          {options.map((option) => (
             <Option
               key={option.value}
-              $selected={option.value === selectedValue}
+              role="option"
+              aria-selected={currentValue === option.value}
+              aria-disabled={option.disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!option.disabled) {
+                  handleSelect(option.value);
+                }
+              }}
+              $selected={currentValue === option.value}
               $disabled={option.disabled || false}
-              onClick={() => handleSelect(option)}
             >
               {option.label}
             </Option>
           ))}
         </OptionsContainer>
-      </StyledSelect>
+      )}
 
       {helperText && <HelperText $error={error}>{helperText}</HelperText>}
     </SelectContainer>
@@ -482,11 +556,7 @@ Select.displayName = 'Select';
  * A Select component with enhanced glass morphism styling.
  */
 export const GlassSelect = forwardRef<HTMLDivElement, SelectProps>((props, ref) => {
-  const { className, variant = 'outlined', ...rest } = props;
-
-  return (
-    <Select ref={ref} className={`glass-select ${className || ''}`} variant={variant} {...rest} />
-  );
+  return <Select ref={ref} {...props} />;
 });
 
 GlassSelect.displayName = 'GlassSelect';

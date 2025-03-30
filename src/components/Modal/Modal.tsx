@@ -1,15 +1,21 @@
-import React, { forwardRef, useState, useEffect, useCallback } from 'react';
+import React, { forwardRef, useState, useEffect, useCallback, CSSProperties, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
+import { fadeIn, fadeOut } from '../../animations/keyframes/basic';
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { fadeIn, fadeOut, scaleUp, scaleDown } from '../../animations/keyframes/basic';
+import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
-export interface ModalProps {
+export interface ModalProps extends AnimationProps {
   /**
    * If true, the modal is open
    */
@@ -91,6 +97,11 @@ export interface ModalProps {
    * Additional CSS class for the modal
    */
   className?: string;
+
+  /**
+   * Deprecated: No longer used.
+   */
+  motionSensitivity?: any;
 }
 
 // Constants for max-width values
@@ -147,13 +158,13 @@ const ModalContainer = styled.div<{
   align-items: center;
   justify-content: center;
   pointer-events: ${props => (props.$open ? 'auto' : 'none')};
+  perspective: 1000px;
 `;
 
 const ModalContent = styled.div<{
   $variant: string;
   $maxWidth: string | false;
   $fullWidth: boolean;
-  $open: boolean;
 }>`
   position: relative;
   background-color: ${props => (props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.1)' : 'white')};
@@ -195,25 +206,9 @@ const ModalContent = styled.div<{
       themeContext: createThemeContext({}),
     })}
   
-  /* Entry animation */
-  ${props =>
-    props.$open &&
-    accessibleAnimation({
-      animation: fadeIn,
-      duration: 0.3,
-      easing: 'ease-out',
-    })}
-  
-  ${props =>
-    props.$open &&
-    accessibleAnimation({
-      animation: scaleUp,
-      duration: 0.3,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-    })}
-  
   /* Transform origin for animations */
   transform-origin: center center;
+  will-change: opacity, transform;
 `;
 
 /**
@@ -240,19 +235,69 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>((props, ref) => {
     unmountOnExit = false,
     zIndex = 1300,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
   const [isMounted, setIsMounted] = useState(mountOnEnter ? false : true);
   const [modalVisible, setModalVisible] = useState(open);
-  const [exiting, setExiting] = useState(false);
-  const prevActiveElementRef = React.useRef<Element | null>(null);
-  const modalRef = React.useRef<HTMLDivElement>(null);
+  const prevActiveElementRef = useRef<Element | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring, modalSpringConfig } = useAnimationContext();
 
-  // Convert maxWidth to CSS value
   const maxWidthValue = maxWidth !== false ? MAX_WIDTH_MAP[maxWidth] : false;
 
-  // Handle closing the modal
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const shouldAnimate = !finalDisableAnimation;
+
+  const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      const contextSource = modalSpringConfig ?? defaultSpring;
+      if (typeof contextSource === 'string' && contextSource in SpringPresets) {
+          contextConfig = SpringPresets[contextSource as keyof typeof SpringPresets];
+      } else if (typeof contextSource === 'object') {
+          contextConfig = contextSource ?? {};
+      }
+
+      let propConfig: Partial<SpringConfig> = {};
+      const propSource = animationConfig;
+      if (typeof propSource === 'string' && propSource in SpringPresets) {
+          propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+      } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+          propConfig = propSource as Partial<SpringConfig>;
+      }
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, modalSpringConfig, animationConfig]);
+
+  const animationTargets = {
+      opacity: open ? 1 : 0,
+      scale: open ? 1 : 0.92,
+      translateZ: open ? 0 : -60,
+  };
+
+  const handleRest = useCallback((result: SpringsAnimationResult) => {
+    if (result.finished && !open) {
+        setModalVisible(false);
+        if (unmountOnExit) {
+            setIsMounted(false);
+        }
+        if (!disableRestoreFocus && prevActiveElementRef.current) {
+            (prevActiveElementRef.current as HTMLElement).focus();
+        }
+        document.body.style.overflow = '';
+    }
+  }, [open, unmountOnExit, disableRestoreFocus]);
+
+  const animatedValues = useGalileoSprings(animationTargets, {
+      config: finalSpringConfig,
+      immediate: !shouldAnimate,
+      onRest: handleRest,
+  });
+
   const handleClose = useCallback(
     (event: React.MouseEvent | React.KeyboardEvent) => {
       if (onClose) {
@@ -262,10 +307,8 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>((props, ref) => {
     [onClose]
   );
 
-  // Handle backdrop click
   const handleBackdropClick = useCallback(
     (event: React.MouseEvent) => {
-      // Only close if clicking backdrop, not the modal content
       if (event.target === event.currentTarget && !disableBackdropClick) {
         handleClose(event);
       }
@@ -273,7 +316,6 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>((props, ref) => {
     [disableBackdropClick, handleClose]
   );
 
-  // Handle Escape key press
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape' && !disableEscapeKeyDown) {
@@ -284,72 +326,45 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>((props, ref) => {
     [disableEscapeKeyDown, handleClose]
   );
 
-  // Mount if mountOnEnter is true and modal is opened
   useEffect(() => {
-    if (mountOnEnter && open) {
-      setIsMounted(true);
-    }
-  }, [mountOnEnter, open]);
-
-  // Handle modal visibility and focus management
-  useEffect(() => {
-    // Handle opening
     if (open) {
       setModalVisible(true);
-      setExiting(false);
-
-      // Store active element to restore focus later
+      if (!isMounted) {
+        setIsMounted(true);
+      }
       if (!disableRestoreFocus) {
         prevActiveElementRef.current = document.activeElement;
       }
-
-      // Set focus to modal when opened
-      if (!disableAutoFocus && modalRef.current) {
-        modalRef.current.focus();
+      if (!disableAutoFocus) {
+        requestAnimationFrame(() => {
+          if (modalRef.current) {
+            modalRef.current.focus();
+          }
+        });
       }
-
-      // Lock body scroll
       document.body.style.overflow = 'hidden';
-    } else {
-      // Handle closing
-      if (modalVisible) {
-        setExiting(true);
-
-        // Apply exit animation and then hide
-        const exitTimeout = setTimeout(() => {
-          setModalVisible(false);
-          setExiting(false);
-
-          // Unmount if unmountOnExit is true
-          if (unmountOnExit) {
-            setIsMounted(false);
-          }
-
-          // Restore focus when closed
-          if (!disableRestoreFocus && prevActiveElementRef.current) {
-            (prevActiveElementRef.current as HTMLElement).focus();
-          }
-
-          // Restore body scroll
-          document.body.style.overflow = '';
-        }, 300); // Match animation duration
-
-        return () => clearTimeout(exitTimeout);
-      }
     }
-  }, [open, disableAutoFocus, disableRestoreFocus, unmountOnExit, modalVisible]);
+    return () => {
+      if (document.body.style.overflow === 'hidden') {
+        document.body.style.overflow = '';
+      }
+    };
+  }, [open, isMounted, mountOnEnter, disableAutoFocus, disableRestoreFocus]);
 
-  // Don't render anything if not mounted
   if (!isMounted) {
     return null;
   }
+  
+  const animatedStyle: CSSProperties = {
+      opacity: animatedValues.opacity,
+      transform: `translateZ(${animatedValues.translateZ}px) scale(${animatedValues.scale})`,
+  };
 
-  // Render the modal using a portal
   return ReactDOM.createPortal(
     <>
       <BackdropComponent
         $variant={variant}
-        $open={modalVisible && !exiting}
+        $open={open}
         $zIndex={zIndex}
         onClick={handleBackdropClick}
         {...BackdropProps}
@@ -359,6 +374,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>((props, ref) => {
         $zIndex={zIndex}
         onClick={handleBackdropClick}
         onKeyDown={handleKeyDown}
+        style={{ pointerEvents: open ? 'auto' : 'none' }}
       >
         <ModalContent
           ref={node => {
@@ -376,7 +392,7 @@ export const Modal = forwardRef<HTMLDivElement, ModalProps>((props, ref) => {
           $variant={variant}
           $maxWidth={maxWidthValue}
           $fullWidth={fullWidth}
-          $open={modalVisible && !exiting}
+          style={animatedStyle}
           {...rest}
         >
           {children}

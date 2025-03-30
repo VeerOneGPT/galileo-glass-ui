@@ -1,13 +1,22 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, useEffect, CSSProperties, useRef, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 
-import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { fadeIn, slideRight } from '../../animations/keyframes/basic';
+// Import AnimationProps
+import { AnimationProps } from '../../animations/types';
+import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 
-export interface AlertProps {
+// Import HeatGlass
+import HeatGlass from '../surfaces/HeatGlass';
+
+// Extend AlertProps
+export interface AlertProps extends AnimationProps {
   /**
    * The content of the alert
    */
@@ -57,11 +66,9 @@ export interface AlertProps {
    * Additional CSS class
    */
   className?: string;
-
-  /**
-   * If true, adds a subtle animation
-   */
-  animated?: boolean;
+  
+  // Base animated prop might become less relevant now
+  // animated?: boolean;
 }
 
 // Get color based on severity
@@ -109,7 +116,6 @@ const AlertRoot = styled.div<{
   $variant: string;
   $fullWidth: boolean;
   $size: string;
-  $animated: boolean;
 }>`
   display: flex;
   width: ${props => (props.$fullWidth ? '100%' : 'auto')};
@@ -192,15 +198,6 @@ const AlertRoot = styled.div<{
       glowColor: getSeverityColor(props.$severity),
       themeContext: createThemeContext({}),
     })}
-  
-  /* Animation if enabled */
-  ${props =>
-    props.$animated &&
-    accessibleAnimation({
-      animation: fadeIn,
-      duration: '0.3s',
-      easing: 'ease-out',
-    })}
 `;
 
 const AlertIcon = styled.div<{ $severity: string; $variant: string }>`
@@ -270,62 +267,163 @@ export const Alert = forwardRef<HTMLDivElement, AlertProps>((props, ref) => {
     onClose,
     size = 'medium',
     className,
-    animated = true,
+    // Destructure AnimationProps
+    animationConfig,
+    disableAnimation,
+    motionSensitivity, // Available if needed later
     ...rest
   } = props;
 
   const [visible, setVisible] = useState(true);
+  const [isRendered, setIsRendered] = useState(true);
+  const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
 
-  // Handle close button click
+  // Calculate final animation disable state
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
+  const shouldAnimate = !finalDisableAnimation;
+
+  // Calculate final spring config
+  const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+          contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object') {
+          contextConfig = defaultSpring ?? {};
+      }
+
+      let propConfig: Partial<SpringConfig> = {};
+      if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+          propConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+      } else if (typeof animationConfig === 'object') {
+          propConfig = animationConfig ?? {};
+      }
+
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]);
+
+  // Define animation targets in an object
+  const animationTargets = {
+    opacity: visible ? 1 : 0,
+    scale: visible ? 1 : 0.95,
+    translateY: visible ? 0 : 20,
+  };
+
+  // Define the onRest handler
+  const handleRest = useCallback((result: SpringsAnimationResult) => {
+    // Check if the animation finished and the component should be hidden
+    if (result.finished && !visible) {
+      setIsRendered(false);
+    }
+  }, [visible]);
+
+  // Use the new hook for all animated values
+  const animatedValues = useGalileoSprings(animationTargets, {
+      config: finalSpringConfig,
+      immediate: finalDisableAnimation,
+      onRest: handleRest,
+  });
+
+  // Simpler useEffect for initial rendering state (remains the same)
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+    }
+  }, [visible]);
+
+  // Handle close button click - triggers the exit animation
   const handleClose = () => {
     setVisible(false);
-
     if (onClose) {
       onClose();
     }
   };
 
-  // If alert has been closed, don't render anything
-  if (!visible) {
+  if (!isRendered) {
     return null;
   }
+
+  // Construct style object using values from the new hook
+  const animatedStyle: CSSProperties = {
+    opacity: animatedValues.opacity,
+    transform: `translateY(${animatedValues.translateY}px) scale(${animatedValues.scale})`,
+  };
 
   // Determine which icon to show
   const alertIcon = icon ?? getDefaultIcon(severity);
 
   return (
-    <AlertRoot
-      ref={ref}
-      className={className}
-      $severity={severity}
-      $variant={variant}
-      $fullWidth={fullWidth}
-      $size={size}
-      $animated={animated}
-      role="alert"
-      {...rest}
-    >
-      <AlertIcon $severity={severity} $variant={variant}>
-        {alertIcon}
-      </AlertIcon>
-
-      <AlertContent>
-        {title && <AlertTitle $hasChildren={!!children}>{title}</AlertTitle>}
-
-        {children && <AlertMessage>{children}</AlertMessage>}
-      </AlertContent>
-
-      {closable && (
-        <AlertCloseButton
-          onClick={handleClose}
-          $variant={variant}
+    // Conditionally wrap with HeatGlass for warning/error
+    (severity === 'error' || severity === 'warning') ? (
+      <HeatGlass
+        active={true} // Active when rendered
+        intensity="subtle" // Keep it subtle
+        color={getSeverityColor(severity)}
+        animate={!finalDisableAnimation}
+      >
+        <AlertRoot
+          ref={ref}
+          className={className}
           $severity={severity}
-          aria-label="Close"
+          $variant={variant}
+          $fullWidth={fullWidth}
+          $size={size}
+          style={animatedStyle}
+          role="alert"
+          {...rest}
         >
-          &times;
-        </AlertCloseButton>
-      )}
-    </AlertRoot>
+          <AlertIcon $severity={severity} $variant={variant}>
+            {alertIcon}
+          </AlertIcon>
+          <AlertContent>
+            {title && <AlertTitle $hasChildren={!!children}>{title}</AlertTitle>}
+            {children && <AlertMessage>{children}</AlertMessage>}
+          </AlertContent>
+          {closable && (
+            <AlertCloseButton
+              onClick={handleClose}
+              $variant={variant}
+              $severity={severity}
+              aria-label="Close"
+            >
+              &times;
+            </AlertCloseButton>
+          )}
+        </AlertRoot>
+      </HeatGlass>
+    ) : (
+      // Render AlertRoot directly for other severities
+      <AlertRoot
+        ref={ref}
+        className={className}
+        $severity={severity}
+        $variant={variant}
+        $fullWidth={fullWidth}
+        $size={size}
+        style={animatedStyle}
+        role="alert"
+        {...rest}
+      >
+        <AlertIcon $severity={severity} $variant={variant}>
+          {alertIcon}
+        </AlertIcon>
+        <AlertContent>
+          {title && <AlertTitle $hasChildren={!!children}>{title}</AlertTitle>}
+          {children && <AlertMessage>{children}</AlertMessage>}
+        </AlertContent>
+        {closable && (
+          <AlertCloseButton
+            onClick={handleClose}
+            $variant={variant}
+            $severity={severity}
+            aria-label="Close"
+          >
+            &times;
+          </AlertCloseButton>
+        )}
+      </AlertRoot>
+    )
   );
 });
 

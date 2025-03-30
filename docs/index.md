@@ -48,13 +48,17 @@ function App() {
 
 ## Animations
 
+The Galileo Glass UI features a powerful, integrated physics-based animation system.
+
 | Documentation | Description |
 |---------------|-------------|
-| [**Animation System**](./animations/animation-system.md) | Details of the animation framework |
-| [**Physics Animations**](./animations/physics-animations.md) | Physics-based animation system | 
-| [**Gesture Animations**](./animations/gesture-animations.md) | Gesture-driven animation system |
-| [**Animation Composition**](./animations/animation-composition.md) | Techniques for composing complex animations |
-| [**Web Animations API**](./animations/web-animations-api.md) | WAAPI integration with fallbacks |
+| [**Core Physics Hooks**](./animations/physics-hooks.md) | Documentation for `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring` |
+| [**Sequence Orchestration**](./animations/orchestration.md) | Guide to `useAnimationSequence` for complex, timed animations |
+| [**Context & Configuration**](./animations/context-config.md) | Using `AnimationProvider` and presets for global configuration |
+| [**Accessibility**](./animations/accessibility.md) | Details on `useReducedMotion` and accessibility features |
+| [**(WIP) Transition Hooks**](./animations/transition-hooks.md) | Documentation for state/transition hooks (e.g., `useTransitioningState`) |
+| [**Physics System (Legacy)**](./animations/physics-animations.md) | Previous documentation on the underlying physics engine |
+| [**Animation System (Legacy)**](./animations/animation-system.md) | Older overview of the animation framework |
 
 ## Performance & Optimization
 
@@ -96,11 +100,11 @@ Galileo Glass UI is built with a strong focus on accessibility, ensuring that al
 
 ### Motion Sensitivity & Reduced Motion
 
-- **Enhanced Motion Sensitivity**: Granular control with multiple sensitivity levels
-- **Prefers-Reduced-Motion Detection**: Automatic detection with intelligent fallbacks
-- **Animation Speed Scaling**: Customizable animation speeds based on user preferences
-- **Motion Intensity Profiling**: Analyzes animations to ensure appropriate intensity
-- **Reduced Motion Alternatives**: Non-motion alternatives for all animations
+- **Configurable Reduced Motion**: Utilizes `useReducedMotion` for system detection and app-level overrides.
+- **Motion Sensitivity Levels**: Fine-grained control (Low, Medium, High) over animation intensity.
+- **Animation Categories**: Allows different handling for essential vs. decorative animations.
+- **Alternative Animations**: Provides mechanisms (e.g., fade, static) when motion is disabled.
+- **Preference Persistence**: User accessibility settings saved via `localStorage`.
 
 ### Keyboard Navigation & Screen Readers
 
@@ -115,7 +119,7 @@ Galileo Glass UI is built with a strong focus on accessibility, ensuring that al
 - **Category-Specific Controls**: Granular settings for different animation categories
 - **Persistent Preferences**: Saves user preferences for consistent experience
 
-For detailed accessibility documentation, see the [Accessibility Guide](./accessibility/index.md).
+For detailed accessibility documentation, see the [Animation Accessibility Guide](./animations/accessibility.md) and the older general [Accessibility Guide](./accessibility/index.md).
 
 ## Component Library
 
@@ -136,7 +140,7 @@ For a complete component reference, see the [Framework Guide](./core/framework-g
 
 - **Premium Glass Components**: 85+ UI components including 58 specialized Glass components
 - **Enhanced Z-Space System**: Meaningful depth and layout hierarchy
-- **Physics-Based Animations**: Natural motion with spring animations and path physics
+- **Advanced Physics-Based Animation System**: Natural motion with spring physics, orchestration, and interaction hooks.
 - **Atmospheric Environments**: Dynamic backgrounds and contextual adaptations
 - **Advanced Light Effects**: Sophisticated glow, reflection, and shadow systems
 - **Responsive Adaptations**: Quality adjustments for different devices and screens

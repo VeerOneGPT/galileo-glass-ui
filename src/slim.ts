@@ -7,7 +7,7 @@
 
 // Core UI components with Glass styling
 export { Button, GlassButton } from './components/Button';
-export { Card, GlassCard } from './components/Card';
+export { Card } from './components/Card';
 export { Typography, GlassTypography } from './components/Typography';
 export { Box, GlassBox } from './components/Box';
 export { Container, GlassContainer } from './components/Container';

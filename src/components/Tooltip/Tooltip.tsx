@@ -1,14 +1,18 @@
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo, cloneElement } from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { fadeIn, scaleUp } from '../../animations/keyframes/basic';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useGalileoSprings, type SpringsAnimationResult } from '../../hooks/useGalileoSprings';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
-export interface TooltipProps {
+export interface TooltipProps extends AnimationProps {
   /**
    * The tooltip content
    */
@@ -80,6 +84,16 @@ export interface TooltipProps {
    * Additional CSS class for the tooltip
    */
   className?: string;
+
+  /**
+   * Optional spring configuration or preset name for the tooltip animation.
+   */
+  animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
+
+  /**
+   * If true, disables the transition animation.
+   */
+  disableAnimation?: boolean;
 }
 
 // Get color by name for theme consistency
@@ -248,7 +262,6 @@ const TooltipContent = styled.div<{
   $variant: string;
   $color: string;
   $maxWidth: number;
-  $visible: boolean;
   $placement: string;
 }>`
   position: fixed;
@@ -259,11 +272,7 @@ const TooltipContent = styled.div<{
   line-height: 1.4;
   padding: 6px 10px;
   border-radius: 4px;
-  pointer-events: ${props => (props.$visible ? 'auto' : 'none')};
-  opacity: ${props => (props.$visible ? 1 : 0)};
-  transition-property: opacity, transform;
-  transition-duration: 0.2s;
-  transition-timing-function: ease-out;
+  pointer-events: none;
   will-change: top, left, transform, opacity;
 
   /* Variant styles */
@@ -307,23 +316,6 @@ const TooltipContent = styled.div<{
       intensity: 'minimal',
       color: props.$color,
       themeContext: createThemeContext({}),
-    })}
-  
-  /* Animation for the tooltip */
-  ${props =>
-    props.$visible &&
-    accessibleAnimation({
-      animation: fadeIn,
-      duration: 0.2,
-      easing: 'ease-out',
-    })}
-  
-  ${props =>
-    props.$visible &&
-    accessibleAnimation({
-      animation: scaleUp,
-      duration: 0.2,
-      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
     })}
   
   /* Transform origin based on placement */
@@ -396,10 +388,14 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
     leaveDelay = 0,
     interactive = false,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
   const [visible, setVisible] = useState(false);
+  const [isRendered, setIsRendered] = useState(false);
   const [position, setPosition] = useState({ top: -1000, left: -1000 });
   const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
   const [arrowClass, setArrowClass] = useState('arrow-top');
@@ -408,6 +404,66 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
   const tooltipRef = useRef<HTMLDivElement>(null);
   const enterTimeoutRef = useRef<number | undefined>();
   const leaveTimeoutRef = useRef<number | undefined>();
+
+  const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring } = useAnimationContext();
+  const shouldAnimate = !(disableAnimation ?? prefersReducedMotion);
+
+  // Calculate final spring config
+  const finalSpringConfig = useMemo(() => {
+    // Default to a quick spring for tooltips
+    const baseConfig: SpringConfig = SpringPresets.STIFF;
+    let contextConfig: Partial<SpringConfig> = {};
+    const contextTooltipSpring = defaultSpring; // Use defaultSpring for now
+    if (typeof contextTooltipSpring === 'string' && contextTooltipSpring in SpringPresets) {
+      contextConfig = SpringPresets[contextTooltipSpring as keyof typeof SpringPresets];
+    } else if (typeof contextTooltipSpring === 'object') {
+      contextConfig = contextTooltipSpring ?? {};
+    }
+
+    let propConfig: Partial<SpringConfig> = {};
+    if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+      propConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+    } else if (typeof animationConfig === 'object') {
+      propConfig = animationConfig ?? {};
+    }
+    return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]);
+
+  // --- Animation Setup ---
+  const getAnimationTargets = () => {
+    const targets = {
+      opacity: visible ? 1 : 0,
+      scale: visible ? 1 : 0.95,
+      translateY: 0,
+    };
+    // Add slight vertical movement based on placement
+    const offset = 5;
+    if (!visible) {
+      if (placement.startsWith('top')) targets.translateY = offset;
+      else if (placement.startsWith('bottom')) targets.translateY = -offset;
+    }
+    return targets;
+  };
+
+  const handleRest = useCallback((result: SpringsAnimationResult) => {
+    if (result.finished && !visible) {
+      setIsRendered(false);
+    }
+  }, [visible]);
+
+  const animatedValues = useGalileoSprings(getAnimationTargets(), {
+    config: finalSpringConfig,
+    immediate: !shouldAnimate,
+    onRest: handleRest,
+  });
+
+  // Immediately render when becoming visible
+  useEffect(() => {
+    if (visible) {
+      setIsRendered(true);
+    }
+  }, [visible]);
 
   // Function to update tooltip position
   const updatePosition = () => {
@@ -568,11 +624,17 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
     return children;
   }
 
-  // Create portal for tooltip
+  // Calculate animated style
+  const animatedStyle: React.CSSProperties = {
+    opacity: animatedValues.opacity,
+    transform: `translateY(${animatedValues.translateY}px) scale(${animatedValues.scale})`,
+  };
+
+  // Render portal only if isRendered is true
   return (
     <>
       {trigger}
-      {ReactDOM.createPortal(
+      {isRendered && ReactDOM.createPortal(
         <TooltipContent
           ref={node => {
             tooltipRef.current = node;
@@ -586,11 +648,11 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
           style={{
             top: position.top,
             left: position.left,
+            ...animatedStyle,
           }}
           $variant={variant}
           $color={color}
           $maxWidth={maxWidth}
-          $visible={visible}
           $placement={placement}
           onMouseEnter={handleTooltipMouseEnter}
           onMouseLeave={handleTooltipMouseLeave}

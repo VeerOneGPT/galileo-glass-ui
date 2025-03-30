@@ -1,7 +1,9 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, useMemo } from 'react';
 import styled from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/animationUtils';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
 import { fadeIn } from '../../animations/keyframes/basic';
 import { innerGlow } from '../../core/mixins/effects/innerEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -73,6 +75,11 @@ export interface RadioProps {
    * Additional CSS class name
    */
   className?: string;
+
+  /**
+   * Optional spring configuration for the toggle animation.
+   */
+  animationConfig?: Partial<GalileoSpringConfig>;
 }
 
 // Get the radio color
@@ -202,18 +209,6 @@ const RadioControl = styled.span<{
   border: 2px solid
     ${props => (props.$checked ? getRadioColor(props.$color) : 'rgba(255, 255, 255, 0.5)')};
 
-  /* Inner circle */
-  &::after {
-    content: '';
-    position: absolute;
-    width: ${props => `${getRadioSize(props.$size) / 2}px`};
-    height: ${props => `${getRadioSize(props.$size) / 2}px`};
-    border-radius: 50%;
-    background-color: ${props => getRadioColor(props.$color)};
-    transform: ${props => (props.$checked ? 'scale(1)' : 'scale(0)')};
-    transition: transform 0.2s ease;
-  }
-
   /* Glass effect */
   ${props =>
     props.$glass &&
@@ -269,14 +264,27 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
     labelPlacement = 'end',
     glass = false,
     className,
+    animationConfig,
     ...rest
   } = props;
+
+  // Animation Context
+  const { defaultSpring } = useAnimationContext();
 
   // Internal state for uncontrolled component
   const [internalChecked, setInternalChecked] = useState(defaultChecked || false);
 
   // Determine if radio is checked (controlled or uncontrolled)
   const isChecked = checked !== undefined ? checked : internalChecked;
+
+  // Setup physics spring for inner circle animation
+  const finalAnimationConfig = useMemo(() => {
+    const baseConfig: Partial<GalileoSpringConfig> = { tension: 300, friction: 25 }; // Default subtle spring
+    const contextConfig = typeof defaultSpring === 'string' ? {} : defaultSpring;
+    return { ...baseConfig, ...contextConfig, ...animationConfig };
+  }, [defaultSpring, animationConfig]);
+
+  const { value: progressValue } = useGalileoStateSpring(isChecked ? 1 : 0, finalAnimationConfig);
 
   // Handle change
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -319,7 +327,19 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>((props, ref) => {
         $size={size}
         $color={color}
         $glass={glass}
-      />
+      >
+        <div
+           style={{
+             position: 'absolute',
+             width: `${getRadioSize(size) / 2}px`,
+             height: `${getRadioSize(size) / 2}px`,
+             borderRadius: '50%',
+             backgroundColor: getRadioColor(color),
+             transform: `scale(${progressValue})`,
+             opacity: progressValue,
+           }}
+        />
+      </RadioControl>
 
       {label && <LabelText>{label}</LabelText>}
     </RadioContainer>

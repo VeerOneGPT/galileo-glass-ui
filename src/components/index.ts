@@ -10,7 +10,7 @@ export * from './AccessibilitySettings';
 
 // Basic components
 export { Button, GlassButton } from './Button';
-export { Card, GlassCard } from './Card';
+export { Card } from './Card';
 export { TextField, GlassTextField } from './TextField';
 export { Typography, GlassTypography } from './Typography';
 export { Box, GlassBox } from './Box';
@@ -56,7 +56,7 @@ export { Loader, GlassLoader } from './Loader';
 export { Skeleton, GlassSkeleton } from './Skeleton';
 
 // Navigation components
-export { Tabs, Tab, TabPanel, GlassTabs, GlassTab } from './Tabs';
+export { Tabs, TabPanel, GlassTabs } from './Tabs';
 export { Pagination, GlassPagination } from './Pagination';
 export { Menu, GlassMenu } from './Menu';
 export { MenuItem, GlassMenuItem } from './MenuItem';
@@ -141,7 +141,6 @@ export { DynamicAtmosphere } from './DynamicAtmosphere';
 export { ContextAwareGlass } from './ContextAwareGlass';
 export {
   KpiCard,
-  GlassKpiCard,
   PerformanceMetricCard,
   GlassPerformanceMetricCard,
   InteractiveKpiCard,
@@ -163,9 +162,6 @@ export { AtmosphericBackground, ParticleBackground } from './backgrounds';
 export * from './GlassTooltip';
 
 // Data visualization components
-export * from './DataChart';
-
-// Media components
 export * from './ImageViewer';
 
 // Form components with physics
@@ -191,3 +187,54 @@ export {
 
 // Local version
 export const componentsVersion = '1.0.0';
+
+// Core components
+export * from './Card/Card';
+export * from './Button/Button';
+export * from './TextField/TextField';
+export * from './Typography/Typography';
+export * from './Select/Select';
+export * from './Checkbox/Checkbox';
+export * from './Avatar/Avatar';
+export * from './Menu/Menu';
+export * from './Switch/Switch';
+export * from './Tooltip/Tooltip';
+export * from './Slider/Slider';
+
+// New glass components
+export * from './GlassCardLink/GlassCardLink';
+export * from './GlassTabs/GlassTabs';
+export * from './Chart/ChartWrapper';
+
+// Export Carousel components
+export { 
+  GlassCarousel,
+  CarouselNavigation,
+  CarouselIndicators,
+  CarouselSlideItem,
+  PlayPauseControl,
+  useCarousel
+} from './Carousel';
+
+// Import and export specific components from DataChart
+import { GlassDataChart } from './DataChart/GlassDataChart';
+import { ModularGlassDataChart } from './DataChart/ModularGlassDataChart';
+import { 
+  formatValue,
+  formatNumber,
+  formatCurrency,
+  formatPercentage,
+  formatWithUnits,
+  formatDate as formatChartDate  
+} from './DataChart/GlassDataChartUtils';
+
+export { 
+  GlassDataChart,
+  ModularGlassDataChart,
+  formatValue,
+  formatNumber,
+  formatCurrency,
+  formatPercentage,
+  formatWithUnits,
+  formatChartDate
+};

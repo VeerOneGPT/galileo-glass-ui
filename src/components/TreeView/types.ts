@@ -5,6 +5,8 @@
  */
 
 import React from 'react';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * TreeViewProps interface
@@ -65,7 +67,7 @@ export interface TreeViewProps {
 /**
  * TreeItem interface
  */
-export interface TreeItemProps {
+export interface TreeItemProps extends AnimationProps {
   /** The id of the item */
   nodeId: string;
 

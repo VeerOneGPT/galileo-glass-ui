@@ -17,5 +17,5 @@
 6. **Imports**: Group imports: React, third-party, internal modules, relative imports.
 7. **Styled Components**: Use `$` prefix for transient props (e.g., `$variant`).
 8. **Error Handling**: For user interactions, provide graceful fallbacks with feedback.
-9. **Animation**: Use `accessibleAnimation` to respect user's reduced motion preferences.
+9. **Animation (v1.0.5+)**: Utilize the integrated Galileo Animation System hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useAnimationSequence`). Avoid direct CSS animations/transitions or external libraries. Always ensure animations respect user preferences via `useReducedMotion` (often handled internally by hooks).
 10. **Performance**: Use memoization for complex components and computations.

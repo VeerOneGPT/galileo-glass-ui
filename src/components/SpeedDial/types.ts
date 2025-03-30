@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types'; // Import AnimationProps
 
 /**
  * Action for the SpeedDial
@@ -26,7 +27,7 @@ export interface SpeedDialAction {
 /**
  * Props for the SpeedDial component
  */
-export interface SpeedDialProps {
+export interface SpeedDialProps extends AnimationProps { // Extend AnimationProps
   /** Override or extend the styles applied to the component */
   className?: string;
 
@@ -99,7 +100,7 @@ export interface SpeedDialProps {
 /**
  * Props for the SpeedDialAction component
  */
-export interface SpeedDialActionProps {
+export interface SpeedDialActionProps extends AnimationProps { // Extend AnimationProps
   /** Override or extend the styles applied to the component */
   className?: string;
 

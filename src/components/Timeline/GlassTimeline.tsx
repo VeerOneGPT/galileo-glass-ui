@@ -8,9 +8,11 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styled, { css, keyframes } from 'styled-components';
 
 // Physics-related imports
-import { useSpring } from '../../animations/physics/useSpring';
-import { useInertialMovement } from '../../animations/physics/useInertialMovement';
-import { SpringPresets } from '../../animations/physics/springPhysics';
+import { useInertialMovement, type InertialMovementOptions } from '../../animations/physics/useInertialMovement';
+import { SpringPresets, type SpringConfig } from '../../animations/physics/springPhysics';
+import { useMultiSpring } from '../../animations/physics/useMultiSpring';
+import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
+import { InertialPresets, type InertialConfig } from '../../animations/physics/inertialMovement';
 
 // Core styling imports
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -19,6 +21,10 @@ import { createThemeContext } from '../../core/themeContext';
 
 // Hooks and utilities
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+// Import context and AnimationProps
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { AnimationProps } from '../../animations/types';
 
 // Timeline utilities and types
 import { 
@@ -71,6 +77,13 @@ const pulseAnimation = keyframes`
   100% { transform: scale(1); }
 `;
 
+// Define spring config for item interactions
+const itemInteractionSpringConfig: SpringConfig = {
+  tension: 320,
+  friction: 25,
+  mass: 1,
+};
+
 // Styled components
 const TimelineContainer = styled.div<{
   $orientation: TimelineOrientation;
@@ -115,13 +128,18 @@ const TimelineScrollContainer = styled.div<{
 }>`
   position: relative;
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   transform: translate(${props => props.$scrollX}px, ${props => props.$scrollY}px);
-  transition: transform 0.05s linear;
-  ${props => props.$orientation === 'vertical' 
-    ? 'overflow-x: hidden; overflow-y: auto;' 
-    : 'overflow-x: auto; overflow-y: hidden;'
+  touch-action: ${props => props.$orientation === 'vertical' ? 'pan-y' : 'pan-x'};
+  cursor: grab;
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  & > * {
+     pointer-events: auto; 
   }
 `;
 
@@ -288,102 +306,60 @@ const TimelineEvents = styled.div<{
   }
 `;
 
-const TimelineItem = styled.div<{
+const TimelineItem = styled.div.attrs<{ style: React.CSSProperties }>(props => ({
+  style: props.style,
+}))<{
   $orientation: TimelineOrientation;
   $position: number;
   $side: 'left' | 'right' | 'center';
   $isActive: boolean;
   $isHighlighted: boolean;
   $color?: string;
-  $animation: TimelineAnimationType;
-  $staggerDelay: number;
   $reducedMotion: boolean;
-  $translateX: number;
-  $translateY: number;
-  $scale: number;
-  $opacity: number;
+  style: React.CSSProperties;
 }>`
   position: absolute;
   z-index: 5;
-  
-  /* Position based on orientation */
-  ${props => props.$orientation === 'vertical' 
-    ? `
-      top: ${props.$position}%;
-      transform: translateY(-50%);
-      ${props.$side === 'left' ? 'left: 0;' : props.$side === 'right' ? 'right: 0;' : 'left: 50%;'}
-    ` 
-    : `
-      left: ${props.$position}%;
-      transform: translateX(-50%);
-      ${props.$side === 'left' ? 'top: 0;' : props.$side === 'right' ? 'bottom: 0;' : 'top: 50%;'}
-    `
-  }
-  
-  /* Active state */
+  cursor: pointer;
+
+  ${props => {
+    const positionPercent = `${props.$position}%`;
+    if (props.$orientation === 'vertical') {
+      const horizontalPosition = props.$side === 'left' ? '0%' : props.$side === 'right' ? '100%' : '50%';
+      return css`
+        top: ${positionPercent};
+        left: ${horizontalPosition};
+      `;
+    } else {
+      const verticalPosition = props.$side === 'left' ? '0%' : props.$side === 'right' ? '100%' : '50%';
+      return css`
+        left: ${positionPercent};
+        top: ${verticalPosition};
+      `;
+    }
+  }}
+
   ${props => props.$isActive && css`
     z-index: 6;
   `}
-  
-  /* Highlighted state */
+
   ${props => props.$isHighlighted && css`
-    animation: ${pulseAnimation} 1.5s ease-in-out infinite;
   `}
-  
-  /* Apply physics-based transform */
-  transform: ${props => props.$orientation === 'vertical'
-    ? `translateY(-50%) translate(${props.$translateX}px, ${props.$translateY}px) scale(${props.$scale})`
-    : `translateX(-50%) translate(${props.$translateX}px, ${props.$translateY}px) scale(${props.$scale})`
-  };
-  opacity: ${props => props.$opacity};
-  
-  /* Animation types (for initial mount) */
-  ${props => {
-    if (props.$reducedMotion) return '';
-    
-    let animation;
-    const delay = `${props.$staggerDelay}ms`;
-    
-    switch (props.$animation) {
-      case 'fade':
-        animation = css`animation: ${fadeIn} 0.5s ease-out forwards;`;
-        break;
-      case 'scale':
-        animation = css`animation: ${scaleIn} 0.5s ease-out forwards;`;
-        break;
-      case 'slide':
-        animation = props.$orientation === 'vertical'
-          ? css`animation: ${slideInHorizontal} 0.5s ease-out forwards;`
-          : css`animation: ${slideInVertical} 0.5s ease-out forwards;`;
-        break;
-      case 'spring':
-        // Spring animation is handled by the physics hooks
-        return '';
-      default:
-        return '';
-    }
-    
-    return css`
-      ${animation}
-      animation-delay: ${delay};
-      animation-fill-mode: backwards;
-    `;
-  }}
-  
+
+  will-change: transform, opacity;
+
   display: flex;
   flex-direction: ${props => props.$orientation === 'vertical' ? 'row' : 'column'};
-  align-items: ${props => props.$orientation === 'vertical' 
-    ? 'center' 
+  align-items: ${props => props.$orientation === 'vertical'
+    ? 'center'
     : props.$side === 'center' ? 'center' : 'flex-start'
   };
-  
-  ${props => props.$orientation === 'vertical' && props.$side === 'center' && css`
-    transform: translate(-50%, -50%) translate(${props.$translateX}px, ${props.$translateY}px) scale(${props.$scale});
-  `}
-  
-  ${props => props.$orientation === 'horizontal' && props.$side === 'center' && css`
-    transform: translate(-50%, -50%) translate(${props.$translateX}px, ${props.$translateY}px) scale(${props.$scale});
-  `}
+
+  transition: filter 0.2s ease;
+
+  &:hover {
+     filter: brightness(1.1);
+  }
 `;
 
 const MarkerCircle = styled.div<{
@@ -395,64 +371,58 @@ const MarkerCircle = styled.div<{
   $blurStrength?: 'light' | 'standard' | 'strong';
   $hasIcon: boolean;
 }>`
-  position: relative;
-  z-index: 2;
+  position: absolute;
+  z-index: 4;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  /* Size based on prop */
+
   ${props => {
-    const baseSize = props.$hasIcon 
-      ? { small: 24, medium: 32, large: 40 }[props.$size]
-      : { small: 12, medium: 16, large: 20 }[props.$size];
-    
-    return `
-      width: ${baseSize}px;
-      height: ${baseSize}px;
-      ${props.$hasIcon ? `font-size: ${baseSize / 1.8}px;` : ''}
+    const sizeMap = { small: '8px', medium: '12px', large: '16px' };
+    const iconSizeMap = { small: '6px', medium: '8px', large: '10px' };
+    const size = sizeMap[props.$size] || sizeMap.medium;
+    const iconSize = iconSizeMap[props.$size] || iconSizeMap.medium;
+    return css`
+      width: ${size};
+      height: ${size};
+      font-size: ${iconSize};
+      svg {
+        width: ${iconSize};
+        height: ${iconSize};
+      }
     `;
   }}
-  
-  border-radius: 50%;
-  background-color: ${props => props.$isActive 
-    ? `var(--color-${props.$color || 'primary'}, rgba(99, 102, 241, 0.8))` 
-    : 'rgba(255, 255, 255, 0.2)'
-  };
-  
-  /* Glass styling if enabled */
-  ${props => props.$isGlass && props.$glassVariant && css`
+
+  ${props => {
+    return css`
+       top: 50%; 
+       left: 50%;
+       transform: translate(-50%, -50%);
+    `;
+  }}
+
+  background-color: ${props => props.$isActive
+    ? `var(--color-${props.$color || 'primary'}, #6366F1)`
+    : 'rgba(255, 255, 255, 0.3)'};
+  color: ${props => props.$isActive ? 'white' : 'rgba(255, 255, 255, 0.7)'};
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+
+  ${props => props.$isGlass && css`
     ${() => glassSurface({
-      elevation: 2,
+      elevation: 0,
       blurStrength: props.$blurStrength || 'standard',
-      backgroundOpacity: 'light',
+      backgroundOpacity: 'medium',
       borderOpacity: 'subtle',
-      tintColor: props.$color !== 'default' ? `var(--color-${props.$color}-transparent)` : undefined,
+      tintColor: props.$isActive ? `var(--color-${props.$color}-transparent)` : undefined,
       themeContext: createThemeContext(props.theme),
     })}
-    
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, ${props.$isActive ? '0.2' : '0.1'});
+    box-shadow: ${props.$isActive ? `0 0 6px var(--color-${props.$color || 'primary'}-glow)` : 'none'};
   `}
-  
-  /* Active state styling */
-  ${props => props.$isActive && css`
-    box-shadow: 0 0 10px 2px var(--color-${props.$color || 'primary'}-transparent, rgba(99, 102, 241, 0.4));
-  `}
-  
-  /* Inner dot for non-icon markers */
-  ${props => !props.$hasIcon && css`
-    &::after {
-      content: '';
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: ${props.$isActive 
-        ? 'rgba(255, 255, 255, 0.9)' 
-        : 'rgba(255, 255, 255, 0.5)'
-      };
-    }
+
+  ${props => props.$hasIcon && css`
+    padding: 2px;
   `}
 `;
 
@@ -502,7 +472,6 @@ const EventContent = styled.div<{
   padding: 10px 14px;
   border-radius: 8px;
   
-  /* Glass styling if enabled */
   ${props => props.$isGlass && props.$glassVariant && css`
     ${() => glassSurface({
       elevation: 2,
@@ -520,7 +489,6 @@ const EventContent = styled.div<{
     `}
   `}
   
-  /* Non-glass styling */
   ${props => !props.$isGlass && css`
     background-color: rgba(0, 0, 0, ${props.$isActive ? '0.3' : '0.2'});
     border: 1px solid rgba(255, 255, 255, ${props.$isActive ? '0.15' : '0.1'});
@@ -530,7 +498,6 @@ const EventContent = styled.div<{
     `}
   `}
   
-  /* Active state glow effect */
   ${props => props.$isActive && css`
     ${() => glassGlow({
       color: `var(--color-${props.$color || 'primary'}, rgba(99, 102, 241, 0.8))`,
@@ -541,14 +508,6 @@ const EventContent = styled.div<{
   
   transition: all 0.3s ease;
   cursor: pointer;
-  
-  &:hover {
-    transform: translateY(-2px);
-    ${props => props.$isGlass 
-      ? `border-color: rgba(255, 255, 255, 0.2);` 
-      : `background-color: rgba(0, 0, 0, 0.3);`
-    }
-  }
 `;
 
 const EventTitle = styled.div<{ $color?: string; $isActive: boolean }>`
@@ -627,7 +586,6 @@ const TimelineButton = styled.button<{
   cursor: pointer;
   transition: all 0.2s ease;
   
-  /* Glass styling if enabled */
   ${props => props.$isGlass && props.$glassVariant && css`
     ${() => glassSurface({
       elevation: 2,
@@ -655,7 +613,6 @@ const TimelineButton = styled.button<{
     box-shadow: none;
   }
   
-  /* Icon styling */
   svg {
     width: 18px;
     height: 18px;
@@ -731,39 +688,100 @@ interface Position2D {
   y: number;
 }
 
+// Update return type
 interface UsePositionInertiaResult {
   position: Position2D;
-  setPosition: (position: Position2D, animate?: boolean) => void;
+  setPosition: (position: Position2D, velocity?: Position2D) => void;
+  flick: (velocity: Position2D) => void;
+  stop: () => void;
+  updateConfig: (newConfig: Partial<InertialConfig>) => void;
 }
 
 const usePositionInertia = (
   initialPosition: Position2D = { x: 0, y: 0 },
-  config: any = {}
+  options: InertialMovementOptions = {}
 ): UsePositionInertiaResult => {
-  const { position: xPosition, setPosition: setXPosition } = useInertialMovement({
-    initialPosition: initialPosition.x,
-    ...config
-  });
-  
-  const { position: yPosition, setPosition: setYPosition } = useInertialMovement({
-    initialPosition: initialPosition.y,
-    ...config
-  });
-  
-  const position = { x: xPosition, y: yPosition };
-  
-  const setPosition = (newPosition: Position2D, animate = true) => {
-    setXPosition(newPosition.x, animate ? undefined : 0);
-    setYPosition(newPosition.y, animate ? undefined : 0);
+
+  // --- Refined Config Handling --- 
+  const getAxisConfig = (axis: 'x' | 'y'): Partial<InertialConfig> => {
+    let configPart: Partial<InertialConfig> = {};
+    if (typeof options.config === 'string') {
+      // If it's a preset string, get the preset object
+      configPart = InertialPresets[options.config] || {}; 
+    } else if (options.config) {
+      // If it's an object, use it directly
+      configPart = options.config;
+    }
+    // Return only the config part, assuming bounds are handled correctly within InertialConfig type
+    return configPart;
   };
+
+  // Initialize configs (without options spread initially, just the config part)
+  const initialConfigX = useMemo(() => getAxisConfig('x'), [options.config]);
+  const initialConfigY = useMemo(() => getAxisConfig('y'), [options.config]);
+
+  const { 
+    position: xPosition, 
+    setPosition: setXInternal,
+    flick: flickX,
+    stop: stopX,
+    updateConfig: updateConfigX
+  } = useInertialMovement({
+    initialPosition: initialPosition.x,
+    // Pass initial velocity/autoStart from options if they exist
+    initialVelocity: options.initialVelocity,
+    autoStart: options.autoStart,
+    config: initialConfigX // Pass the calculated config object
+  });
   
-  return { position, setPosition };
+  const { 
+    position: yPosition, 
+    setPosition: setYInternal,
+    flick: flickY,
+    stop: stopY,
+    updateConfig: updateConfigY
+  } = useInertialMovement({
+    initialPosition: initialPosition.y,
+    initialVelocity: options.initialVelocity,
+    autoStart: options.autoStart,
+    config: initialConfigY // Pass the calculated config object
+  });
+  
+  const position = useMemo(() => ({ x: xPosition, y: yPosition }), [xPosition, yPosition]);
+
+  const setPosition = useCallback((newPosition: Position2D, velocity?: Position2D) => {
+    setXInternal(newPosition.x, velocity?.x);
+    setYInternal(newPosition.y, velocity?.y);
+  }, [setXInternal, setYInternal]);
+
+  const flick = useCallback((velocity: Position2D) => {
+    flickX(velocity.x);
+    flickY(velocity.y);
+  }, [flickX, flickY]);
+
+  const stop = useCallback(() => {
+    stopX();
+    stopY();
+  }, [stopX, stopY]);
+
+  // Update updateConfig to correctly handle merging
+  const updateConfig = useCallback((newConfigPart: Partial<InertialConfig>) => {
+    // Update each axis hook with the new partial config
+    // The hook internally merges this with its existing config
+    updateConfigX(newConfigPart); 
+    updateConfigY(newConfigPart);
+  }, [updateConfigX, updateConfigY]);
+  
+  return { position, setPosition, flick, stop, updateConfig };
 };
+
+// Utility function for clamping
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max));
 
 /**
  * GlassTimeline Component
  */
-export const GlassTimeline: React.FC<TimelineProps> = ({
+export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = ({
   // Main props
   items = [],
   orientation = 'vertical',
@@ -826,7 +844,10 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
   
   // Other props
   id,
-  ariaLabel
+  ariaLabel,
+  // Destructure AnimationProps (making them optional via Partial)
+  animationConfig,
+  disableAnimation,
 }) => {
   // Parse initial date
   const parsedInitialDate = useMemo(() => {
@@ -838,56 +859,145 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
   const [currentViewMode, setCurrentViewMode] = useState<TimelineViewMode>(viewMode);
   const [currentZoomLevel, setCurrentZoomLevel] = useState<ZoomLevel>(zoomLevel);
   const [selectedId, setSelectedId] = useState<string | number | null>(activeId || null);
-  const [isScrolling, setIsScrolling] = useState(false);
   const [dateRange, setDateRange] = useState(getDateRangeForView(parsedInitialDate, viewMode, 2));
   
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const lastScrollPosition = useRef({ x: 0, y: 0 });
   const itemRefs = useRef<Map<string | number, HTMLDivElement>>(new Map());
   const isInitialMount = useRef(true);
+  const eventsContainerRef = useRef<HTMLDivElement>(null); // Ref for content wrapper
+  
+  // Drag State Refs
+  const isDragging = useRef(false);
+  const pointerId = useRef<number | null>(null);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const lastDragPos = useRef({ x: 0, y: 0 });
+  const velocityTracker = useRef<{ t: number; x: number; y: number }[]>([]);
   
   // Accessibility
   const reducedMotion = useReducedMotion();
   
-  // Update date range when view mode or current date changes
+  // Get Animation Context - Use defaultSpring as the main context config
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  
+  // Calculate final disable state
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? reducedMotion;
+  
+  // --- State for Bounds ---
+  const [scrollBounds, setScrollBounds] = useState<{ min: number, max: number }>({ min: 0, max: 0 });
+  
+  // --- Initialize Physics Hook ---
+  // Defined early
+  const { 
+    position: physicsScrollPosition, 
+    setPosition: setPhysicsScrollPosition,
+    flick: flickPhysicsScroll,
+    stop: stopPhysicsScroll,
+    updateConfig: updatePhysicsConfig
+  } = usePositionInertia({ x: 0, y: 0 }, { 
+    config: { 
+       bounds: scrollBounds // Initial bounds state (will be updated by effect)
+    }
+  }); 
+  
+  // --- Define Merged Physics/Spring Configs --- 
+  const finalScrollPhysicsConfig = useMemo(() => {
+    const baseConfig: Partial<InertialConfig> = InertialPresets.DEFAULT;
+    let contextConf: Partial<InertialConfig> = {};
+    // Use defaultSpring from context
+    if (typeof defaultSpring === 'string' && defaultSpring in InertialPresets) {
+      contextConf = InertialPresets[defaultSpring as keyof typeof InertialPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      // Try to use it as InertialConfig
+      contextConf = defaultSpring as Partial<InertialConfig>; 
+    }
+
+    let propConf: Partial<InertialConfig> = {};
+    // Use animationConfig (treat as flat config or preset name for scroll)
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in InertialPresets) {
+      propConf = InertialPresets[propSource as keyof typeof InertialPresets];
+    } else if (typeof propSource === 'object' && propSource !== null) {
+      propConf = propSource as Partial<InertialConfig>;
+    }
+    
+    // Merge: Base < Context < Prop
+    return { ...baseConfig, ...contextConf, ...propConf };
+  // Update dependencies - removed physicsConfig.scroll
+  }, [defaultSpring, animationConfig]);
+
+  const finalInteractionConfig = useMemo(() => {
+    const baseConfig = SpringPresets.SNAPPY; // Base for item interaction
+    let contextConf: Partial<SpringConfig> = {};
+    // Use defaultSpring from context
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextConf = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      contextConf = defaultSpring as Partial<SpringConfig>;
+    }
+    let propConf: Partial<SpringConfig> = {};
+    // Use animationConfig (treat as flat config or preset name for interaction)
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in SpringPresets) {
+      propConf = SpringPresets[propSource as keyof typeof SpringPresets];
+    } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+      propConf = propSource as Partial<SpringConfig>;
+    }
+    // Merge: Base < Context < Prop
+    return { ...baseConfig, ...contextConf, ...propConf };
+  // Update dependencies - removed physicsConfig.itemInteraction
+  }, [defaultSpring, animationConfig]);
+
+  // Update date range (simple state update, okay early)
   useEffect(() => {
     setDateRange(getDateRangeForView(currentDate, currentViewMode, 2));
   }, [currentDate, currentViewMode]);
-  
-  // Sync selectedId with activeId from props
+
+  // Calculate position for an item on the timeline (depends only on dateRange state)
+  const calculateItemPosition = useCallback((date: Date): number => {
+    return calculateTimelinePosition(date, dateRange.start, dateRange.end);
+  }, [dateRange]);
+
+  // === Define scrollToDate EARLY (depends on calculateItemPosition & physics hook) ===
+  const scrollToDate = useCallback((date: Date, smooth = true) => {
+    if (!scrollContainerRef.current) return;
+    
+    // console.warn("scrollToDate using physics scroll"); // Keep console warning minimal
+
+    const position = calculateItemPosition(date);
+    const container = scrollContainerRef.current;
+    let targetX = physicsScrollPosition.x;
+    let targetY = physicsScrollPosition.y;
+    
+    // Use scrollBounds state directly here
+    const currentBounds = scrollBounds; 
+
+    if (orientation === 'vertical') {
+      const targetScrollTop = (position / 100) * container.scrollHeight - container.clientHeight / 2;
+      // Clamp targetY using bounds
+      targetY = clamp(-targetScrollTop, currentBounds.min, currentBounds.max); 
+    } else {
+       const targetScrollLeft = (position / 100) * container.scrollWidth - container.clientWidth / 2;
+       // Clamp targetX using bounds
+       targetX = clamp(-targetScrollLeft, currentBounds.min, currentBounds.max);
+    }
+    
+    setPhysicsScrollPosition({ x: targetX, y: targetY });
+
+  // Add scrollBounds to dependency array
+  }, [calculateItemPosition, orientation, setPhysicsScrollPosition, physicsScrollPosition, scrollBounds]); 
+
+  // Sync selectedId with activeId from props (now runs AFTER scrollToDate is defined)
   useEffect(() => {
     if (activeId !== undefined) {
       setSelectedId(activeId);
-      
-      // Find the item by ID and scroll to it
       const selectedItem = items.find(item => item.id === activeId);
       if (selectedItem) {
-        scrollToDate(parseDate(selectedItem.date));
+        scrollToDate(parseDate(selectedItem.date)); 
       }
     }
-  }, [activeId, items]);
-  
-  // Set up springs for animations
-  const { position: scrollPosition, setPosition: setScrollPosition } = usePositionInertia({ x: 0, y: 0 });
-
-  // Track scroll position separately
-  const [scrollX, setScrollX] = useState(0);
-  const [scrollY, setScrollY] = useState(0);
-  
-  // Get spring config
-  const springConfig = useMemo(() => {
-    if (physics.preset) {
-      return SpringPresets[physics.preset.toUpperCase() as keyof typeof SpringPresets];
-    }
-    
-    return {
-      tension: physics.tension || 170,
-      friction: physics.friction || 26,
-      mass: physics.mass || 1
-    };
-  }, [physics]);
+  }, [activeId, items, scrollToDate]); 
   
   // Create springs for each item (for physics animations)
   const [itemPhysicsProps, setItemPhysicsProps] = useState<Record<string | number, {
@@ -926,11 +1036,6 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
     return formatDate(date, currentViewMode, currentZoomLevel);
   }, [currentViewMode, currentZoomLevel, markers.formatter]);
   
-  // Calculate position for an item on the timeline
-  const calculateItemPosition = useCallback((date: Date): number => {
-    return calculateTimelinePosition(date, dateRange.start, dateRange.end);
-  }, [dateRange]);
-  
   // Determine which side an event should be on
   const getEventSide = useCallback((index: number, itemId: string | number): 'left' | 'right' | 'center' => {
     if (markerPosition === 'left') return 'right';
@@ -944,27 +1049,6 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
       
     return index % 2 === 0 || idNumber % 2 === 0 ? 'right' : 'left';
   }, [markerPosition]);
-  
-  // Scroll to a specific date
-  const scrollToDate = useCallback((date: Date, smooth = true) => {
-    if (!scrollContainerRef.current) return;
-    
-    const position = calculateItemPosition(date);
-    
-    if (orientation === 'vertical') {
-      const scrollTop = (position / 100) * scrollContainerRef.current.scrollHeight;
-      scrollContainerRef.current.scrollTo({
-        top: scrollTop - scrollContainerRef.current.clientHeight / 2,
-        behavior: smooth && !reducedMotion ? 'smooth' : 'auto'
-      });
-    } else {
-      const scrollLeft = (position / 100) * scrollContainerRef.current.scrollWidth;
-      scrollContainerRef.current.scrollTo({
-        left: scrollLeft - scrollContainerRef.current.clientWidth / 2,
-        behavior: smooth && !reducedMotion ? 'smooth' : 'auto'
-      });
-    }
-  }, [calculateItemPosition, orientation, reducedMotion]);
   
   // Handle date change
   const changeDate = useCallback((newDate: Date) => {
@@ -1048,70 +1132,56 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
     }
   }, [currentZoomLevel, zoomLevels, changeZoomLevel]);
   
-  // Handle mouse wheel for zooming
+  // Handle mouse wheel for zooming OR panning
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (!allowWheelZoom) return;
-    
-    // If Ctrl key is pressed, use wheel for zooming
-    if (e.ctrlKey) {
-      e.preventDefault();
-      if (e.deltaY < 0) {
-        zoomIn();
-      } else {
-        zoomOut();
-      }
-    }
-  }, [allowWheelZoom, zoomIn, zoomOut]);
-  
-  // Handle scroll events for loading more events
-  const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current) return;
-    
-    const { scrollTop, scrollLeft, scrollHeight, scrollWidth, clientHeight, clientWidth } = scrollContainerRef.current;
-    
-    // Update lastScrollPosition
-    lastScrollPosition.current = { 
-      x: scrollLeft, 
-      y: scrollTop 
-    };
-    
-    // Check if scrolling and reset after a delay
-    setIsScrolling(true);
-    clearTimeout(window.setTimeout(() => {}, 0)); // Clear any existing timeout
-    window.setTimeout(() => {
-      setIsScrolling(false);
-    }, 150);
-    
-    // Load more past events when scrolling to the top/left
-    if (hasMorePast && onLoadMorePast) {
-      const isPastEdge = orientation === 'vertical'
-        ? scrollTop < clientHeight * 0.2
-        : scrollLeft < clientWidth * 0.2;
+    // Zooming logic (Ctrl key pressed)
+    if (allowWheelZoom && e.ctrlKey) {
+       e.preventDefault();
+       e.stopPropagation(); 
+       if (e.deltaY < 0) {
+         zoomIn();
+       } else {
+         zoomOut();
+       }
+    } 
+    // Panning logic (No Ctrl key)
+    else {
+        // Prevent default page scroll if we handle the wheel event
+        e.preventDefault(); 
+        e.stopPropagation();
+
+        const wheelScaleFactor = 0.5; // Adjust sensitivity
+        let deltaX = 0;
+        let deltaY = 0;
+
+        if (orientation === 'vertical') {
+            // Standard wheel delta Y scrolls vertically (invert deltaY)
+            deltaY = -e.deltaY * wheelScaleFactor; 
+        } else { // Horizontal
+            // Use deltaX if available, otherwise fallback to deltaY for horizontal scroll (invert delta)
+            deltaX = -(e.deltaX || e.deltaY) * wheelScaleFactor;
+        }
         
-      if (isPastEdge && !loadingPast) {
-        onLoadMorePast();
-      }
+        // Calculate new position based on current physics pos + delta
+        let newTargetPosX = physicsScrollPosition.x + deltaX;
+        let newTargetPosY = physicsScrollPosition.y + deltaY;
+
+        // Clamp the new position using scrollBounds
+        const currentBounds = scrollBounds;
+        if (orientation === 'vertical') {
+           newTargetPosY = clamp(newTargetPosY, currentBounds.min, currentBounds.max);
+           newTargetPosX = physicsScrollPosition.x; // Keep X fixed
+        } else { 
+           newTargetPosX = clamp(newTargetPosX, currentBounds.min, currentBounds.max);
+           newTargetPosY = physicsScrollPosition.y; // Keep Y fixed
+        }
+
+        // Set position directly, no inertia from wheel scroll
+        setPhysicsScrollPosition({ x: newTargetPosX, y: newTargetPosY }); 
     }
     
-    // Load more future events when scrolling to the bottom/right
-    if (hasMoreFuture && onLoadMoreFuture) {
-      const isFutureEdge = orientation === 'vertical'
-        ? scrollTop + clientHeight > scrollHeight * 0.8
-        : scrollLeft + clientWidth > scrollWidth * 0.8;
-        
-      if (isFutureEdge && !loadingFuture) {
-        onLoadMoreFuture();
-      }
-    }
-  }, [
-    orientation, 
-    loadingPast, 
-    loadingFuture, 
-    hasMorePast, 
-    hasMoreFuture, 
-    onLoadMorePast, 
-    onLoadMoreFuture
-  ]);
+  // Add dependencies: physicsScrollPosition, setPhysicsScrollPosition, scrollBounds, orientation
+  }, [allowWheelZoom, zoomIn, zoomOut, physicsScrollPosition, setPhysicsScrollPosition, scrollBounds, orientation]);
   
   // Handle item click
   const handleItemClick = useCallback((item: TimelineItem) => {
@@ -1237,6 +1307,188 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
     physics.staggerDelay
   ]);
   
+  // === Bounds Calculation Effect (runs AFTER filteredItems/groupedItems defined) ===
+  useEffect(() => {
+    if (!scrollContainerRef.current || !eventsContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const content = eventsContainerRef.current;
+
+    let minBound = 0;
+    let maxBound = 0; // Max is always 0 (top/left edge)
+
+    if (orientation === 'vertical') {
+        const contentHeight = content.scrollHeight;
+        const containerHeight = container.clientHeight;
+        // Minimum bound is negative scrollable distance
+        minBound = containerHeight >= contentHeight ? 0 : -(contentHeight - containerHeight);
+    } else { // Horizontal
+        const contentWidth = content.scrollWidth;
+        const containerWidth = container.clientWidth;
+        minBound = containerWidth >= contentWidth ? 0 : -(contentWidth - containerWidth);
+    }
+
+    const newBounds = { min: minBound, max: maxBound };
+
+    // Only update state and config if bounds actually changed
+    if (newBounds.min !== scrollBounds.min || newBounds.max !== scrollBounds.max) {
+        setScrollBounds(newBounds);
+        // Update physics config with NEW bounds AND the merged physics config
+        // REMOVED immediate flag from config object
+        updatePhysicsConfig({ 
+            bounds: newBounds, 
+            ...finalScrollPhysicsConfig // Pass the merged config here
+        }); 
+    }
+
+  // Keep dependencies, removed finalDisableAnimation as immediate is not passed
+  }, [orientation, items, filteredItems, groupedItems, scrollBounds, updatePhysicsConfig, finalScrollPhysicsConfig]); 
+
+  // === Effect to Trigger Load More ===
+  useEffect(() => {
+    if (!scrollContainerRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const thresholdFactor = 0.2; // Load when 20% from edge
+    let currentPos: number;
+    let clientSize: number;
+    
+    if (orientation === 'vertical') {
+      currentPos = physicsScrollPosition.y; // This is negative, max is 0
+      clientSize = container.clientHeight;
+    } else { // Horizontal
+      currentPos = physicsScrollPosition.x; // Also negative, max is 0
+      clientSize = container.clientWidth;
+    }
+
+    const minBound = scrollBounds.min;
+    const maxBound = scrollBounds.max; // Should always be 0
+
+    // Check for loading past (scrolling towards min boundary)
+    // Ensure minBound is less than 0 to avoid triggering when content fits
+    const pastLoadThreshold = minBound < 0 ? minBound + clientSize * thresholdFactor : 0;
+    if (
+      hasMorePast && 
+      onLoadMorePast && 
+      !loadingPast && 
+      currentPos < pastLoadThreshold && // Position is close to or beyond the minimum bound
+      minBound < 0 // Only trigger if there's actually something to scroll past
+    ) {
+       // console.log("Triggering Load More Past");
+       onLoadMorePast();
+    }
+
+    // Check for loading future (scrolling towards max boundary, which is 0)
+    // Ensure minBound is less than 0 to avoid triggering when content fits
+    const futureLoadThreshold = minBound < 0 ? maxBound - clientSize * thresholdFactor : 0; // e.g., -100 if clientSize is 500
+    if (
+      hasMoreFuture && 
+      onLoadMoreFuture && 
+      !loadingFuture && 
+      currentPos > futureLoadThreshold && // Position is close to the maximum bound (0)
+      minBound < 0 // Only trigger if there's scrollable area
+    ) {
+      // console.log("Triggering Load More Future");
+      onLoadMoreFuture();
+    }
+
+  // Dependencies: position, bounds, loading/hasMore flags, callbacks, orientation
+  }, [
+      physicsScrollPosition, 
+      scrollBounds, 
+      orientation, 
+      loadingPast, 
+      loadingFuture, 
+      hasMorePast, 
+      hasMoreFuture, 
+      onLoadMorePast, 
+      onLoadMoreFuture
+  ]);
+  
+  // === Re-add Pointer Event Handlers ===
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType !== 'touch') return;
+    e.preventDefault(); 
+    
+    isDragging.current = true;
+    pointerId.current = e.pointerId;
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    lastDragPos.current = physicsScrollPosition; 
+    
+    stopPhysicsScroll(); 
+    velocityTracker.current = []; 
+    
+    e.currentTarget.setPointerCapture(e.pointerId); 
+    
+  }, [physicsScrollPosition, stopPhysicsScroll]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || e.pointerId !== pointerId.current) return;
+    
+    const currentPos = { x: e.clientX, y: e.clientY };
+    const timestamp = e.timeStamp;
+    
+    const tracker = velocityTracker.current;
+    while (tracker.length > 0 && timestamp - tracker[0].t > 100) {
+      tracker.shift();
+    }
+    tracker.push({ t: timestamp, x: currentPos.x, y: currentPos.y });
+
+    const delta = { 
+      x: currentPos.x - dragStartPos.current.x, 
+      y: currentPos.y - dragStartPos.current.y 
+    };
+    
+    let newTargetPosX = lastDragPos.current.x + delta.x;
+    let newTargetPosY = lastDragPos.current.y + delta.y;
+    
+    // --- Clamp target position during drag ---
+    const currentBounds = scrollBounds; // Use state value
+    if (orientation === 'vertical') {
+       newTargetPosY = clamp(newTargetPosY, currentBounds.min, currentBounds.max);
+       // Keep X unchanged if vertical
+       newTargetPosX = physicsScrollPosition.x; 
+    } else { // Horizontal
+       newTargetPosX = clamp(newTargetPosX, currentBounds.min, currentBounds.max);
+       // Keep Y unchanged if horizontal
+       newTargetPosY = physicsScrollPosition.y;
+    }
+    // --- End Clamping ---
+    
+    setPhysicsScrollPosition({ x: newTargetPosX, y: newTargetPosY });
+    
+  // Add scrollBounds and orientation to dependencies
+  }, [setPhysicsScrollPosition, scrollBounds, orientation, physicsScrollPosition]); 
+
+  const handlePointerUpOrLeave = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || e.pointerId !== pointerId.current) return;
+    
+    isDragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    pointerId.current = null;
+    
+    let velocity = { x: 0, y: 0 };
+    const tracker = velocityTracker.current;
+    if (tracker.length >= 2) {
+      const first = tracker[0];
+      const last = tracker[tracker.length - 1];
+      const dt = (last.t - first.t) / 1000; 
+      if (dt > 0) {
+        const velocityFactor = 1.5; 
+        velocity = {
+          x: ((last.x - first.x) / dt) * velocityFactor,
+          y: ((last.y - first.y) / dt) * velocityFactor,
+        };
+      }
+    }
+    velocityTracker.current = [];
+
+    if (Math.abs(velocity.x) > 10 || Math.abs(velocity.y) > 10) {
+       flickPhysicsScroll(velocity);
+    }
+    
+  }, [flickPhysicsScroll]);
+
   // Render a timeline event
   const renderEvent = (item: TimelineItem, index: number, isGrouped = false) => {
     const date = parseDate(item.date);
@@ -1244,14 +1496,32 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
     const side = getEventSide(index, item.id);
     const isActive = selectedId === item.id || !!item.active;
     
-    // Get physics props for this item (or default values)
-    const physicsProps = itemPhysicsProps[item.id.toString()] || {
+    // Get physics props for ENTRANCE animation (or default values)
+    const entrancePhysicsProps = itemPhysicsProps[item.id.toString()] || {
       translateX: 0,
       translateY: 0,
       scale: 1,
       opacity: 1
     };
     
+    // --- Add Hover/Focus State & Interaction Physics --- 
+    const [isHovered, setIsHovered] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
+    
+    const interactionTarget = useMemo(() => ({
+      scale: finalDisableAnimation ? 1 : (isHovered || isFocused) ? 1.04 : 1,
+      // Add a subtle lift on hover/focus
+      y: finalDisableAnimation ? 0 : (isHovered || isFocused) ? -3 : 0, 
+    }), [finalDisableAnimation, isHovered, isFocused]);
+
+    const { values: interactionValues, start: startInteractionSpring } = useMultiSpring({
+      from: { scale: 1, y: 0 },
+      to: interactionTarget,
+      animationConfig: finalInteractionConfig, // Use the merged interaction config
+      immediate: finalDisableAnimation, // Pass immediate flag
+    });
+    // --- End Interaction Physics ---
+
     // For grouped items, show count instead of individual items
     if (isGrouped && index > 0) return null;
     
@@ -1275,13 +1545,11 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
         $isActive={isActive}
         $isHighlighted={!!item.highlighted}
         $color={item.color || color}
-        $animation={animation}
-        $staggerDelay={staggerDelay}
-        $reducedMotion={reducedMotion}
-        $translateX={physicsProps.translateX}
-        $translateY={physicsProps.translateY}
-        $scale={physicsProps.scale}
-        $opacity={physicsProps.opacity}
+        $reducedMotion={finalDisableAnimation} // Use finalDisableAnimation here
+        style={{
+          transform: `translateY(-50%) translate(${entrancePhysicsProps.translateX}px, ${entrancePhysicsProps.translateY + interactionValues.y}px) scale(${entrancePhysicsProps.scale * interactionValues.scale})`,
+          opacity: entrancePhysicsProps.opacity
+        }}
         className={markerClassName}
         onClick={() => handleItemClick(item)}
         tabIndex={0}
@@ -1293,6 +1561,10 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
             handleItemClick(item);
           }
         }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       >
         {side === 'left' && orientation === 'vertical' && (
           <>
@@ -1571,9 +1843,12 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
       <TimelineScrollContainer
         ref={scrollContainerRef}
         $orientation={orientation}
-        $scrollX={scrollPosition.x}
-        $scrollY={scrollPosition.y}
-        onScroll={handleScroll}
+        $scrollX={physicsScrollPosition.x}
+        $scrollY={physicsScrollPosition.y}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUpOrLeave}
+        onPointerLeave={handlePointerUpOrLeave}
       >
         {/* Loading indicator for past events */}
         {loadingPast && (
@@ -1583,28 +1858,30 @@ export const GlassTimeline: React.FC<TimelineProps> = ({
           </LoadingIndicator>
         )}
         
-        {/* Timeline content */}
-        <TimelineEvents
-          $orientation={orientation}
-          $markerPosition={markerPosition}
-          $density={density}
-        >
-          {/* Timeline axis */}
-          {showAxis && (
-            <TimelineAxis
-              $orientation={orientation}
-              $height={orientation === 'horizontal' ? 50 : 0}
-              $glassVariant={glassVariant}
-              $blurStrength={blurStrength}
-            />
-          )}
-          
-          {/* Time markers */}
-          {renderTimeMarkers()}
-          
-          {/* Events */}
-          {filteredItems.length === 0 ? renderEmptyState() : renderEvents()}
-        </TimelineEvents>
+        {/* Wrap TimelineEvents in the ref container */}
+        <div ref={eventsContainerRef}>
+          <TimelineEvents
+            $orientation={orientation}
+            $markerPosition={markerPosition}
+            $density={density}
+          >
+            {/* Timeline axis */}
+            {showAxis && (
+              <TimelineAxis
+                $orientation={orientation}
+                $height={orientation === 'horizontal' ? 50 : 0}
+                $glassVariant={glassVariant}
+                $blurStrength={blurStrength}
+              />
+            )}
+            
+            {/* Time markers */}
+            {renderTimeMarkers()}
+            
+            {/* Events */}
+            {filteredItems.length === 0 ? renderEmptyState() : renderEvents()}
+          </TimelineEvents>
+        </div>
         
         {/* Loading indicator for future events */}
         {loadingFuture && (

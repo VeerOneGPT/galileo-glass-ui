@@ -7,8 +7,7 @@ import React, {
   useRef,
   useContext,
 } from 'react';
-import PropTypes from 'prop-types';
-import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { css, ThemeProvider as StyledThemeProvider, createGlobalStyle } from 'styled-components';
 
 import { createThemeContext as __createThemeContext } from '../core/themeUtils';
 import type { ThemeContext as _ThemeContextType} from '../core/themeUtils';
@@ -240,34 +239,6 @@ export interface ThemeProviderProps {
    */
   onThemeChange?: (theme: string) => void;
 }
-
-/**
- * PropTypes definition for Glass Surface components.
- * Can be used in other components that need Glass Surface styling validation.
- * 
- * @example
- * // Use in a component that accepts glass surface props
- * MyComponent.propTypes = {
- *   ...GlassSurfacePropTypes.isRequired,
- *   children: PropTypes.node
- * }
- */
-export const GlassSurfacePropTypes = PropTypes.shape({
-  variant: PropTypes.oneOf(['standard', 'frosted', 'dimensional', 'heat']),
-  blurStrength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  backgroundOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  borderOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  glowIntensity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  elevation: PropTypes.oneOfType([
-    PropTypes.number,
-    PropTypes.oneOf(['none', 'low', 'medium', 'high'])
-  ]),
-  interactive: PropTypes.bool,
-  darkMode: PropTypes.bool
-});
-
-// Keep a reference to the internal version for backward compatibility
-const _GlassSurfacePropTypes = GlassSurfacePropTypes;
 
 /**
  * Unified Theme Provider Component
@@ -866,24 +837,6 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
     );
   }
 
-  // Add prop validation for GlassSurface component
-  // See exported GlassSurfacePropTypes above for reusable PropTypes definition
-  // @ts-ignore - Ignoring TypeScript errors with PropTypes validation
-  GlassSurfaceComponent.propTypes = {
-    variant: PropTypes.oneOf(['standard', 'frosted', 'dimensional', 'heat']),
-    blurStrength: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    backgroundOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    borderOpacity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    glowIntensity: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    elevation: PropTypes.oneOfType([
-      PropTypes.number,
-      PropTypes.oneOf(['none', 'low', 'medium', 'high'])
-    ]),
-    interactive: PropTypes.bool,
-    darkMode: PropTypes.bool,
-    children: PropTypes.node
-  };
-
   // Use the component directly
   const GlassSurface = GlassSurfaceComponent;
 
@@ -1121,28 +1074,6 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
       </ColorModeContext.Provider>
     </ThemeProviderPresenceContext.Provider>
   );
-};
-
-// PropTypes for UnifiedThemeProvider
-UnifiedThemeProvider.propTypes = {
-  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
-  children: PropTypes.node.isRequired,
-  initialColorMode: PropTypes.oneOf(['light', 'dark', 'system']),
-  initialTheme: PropTypes.string,
-  enableAutoDetection: PropTypes.bool,
-  respectSystemPreference: PropTypes.bool,
-  forceColorMode: PropTypes.oneOf(['light', 'dark', 'system']),
-  disableTransitions: PropTypes.bool,
-  enableScrollOptimization: PropTypes.bool,
-  initialQualityTier: PropTypes.oneOf(['ultra', 'high', 'medium', 'low', 'minimal']),
-  isolateTheme: PropTypes.bool,
-  enableOptimizations: PropTypes.bool,
-  debug: PropTypes.bool,
-  performanceMonitoring: PropTypes.bool,
-  contextUpdateThrottle: PropTypes.number,
-  updateOnlyOnCommit: PropTypes.bool,
-  onColorModeChange: PropTypes.func,
-  onThemeChange: PropTypes.func
 };
 
 /**

@@ -32,3 +32,58 @@ export {
 export { default as DomBatcherExample } from './examples/DomBatcherExample';
 export { default as TransformConsolidatorExample } from './examples/TransformConsolidatorExample';
 export { default as GPUAccelerationExample } from './examples/GPUAccelerationExample';
+export { default as AnimationPreferencesExample } from './examples/AnimationPreferencesExample';
+
+// Device capabilities detection hooks
+export { 
+  default as useDeviceCapabilities, 
+  useRefreshRate,
+  useBatterySavingMode,
+  useIsMobileDevice,
+  useSupportsHighQualityAnimations,
+  DeviceTier,
+  DeviceType,
+  type DeviceCapabilities
+} from './useDeviceCapabilities';
+
+// Quality tier management hook
+export {
+  default as useQualityTier,
+  QualityTier,
+  type QualityFeatureFlags,
+  type QualityTierOptions
+} from './useQualityTier';
+
+// Physics settings presets
+export {
+  default as usePhysicsSettings,
+  getPhysicsSettings,
+  applySpecializedPreset,
+  createCustomPhysicsSettings,
+  DEFAULT_PHYSICS_SETTINGS,
+  PHYSICS_SETTINGS_PRESETS,
+  SPECIALIZED_PHYSICS_PRESETS,
+  type PhysicsSettings
+} from './physicsSettings';
+
+// Dynamic resolution scaling
+export {
+  default as useDynamicResolutionScaling,
+  type ResolutionScalingConfig
+} from './dynamicResolutionScaling';
+
+// Performance monitoring and quality adjustment
+export {
+  default as usePerformanceMonitor,
+  PerformanceMetricType,
+  type PerformanceSample,
+  type QualityAdjustmentOptions
+} from './performanceMonitor';
+
+// User animation preferences
+export {
+  default as useAnimationPreferences,
+  PreferenceMode,
+  type AnimationPreferences,
+  type AnimationPreferencesOptions
+} from './useAnimationPreferences';

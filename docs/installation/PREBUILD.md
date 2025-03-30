@@ -106,6 +106,9 @@ Example usage:
 import { OptimizedList } from 'galileo-glass-ui/components/Performance';
 ```
 
+# Only if using virtualized lists
+npm install react-virtual
+
 This modular approach keeps your bundle size smaller by only including the dependencies you actually need. If you try to use a component that requires an optional dependency without installing it first, you'll receive a helpful error message explaining which package to install.
 
 ## Verifying Installation

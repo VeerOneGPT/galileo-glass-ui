@@ -1,5 +1,7 @@
 import React from 'react';
-import { GlassCard } from '../Glass';
+import { Card } from '../Card';
+import { GlassButton } from '../Button';
+import { GlassTypography } from '../Typography';
 
 /**
  * GlassCardExample
@@ -9,48 +11,41 @@ import { GlassCard } from '../Glass';
 const GlassCardExample: React.FC = () => {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '24px', padding: '24px' }}>
-      {/* Standard Glass Card */}
-      <GlassCard 
-        title="Standard Glass Card" 
-        variant="standard"
-        elevation={1}
-      >
-        <p>This is a standard glass card with medium blur and opacity.</p>
-        <button>Action Button</button>
-      </GlassCard>
+      {/* Standard Glass Card - Use frosted as default */}
+      <Card variant="frosted">
+        <GlassTypography variant="h5">Standard Glass Card</GlassTypography>
+        <GlassTypography variant="body1" style={{ marginTop: '10px', marginBottom: '20px' }}>
+          This is a standard glass card with medium blur and opacity.
+        </GlassTypography>
+        <GlassButton>Action Button</GlassButton>
+      </Card>
       
       {/* Frosted Glass Card */}
-      <GlassCard 
-        title="Frosted Glass Card" 
-        variant="frosted"
-        blurStrength="strong"
-        backgroundOpacity="light"
-      >
-        <p>This card uses the frosted glass variant with high blur.</p>
-        <button>Learn More</button>
-      </GlassCard>
+      <Card variant="frosted">
+        <GlassTypography variant="h5">Frosted Glass Card</GlassTypography>
+        <GlassTypography variant="body1" style={{ marginTop: '10px', marginBottom: '20px' }}>
+          This card uses the frosted glass variant with high blur.
+        </GlassTypography>
+        <GlassButton>Learn More</GlassButton>
+      </Card>
       
       {/* Dimensional Glass Card */}
-      <GlassCard 
-        title="Dimensional Glass Card" 
-        variant="dimensional"
-        elevation={2}
-        interactive
-      >
-        <p>An interactive dimensional glass card with enhanced elevation.</p>
-        <button>View Details</button>
-      </GlassCard>
+      <Card variant="dimensional">
+        <GlassTypography variant="h5">Dimensional Glass Card</GlassTypography>
+        <GlassTypography variant="body1" style={{ marginTop: '10px', marginBottom: '20px' }}>
+          An interactive dimensional glass card with enhanced elevation.
+        </GlassTypography>
+        <GlassButton>View Details</GlassButton>
+      </Card>
       
       {/* Heat Glass Card */}
-      <GlassCard 
-        title="Heat Glass Card" 
-        variant="heat"
-        glowIntensity="strong"
-        padding="large"
-      >
-        <p>This heat-styled card features a strong glow effect.</p>
-        <button>Get Started</button>
-      </GlassCard>
+      <Card variant="heat">
+        <GlassTypography variant="h5">Heat Glass Card</GlassTypography>
+        <GlassTypography variant="body1" style={{ marginTop: '10px', marginBottom: '20px' }}>
+          This heat-styled card features a strong glow effect.
+        </GlassTypography>
+        <GlassButton>Get Started</GlassButton>
+      </Card>
     </div>
   );
 };

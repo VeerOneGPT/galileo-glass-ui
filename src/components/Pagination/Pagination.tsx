@@ -1,9 +1,14 @@
-import React, { forwardRef, useState, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useState, useEffect, useMemo } from 'react';
+import styled, { css } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { AnimationProps } from '../../animations/types';
 
 // Calculate the range of pages to display
 const getPageRange = (
@@ -58,7 +63,7 @@ const getPageRange = (
 };
 
 // Pagination props interface
-export interface PaginationProps {
+export interface PaginationProps extends AnimationProps {
   /**
    * The total number of pages
    */
@@ -202,10 +207,10 @@ const PaginationButton = styled.button<{
   }};
   opacity: ${props => (props.$disabled ? 0.5 : 1)};
   outline: 0;
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   font-family: 'Inter', sans-serif;
   font-weight: ${props => (props.$current ? 600 : 400)};
+  will-change: transform;
 
   /* Size styles */
   ${props => {
@@ -265,18 +270,7 @@ const PaginationButton = styled.button<{
       themeContext: createThemeContext({}),
     })}
   
-  /* Hover styles */
-  &:hover {
-    ${props =>
-      !props.$disabled &&
-      !props.$isEllipsis &&
-      !props.$current &&
-      `
-      background-color: rgba(0, 0, 0, 0.04);
-    `}
-  }
-
-  /* Focus styles */
+  /* Focus styles - Keep box-shadow */
   &:focus-visible {
     ${props =>
       !props.$disabled &&
@@ -290,6 +284,65 @@ const PaginationButton = styled.button<{
 const PaginationItem = styled.li`
   margin: 0;
 `;
+
+// --- Interactable Button Wrapper ---
+interface InteractableButtonProps {
+  children: React.ReactNode;
+  onClick: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
+  current?: boolean;
+  isEllipsis?: boolean;
+  shape: 'circular' | 'rounded' | 'square';
+  size: 'small' | 'medium' | 'large';
+  variant: 'text' | 'outlined' | 'contained';
+  color: string;
+  animationConfig: Partial<PhysicsInteractionOptions>;
+  reducedMotion: boolean;
+  ariaLabel?: string;
+  // Any other props needed by PaginationButton
+}
+
+const InteractablePaginationButton: React.FC<InteractableButtonProps> = ({
+  children,
+  onClick,
+  disabled = false,
+  current = false,
+  isEllipsis = false,
+  shape,
+  size,
+  variant,
+  color,
+  animationConfig,
+  reducedMotion,
+  ariaLabel,
+  ...rest // Pass rest to PaginationButton
+}) => {
+  const { style: physicsStyle, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
+    ...animationConfig,
+    reducedMotion: reducedMotion || disabled || current || isEllipsis, // Disable physics for disabled/current/ellipsis
+  });
+
+  return (
+    <PaginationButton
+      onClick={onClick}
+      disabled={disabled}
+      $current={current}
+      $disabled={disabled}
+      $shape={shape}
+      $size={size}
+      $variant={variant}
+      $color={color}
+      $isEllipsis={isEllipsis}
+      aria-label={ariaLabel}
+      style={physicsStyle} // Apply physics style
+      {...eventHandlers} // Apply physics handlers
+      {...rest} // Spread other props
+    >
+      {children}
+    </PaginationButton>
+  );
+};
+// --- End Interactable Button Wrapper ---
 
 /**
  * Pagination Component
@@ -312,11 +365,17 @@ export const Pagination = forwardRef<HTMLDivElement, PaginationProps>((props, re
     boundaryCount = 1,
     siblingCount = 1,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
   // State for controlled/uncontrolled component
   const [currentPage, setCurrentPage] = useState(page ?? defaultPage);
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion(); // Use hook directly
+  const finalDisableAnimation = (disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion) || disabled;
 
   // Update currentPage when page prop changes
   useEffect(() => {
@@ -324,6 +383,70 @@ export const Pagination = forwardRef<HTMLDivElement, PaginationProps>((props, re
       setCurrentPage(page);
     }
   }, [page]);
+
+  // Calculate final spring config for buttons
+  const finalPressConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+      // Define base spring parameters from a default preset
+      const basePreset = SpringPresets.DEFAULT;
+      const baseOptions: Partial<PhysicsInteractionOptions> = {
+        affectsScale: true,    // Enable scaling
+        scaleAmplitude: 0.05, // Control scale amount (adjust as needed)
+        stiffness: basePreset.tension,
+        dampingRatio: basePreset.friction ? basePreset.friction / (2 * Math.sqrt(basePreset.tension)) : 0.5, // Calculate dampingRatio
+        mass: basePreset.mass,
+        // Removed scaleOnPress and scaleOnHover, use affectsScale/scaleAmplitude
+      };
+
+      // Resolve context spring config
+      let contextResolvedConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+          contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+          contextResolvedConfig = defaultSpring;
+      }
+
+      // Resolve prop spring config
+      let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
+      const configProp = animationConfig;
+      if (typeof configProp === 'string' && configProp in SpringPresets) {
+          const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+          propResolvedConfig = {
+            stiffness: preset.tension,
+            dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension)) : undefined,
+            mass: preset.mass,
+          };
+      } else if (typeof configProp === 'object' && configProp !== null) {
+          // Directly use prop object if it contains valid PhysicsInteractionOptions
+          propResolvedConfig = configProp;
+      }
+      
+      // Merge: Prop > Context > Base
+      const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness;
+      const finalFriction = propResolvedConfig.dampingRatio !== undefined 
+          ? propResolvedConfig.dampingRatio * 2 * Math.sqrt(finalStiffness ?? 100) // Convert dampingRatio back to friction approx.
+          : contextResolvedConfig.friction ?? basePreset.friction; 
+      const finalMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass;
+      
+      // Recalculate dampingRatio based on final values
+      const finalDampingRatio = finalFriction && finalStiffness && finalStiffness > 0 
+        ? finalFriction / (2 * Math.sqrt(finalStiffness))
+        : 0.5; // Default damping ratio if calculation isn't possible
+
+      return {
+          ...baseOptions, // Start with base scale/interaction settings
+          stiffness: finalStiffness,
+          dampingRatio: finalDampingRatio, // Use calculated final damping ratio
+          mass: finalMass,
+          // Merge any other valid PhysicsInteractionOptions from propResolvedConfig
+          ...(propResolvedConfig.strength && { strength: propResolvedConfig.strength }),
+          ...(propResolvedConfig.radius && { radius: propResolvedConfig.radius }),
+          ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+          ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+          ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+          ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+          // Ensure no 'config' property is present
+      };
+  }, [defaultSpring, animationConfig]);
 
   // Handle page changes
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>, targetPage: number) => {
@@ -343,127 +466,119 @@ export const Pagination = forwardRef<HTMLDivElement, PaginationProps>((props, re
     }
   };
 
-  // Generate pagination items
-  const pageRange = getPageRange(currentPage, count, boundaryCount, siblingCount);
+  // Calculate page range
+  const pageRange = useMemo(() => {
+    return getPageRange(currentPage, count, boundaryCount, siblingCount);
+  }, [currentPage, count, boundaryCount, siblingCount]);
 
   return (
     <PaginationContainer ref={ref} className={className} {...rest}>
       <PaginationList>
-        {/* First page button */}
+        {/* First Page Button */}
         {showFirstButton && (
-          <PaginationItem>
-            <PaginationButton
-              $current={false}
-              $disabled={disabled || currentPage === 1}
-              $shape={shape}
-              $size={size}
-              $variant={variant}
-              $color={color}
-              onClick={e => handleClick(e, 1)}
+          <PaginationItem key="first">
+            <InteractablePaginationButton
+              onClick={(e) => handleClick(e, 1)}
               disabled={disabled || currentPage === 1}
-              aria-label="Go to first page"
+              shape={shape}
+              size={size}
+              variant={variant}
+              color={color}
+              animationConfig={finalPressConfig}
+              reducedMotion={finalDisableAnimation}
+              ariaLabel="Go to first page"
             >
               {'<<'}
-            </PaginationButton>
+            </InteractablePaginationButton>
           </PaginationItem>
         )}
-
-        {/* Previous page button */}
+        {/* Previous Page Button */}
         {showPrevNextButtons && (
-          <PaginationItem>
-            <PaginationButton
-              $current={false}
-              $disabled={disabled || currentPage === 1}
-              $shape={shape}
-              $size={size}
-              $variant={variant}
-              $color={color}
-              onClick={e => handleClick(e, currentPage - 1)}
+          <PaginationItem key="prev">
+            <InteractablePaginationButton
+              onClick={(e) => handleClick(e, currentPage - 1)}
               disabled={disabled || currentPage === 1}
-              aria-label="Go to previous page"
+              shape={shape}
+              size={size}
+              variant={variant}
+              color={color}
+              animationConfig={finalPressConfig}
+              reducedMotion={finalDisableAnimation}
+              ariaLabel="Go to previous page"
             >
               {'<'}
-            </PaginationButton>
+            </InteractablePaginationButton>
           </PaginationItem>
         )}
-
-        {/* Page numbers and ellipses */}
-        {pageRange.map((page, index) => {
-          if (page === 'ellipsis') {
-            return (
-              <PaginationItem key={`ellipsis-${index}`}>
-                <PaginationButton
-                  $current={false}
-                  $disabled={disabled}
-                  $shape={shape}
-                  $size={size}
-                  $variant={variant}
-                  $color={color}
-                  $isEllipsis={true}
-                  disabled={true}
-                  aria-label="More pages"
-                >
-                  &hellip;
-                </PaginationButton>
-              </PaginationItem>
-            );
-          }
-
-          return (
-            <PaginationItem key={page}>
-              <PaginationButton
-                $current={page === currentPage}
-                $disabled={disabled}
-                $shape={shape}
-                $size={size}
-                $variant={variant}
-                $color={color}
-                onClick={e => handleClick(e, page)}
-                disabled={disabled}
-                aria-label={page === currentPage ? `Page ${page}` : `Go to page ${page}`}
-                aria-current={page === currentPage ? 'page' : undefined}
+        {/* Page Number Buttons */}
+        {pageRange.map((pageNum, index) => (
+          <PaginationItem key={`${pageNum}-${index}`}>
+            {pageNum === 'ellipsis' ? (
+              <InteractablePaginationButton
+                disabled={true} // Ellipsis is not interactive
+                isEllipsis={true}
+                shape={shape}
+                size={size}
+                variant={variant}
+                color={color}
+                animationConfig={finalPressConfig} // Still pass config, reducedMotion handles disabling
+                reducedMotion={true} // Always disable physics for ellipsis
+                onClick={() => {}} // No-op click
               >
-                {page}
-              </PaginationButton>
-            </PaginationItem>
-          );
-        })}
-
-        {/* Next page button */}
+                ...
+              </InteractablePaginationButton>
+            ) : (
+              <InteractablePaginationButton
+                onClick={(e) => handleClick(e, pageNum)}
+                disabled={disabled}
+                current={currentPage === pageNum}
+                shape={shape}
+                size={size}
+                variant={variant}
+                color={color}
+                animationConfig={finalPressConfig}
+                reducedMotion={finalDisableAnimation}
+                ariaLabel={`Go to page ${pageNum}`}
+              >
+                {pageNum}
+              </InteractablePaginationButton>
+            )}
+          </PaginationItem>
+        ))}
+        {/* Next Page Button */}
         {showPrevNextButtons && (
-          <PaginationItem>
-            <PaginationButton
-              $current={false}
-              $disabled={disabled || currentPage === count}
-              $shape={shape}
-              $size={size}
-              $variant={variant}
-              $color={color}
-              onClick={e => handleClick(e, currentPage + 1)}
+          <PaginationItem key="next">
+            <InteractablePaginationButton
+              onClick={(e) => handleClick(e, currentPage + 1)}
               disabled={disabled || currentPage === count}
-              aria-label="Go to next page"
+              shape={shape}
+              size={size}
+              variant={variant}
+              color={color}
+              animationConfig={finalPressConfig}
+              reducedMotion={finalDisableAnimation}
+              ariaLabel="Go to next page"
             >
               {'>'}
-            </PaginationButton>
+            </InteractablePaginationButton>
           </PaginationItem>
         )}
-
-        {/* Last page button */}
+        {/* Last Page Button */}
         {showFirstButton && (
-          <PaginationItem>
-            <PaginationButton
-              $current={false}
-              $disabled={disabled || currentPage === count}
-              $shape={shape}
-              $size={size}
-              $variant={variant}
-              $color={color}
-              onClick={e => handleClick(e, count)}
+          <PaginationItem key="last">
+            <InteractablePaginationButton
+              onClick={(e) => handleClick(e, count)}
               disabled={disabled || currentPage === count}
-              aria-label="Go to last page"
+              shape={shape}
+              size={size}
+              variant={variant}
+              color={color}
+              animationConfig={finalPressConfig}
+              reducedMotion={finalDisableAnimation}
+              ariaLabel="Go to last page"
             >
               {'>>'}
-            </PaginationButton>
+            </InteractablePaginationButton>
           </PaginationItem>
         )}
       </PaginationList>

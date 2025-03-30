@@ -11,11 +11,11 @@
 
 ### Documentation
 - Added comprehensive documentation for advanced components in `docs/AdvancedComponents.md`
-- Added detailed documentation for physics animations in `docs/PhysicsAnimations.md`
 - Added comprehensive documentation for specialized glass surfaces in `docs/SpecializedSurfaces.md`
 - Created implementation guides:
   - `docs/guides/OptimizationTechniques.md` for performance optimization
   - `docs/guides/MemoizationPatterns.md` for optimization strategies
+- Added comprehensive documentation for the v1.0.5 Animation System overhaul (see `docs/animations/` and `docs/migration/animation-migration-v1.0.5.md`).
 
 ### Components
 - Migrated all advanced components from the original Galileo application
@@ -27,11 +27,13 @@
 - Added theme and performance components
 
 ### Animation System
-- Enhanced physics animation system with advanced capabilities
-- Added animation orchestration for coordinated animations
-- Added dimensional Z-space animations
-- Improved performance optimization for animations
-- Added accessibility considerations for animations
+- ✅ **Completed v1.0.5 Overhaul:** Replaced previous animation methods (CSS, Framer Motion) with a new physics-based system built on React Spring.
+- ✅ Introduced core hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`) for interactions and state transitions.
+- ✅ Added hooks for transition management (`useTransitioningState`, `useDropdownTransition`) and sequence orchestration (`useAnimationSequence`).
+- ✅ Implemented `AnimationProvider`/`useAnimationContext` for global configuration and presets.
+- ✅ Integrated `useReducedMotion` for accessibility compliance across all animations.
+- ✅ Refactored numerous components to use the new system, removing Framer Motion dependencies.
+- ✅ Added comprehensive documentation and a migration guide for the new system.
 
 ### Core Utilities
 - Enhanced glass effects with additional mixins
@@ -48,10 +50,9 @@
 ## Outstanding Issues
 
 ### TypeScript Errors
-- There are various TypeScript errors that need to be resolved
-- Main issues are with keyframes typing in animation system
-- Some issues with property access on types that need to be fixed
-- Duplicate type definitions that need to be resolved
+- There are various TypeScript errors that need to be resolved across the library.
+- Some issues relate to prop types, component interfaces, and potentially complex types inferred from animation libraries or mixins.
+- Duplicate type definitions may exist and need consolidation.
 
 ### Linting Issues
 - ESLint configuration needs to be set up

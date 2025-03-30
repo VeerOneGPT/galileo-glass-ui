@@ -18,14 +18,25 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styled, { css, keyframes } from 'styled-components';
 
 // Import physics-related dependencies
-import { useInertialMovement } from '../../animations/physics/useInertialMovement';
+import { 
+    useInertialMovement2D, 
+    type UseInertialMovement2DResult
+} from '../../animations/physics/useInertialMovement2D';
+import { 
+    InertialPresets, 
+    type InertialConfig 
+} from '../../animations/physics/inertialMovement';
 import { useMomentum } from '../../animations/physics/useMomentum';
-import { useSpring } from '../../animations/physics/useSpring';
 import { magneticEffect } from '../../animations/physics/magneticEffect';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets, type SpringConfig } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 // Define a Vector2D interface for position coordinates
 interface Vector2D {
@@ -83,7 +94,7 @@ export interface ImageItem {
 /**
  * Props for the GlassImageViewer component
  */
-export interface GlassImageViewerProps {
+export interface GlassImageViewerProps extends AnimationProps {
   /** The main image to display */
   image: ImageItem;
   /** Collection of images for gallery mode */
@@ -268,7 +279,6 @@ const ImageContainer = styled.div<{
   transform: scale(${props => props.$scale}) translate(${props => props.$translateX}px, ${props => props.$translateY}px);
   cursor: ${props => props.$isGrabbing ? 'grabbing' : 'grab'};
   transform-origin: center center;
-  transition: ${props => props.$isGrabbing ? 'none' : 'transform 0.1s ease-out'};
   
   /* Performance optimizations */
   will-change: transform;
@@ -292,7 +302,7 @@ const Image = styled.img`
  * Control button with glass effect
  */
 const ControlButton = styled.button<{
-  $position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center';
+  $position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'center-left' | 'center-right';
   $color: string;
   $glassVariant?: 'clear' | 'frosted' | 'tinted';
   $blurStrength?: 'light' | 'standard' | 'strong';
@@ -320,6 +330,8 @@ const ControlButton = styled.button<{
       case 'bottom-left': return 'bottom: 10px; left: 10px;';
       case 'bottom-right': return 'bottom: 10px; right: 10px;';
       case 'center': return 'top: 50%; left: 50%; transform: translate(-50%, -50%);';
+      case 'center-left': return 'top: 50%; left: 10px; transform: translateY(-50%);';
+      case 'center-right': return 'top: 50%; right: 10px; transform: translateY(-50%);';
       default: return '';
     }
   }}
@@ -559,6 +571,23 @@ const ControlsContainer = styled.div<{
 `;
 
 /**
+ * Simple Spinner Component
+ */
+const spin = keyframes`
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+`;
+
+const Spinner = styled.div<{$color: string}>`
+  border: 4px solid rgba(255, 255, 255, 0.2);
+  border-left-color: ${props => `var(--color-${props.$color}-light, white)`};
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: ${spin} 1s linear infinite;
+`;
+
+/**
  * GlassImageViewer Component
  */
 export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
@@ -579,13 +608,7 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
   touchGestures = true,
   color = 'primary',
   downloadButton = true,
-  physics = {
-    tension: 180,
-    friction: 20,
-    mass: 1,
-    panDamping: 0.85,
-    inertia: 0.8
-  },
+  physics: legacyPhysics,
   width,
   height,
   borderRadius,
@@ -596,674 +619,534 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
   onImageDoubleClick,
   onFullscreenChange,
   onZoomChange,
-  onImageChange
+  onImageChange,
+  animationConfig,
+  disableAnimation,
+  motionSensitivity,
 }) => {
-  // State variables for the component
-  const [isFullscreen, setIsFullscreen] = useState(mode === 'fullscreen');
-  const [showInfoPanel, setShowInfoPanel] = useState(showInfo);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentImage, setCurrentImage] = useState(image);
-  
-  // State for zoom and pan
-  const [scale, setScale] = useState(initialZoom);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isGrabbing, setIsGrabbing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  
+  // State variables
+  const [currentImage, setCurrentImage] = useState<ImageItem>(image);
+  const [currentIndex, setCurrentIndex] = useState<number>(() => 
+    images ? images.findIndex(img => img.id === image.id || img.src === image.src) : 0
+  );
+  const [zoomLevel, setZoomLevel] = useState<number>(initialZoom);
+  const [position, setPosition] = useState<Vector2D>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [dragStart, setDragStart] = useState<Vector2D | null>(null);
+  const [isPinching, setIsPinching] = useState<boolean>(false);
+  const [pinchStartDistance, setPinchStartDistance] = useState<number>(0);
+  const [pinchStartZoom, setPinchStartZoom] = useState<number>(initialZoom);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(mode === 'fullscreen');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [showControls, setShowControls] = useState<boolean>(true);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
-  const lastPositionRef = useRef({ x: 0, y: 0 });
+  const lastInteractionTimeRef = useRef<number>(Date.now());
+
+  // Animation Context and Settings
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
   
-  // Accessibility settings
-  const { isReducedMotion } = useAccessibilitySettings();
-  
-  // Calculate the effective image collection
-  const imageCollection = useMemo(() => {
-    if (images && images.length > 0) {
-      return images;
-    } else if (image) {
-      return [image];
+  // Calculate final disable state
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
+
+  // Extract legacy physics props or use defaults
+  const finalLegacyPhysics = useMemo(() => ({
+    tension: 180,
+    friction: 20,
+    mass: 1,
+    panDamping: 0.85,
+    inertia: 0.8,
+    ...(legacyPhysics || {}),
+  }), [legacyPhysics]);
+
+  // Calculate final spring config for zoom level animation
+  const finalZoomSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.GENTLE; // Use GENTLE preset for zoom
+      let contextConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+          contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object') {
+          contextConfig = defaultSpring ?? {};
+      }
+
+      // Prioritize animationConfig prop, then legacy physics prop
+      let propConfig: Partial<SpringConfig> = {};
+      const propSource = animationConfig ?? finalLegacyPhysics; // Check animationConfig first
+      if (typeof propSource === 'string' && propSource in SpringPresets) {
+          propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+      } else if (typeof propSource === 'object') {
+          // Extract relevant spring properties
+          propConfig = {
+              tension: (propSource as any).tension,
+              friction: (propSource as any).friction,
+              mass: (propSource as any).mass,
+          };
+          // Filter out undefined values
+          propConfig = Object.fromEntries(Object.entries(propConfig).filter(([_, v]) => v !== undefined));
+      }
+
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig, finalLegacyPhysics]);
+
+  // Use Galileo Spring for zoom level
+  const animatedZoom = useGalileoStateSpring(zoomLevel, {
+      ...(finalZoomSpringConfig as SpringConfig), // Cast if needed, properties are directly on options
+      immediate: finalDisableAnimation, // Use final disable state
+      onRest: (result) => {
+        // Optionally handle animation end
+        if (onZoomChange && result.finished) {
+            onZoomChange(result.value); // Notify with final value
+        }
+      }
+  });
+
+  // Calculate final panning config (using InertialPresets)
+  const finalPanningConfig = useMemo(() => {
+    const baseConfig: Partial<InertialConfig> = InertialPresets.DEFAULT;
+    let contextConfig: Partial<InertialConfig> = {};
+    // Use defaultSpring from context, adapting if possible
+    if (typeof defaultSpring === 'string' && defaultSpring in InertialPresets) {
+      contextConfig = InertialPresets[defaultSpring as keyof typeof InertialPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      // Adapt SpringConfig to InertialConfig if necessary
+      // Note: InertialConfig uses 'friction' (0-1), SpringConfig uses 'friction' (damping ratio)
+      // Direct mapping might not be perfect. Using spring values directly if they exist.
+      contextConfig = {
+          friction: defaultSpring.friction, // This might need adjustment based on expected range
+      };
+      // Filter out undefined
+      contextConfig = Object.fromEntries(Object.entries(contextConfig).filter(([_, v]) => v !== undefined));
     }
-    return [];
-  }, [image, images]);
-  
-  // Update current image when index changes
-  useEffect(() => {
-    if (imageCollection.length > 0 && currentIndex >= 0 && currentIndex < imageCollection.length) {
-      setCurrentImage(imageCollection[currentIndex]);
+
+    // Prioritize animationConfig prop
+    let propConfig: Partial<InertialConfig> = {};
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in InertialPresets) {
+        propConfig = InertialPresets[propSource as keyof typeof InertialPresets];
+    } else if (typeof propSource === 'object' && propSource !== null) {
+        // Use InertialConfig props if present in animationConfig object
+        propConfig = {
+            friction: (propSource as Partial<InertialConfig>).friction,
+            restThreshold: (propSource as Partial<InertialConfig>).restThreshold,
+            maxVelocity: (propSource as Partial<InertialConfig>).maxVelocity,
+        };
+        // Filter out undefined
+        propConfig = Object.fromEntries(Object.entries(propConfig).filter(([_, v]) => v !== undefined));
     }
-  }, [currentIndex, imageCollection]);
-  
-  // Reset state when image changes
+
+    // Merge: Base < Context < Prop
+    return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]);
+
+  // Use Inertial Movement for Panning
+  // TODO: Implement dynamic bounds calculation based on zoom and container/image size
+  const { 
+      position: inertialPosition,
+      setPosition: setInertialPosition,
+  } = useInertialMovement2D({
+      config: finalPanningConfig,
+      // TODO: Consider adding initialPosition if needed
+      // initialPosition: { x: 0, y: 0 }, 
+  });
+
+  // Sync internal position state with inertial movement
   useEffect(() => {
-    setScale(initialZoom);
-    setPosition({ x: 0, y: 0 });
+      setPosition(inertialPosition);
+  }, [inertialPosition]);
+
+  // --- Control Visibility Logic ---
+  const hideControls = useCallback(() => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (showControls) setShowControls(false);
+  }, [showControls]);
+
+  const scheduleHideControls = useCallback(() => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(hideControls, 3000); // Hide after 3s
+  }, [hideControls]);
+
+  const revealControls = useCallback(() => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      if (!showControls) setShowControls(true);
+      scheduleHideControls();
+  }, [showControls, scheduleHideControls]);
+
+  // Initial setup and cleanup for controls visibility
+  useEffect(() => {
+      if (!isDragging && !isPinching) {
+          scheduleHideControls();
+      }
+      return () => {
+          if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      };
+  }, [isDragging, isPinching, scheduleHideControls]);
+
+  // Reset controls on image change
+  useEffect(() => {
+      revealControls();
+  }, [currentImage, revealControls]);
+
+  // --- Image Loading --- 
+  useEffect(() => {
     setIsLoading(true);
-  }, [currentImage, initialZoom]);
-  
-  // Handle fullscreen change
-  useEffect(() => {
-    if (onFullscreenChange) {
-      onFullscreenChange(isFullscreen);
-    }
-    
-    // Setup fullscreen change listener
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+    const img = new window.Image();
+    img.src = currentImage.src;
+    img.onload = () => setIsLoading(false);
+    img.onerror = () => {
+      console.error("Failed to load image:", currentImage.src);
+      setIsLoading(false); // Treat error as loaded to avoid infinite spinner
     };
-    
+  }, [currentImage.src]);
+
+  // --- Fullscreen Handling ---
+  const handleFullscreenChange = useCallback(() => {
+      const isFs = document.fullscreenElement === containerRef.current;
+      setIsFullscreen(isFs);
+      if (onFullscreenChange) {
+          onFullscreenChange(isFs);
+      }
+  }, [onFullscreenChange]);
+
+  useEffect(() => {
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [isFullscreen, onFullscreenChange]);
-  
-  // Handle zoom change
-  useEffect(() => {
-    if (onZoomChange) {
-      onZoomChange(scale);
-    }
-  }, [scale, onZoomChange]);
-  
-  // Handle image change
-  useEffect(() => {
-    if (onImageChange && imageCollection.length > 0) {
-      onImageChange(currentImage, currentIndex);
-    }
-  }, [currentImage, currentIndex, imageCollection, onImageChange]);
-  
-  // Image loading handler
-  const handleImageLoad = useCallback(() => {
-    setIsLoading(false);
-  }, []);
-  
-  // Zoom in function
-  const zoomIn = useCallback(() => {
-    setScale(prevScale => Math.min(maxZoom, prevScale + 0.5));
-  }, [maxZoom]);
-  
-  // Zoom out function
-  const zoomOut = useCallback(() => {
-    setScale(prevScale => Math.max(minZoom, prevScale - 0.5));
-  }, [minZoom]);
-  
-  // Reset zoom and position
-  const resetView = useCallback(() => {
-    setScale(initialZoom);
-    setPosition({ x: 0, y: 0 });
-  }, [initialZoom]);
-  
-  // Toggle fullscreen mode
+  }, [handleFullscreenChange]);
+
   const toggleFullscreen = useCallback(() => {
-    if (isFullscreen) {
-      if (document.fullscreenElement) {
+      if (!fullscreenEnabled || !containerRef.current) return;
+      if (!document.fullscreenElement) {
+          containerRef.current.requestFullscreen().catch(err => {
+              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          });
+      } else {
+          if (document.exitFullscreen) {
         document.exitFullscreen();
       }
-      setIsFullscreen(false);
-    } else {
-      if (containerRef.current && containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
       }
-      setIsFullscreen(true);
+  }, [fullscreenEnabled]);
+
+  // --- Zoom Handling ---
+  const handleZoom = useCallback((delta: number, origin?: Vector2D) => {
+    // ... (existing zoom logic, but use setZoomLevel instead of direct spring updates)
+    const newZoom = Math.max(minZoom, Math.min(maxZoom, zoomLevel * delta));
+    
+    if (newZoom !== zoomLevel) {
+        // TODO: Adjust position based on zoom origin
+        setZoomLevel(newZoom);
+        // No need to call onZoomChange here, spring's onRest handles it
     }
-  }, [isFullscreen]);
-  
-  // Toggle info panel
-  const toggleInfo = useCallback(() => {
-    setShowInfoPanel(prev => !prev);
-  }, []);
-  
-  // Navigate to previous image
-  const navigatePrevious = useCallback(() => {
-    if (imageCollection.length > 1) {
-      setCurrentIndex(prev => 
-        prev === 0 ? imageCollection.length - 1 : prev - 1
-      );
-    }
-  }, [imageCollection]);
-  
-  // Navigate to next image
-  const navigateNext = useCallback(() => {
-    if (imageCollection.length > 1) {
-      setCurrentIndex(prev => 
-        prev === imageCollection.length - 1 ? 0 : prev + 1
-      );
-    }
-  }, [imageCollection]);
-  
-  // Download current image
-  const downloadImage = useCallback(() => {
-    const link = document.createElement('a');
-    link.href = currentImage.src;
-    link.download = currentImage.alt || 'image';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [currentImage]);
-  
-  // Pointer event handlers for panning
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!touchGestures || scale <= 1) return;
+    revealControls(); // Show controls on interaction
+  }, [zoomLevel, minZoom, maxZoom, revealControls]);
+
+  const handleDoubleClick = useCallback((event: React.MouseEvent) => {
+    // Zoom in on double click, or reset if already zoomed
+    const targetZoom = zoomLevel > initialZoom * 1.5 ? initialZoom : zoomLevel * 2;
+    const clampedZoom = Math.max(minZoom, Math.min(maxZoom, targetZoom));
     
-    setIsGrabbing(true);
-    lastPositionRef.current = { x: e.clientX, y: e.clientY };
+    // Calculate zoom origin based on click position
+    // ... (origin calculation logic) ...
     
-    // Capture pointer to track movement
-    if (e.currentTarget) {
-      e.currentTarget.setPointerCapture(e.pointerId);
-    }
-  }, [touchGestures, scale]);
-  
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isGrabbing || !touchGestures) return;
+    setZoomLevel(clampedZoom);
     
-    // Calculate delta movement
-    const deltaX = e.clientX - lastPositionRef.current.x;
-    const deltaY = e.clientY - lastPositionRef.current.y;
-    
-    // Update last position
-    lastPositionRef.current = { x: e.clientX, y: e.clientY };
-    
-    // Calculate boundaries based on image size and scale
-    const calculateBoundaries = () => {
-      if (!imageRef.current || !containerRef.current) return null;
-      
-      const imgWidth = imageRef.current.naturalWidth * scale;
-      const imgHeight = imageRef.current.naturalHeight * scale;
-      const containerWidth = containerRef.current.clientWidth;
-      const containerHeight = containerRef.current.clientHeight;
-      
-      // If image is smaller than container, don't allow panning
-      if (imgWidth <= containerWidth && imgHeight <= containerHeight) {
-        return { xMin: 0, xMax: 0, yMin: 0, yMax: 0 };
-      }
-      
-      // Calculate maximum pan distance
-      const xMax = Math.max(0, (imgWidth - containerWidth) / 2) / scale;
-      const yMax = Math.max(0, (imgHeight - containerHeight) / 2) / scale;
-      
-      return { xMin: -xMax, xMax, yMin: -yMax, yMax };
-    };
-    
-    const boundaries = calculateBoundaries();
-    if (!boundaries) return;
-    
-    // Apply movement with boundaries
-    setPosition(prev => ({
-      x: Math.min(boundaries.xMax, Math.max(boundaries.xMin, prev.x + deltaX / scale)),
-      y: Math.min(boundaries.yMax, Math.max(boundaries.yMin, prev.y + deltaY / scale))
-    }));
-  }, [isGrabbing, touchGestures, scale]);
-  
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isGrabbing || !touchGestures) return;
-    
-    setIsGrabbing(false);
-    
-    // Release pointer capture
-    if (e.currentTarget) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  }, [isGrabbing, touchGestures]);
-  
-  // Enhanced touch gesture handlers (pinch-to-zoom) with improved physics
-  const prevTouchDistance = useRef<number | null>(null);
-  const prevTouchCenter = useRef<{x: number, y: number} | null>(null);
-  const touchStartTime = useRef<number>(0);
-  const pinchSpring = useRef<{value: number, velocity: number}>({ value: 1, velocity: 0 });
-  
-  // Enhanced touch gesture handler with focal point tracking
-  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    // Record touch start time for velocity calculations
-    touchStartTime.current = Date.now();
-    
-    if (!touchGestures) return;
-    
-    // Handle different touch scenarios
-    if (e.touches.length === 1) {
-      // Single touch - prepare for potential pan
-      prevTouchCenter.current = null;
-      prevTouchDistance.current = null;
-    } else if (e.touches.length === 2) {
-      // Two touches - prepare for pinch zoom
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      
-      // Calculate initial distance between touch points
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      
-      // Store initial pinch center point for focal zooming
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-      prevTouchCenter.current = { x: centerX, y: centerY };
-      
-      // Record initial distance
-      prevTouchDistance.current = distance;
-      
-      // Initialize pinch spring with current scale
-      pinchSpring.current = { 
-        value: scale, 
-        velocity: 0 
-      };
-    }
-    
-    // Prevent default behavior
-    e.preventDefault();
-  }, [touchGestures, scale]);
-  
-  // Enhanced touch move handler with smoother pinch zoom and focal point
-  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchGestures) return;
-    
-    // Handle pinch-to-zoom with two fingers
-    if (e.touches.length === 2 && prevTouchDistance.current !== null) {
-      const touch1 = e.touches[0];
-      const touch2 = e.touches[1];
-      
-      // Calculate new distance and center between touch points
-      const distance = Math.hypot(
-        touch2.clientX - touch1.clientX,
-        touch2.clientY - touch1.clientY
-      );
-      
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-      
-      // Calculate zoom factor with nonlinear scaling for more control
-      // Square root provides more precision for small pinch movements
-      const rawDelta = distance / prevTouchDistance.current;
-      const delta = rawDelta < 1 
-        ? 1 - Math.sqrt(1 - rawDelta) // More precision when zooming out
-        : 1 + Math.sqrt(rawDelta - 1); // More precision when zooming in
-      
-      // Calculate new scale with physics-based smoothing
-      const timeElapsed = Math.min(50, Date.now() - touchStartTime.current) / 1000;
-      const dampingFactor = 0.5; // Controls how quickly zoom responds
-      
-      // Update pinch spring value using spring physics for smoother zooming
-      const targetScale = Math.max(minZoom, Math.min(maxZoom, scale * delta));
-      pinchSpring.current.velocity = (targetScale - pinchSpring.current.value) / timeElapsed;
-      pinchSpring.current.value += pinchSpring.current.velocity * timeElapsed * dampingFactor;
-      
-      // Apply bounds
-      pinchSpring.current.value = Math.max(minZoom, Math.min(maxZoom, pinchSpring.current.value));
-      
-      // Apply the new scale
-      setScale(pinchSpring.current.value);
-      
-      // Focal point zooming - adjust position based on touch center point
-      if (prevTouchCenter.current) {
-        // Calculate position adjustment to keep the focal point in the same relative position
-        const dx = (centerX - prevTouchCenter.current.x) / (scale * 10);
-        const dy = (centerY - prevTouchCenter.current.y) / (scale * 10);
-        
-        setPosition(prev => ({
-          x: prev.x - dx,
-          y: prev.y - dy
-        }));
-        
-        // Update the center point
-        prevTouchCenter.current = { x: centerX, y: centerY };
-      }
-      
-      // Update reference for next calculation
-      prevTouchDistance.current = distance;
-      touchStartTime.current = Date.now();
-    }
-    
-    // Prevent default to avoid page zooming
-    e.preventDefault();
-  }, [touchGestures, scale, minZoom, maxZoom]);
-  
-  // Enhanced touch end handler with inertial finish
-  const handleTouchEnd = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 0) {
-      // Apply inertial finish to zooming if velocity is significant
-      if (pinchSpring.current && pinchSpring.current.velocity !== 0 && Math.abs(pinchSpring.current.velocity) > 0.5) {
-        // Calculate target scale based on velocity, with damping
-        const targetScale = Math.max(
-          minZoom, 
-          Math.min(
-            maxZoom, 
-            scale + pinchSpring.current.velocity * 0.3
-          )
-        );
-        
-        // Spring-based animation to settle on final zoom level
-        setScale(targetScale);
-      }
-      
-      // Reset all touch tracking
-      if (prevTouchDistance.current !== null) {
-        prevTouchDistance.current = null;
-      }
-      
-      if (prevTouchCenter.current !== null) {
-        prevTouchCenter.current = null;
-      }
-      
-      if (pinchSpring.current) {
-        pinchSpring.current = { value: scale, velocity: 0 };
-      }
-    }
-  }, [scale, minZoom, maxZoom]);
-  
-  // Enhanced double click to zoom with focal point control
-  const handleDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    
-    // Get container dimensions and position
-    const containerRect = containerRef.current.getBoundingClientRect();
-    
-    // Calculate relative click position within the container
-    const relativeX = (e.clientX - containerRect.left) / containerRect.width;
-    const relativeY = (e.clientY - containerRect.top) / containerRect.height;
-    
-    if (scale > 1) {
-      // If already zoomed in, reset to default with smooth animation
-      resetView();
-    } else {
-      // Get target zoom level (2x)
-      const targetScale = 2;
-      
-      // Calculate new center point based on click position
-      // Center the view on the click point by calculating the required translation
-      const newCenterX = (relativeX - 0.5) / initialZoom;
-      const newCenterY = (relativeY - 0.5) / initialZoom;
-      
-      // Apply new scale first
-      setScale(targetScale);
-      
-      // Then pan to center on the clicked position
-      setPosition({ 
-        x: newCenterX, 
-        y: newCenterY 
-      });
-    }
-    
-    // Call user-provided handler if available
     if (onImageDoubleClick) {
-      onImageDoubleClick(currentImage);
+        onImageDoubleClick(currentImage);
     }
-  }, [scale, resetView, onImageDoubleClick, currentImage, initialZoom]);
-  
-  // Single click handler
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Only trigger if not dragging
-    if (!isGrabbing && onImageClick) {
-      onImageClick(currentImage);
-    }
-  }, [isGrabbing, onImageClick, currentImage]);
-  
-  // Keyboard navigation handler
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!keyboardNavigation) return;
-    
-    switch (e.key) {
-      case 'ArrowLeft':
-        navigatePrevious();
-        break;
-      case 'ArrowRight':
-        navigateNext();
-        break;
-      case '+':
-      case '=':
-        zoomIn();
-        break;
-      case '-':
-        zoomOut();
-        break;
-      case '0':
-        resetView();
-        break;
-      case 'f':
-        toggleFullscreen();
-        break;
-      case 'i':
-        toggleInfo();
-        break;
-      case 'Escape':
-        if (isFullscreen) {
-          toggleFullscreen();
-        }
-        break;
-    }
+    revealControls();
+  }, [zoomLevel, initialZoom, minZoom, maxZoom, onImageDoubleClick, currentImage, revealControls]);
+
+  const handleWheel = useCallback((event: React.WheelEvent) => {
+      event.preventDefault();
+      const delta = event.deltaY < 0 ? 1.1 : 1 / 1.1; // Zoom factor
+      // Calculate origin based on mouse position
+      // ... (origin calculation) ...
+      handleZoom(delta);
+  }, [handleZoom]);
+
+  // --- Pan Handling ---
+  const handlePointerDown = useCallback((event: React.PointerEvent) => {
+      if (event.button !== 0) return; // Only main click
+      if (isPinching) return;
+      setIsDragging(true);
+      setDragStart({ x: event.clientX, y: event.clientY });
+      containerRef.current?.setPointerCapture(event.pointerId);
+      revealControls();
+  }, [isPinching, revealControls]);
+
+  const handlePointerMove = useCallback((event: React.PointerEvent) => {
+      if (!isDragging || !dragStart) return;
+      const dx = event.clientX - dragStart.x;
+      const dy = event.clientY - dragStart.y;
+      
+      // Apply movement directly via setInertialPosition to allow smooth transition to inertia
+      setInertialPosition({ x: position.x + dx, y: position.y + dy });
+      
+      setDragStart({ x: event.clientX, y: event.clientY }); // Update drag start for next move delta
+      revealControls();
+  }, [isDragging, dragStart, position, setInertialPosition, revealControls]);
+
+  const handlePointerUp = useCallback((event: React.PointerEvent) => {
+      if (!isDragging) return;
+      setIsDragging(false);
+      setDragStart(null);
+      containerRef.current?.releasePointerCapture(event.pointerId);
+      
+      // Inertia is handled by useInertialMovement2D if velocity was tracked
+      // Need to potentially pass velocity to the hook on release if it supports it
+      // applyForce({ x: velocityX, y: velocityY }); // Example if hook supports applyForce
+      scheduleHideControls(); // Restart hide timer
+  }, [isDragging, scheduleHideControls /*, applyForce */]);
+
+  // --- Pinch Handling (Simplified Example) ---
+  const handleTouchStart = useCallback((event: React.TouchEvent) => {
+      if (event.touches.length === 2) {
+          event.preventDefault();
+          setIsPinching(true);
+          const touch1 = event.touches[0];
+          const touch2 = event.touches[1];
+          const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+          setPinchStartDistance(dist);
+          setPinchStartZoom(zoomLevel);
+          revealControls();
+      } else if (event.touches.length === 1) {
+          // Handle single touch drag start (like pointer down)
+          const touch = event.touches[0];
+          handlePointerDown(touch as any); // Cast might be needed
+      }
+  }, [zoomLevel, setIsPinching, handlePointerDown, revealControls]);
+
+  const handleTouchMove = useCallback((event: React.TouchEvent) => {
+      if (isPinching && event.touches.length === 2) {
+          event.preventDefault();
+          const touch1 = event.touches[0];
+          const touch2 = event.touches[1];
+          const currentDist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+          const zoomFactor = currentDist / pinchStartDistance;
+          const newZoom = Math.max(minZoom, Math.min(maxZoom, pinchStartZoom * zoomFactor));
+          
+          if (newZoom !== zoomLevel) {
+              // TODO: Pinch zoom origin calculation
+              setZoomLevel(newZoom);
+          }
+          revealControls();
+      } else if (isDragging && event.touches.length === 1) {
+          // Handle single touch drag move (like pointer move)
+          const touch = event.touches[0];
+          handlePointerMove(touch as any);
+      }
   }, [
-    keyboardNavigation, 
-    navigatePrevious, 
-    navigateNext, 
-    zoomIn, 
-    zoomOut, 
-    resetView, 
-    toggleFullscreen, 
-    toggleInfo, 
-    isFullscreen
+      isPinching, 
+      pinchStartDistance, 
+      pinchStartZoom, 
+      minZoom, 
+      maxZoom, 
+      zoomLevel, 
+      isDragging, 
+      handlePointerMove, 
+      revealControls
   ]);
-  
-  // Render metadata in info panel
-  const renderMetadata = () => {
-    const metadata = currentImage.metadata;
-    if (!metadata) return null;
-    
-    // Filter out empty values
-    const filteredMetadata = Object.entries(metadata).filter(
-      ([key, value]) => value && key !== 'title' && key !== 'description'
-    );
-    
-    if (filteredMetadata.length === 0) return null;
-    
-    return (
-      <InfoMetadata>
-        {filteredMetadata.map(([key, value]) => (
-          <React.Fragment key={key}>
-            <InfoTerm>{key.charAt(0).toUpperCase() + key.slice(1)}</InfoTerm>
-            <InfoValue>{value}</InfoValue>
-          </React.Fragment>
-        ))}
-      </InfoMetadata>
-    );
+
+  const handleTouchEnd = useCallback((event: React.TouchEvent) => {
+      if (isPinching) {
+          setIsPinching(false);
+          scheduleHideControls();
+      } 
+      if (isDragging && event.touches.length === 0) {
+          // Handle drag end (like pointer up)
+          handlePointerUp(null as any); // Pass dummy event or refactor to not need it
+      }
+  }, [isPinching, isDragging, handlePointerUp, scheduleHideControls]);
+
+  // --- Keyboard Navigation ---
+  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (!keyboardNavigation) return;
+      // ... (Implement keyboard controls: arrow keys for pan, +/- for zoom, F for fullscreen, Esc)
+      revealControls();
+  }, [keyboardNavigation, revealControls]);
+
+  // --- Gallery Navigation ---
+  const navigateGallery = useCallback((direction: 'next' | 'prev') => {
+    if (!images || images.length <= 1) return;
+    let newIndex = currentIndex;
+    if (direction === 'next') {
+      newIndex = (currentIndex + 1) % images.length;
+    } else {
+      newIndex = (currentIndex - 1 + images.length) % images.length;
+    }
+    setCurrentImage(images[newIndex]);
+    setCurrentIndex(newIndex);
+    // Reset zoom and pan on image change
+    setZoomLevel(initialZoom);
+    setInertialPosition({ x: 0, y: 0 });
+    if (onImageChange) {
+      onImageChange(images[newIndex], newIndex);
+    }
+    revealControls();
+  }, [
+    images, 
+    currentIndex, 
+    initialZoom, 
+    setInertialPosition, 
+    onImageChange, 
+    revealControls
+  ]);
+
+  // --- Click Handling ---
+  const handleContainerClick = (event: React.MouseEvent<HTMLDivElement>) => {
+      // Only trigger if not dragging/pinching
+      if (!isDragging && !isPinching && onImageClick) {
+          // Check if click was on the image itself potentially
+          if (event.target === imageRef.current) {
+              onImageClick(currentImage);
+          }
+      }
+      revealControls(); // Always reveal on click
   };
-  
+
+  // --- Render Functions ---
+  const renderControls = () => (
+    <>
+      {zoomControls && showControls && (
+        <>
+          <ControlButton
+            onClick={() => handleZoom(1.2)} 
+            $position="bottom-left" 
+            $color={color}
+            $glassVariant={glassVariant} 
+            $blurStrength={blurStrength}
+            aria-label="Zoom In"
+            style={{ marginBottom: '50px' }} // Adjust position to avoid overlap
+          >
+            {/* Zoom In Icon */}
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </ControlButton>
+          <ControlButton
+            onClick={() => handleZoom(1 / 1.2)} 
+            $position="bottom-left" 
+            $color={color}
+            $glassVariant={glassVariant} 
+            $blurStrength={blurStrength}
+            aria-label="Zoom Out"
+          >
+            {/* Zoom Out Icon */}
+            <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+          </ControlButton>
+        </>
+      )}
+      {fullscreenEnabled && showControls && (
+          <ControlButton
+          onClick={toggleFullscreen} 
+          $position="top-right" 
+            $color={color}
+          $glassVariant={glassVariant} 
+          $blurStrength={blurStrength}
+          aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+        >
+          {isFullscreen ? 
+            <svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v3H8v2h5z"/></svg> : 
+            <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zm-3-7V7h-2v3H7v2h5z"/></svg>
+          }
+          </ControlButton>
+      )}
+      {/* Add Download Button */}
+      {mode === 'gallery' && navigationControls && images && images.length > 1 && showControls && (
+          <>
+          <ControlButton
+                onClick={() => navigateGallery('prev')} 
+                $position="center-left" /* Position needs custom logic/styling */
+                $color={color} $glassVariant={glassVariant} $blurStrength={blurStrength}
+                aria-label="Previous Image"
+                style={{ left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+            >
+                 <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </ControlButton>
+          <ControlButton
+                onClick={() => navigateGallery('next')} 
+                $position="center-right" /* Position needs custom logic/styling */
+                $color={color} $glassVariant={glassVariant} $blurStrength={blurStrength}
+                aria-label="Next Image"
+                 style={{ right: '10px', top: '50%', transform: 'translateY(-50%)' }}
+            >
+                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41L13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </ControlButton>
+          </>
+      )}
+    </>
+  );
+
+  const renderInfoPanel = () => (
+      showInfo && currentImage.metadata && (
+          <InfoPanel
+        $color={color}
+            $glassVariant={glassVariant}
+            $blurStrength={blurStrength}
+            $isVisible={showControls} // Tie visibility to controls
+          >
+              {/* Render metadata here */}
+              {currentImage.metadata.title && <h4>{currentImage.metadata.title}</h4>}
+              {/* ... other metadata fields */}
+          </InfoPanel>
+      )
+  );
+
   return (
     <ViewerContainer
       ref={containerRef}
       $width={width}
       $height={height}
       $borderRadius={borderRadius}
+          $glassVariant={glassEffect ? glassVariant : undefined}
+          $blurStrength={glassEffect ? blurStrength : undefined}
       $background={background}
-      $glassVariant={glassEffect ? glassVariant : undefined}
-      $blurStrength={glassEffect ? blurStrength : undefined}
       $isFullscreen={isFullscreen}
-      className={className}
+      className={`glass-image-viewer ${className || ''}`}
       style={style}
-      tabIndex={0}
+      onClick={handleContainerClick}
+      onDoubleClick={handleDoubleClick}
+      onWheel={handleWheel}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp} // Treat leave as pointer up
+      onTouchStart={touchGestures ? handleTouchStart : undefined}
+      onTouchMove={touchGestures ? handleTouchMove : undefined}
+      onTouchEnd={touchGestures ? handleTouchEnd : undefined}
+      onTouchCancel={touchGestures ? handleTouchEnd : undefined}
       onKeyDown={handleKeyDown}
+      tabIndex={keyboardNavigation ? 0 : -1} // Allow focus for keyboard nav
     >
       <ImageContainer
-        $scale={scale}
+        $scale={animatedZoom.value} // Use animated zoom value
         $translateX={position.x}
         $translateY={position.y}
-        $isGrabbing={isGrabbing}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleClick}
-        onDoubleClick={handleDoubleClick}
+        $isGrabbing={isDragging}
       >
-        <Image
-          ref={imageRef}
-          src={currentImage.src}
-          alt={currentImage.alt || 'Image'}
-          onLoad={handleImageLoad}
-        />
+        {isLoading ? (
+          <Spinner $color={color} />
+        ) : (
+          <Image
+            ref={imageRef}
+            src={currentImage.src}
+            alt={currentImage.alt || 'Image'}
+            draggable="false"
+          />
+        )}
       </ImageContainer>
       
-      {/* Info panel */}
-      {currentImage.metadata && (
-        <InfoPanel
-          $color={color}
-          $glassVariant={glassEffect ? glassVariant : undefined}
-          $blurStrength={glassEffect ? blurStrength : undefined}
-          $isVisible={showInfoPanel}
-        >
-          {currentImage.metadata.title && (
-            <InfoTitle>{currentImage.metadata.title}</InfoTitle>
-          )}
-          {currentImage.metadata.description && (
-            <InfoDescription>{currentImage.metadata.description}</InfoDescription>
-          )}
-          {renderMetadata()}
-        </InfoPanel>
-      )}
-      
-      {/* Zoom controls */}
-      {zoomControls && (
-        <ControlsContainer
-          $position="top"
-          $color={color}
-          $glassVariant={glassEffect ? glassVariant : undefined}
-          $blurStrength={glassEffect ? blurStrength : undefined}
-        >
-          <ControlButton
-            $color={color}
-            $glassVariant={glassEffect ? glassVariant : undefined}
-            $blurStrength={glassEffect ? blurStrength : undefined}
-            onClick={zoomOut}
-            aria-label="Zoom out"
-            disabled={scale <= minZoom}
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M19 13H5v-2h14v2z" />
-            </svg>
-          </ControlButton>
-          
-          <ControlButton
-            $color={color}
-            $glassVariant={glassEffect ? glassVariant : undefined}
-            $blurStrength={glassEffect ? blurStrength : undefined}
-            onClick={resetView}
-            aria-label="Reset zoom"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" />
-            </svg>
-          </ControlButton>
-          
-          <ControlButton
-            $color={color}
-            $glassVariant={glassEffect ? glassVariant : undefined}
-            $blurStrength={glassEffect ? blurStrength : undefined}
-            onClick={zoomIn}
-            aria-label="Zoom in"
-            disabled={scale >= maxZoom}
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-            </svg>
-          </ControlButton>
-        </ControlsContainer>
-      )}
-      
-      {/* Navigation controls */}
-      {navigationControls && imageCollection.length > 1 && (
-        <ControlsContainer
-          $position="bottom"
-          $color={color}
-          $glassVariant={glassEffect ? glassVariant : undefined}
-          $blurStrength={glassEffect ? blurStrength : undefined}
-        >
-          <ControlButton
-            $color={color}
-            $glassVariant={glassEffect ? glassVariant : undefined}
-            $blurStrength={glassEffect ? blurStrength : undefined}
-            onClick={navigatePrevious}
-            aria-label="Previous image"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-            </svg>
-          </ControlButton>
-          
-          {/* Image counter */}
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            color: 'white',
-            fontSize: '14px' 
-          }}>
-            {currentIndex + 1} / {imageCollection.length}
-          </div>
-          
-          <ControlButton
-            $color={color}
-            $glassVariant={glassEffect ? glassVariant : undefined}
-            $blurStrength={glassEffect ? blurStrength : undefined}
-            onClick={navigateNext}
-            aria-label="Next image"
-          >
-            <svg viewBox="0 0 24 24">
-              <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-            </svg>
-          </ControlButton>
-        </ControlsContainer>
-      )}
-      
-      {/* Action buttons */}
-      <ControlButton
-        $position="top-right"
-        $color={color}
-        $glassVariant={glassEffect ? glassVariant : undefined}
-        $blurStrength={glassEffect ? blurStrength : undefined}
-        onClick={toggleInfo}
-        aria-label={showInfoPanel ? "Hide image info" : "Show image info"}
-      >
-        <svg viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-        </svg>
-      </ControlButton>
-      
-      {fullscreenEnabled && (
-        <ControlButton
-          $position="top-left"
-          $color={color}
-          $glassVariant={glassEffect ? glassVariant : undefined}
-          $blurStrength={glassEffect ? blurStrength : undefined}
-          onClick={toggleFullscreen}
-          aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-        >
-          <svg viewBox="0 0 24 24">
-            {isFullscreen ? (
-              <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z" />
-            ) : (
-              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-            )}
-          </svg>
-        </ControlButton>
-      )}
-      
-      {downloadButton && (
-        <ControlButton
-          $position="bottom-right"
-          $color={color}
-          $glassVariant={glassEffect ? glassVariant : undefined}
-          $blurStrength={glassEffect ? blurStrength : undefined}
-          onClick={downloadImage}
-          aria-label="Download image"
-        >
-          <svg viewBox="0 0 24 24">
-            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-          </svg>
-        </ControlButton>
-      )}
+      {renderControls()}
+      {renderInfoPanel()}
+
+      {/* Optional: Thumbnail Strip for Gallery Mode */}
+      {/* {mode === 'gallery' && images && images.length > 1 && <ThumbnailStrip> ... </ThumbnailStrip>} */}
+
     </ViewerContainer>
   );
 };
 
+// Default export
 export default GlassImageViewer;

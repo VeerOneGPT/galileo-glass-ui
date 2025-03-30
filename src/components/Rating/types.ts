@@ -5,11 +5,13 @@
  */
 
 import React from 'react';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Props for the Rating component
  */
-export interface RatingProps {
+export interface RatingProps extends AnimationProps {
   /** The value of the rating */
   value?: number;
 

@@ -1318,6 +1318,8 @@ The Galileo Glass UI library provides a powerful set of glass-styled chart compo
 
 The `GlassDataChart` component is an advanced visualization tool that combines beautiful glass morphism styling with powerful data visualization capabilities. It features physics-based interactions, smooth animations, and rich customization options.
 
+> **New in v1.0.5**: GlassDataChart now features a modular architecture, quality tier system for adaptive rendering, and full React 19 compatibility. See the [ModularGlassDataChart](#modularglasskpdatachart) section below for more details.
+
 ### Key Features
 
 - **Glass Morphism Styling**: Beautiful glass-like surfaces with blur effects and transparency
@@ -1610,6 +1612,143 @@ The GlassDataChart now features enhanced legends with glass morphism effects and
 - **Active state visualization** with glow effects for better visual hierarchy
 - **Enhanced interactivity** with subtle animation effects
 - **Customizable styles** for better integration with your application's design
+
+## ModularGlassDataChart
+
+The `ModularGlassDataChart` is a new implementation introduced in v1.0.5 that provides all the same functionality as the original GlassDataChart component but with a completely modular architecture for better maintainability, performance, and adaptability.
+
+### Key Benefits
+
+1. **Improved Performance**: The modular architecture allows for more efficient rendering and better optimization
+2. **Adaptive Quality**: Automatically adjusts rendering quality based on device capabilities
+3. **Better Accessibility**: Properly respects user preferences for reduced motion
+4. **Enhanced Customization**: More granular control over individual components
+5. **Improved TypeScript Support**: Better type definitions and React 19 compatibility
+
+### Architecture Overview
+
+The ModularGlassDataChart breaks down the monolithic component into specialized, reusable components:
+
+- **ChartRenderer**: Handles rendering of different chart types with optimized performance
+- **ChartTooltip**: Manages customizable, glass-styled tooltips
+- **ChartFilters**: Provides SVG filter definitions for visual effects
+- **KpiChart**: Specialized component for KPI displays
+- **AtmosphericEffects**: Creates dynamic background effects with particle animations
+
+### Quality Tier System
+
+A key feature of the modular architecture is the quality tier system that adapts rendering based on device capabilities:
+
+```jsx
+<ModularGlassDataChart
+  // ... other props
+  useAdaptiveQuality={true} // Enable automatic quality adaptation
+/>
+```
+
+The component will automatically detect the appropriate quality tier based on:
+- Device memory
+- Screen resolution
+- Browser capabilities
+- Battery status
+- User preferences for reduced motion
+
+The available quality tiers are:
+- **Ultra**: Full effects for high-end devices
+- **High**: Balanced effects for most modern devices
+- **Medium**: Optimized effects for mid-range devices
+- **Low**: Minimal effects for low-end devices
+
+### Usage
+
+The ModularGlassDataChart has the same API as the original GlassDataChart, making migration simple:
+
+```jsx
+import { ModularGlassDataChart } from '@veerone/galileo-glass-ui';
+
+function ChartExample() {
+  return (
+    <ModularGlassDataChart
+      title="Quarterly Revenue"
+      subtitle="2023 Fiscal Year"
+      variant="line"
+      datasets={datasets}
+      height={400}
+      glassVariant="frosted"
+      color="primary"
+      useAdaptiveQuality={true}
+    />
+  );
+}
+```
+
+### Advanced Usage: Direct Component Access
+
+For advanced customization, you can access the individual components directly:
+
+```jsx
+import { 
+  ChartRenderer, 
+  ChartTooltip, 
+  ChartFilters, 
+  KpiChart, 
+  AtmosphericEffects 
+} from '@veerone/galileo-glass-ui/components/DataChart/components';
+
+// Example of using KpiChart directly
+function CustomKpiDisplay() {
+  return (
+    <KpiChart
+      kpi={{
+        value: "$1.2M",
+        title: "Revenue",
+        subtitle: "Year to date",
+        trend: "positive"
+      }}
+      qualityTier="high"
+      color="primary"
+    />
+  );
+}
+```
+
+### KPI Chart Type
+
+With the ModularGlassDataChart, you can now use the new KPI chart type for displaying key performance indicators:
+
+```jsx
+<ModularGlassDataChart
+  title="Total Revenue"
+  variant="kpi"
+  kpi={{
+    value: "$1.2M",
+    title: "Revenue",
+    subtitle: "Year to date",
+    trend: "positive" // Can be 'positive', 'negative', or 'neutral'
+  }}
+  glassVariant="luminous"
+  color="primary"
+/>
+```
+
+### Physics-Based Animations
+
+The ModularGlassDataChart features enhanced physics-based animations with proper damping ratio calculations and spring physics:
+
+```jsx
+<ModularGlassDataChart
+  // ... other props
+  animation={{
+    physicsEnabled: true,
+    duration: 1000,
+    tension: 300,
+    friction: 30,
+    mass: 1,
+    easing: 'easeOutQuart',
+    staggerDelay: 100
+  }}
+/>
+```
 
 ### Advanced Data Formatting
 

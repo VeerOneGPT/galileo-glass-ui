@@ -1,10 +1,11 @@
 import { ReactNode } from 'react';
 import { DefaultTheme } from 'styled-components';
+import { AnimationProps } from '../../animations/types'; // Import AnimationProps
 
 /**
  * Props for the CookieConsent component
  */
-export interface CookieConsentProps {
+export interface CookieConsentProps extends AnimationProps {
   /** Title of the cookie consent banner */
   title?: string;
   /** Main message to display */
@@ -54,7 +55,7 @@ export interface CookieConsentProps {
 /**
  * Props for the GlobalCookieConsent component
  */
-export interface GlobalCookieConsentProps extends CookieConsentProps {
+export interface GlobalCookieConsentProps extends CookieConsentProps, AnimationProps {
   /** List of available cookie categories */
   cookieCategories?: CookieCategory[];
   /** Additional custom content to display */
@@ -74,7 +75,7 @@ export interface GlobalCookieConsentProps extends CookieConsentProps {
 /**
  * Props for the CompactCookieNotice component
  */
-export interface CompactCookieNoticeProps {
+export interface CompactCookieNoticeProps extends AnimationProps {
   /** Main message to display */
   message: string;
   /** Button text for accepting */

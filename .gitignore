@@ -50,9 +50,17 @@ yarn-error.log*
 tsconfig.tsbuildinfo
 CLAUDE.md
 CLAUDE.mdc
-LeftOver.md
-LeftOverDesign.md
+
 # Package managers
 yarn.lock
 package-lock.json
 pnpm-lock.yaml
+
+# Temp files
+tmp/
+
+# Build artifacts and temp directories
+*.tgz
+dist-min/
+temp_dist/
+test-install/

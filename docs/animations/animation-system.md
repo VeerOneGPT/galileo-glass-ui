@@ -1,6 +1,15 @@
-# **Galileo Glass UI Animation System**
+> **Legacy Documentation:** This document describes the animation system prior to Galileo Glass UI v1.0.5. The system has been significantly overhauled.
+> Please refer to the current animation documentation:
+> *   [Physics Hooks](./physics-hooks.md)
+> *   [State and Transition Hooks](./transition-hooks.md)
+> *   [Orchestration](./orchestration.md)
+> *   [Context and Configuration](./context-config.md)
+> *   [Accessibility](./accessibility.md)
+> *   [Animation Migration Guide](../migration/animation-migration-v1.0.5.md)
 
-This comprehensive manual documents the Galileo Glass UI Animation System, a sophisticated animation framework designed specifically for glass morphism interfaces. It provides everything you need to implement beautiful, accessible, and performant animations in your Galileo Glass UI components.
+# **Galileo Glass UI Animation System** (Legacy - Pre v1.0.5)
+
+This comprehensive manual documents the Galileo Glass UI Animation System **as it existed before version 1.0.5**. It provided a framework for animations within the Glass UI components.
 
 ## **What's New in v1.0.3**
 

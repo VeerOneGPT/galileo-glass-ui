@@ -5,6 +5,8 @@
  */
 
 import React from 'react';
+import { SpringConfig } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * VisualFeedback Props
@@ -76,7 +78,7 @@ export interface RippleButtonProps {
   size?: 'small' | 'medium' | 'large';
 
   /** The color of the button */
-  color?: 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | string;
+  color?: 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' | 'default';
 
   /** If true, the button will take up the full width of its container */
   fullWidth?: boolean;
@@ -97,7 +99,7 @@ export interface RippleButtonProps {
 /**
  * FocusIndicator Props
  */
-export interface FocusIndicatorProps {
+export interface FocusIndicatorProps extends AnimationProps {
   /** Children to wrap with focus indicator */
   children?: React.ReactNode;
 

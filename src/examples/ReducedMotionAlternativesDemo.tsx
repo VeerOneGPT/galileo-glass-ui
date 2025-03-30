@@ -1,20 +1,17 @@
-import React, { useState, useEffect } from 'react';
+/**
+ * Reduced Motion Alternatives Demo
+ * 
+ * Demonstrates the enhanced useReducedMotion hook with configurable alternatives
+ */
+import React, { useState } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 
-import { 
-  AlternativeType,
-  getReducedMotionAlternative
-} from '../animations/accessibility/ReducedMotionAlternatives';
-import { AnimationCategory } from '../animations/accessibility/MotionSensitivity';
-import { MotionIntensityLevel } from '../animations/accessibility/MotionIntensityProfiler';
-import { 
-  useReducedMotionAlternative,
-  useFlexibleAnimation
-} from '../hooks/useReducedMotionAlternative';
-import { useReducedMotion } from '../hooks/useReducedMotion';
-import { presets } from '../animations/presets';
+import { useReducedMotion } from '../animations/accessibility/useReducedMotion';
+import { AnimationCategory, MotionSensitivityLevel, AnimationComplexity } from '../animations/accessibility/MotionSensitivity';
+import { AlternativeType } from '../animations/accessibility/ReducedMotionAlternatives';
+import { animationPresets } from '../animations/presets';
 
-// Container for the demo
+// Styled components for the demo
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
@@ -146,6 +143,65 @@ const Switch = styled.label`
   }
 `;
 
+// Select styling
+const Select = styled.select`
+  padding: 0.5rem;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-right: 0.5rem;
+`;
+
+// Settings group styling
+const SettingsGroup = styled.div`
+  margin-bottom: 1rem;
+  
+  > div {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  label {
+    margin-right: 0.5rem;
+    min-width: 180px;
+  }
+`;
+
+// Animation examples area
+const AnimationBox = styled.div<{
+  $animate: boolean;
+  $animation: any;
+  $duration: number;
+}>`
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  background-color: rgba(63, 81, 181, 0.3);
+  color: white;
+  font-weight: 500;
+  
+  ${props => props.$animate && css`
+    animation: ${props.$animation} ${props.$duration}ms ease forwards;
+  `}
+`;
+
+// Status indicator
+const StatusIndicator = styled.div<{ $enabled: boolean }>`
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  background-color: ${props => props.$enabled ? '#4CAF50' : '#F44336'};
+`;
+
 // Define some animations for demo
 const slideInAnimation = keyframes`
   from {
@@ -217,349 +273,236 @@ const spinAndScaleAnimation = keyframes`
   }
 `;
 
-// Animation comparison component
+/**
+ * Animation comparison component
+ */
 const AnimationComparison = ({
-  animationName,
-  originalAnimation,
   category,
-  intensity = MotionIntensityLevel.MODERATE,
+  animationName,
+  animation,
   duration = 1000,
-  animate,
-  forceAlternative = false,
+  triggerAnimation,
+  isAnimating,
+  enhanced
 }: {
-  animationName: string;
-  originalAnimation: any;
   category: AnimationCategory;
-  intensity?: MotionIntensityLevel;
+  animationName: string;
+  animation: any;
   duration?: number;
-  animate: boolean;
-  forceAlternative?: boolean;
+  triggerAnimation: () => void;
+  isAnimating: boolean;
+  enhanced: EnhancedReducedMotionResult;
 }) => {
-  // Convert keyframes to CSS
-  const originalAnimationCSS = css`
-    animation: ${originalAnimation} ${duration}ms ease forwards;
-  `;
+  const {
+    isAnimationAllowed,
+    getAdjustedDuration,
+    getAlternativeForCategory,
+    getDistanceScale
+  } = enhanced;
   
-  // Get reduced motion alternative
-  const alternativeAnimationCSS = useReducedMotionAlternative(
-    originalAnimationCSS,
-    {
-      id: `${animationName}-animation`,
-      category,
-      intensity,
-      duration,
-      forceAlternative,
-    }
-  );
-  
-  // Determine if using alternative
-  const isUsingAlternative = alternativeAnimationCSS !== originalAnimationCSS;
+  const isEnabled = isAnimationAllowed(category);
+  const alternativeType = getAlternativeForCategory(category);
+  const adjustedDuration = getAdjustedDuration(duration, category);
+  const distanceScale = getDistanceScale(category).toFixed(2);
   
   return (
-    <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-      <div style={{ marginBottom: '0.5rem' }}>
-        <strong>{animationName}</strong>
+    <Card>
+      <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Badge $type={isUsingAlternative ? 'alternative' : 'original'}>
-            {isUsingAlternative ? 'Alternative' : 'Original'}
-          </Badge>
-          <span style={{ fontSize: '0.8rem' }}>{category}</span>
+          <strong>{animationName}</strong>
+          <div>
+            <Badge $type={isEnabled ? 'original' : 'alternative'}>
+              {isEnabled ? 'Original' : alternativeType}
+            </Badge>
+          </div>
         </div>
+        <Button onClick={triggerAnimation}>Play</Button>
       </div>
       
-      <div
-        style={{
-          width: '120px',
-          height: '120px',
-          backgroundColor: 'rgba(63, 81, 181, 0.3)',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto',
-          ...(animate ? { animation: alternativeAnimationCSS.toString() } : {}),
-        }}
+      <AnimationBox
+        $animate={isAnimating}
+        $animation={animation}
+        $duration={adjustedDuration}
       >
-        {animationName}
+        {category}
+      </AnimationBox>
+      
+      <div style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
+        <div>Duration: {adjustedDuration}ms</div>
+        <div>Distance Scale: {distanceScale}</div>
+        <div>Category: {category}</div>
       </div>
-    </div>
+    </Card>
   );
 };
+
+// Type definition for the enhanced hook result
+type EnhancedReducedMotionResult = ReturnType<typeof useReducedMotion>;
 
 /**
  * Reduced Motion Alternatives Demo
  */
 const ReducedMotionAlternativesDemo: React.FC = () => {
-  // Animation state
-  const [animate, setAnimate] = useState(false);
+  // Use our enhanced hook
+  const enhanced = useReducedMotion({
+    defaultSensitivity: MotionSensitivityLevel.MEDIUM,
+    useGranularControl: true
+  });
   
-  // Force alternative state
-  const [forceAlternatives, setForceAlternatives] = useState(false);
+  // Destructure some values for convenience
+  const {
+    systemReducedMotion,
+    appReducedMotion,
+    prefersReducedMotion,
+    motionSensitivity,
+    sensitivityConfig,
+    preferredAlternativeType,
+    setAppReducedMotion,
+    setMotionSensitivity,
+    setPreferredAlternativeType,
+    resetPreferences
+  } = enhanced;
   
-  // Get reduced motion preference
-  const prefersReducedMotion = useReducedMotion();
+  // Track animation state for each category
+  const [animatingCategory, setAnimatingCategory] = useState<AnimationCategory | null>(null);
   
-  // Play all animations
-  const playAnimations = () => {
-    setAnimate(false);
-    setTimeout(() => setAnimate(true), 10);
+  // Play animation for a category
+  const playAnimation = (category: AnimationCategory) => {
+    setAnimatingCategory(category);
+    
+    // Reset after animation completes
+    setTimeout(() => {
+      setAnimatingCategory(null);
+    }, enhanced.getAdjustedDuration(1500, category));
   };
   
-  // Define animation categories for demo
-  const categories = [
-    { name: 'Entrance', value: AnimationCategory.ENTRANCE },
-    { name: 'Exit', value: AnimationCategory.EXIT },
-    { name: 'Hover', value: AnimationCategory.HOVER },
-    { name: 'Focus', value: AnimationCategory.FOCUS },
-    { name: 'Active', value: AnimationCategory.ACTIVE },
-    { name: 'Loading', value: AnimationCategory.LOADING },
-    { name: 'Background', value: AnimationCategory.BACKGROUND },
-    { name: 'Attention', value: AnimationCategory.ATTENTION },
-  ];
+  // Update preferences
+  const updateMotionSensitivity = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMotionSensitivity(e.target.value as MotionSensitivityLevel);
+  };
   
-  // Define intensity levels for demo
-  const intensityLevels = [
-    { name: 'Minimal', value: MotionIntensityLevel.MINIMAL },
-    { name: 'Low', value: MotionIntensityLevel.LOW },
-    { name: 'Moderate', value: MotionIntensityLevel.MODERATE },
-    { name: 'High', value: MotionIntensityLevel.HIGH },
-    { name: 'Very High', value: MotionIntensityLevel.VERY_HIGH },
-    { name: 'Extreme', value: MotionIntensityLevel.EXTREME },
+  const updateAlternativeType = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setPreferredAlternativeType(e.target.value as AlternativeType);
+  };
+  
+  // Animation category info for demo
+  const categories = [
+    { name: 'Entrance', value: AnimationCategory.ENTRANCE, animation: slideInAnimation },
+    { name: 'Exit', value: AnimationCategory.EXIT, animation: slideInAnimation },
+    { name: 'Attention', value: AnimationCategory.ATTENTION, animation: bounceAnimation },
+    { name: 'Loading', value: AnimationCategory.LOADING, animation: rotateAnimation },
+    { name: 'Hover', value: AnimationCategory.HOVER, animation: scaleAnimation },
+    { name: 'Focus', value: AnimationCategory.FOCUS, animation: scaleAnimation },
+    { name: 'Active', value: AnimationCategory.ACTIVE, animation: scaleAnimation },
+    { name: 'Background', value: AnimationCategory.BACKGROUND, animation: spinAndScaleAnimation },
   ];
   
   return (
     <Container>
-      <Title>Reduced Motion Alternatives</Title>
+      <Title>Enhanced Reduced Motion</Title>
       
       <Section>
-        <Subtitle>Animation Alternative System</Subtitle>
-        <p>
-          This demo showcases our system for providing alternative animations for users who prefer reduced motion.
-          Each animation category has specific alternatives designed to be less motion-intensive while maintaining
-          the functional purpose of the animation.
-        </p>
+        <Subtitle>Motion Sensitivity Settings</Subtitle>
         
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
+        <SettingsGroup>
+          <div>
+            <label>System Preference:</label>
+            <StatusIndicator $enabled={systemReducedMotion} />
+            {systemReducedMotion ? 'Prefers Reduced Motion' : 'Standard Motion'}
+          </div>
+          
+          <div>
+            <label>App Setting:</label>
             <Switch>
               <input
                 type="checkbox"
-                checked={forceAlternatives}
-                onChange={e => setForceAlternatives(e.target.checked)}
+                checked={appReducedMotion}
+                onChange={e => setAppReducedMotion(e.target.checked)}
               />
               <span></span>
             </Switch>
-            <span>Force Alternatives (Currently: {forceAlternatives ? 'On' : 'Off'})</span>
+            {appReducedMotion ? 'Reduced Motion' : 'Standard Motion'}
           </div>
           
-          <div style={{ marginBottom: '0.5rem' }}>
-            <strong>System Preference:</strong> {prefersReducedMotion ? 'Prefers Reduced Motion' : 'Standard Motion'}
+          <div>
+            <label>Effective Setting:</label>
+            <StatusIndicator $enabled={prefersReducedMotion} />
+            <strong>{prefersReducedMotion ? 'Reduced Motion' : 'Standard Motion'}</strong>
           </div>
           
-          <Button onClick={playAnimations}>
-            Play All Animations
-          </Button>
-        </div>
-      </Section>
-      
-      <Section>
-        <Subtitle>Animation Categories with Alternatives</Subtitle>
-        <Row>
-          {/* Original animations with alternatives */}
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Slide In"
-              originalAnimation={slideInAnimation}
-              category={AnimationCategory.ENTRANCE}
-              duration={1000}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
+          <div>
+            <label>Sensitivity Level:</label>
+            <Select value={motionSensitivity} onChange={updateMotionSensitivity}>
+              {Object.values(MotionSensitivityLevel).map(level => (
+                <option key={level} value={level}>
+                  {level
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ')}
+                </option>
+              ))}
+            </Select>
+          </div>
           
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Bounce"
-              originalAnimation={bounceAnimation}
-              category={AnimationCategory.ATTENTION}
-              intensity={MotionIntensityLevel.HIGH}
-              duration={1500}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
+          <div>
+            <label>Alternative Type:</label>
+            <Select value={preferredAlternativeType} onChange={updateAlternativeType}>
+              {Object.values(AlternativeType).map(type => (
+                <option key={type} value={type}>
+                  {type
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ')}
+                </option>
+              ))}
+            </Select>
+          </div>
           
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Rotate"
-              originalAnimation={rotateAnimation}
-              category={AnimationCategory.LOADING}
-              duration={2000}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
-          
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Scale"
-              originalAnimation={scaleAnimation}
-              category={AnimationCategory.ENTRANCE}
-              intensity={MotionIntensityLevel.MODERATE}
-              duration={800}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
-        </Row>
-        
-        <Row>
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Shake"
-              originalAnimation={shakeAnimation}
-              category={AnimationCategory.ATTENTION}
-              intensity={MotionIntensityLevel.VERY_HIGH}
-              duration={500}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
-          
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Complex"
-              originalAnimation={spinAndScaleAnimation}
-              category={AnimationCategory.ENTRANCE}
-              intensity={MotionIntensityLevel.EXTREME}
-              duration={1200}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
-          
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Hover"
-              originalAnimation={presets.ui.hover?.keyframes || scaleAnimation}
-              category={AnimationCategory.HOVER}
-              duration={300}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
-          
-          <Column $width="25%">
-            <AnimationComparison
-              animationName="Focus"
-              originalAnimation={presets.ui.button?.hover?.keyframes || scaleAnimation}
-              category={AnimationCategory.FOCUS}
-              duration={300}
-              animate={animate}
-              forceAlternative={forceAlternatives}
-            />
-          </Column>
-        </Row>
-      </Section>
-      
-      <Section>
-        <Subtitle>Category-Specific Alternatives</Subtitle>
-        <div style={{ marginBottom: '1rem' }}>
-          <p>
-            Each animation category has specific alternatives designed to maintain the functional
-            purpose of the animation while reducing motion intensity.
-          </p>
-        </div>
+          <div>
+            <Button onClick={resetPreferences}>Reset All Preferences</Button>
+          </div>
+        </SettingsGroup>
         
         <Card>
-          <h4>Alternative Types by Category</h4>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '0.5rem' }}>Category</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem' }}>Alternative Type</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem' }}>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map(category => (
-                <tr key={category.value} style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                  <td style={{ padding: '0.5rem' }}>{category.name}</td>
-                  <td style={{ padding: '0.5rem' }}>
-                    {(() => {
-                      const alternative = getReducedMotionAlternative(
-                        category.value,
-                        MotionIntensityLevel.MODERATE
-                      );
-                      return alternative.toString() === '' ? 'None' : alternative.toString().slice(0, 50) + '...';
-                    })()}
-                  </td>
-                  <td style={{ padding: '0.5rem' }}>
-                    {category.value === AnimationCategory.ENTRANCE && 'Simple fade or subtle scale'}
-                    {category.value === AnimationCategory.EXIT && 'Simple fade or subtle scale'}
-                    {category.value === AnimationCategory.HOVER && 'Border highlight or opacity change'}
-                    {category.value === AnimationCategory.FOCUS && 'Border highlight or color change'}
-                    {category.value === AnimationCategory.ACTIVE && 'Background color change'}
-                    {category.value === AnimationCategory.LOADING && 'Opacity pulse'}
-                    {category.value === AnimationCategory.BACKGROUND && 'Disabled or subtle opacity change'}
-                    {category.value === AnimationCategory.ATTENTION && 'Border pulse or opacity change'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <h4>Active Configuration</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+            <div>Motion Sensitivity:</div>
+            <div>{motionSensitivity}</div>
+            
+            <div>Speed Multiplier:</div>
+            <div>{sensitivityConfig.speedMultiplier.toFixed(2)}x</div>
+            
+            <div>Distance Scale:</div>
+            <div>{sensitivityConfig.distanceScale}</div>
+            
+            <div>Max Complexity:</div>
+            <div>{sensitivityConfig.maxAllowedComplexity}</div>
+            
+            <div>Using Alternatives:</div>
+            <div>{sensitivityConfig.useAlternativeAnimations ? 'Yes' : 'No'}</div>
+          </div>
         </Card>
       </Section>
       
       <Section>
-        <Subtitle>Intensity-Based Alternatives</Subtitle>
+        <Subtitle>Animation Categories</Subtitle>
         <p>
-          The animation alternatives are also adjusted based on the intensity level of the original
-          animation. More intense animations get more significant reductions.
+          Each animation category has specific settings and alternatives. Click "Play" to see
+          the animation with current settings applied.
         </p>
         
         <Row>
-          {intensityLevels.map(intensity => (
-            <Column key={intensity.value} $width="50%">
-              <Card>
-                <h4>{intensity.name} Intensity</h4>
-                <Row>
-                  <Column $width="50%">
-                    <AnimationComparison
-                      animationName={intensity.name}
-                      originalAnimation={slideInAnimation}
-                      category={AnimationCategory.ENTRANCE}
-                      intensity={intensity.value}
-                      duration={800}
-                      animate={animate}
-                      forceAlternative={forceAlternatives}
-                    />
-                  </Column>
-                  <Column $width="50%">
-                    <div style={{ fontSize: '0.9rem' }}>
-                      <strong>Strategy:</strong>
-                      {intensity.value === MotionIntensityLevel.MINIMAL && (
-                        <span> Simple fade, very short duration</span>
-                      )}
-                      {intensity.value === MotionIntensityLevel.LOW && (
-                        <span> Subtle scale or fade, reduced duration</span>
-                      )}
-                      {intensity.value === MotionIntensityLevel.MODERATE && (
-                        <span> Alternative property or reduced distance</span>
-                      )}
-                      {intensity.value === MotionIntensityLevel.HIGH && (
-                        <span> Simplified animation or property change</span>
-                      )}
-                      {intensity.value === MotionIntensityLevel.VERY_HIGH && (
-                        <span> Minimal animation or simple property change</span>
-                      )}
-                      {intensity.value === MotionIntensityLevel.EXTREME && (
-                        <span> Disable or use simplest alternative</span>
-                      )}
-                    </div>
-                  </Column>
-                </Row>
-              </Card>
+          {categories.map(category => (
+            <Column key={category.value} $width="25%">
+              <AnimationComparison
+                category={category.value}
+                animationName={category.name}
+                animation={category.animation}
+                duration={800}
+                triggerAnimation={() => playAnimation(category.value)}
+                isAnimating={animatingCategory === category.value}
+                enhanced={enhanced}
+              />
             </Column>
           ))}
         </Row>
@@ -568,46 +511,58 @@ const ReducedMotionAlternativesDemo: React.FC = () => {
       <Section>
         <Subtitle>Implementation Details</Subtitle>
         <Card>
-          <h4>Using Reduced Motion Alternatives in Components</h4>
-          <pre style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '4px', overflow: 'auto' }}>
-{`// Using the reduced motion alternatives hook
-import { useReducedMotionAlternative } from '../hooks/useReducedMotionAlternative';
+          <h4>Using Enhanced Reduced Motion in Components</h4>
+          <pre style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '4px', overflow: 'auto', fontSize: '0.9rem' }}>
+{`// Using the enhanced hook in a component
+import { useReducedMotion } from '../animations/accessibility/useReducedMotion';
 import { AnimationCategory } from '../animations/accessibility/MotionSensitivity';
-import { css, keyframes } from 'styled-components';
 
 const MyComponent = () => {
-  // Define original animation
-  const originalAnimation = css\`
-    animation: \${myKeyframes} 1000ms ease forwards;
-  \`;
+  // Use the enhanced hook with options
+  const {
+    prefersReducedMotion,
+    isAnimationAllowed,
+    getAdjustedDuration,
+    getAlternativeForCategory,
+    getDistanceScale
+  } = useReducedMotion({
+    defaultSensitivity: MotionSensitivityLevel.MEDIUM,
+    useGranularControl: true
+  });
   
-  // Get appropriate animation based on user preferences
-  const animation = useReducedMotionAlternative(
-    originalAnimation,
-    {
-      id: 'my-animation',
-      category: AnimationCategory.ENTRANCE,
-      duration: 1000,
-    }
-  );
+  // Check if animation is allowed for a specific category
+  const shouldAnimateEntrance = isAnimationAllowed(AnimationCategory.ENTRANCE);
   
+  // Get adjusted duration for an animation
+  const duration = getAdjustedDuration(1000, AnimationCategory.ENTRANCE);
+  
+  // Get appropriate distance scale
+  const distanceScale = getDistanceScale(AnimationCategory.ENTRANCE);
+  
+  // Use in your component
   return (
-    <div style={{ animation }}>
+    <div
+      style={{
+        animation: shouldAnimateEntrance
+          ? \`\${myAnimation} \${duration}ms ease\`
+          : 'none',
+        transform: \`translateY(\${20 * distanceScale}px)\`
+      }}
+    >
       Content with accessibility-aware animation
     </div>
   );
 }`}
           </pre>
           
-          <h4>Alternative Types</h4>
+          <h4>Enhanced Features</h4>
           <ul>
-            <li><strong>FADE:</strong> Simple opacity animation without movement</li>
-            <li><strong>REDUCED_DISTANCE:</strong> Same animation with scaled down distance</li>
-            <li><strong>ALTERNATIVE_PROPERTY:</strong> Animation of a different CSS property</li>
-            <li><strong>SIMPLIFIED:</strong> Simpler version of the original animation</li>
-            <li><strong>ADJUSTED:</strong> Original with adjusted parameters</li>
-            <li><strong>STATIC:</strong> Static indicator instead of animation</li>
-            <li><strong>NONE:</strong> No animation at all</li>
+            <li><strong>Fine-grained motion control:</strong> Multiple sensitivity levels beyond just on/off</li>
+            <li><strong>Category-specific settings:</strong> Different settings for different types of animations</li>
+            <li><strong>Custom alternative types:</strong> Choose between different alternative styles</li>
+            <li><strong>Persistence:</strong> User preferences are saved in localStorage</li>
+            <li><strong>Adjustable parameters:</strong> Duration and distance scaling based on sensitivity</li>
+            <li><strong>System synchronization:</strong> Respects both system and app-level settings</li>
           </ul>
         </Card>
       </Section>

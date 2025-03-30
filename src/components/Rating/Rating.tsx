@@ -10,6 +10,11 @@ import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
+// Galileo Animation Imports
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+
 import { RatingProps } from './types';
 
 // Default icons
@@ -145,12 +150,6 @@ const IconContainer = styled.span<{
   $reducedMotion: boolean;
 }>`
   display: flex;
-  transition: ${props => (!props.$reducedMotion ? 'transform 0.2s' : 'none')};
-  transform: ${props => (props.$active ? 'scale(1.1)' : 'scale(1)')};
-
-  &:hover {
-    transform: ${props => (!props.$readOnly ? 'scale(1.1)' : 'scale(1)')};
-  }
 `;
 
 const Label = styled.span`
@@ -200,11 +199,17 @@ function RatingComponent(props: RatingProps, ref: React.ForwardedRef<HTMLDivElem
     color = 'default',
     className,
     style,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+
+  // Resolve disable flag - INCORPORATE CONTEXT
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
 
   // Icons
   const emptyIcon = customEmptyIcon || <EmptyStarIcon />;
@@ -330,10 +335,6 @@ function RatingComponent(props: RatingProps, ref: React.ForwardedRef<HTMLDivElem
       if (onClick) {
         onClick(event, newValue);
       }
-
-      // Show active state briefly
-      setActive(newValue);
-      setTimeout(() => setActive(-1), 200);
     },
     [readOnly, disabled, max, precision, value, isControlled, onChange, onClick]
   );
@@ -406,63 +407,140 @@ function RatingComponent(props: RatingProps, ref: React.ForwardedRef<HTMLDivElem
 
   // Render items
   const renderItems = () => {
-    return items.map(item => {
-      // Determine if this item is filled
-      const isFilled = item <= Math.ceil(value);
-      const isPartiallyFilled = !isFilled && item <= Math.ceil(value) && item > value;
-      const isHovered = item <= hover;
-      const isActive = item <= active;
+    return items.map((itemValue) => {
+      const itemIndex = itemValue - 1;
+      const radioId = name ? `${name}-${itemValue}` : undefined;
+      const itemIsFilled = value >= itemValue;
+      const itemIsHovered = hover >= itemValue;
+      const itemIsActive = active === itemValue;
+      const displayValue = hover !== -1 ? hover : value;
+      const shouldHighlight = displayValue >= itemValue;
+
+      // Determine icon based on state
+      let iconToRender = itemIsFilled ? filledIcon : emptyIcon;
+      if (shouldHighlight) {
+        iconToRender = highlightedIcon;
+      }
+
+      // Calculate final config for this item's interaction
+      const finalInteractionConfig = useMemo(() => {
+        // Similar merging logic as seen in Fab.tsx, adapted for this context
+        const baseOptions: Partial<PhysicsInteractionOptions> = {
+          affectsScale: true,
+          scaleAmplitude: 0.05,
+          stiffness: SpringPresets.DEFAULT.tension,
+          dampingRatio: (SpringPresets.DEFAULT.friction / (2 * Math.sqrt(SpringPresets.DEFAULT.tension * (SpringPresets.DEFAULT.mass ?? 1)))),
+          mass: SpringPresets.DEFAULT.mass ?? 1,
+        };
+        
+        let contextResolvedConfig: Partial<SpringConfig> = {};
+        if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+            contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+        } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+            contextResolvedConfig = defaultSpring;
+        }
+
+        let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
+        const configProp = animationConfig;
+        if (typeof configProp === 'string' && configProp in SpringPresets) {
+            const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+            propResolvedConfig = { 
+                stiffness: preset.tension, 
+                dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, 
+                mass: preset.mass 
+            };
+        } else if (typeof configProp === 'object' && configProp !== null) {
+            if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp) {
+                propResolvedConfig = { ...configProp } as Partial<PhysicsInteractionOptions>; // Spread to handle potential extra props
+            } else if ('tension' in configProp || 'friction' in configProp) {
+                 const preset = configProp as Partial<SpringConfig>;
+                 const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
+                 const mass = preset.mass ?? 1;
+                 propResolvedConfig = { 
+                     stiffness: tension, 
+                     dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(tension * mass)) : undefined, 
+                     mass: mass 
+                };
+            }
+            // Safely apply specific interaction options if they exist in the configProp object
+            if ('strength' in configProp && typeof configProp.strength === 'number') propResolvedConfig.strength = configProp.strength;
+            if ('radius' in configProp && typeof configProp.radius === 'number') propResolvedConfig.radius = configProp.radius;
+            if ('affectsRotation' in configProp && typeof configProp.affectsRotation === 'boolean') propResolvedConfig.affectsRotation = configProp.affectsRotation;
+            if ('affectsScale' in configProp && typeof configProp.affectsScale === 'boolean') propResolvedConfig.affectsScale = configProp.affectsScale;
+            if ('rotationAmplitude' in configProp && typeof configProp.rotationAmplitude === 'number') propResolvedConfig.rotationAmplitude = configProp.rotationAmplitude;
+            if ('scaleAmplitude' in configProp && typeof configProp.scaleAmplitude === 'number') propResolvedConfig.scaleAmplitude = configProp.scaleAmplitude;
+        }
+
+        const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness;
+        const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1; // Ensure mass is defined
+        const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
+                                  (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt((finalStiffness ?? baseOptions.stiffness ?? 170) * calculatedMass)) : baseOptions.dampingRatio);
+        const finalMass = calculatedMass;
+        
+        return {
+            ...baseOptions,
+            stiffness: finalStiffness,
+            dampingRatio: finalDampingRatio,
+            mass: finalMass,
+            // Apply specific interaction options if they exist in propResolvedConfig
+            ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
+            ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
+            ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+            ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+            ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+            ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+            ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+        };
+    
+      }, [defaultSpring, animationConfig, motionSensitivity]);
+
+      // Apply Physics Hook with merged config
+      const { style: physicsStyle, eventHandlers } = usePhysicsInteraction({
+          ...finalInteractionConfig,
+          reducedMotion: finalDisableAnimation || readOnly, // Pass resolved disable flag + readOnly state
+      });
 
       return (
         <IconContainer
-          key={item}
-          $filled={isFilled}
-          $hover={isHovered}
-          $active={isActive}
-          $readOnly={readOnly || disabled}
-          $reducedMotion={prefersReducedMotion}
+          key={itemValue}
+          $filled={itemIsFilled}
+          $hover={itemIsHovered}
+          $active={itemIsActive}
+          $readOnly={readOnly}
+          $reducedMotion={finalDisableAnimation}
+          style={physicsStyle} // Apply style from hook
+          {...( !readOnly && !disabled ? eventHandlers : {} )} // Apply handlers conditionally
+          // Add mouse move/leave handlers if not readOnly/disabled
+          onMouseMove={!readOnly && !disabled ? handleMouseMove : undefined}
+          onMouseLeave={!readOnly && !disabled ? handleMouseLeave : undefined}
+          onClick={!readOnly && !disabled ? handleClick : undefined}
+          // Add focus handlers for keyboard interaction (might need adjustments)
+          onFocus={() => setActive(itemValue)}
+          onBlur={() => setActive(-1)}
         >
-          {isHovered ? highlightedIcon : isFilled ? filledIcon : emptyIcon}
+          {/* Hidden radio input for accessibility/forms */}
+          {!readOnly && (
+            <HiddenInputs>
+                <RadioInput
+                    type="radio"
+                    name={name}
+                    id={radioId}
+                    value={itemValue}
+                    checked={value === itemValue}
+                    onChange={(e) => handleItemValueChange(e, itemValue)}
+                    disabled={disabled}
+                />
+            </HiddenInputs>
+          )}
+          {iconToRender}
         </IconContainer>
       );
     });
   };
 
-  // Render hidden inputs for screen readers
-  const renderHiddenInputs = () => {
-    return items.map(item => (
-      <RadioInput
-        key={item}
-        type="radio"
-        name={name}
-        value={item.toString()}
-        checked={value === item}
-        onChange={event => handleItemValueChange(event, item)}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        disabled={disabled}
-        required={false}
-        tabIndex={-1}
-      />
-    ));
-  };
-
   return (
     <RatingRoot
       ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      tabIndex={disabled || readOnly ? -1 : 0}
-      aria-label={label || 'Rating'}
-      aria-valuemin={0}
-      aria-valuemax={max}
-      aria-valuenow={value}
-      aria-valuetext={value !== null ? `${value} Stars` : 'Empty'}
-      aria-disabled={disabled}
-      aria-readonly={readOnly}
-      role="slider"
       className={className}
       style={style}
       $disabled={disabled}
@@ -472,12 +550,10 @@ function RatingComponent(props: RatingProps, ref: React.ForwardedRef<HTMLDivElem
       {...rest}
     >
       <RatingContainer $size={size}>
-        {renderItems()}
-        <HiddenInputs>{renderHiddenInputs()}</HiddenInputs>
+        {renderItems()} 
       </RatingContainer>
-
       {showLabel && label && <Label>{label}</Label>}
-      {showValue && <Value>{value}</Value>}
+      {showValue && <Value>({value.toFixed(precision === 1 ? 0 : 1)})</Value>}
     </RatingRoot>
   );
 }

@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
 
 /**
  * DatePickerProps interface
@@ -105,6 +106,12 @@ export interface DatePickerProps {
 
   /** Additional props */
   [key: string]: any;
+
+  /**
+   * Optional spring configuration or preset name for the calendar popover animation.
+   * @default 'DEFAULT'
+   */
+  animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
 }
 
 /**

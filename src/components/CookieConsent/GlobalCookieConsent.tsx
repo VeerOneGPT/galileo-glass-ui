@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect } from 'react';
+import React, { forwardRef, useState, useEffect, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { glowEffects } from '../../core/mixins/effects/glowEffects';
@@ -37,9 +37,13 @@ const getCookie = (name: string): string | null => {
   return null;
 };
 
+// Physics/Animation Imports
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+
 const StyledGlobalCookieConsent = styled.div<{
   $position: GlobalCookieConsentProps['position'];
-  $animate: boolean;
   $glassIntensity: number;
 }>`
   position: fixed;
@@ -49,8 +53,8 @@ const StyledGlobalCookieConsent = styled.div<{
   width: 100%;
   max-width: 500px;
   box-sizing: border-box;
-  transition: all 0.3s ease;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  will-change: transform, opacity;
 
   ${({ $position }) => {
     switch ($position) {
@@ -121,31 +125,6 @@ const StyledGlobalCookieConsent = styled.div<{
       themeContext,
     });
   }}
-  
-  ${({ $animate, $position }) =>
-    $animate &&
-    `
-    animation: slideIn 0.6s ease forwards;
-    
-    @keyframes slideIn {
-      0% {
-        opacity: 0;
-        transform: ${
-          $position?.includes('top')
-            ? 'translateY(-30px)'
-            : $position?.includes('bottom')
-            ? 'translateY(30px)'
-            : 'translateY(30px)'
-        } ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) ${
-          $position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''
-        };
-      }
-    }
-  `}
   
   @media (max-width: 540px) {
     max-width: 100%;
@@ -297,7 +276,10 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
     const [expanded, setExpanded] = useState(initiallyExpanded);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [isRendered, setIsRendered] = useState(false);
     const prefersReducedMotion = useReducedMotion();
+    const { defaultSpring } = useAnimationContext();
+
     const shouldAnimate = animate && !prefersReducedMotion;
 
     // Set initial selected categories
@@ -406,7 +388,48 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
       }
     };
 
-    if (!visible) {
+    // Calculate final spring config
+    const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+        contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object') {
+        contextConfig = defaultSpring ?? {};
+      }
+      return { ...baseConfig, ...contextConfig };
+    }, [defaultSpring]);
+
+    const isTop = position?.startsWith('top');
+    const exitY = isTop ? -30 : 30; // Use 30px like original CSS
+
+    // Spring for Opacity
+    const { value: animatedOpacity } = useGalileoStateSpring(visible ? 1 : 0, {
+      ...finalSpringConfig,
+      immediate: !shouldAnimate,
+    });
+
+    // Spring for TranslateY
+    const { value: animatedTranslateY } = useGalileoStateSpring(visible ? 0 : exitY, {
+      ...finalSpringConfig,
+      immediate: !shouldAnimate,
+    });
+
+    // Immediately render when becoming visible
+    useEffect(() => {
+      if (visible) {
+        setIsRendered(true);
+      }
+    }, [visible]);
+
+    // Calculate transform
+    const isCentered = position === 'top' || position === 'bottom';
+    const animatedStyle: React.CSSProperties = {
+      opacity: animatedOpacity,
+      transform: `translateY(${animatedTranslateY}px)${isCentered ? ' translateX(-50%)' : ''}`,
+    };
+
+    if (!visible && !isRendered) {
       return null;
     }
 
@@ -453,10 +476,10 @@ export const GlobalCookieConsent = forwardRef<HTMLDivElement, GlobalCookieConsen
         <StyledGlobalCookieConsent
           ref={ref}
           $position={position}
-          $animate={shouldAnimate}
           $glassIntensity={glassIntensity}
           className={className}
-          style={style}
+          style={{ ...style, ...animatedStyle }}
+          aria-hidden={!visible}
           {...rest}
         >
           <Box>

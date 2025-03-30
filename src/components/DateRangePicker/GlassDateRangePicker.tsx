@@ -8,10 +8,15 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths } from 'date-fns';
+import { GlassLocalizationProvider } from '../DatePicker/GlassLocalizationProvider';
+import { createDateFnsAdapter } from '../DatePicker/adapters/dateFnsAdapter';
 
 // Physics-related imports
-import { useSpring } from '../../animations/physics/useSpring';
-import { SpringPresets } from '../../animations/physics/springPhysics';
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useSceneTransition } from '../../animations/physics/useSceneTransition';
 
 // Core styling imports
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -19,10 +24,9 @@ import { glowEffects } from '../../core/mixins/effects/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 
 // Import from GlassDatePicker for localization
-import { GlassLocalizationProvider, useDateAdapter } from '../DatePicker';
+import { useDateAdapter } from '../DatePicker';
 
 // Hooks and utilities
-import { useReducedMotion } from '../../hooks/useReducedMotion';
 import ClearIcon from '../icons/ClearIcon';
 
 // Types and presets
@@ -234,9 +238,6 @@ const PickerContainer = styled.div<{
   $width?: number;
   $isComparisonMode: boolean;
   $color: string;
-  $translateX: number;
-  $translateY: number;
-  $scale: number;
 }>`
   position: absolute;
   z-index: 1000;
@@ -246,8 +247,8 @@ const PickerContainer = styled.div<{
   width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '280px'};
   user-select: none;
   transform-origin: top left;
-  transform: translate(${props => props.$translateX}px, ${props => props.$translateY}px) 
-             scale(${props => props.$scale});
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   
   /* Glass styling */
   ${props => glassSurface({
@@ -259,13 +260,6 @@ const PickerContainer = styled.div<{
   })}
   
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-  
-  /* Animation */
-  ${props => props.$animate && !props.$reducedMotion && css`
-    animation: ${fadeInScale} 0.3s ease-out;
-  `}
   
   /* Outer drop shadow for depth */
   &::before {
@@ -828,6 +822,44 @@ const HelperText = styled.div`
   padding-left: 2px;
 `;
 
+// Re-add necessary type/enum imports
+import {
+  SceneConfig,
+  SceneTransition,
+  TransitionEffect,
+  SceneType,
+} from '../../animations/physics/SceneTransitionManager';
+
+// Styled PopoverContainer
+const PopoverContainer = styled.div<{
+  $animate: boolean;
+  $reducedMotion: boolean;
+  $blurStrength: 'strong' | 'light' | 'standard';
+  $color: string;
+  $width?: number;
+  $isComparisonMode: boolean;
+  $glassVariant: 'clear' | 'frosted' | 'tinted';
+}>`
+  position: absolute;
+  z-index: 1300;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: ${props => props.$width ? `${props.$width}px` : '280px'};
+  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '280px'};
+  user-select: none;
+  transform-origin: top left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  ${props => glassSurface({
+    elevation: 2,
+    blurStrength: props.$blurStrength,
+    borderOpacity: 'light',
+    tintColor: props.$color !== 'default' ? `var(--color-${props.$color}-transparent, rgba(99, 102, 241, 0.05))` : undefined,
+    themeContext: createThemeContext(props.theme),
+  })}
+`;
+
 /**
  * GlassDateRangePicker Component
  */
@@ -876,6 +908,7 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
   id,
   ariaLabel,
   animate = true,
+  popoverAnimationConfig,
   
   // Custom renderers
   renderInput,
@@ -895,9 +928,6 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
     enableGestures: true
   }
 }) => {
-  // Date adapter from context
-  const dateAdapter = useDateAdapter();
-  
   // State
   const [isOpen, setIsOpen] = useState(inline);
   const [isComparing, setIsComparing] = useState(comparisonMode);
@@ -920,9 +950,75 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
   const inputRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   
-  // Accessibility
-  const reducedMotion = useReducedMotion();
+  // Get adapter from context provider (no locale argument needed here)
+  const dateAdapter = useDateAdapter();
+  const prefersReducedMotion = useReducedMotion();
   
+  // Animation Context and Popover Transition Calculation
+  const { defaultSpring } = useAnimationContext();
+
+  const popoverSpringConfig = useMemo<SpringConfig>(() => {
+    if (prefersReducedMotion) {
+      // For reduced motion, we could use a very stiff spring or just disable animation
+      return { ...SpringPresets.STIFF, duration: 0.1 }; // Example: quick transition
+    }
+
+    const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+    let contextConfig: Partial<SpringConfig> = {};
+
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object') {
+      contextConfig = defaultSpring ?? {};
+    }
+
+    let propConfigResolved: Partial<SpringConfig> = {};
+    if (typeof popoverAnimationConfig === 'string' && popoverAnimationConfig in SpringPresets) {
+      propConfigResolved = SpringPresets[popoverAnimationConfig as keyof typeof SpringPresets];
+    } else if (typeof popoverAnimationConfig === 'object') {
+      propConfigResolved = popoverAnimationConfig ?? {};
+    }
+
+    return { ...baseConfig, ...contextConfig, ...propConfigResolved };
+    // Removed Framer Motion specific transition properties (type, damping, restDelta)
+  }, [defaultSpring, popoverAnimationConfig, prefersReducedMotion]);
+
+  // Re-add duration calculation
+  const finalTransitionDuration = useMemo(() => {
+    return prefersReducedMotion ? 100 : 300; // Example duration
+  }, [prefersReducedMotion]);
+
+  // --- Define Scenes and Transitions ---
+  const pickerScenes: SceneConfig[] = useMemo(() => [
+    { id: 'hidden', name: 'Picker Hidden', type: SceneType.MODAL, container: 'picker-hidden' },
+    { id: 'visible', name: 'Picker Visible', type: SceneType.MODAL, container: 'picker-visible' },
+  ], []);
+
+  const pickerTransitions: SceneTransition[] = useMemo(() => [
+    {
+      from: 'hidden',
+      to: 'visible',
+      effect: TransitionEffect.FADE,
+      duration: finalTransitionDuration,
+    },
+    {
+      from: 'visible',
+      to: 'hidden',
+      effect: TransitionEffect.FADE,
+      duration: finalTransitionDuration,
+    },
+  ], [finalTransitionDuration]);
+
+  // --- Use useSceneTransition Hook ---
+  const {
+    activeScene,
+    actions: sceneActions,
+  } = useSceneTransition({
+    initialScene: isOpen ? 'visible' : 'hidden',
+    scenes: pickerScenes,
+    transitions: pickerTransitions,
+  });
+
   // Physics spring configuration
   const springConfig = useMemo(() => {
     if (physics.animationPreset === 'gentle') return SpringPresets.GENTLE;
@@ -938,32 +1034,12 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
   }, [physics]);
   
   // Springs for animations
-  const { value: pickerScale, start: animatePickerScale } = useSpring({
-    from: 0.95,
-    to: 1,
-    config: springConfig
+  const { value: dayCellScale, start: animateDayCellScale } = useGalileoStateSpring(1, {
+    ...springConfig,
+    friction: springConfig.friction * 0.8 // Less friction for more bounce
   });
   
-  const { value: pickerTranslateY, start: animatePickerTranslateY } = useSpring({
-    from: 8,
-    to: 0,
-    config: springConfig
-  });
-  
-  const { value: dayCellScale, start: animateDayCellScale } = useSpring({
-    from: 0.9,
-    to: 1,
-    config: {
-      ...springConfig,
-      friction: springConfig.friction * 0.8 // Less friction for more bounce
-    }
-  });
-  
-  const { value: dayCellTranslateY, start: animateDayCellTranslateY } = useSpring({
-    from: 5,
-    to: 0,
-    config: springConfig
-  });
+  const { value: dayCellTranslateY, start: animateDayCellTranslateY } = useGalileoStateSpring(5, springConfig);
   
   // Handle value change from props
   useEffect(() => {
@@ -1050,22 +1126,14 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
     
     if (!isOpen) {
       setIsOpen(true);
-      
-      // Trigger spring animations
-      animatePickerScale({ from: 0.95, to: 1 });
-      animatePickerTranslateY({ from: 8, to: 0 });
     } else {
       setIsOpen(false);
     }
-  }, [disabled, isOpen, animatePickerScale, animatePickerTranslateY]);
+  }, [disabled, isOpen]);
   
   // Handle day cell click
   const handleDayClick = useCallback((date: Date) => {
     if (isDisabled(date)) return;
-    
-    // Animate the day cell
-    animateDayCellScale({ from: 0.8, to: 1 });
-    animateDayCellTranslateY({ from: 2, to: 0 });
     
     // If no start date or clicking a date before start date, set start date
     if (!localValue.startDate || (localValue.startDate && localValue.endDate) || (date < localValue.startDate)) {
@@ -1099,9 +1167,7 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
     dateAdapter, 
     autoClose, 
     enableTimeSelection, 
-    onChange,
-    animateDayCellScale,
-    animateDayCellTranslateY
+    onChange
   ]);
   
   // Handle comparison day click
@@ -1260,7 +1326,7 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
     const currentValue = isComparison ? localComparisonValue : localValue;
     
     return (
-      <MonthContainer $animate={animate} $reducedMotion={reducedMotion}>
+      <MonthContainer $animate={animate} $reducedMotion={prefersReducedMotion}>
         <CalendarGrid>
           {days.map((date, index) => {
             const isDateSelected = !!currentValue.startDate && (
@@ -1328,275 +1394,279 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
   };
   
   // Render the picker component
-  const renderPicker = () => {
-    if (!isOpen) return null;
-    
-    const pickerContent = (
-      <PickerContainer
-        ref={pickerRef}
-        $animate={animate}
-        $reducedMotion={reducedMotion}
-        $glassVariant={glassVariant}
-        $blurStrength={blurStrength}
-        $width={inputWidth}
-        $isComparisonMode={isComparing}
-        $color={color}
-        $translateX={0}
-        $translateY={pickerTranslateY}
-        $scale={pickerScale}
-      >
-        <PickerHeader $color={color}>
-          <div className="title">Select Range</div>
-          <div className="actions">
-            {clearable && (localValue.startDate || localValue.endDate) && (
-              <button onClick={handleClear}>Clear</button>
-            )}
-          </div>
-        </PickerHeader>
-        
-        <PickerBody>
-          {/* Presets panel */}
-          {presets && presets.length > 0 && (
-            <PresetPanel $animate={animate} $reducedMotion={reducedMotion}>
-              <PresetTitle>Presets</PresetTitle>
-              {presets.map((preset, index) => (
-                <PresetItem
-                  key={preset.id}
-                  className="preset-item"
-                  $isActive={activePresetId === preset.id}
-                  $color={color}
-                  onClick={() => handlePresetClick(preset)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  {preset.icon && <span className="preset-icon">{preset.icon}</span>}
-                  <span className="preset-label">{preset.label}</span>
-                </PresetItem>
-              ))}
-            </PresetPanel>
+  const renderPickerContent = () => (
+    <PopoverContainer
+      ref={pickerRef}
+      $animate={!prefersReducedMotion}
+      $reducedMotion={prefersReducedMotion}
+      $blurStrength={blurStrength}
+      $color={color}
+      $width={inputWidth}
+      $isComparisonMode={isComparing}
+      $glassVariant={glassVariant}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Date range selection calendar"
+    >
+      <PickerHeader $color={color}>
+        <div className="title">{comparisonMode ? 'Select Range & Comparison' : 'Select Date Range'}</div>
+        <div className="actions">
+          {clearable && (localValue.startDate || localValue.endDate) && (
+            <button onClick={handleClear}>Clear</button>
           )}
+        </div>
+      </PickerHeader>
+      
+      <PickerBody>
+        {/* Presets panel */}
+        {presets && presets.length > 0 && (
+          <PresetPanel $animate={animate} $reducedMotion={prefersReducedMotion}>
+            <PresetTitle>Presets</PresetTitle>
+            {presets.map((preset, index) => (
+              <PresetItem
+                key={preset.id}
+                className="preset-item"
+                $isActive={activePresetId === preset.id}
+                $color={color}
+                onClick={() => handlePresetClick(preset)}
+                role="button"
+                tabIndex={0}
+              >
+                {preset.icon && <span className="preset-icon">{preset.icon}</span>}
+                <span className="preset-label">{preset.label}</span>
+              </PresetItem>
+            ))}
+          </PresetPanel>
+        )}
+        
+        {/* Primary calendar */}
+        <CalendarPanel $isComparison={isComparing} $isPrimary>
+          <CalendarHeader>
+            <div className="header-label">
+              {dateAdapter.adapter.format(viewDate, 'MMMM yyyy')}
+            </div>
+            <div className="header-actions">
+              <button 
+                className="header-button"
+                onClick={() => handleMonthChange('prev')}
+                aria-label="Previous month"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              <button 
+                className="header-button"
+                onClick={() => handleMonthChange('next')}
+                aria-label="Next month"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+            </div>
+          </CalendarHeader>
           
-          {/* Primary calendar */}
-          <CalendarPanel $isComparison={isComparing} $isPrimary>
-            <CalendarHeader>
-              <div className="header-label">
-                {dateAdapter.adapter.format(viewDate, 'MMMM yyyy')}
-              </div>
-              <div className="header-actions">
-                <button 
-                  className="header-button"
-                  onClick={() => handleMonthChange('prev')}
-                  aria-label="Previous month"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 18l-6-6 6-6" />
-                  </svg>
-                </button>
-                <button 
-                  className="header-button"
-                  onClick={() => handleMonthChange('next')}
-                  aria-label="Next month"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 18l6-6-6-6" />
-                  </svg>
-                </button>
-              </div>
-            </CalendarHeader>
-            
-            {renderWeekdays()}
-            {renderMonth(currentMonthDays)}
-            
-            {/* Time selection */}
-            {enableTimeSelection && localValue.startDate && localValue.endDate && (
-              <TimeSelectContainer>
-                <TimeSelect>
-                  <span className="time-label">Start:</span>
-                  <input 
-                    type="time" 
-                    className="time-input" 
-                    value={dateAdapter.adapter.format(localValue.startDate, 'HH:mm')}
-                    onChange={(e) => {
-                      const [hours, minutes] = e.target.value.split(':').map(Number);
-                      const newDate = new Date(localValue.startDate as Date);
-                      newDate.setHours(hours, minutes);
-                      setLocalValue({ ...localValue, startDate: newDate });
-                    }}
-                  />
-                </TimeSelect>
-                
-                <TimeSelect>
-                  <span className="time-label">End:</span>
-                  <input 
-                    type="time" 
-                    className="time-input" 
-                    value={dateAdapter.adapter.format(localValue.endDate, 'HH:mm')}
-                    onChange={(e) => {
-                      const [hours, minutes] = e.target.value.split(':').map(Number);
-                      const newDate = new Date(localValue.endDate as Date);
-                      newDate.setHours(hours, minutes);
-                      setLocalValue({ ...localValue, endDate: newDate });
-                    }}
-                  />
-                </TimeSelect>
-              </TimeSelectContainer>
-            )}
-          </CalendarPanel>
+          {renderWeekdays()}
+          {renderMonth(currentMonthDays)}
           
-          {/* Comparison calendar */}
-          {isComparing && (
-            <>
-              <div className="comparison-separator" />
+          {/* Time selection */}
+          {enableTimeSelection && localValue.startDate && localValue.endDate && (
+            <TimeSelectContainer>
+              <TimeSelect>
+                <span className="time-label">Start:</span>
+                <input 
+                  type="time" 
+                  className="time-input" 
+                  value={dateAdapter.adapter.format(localValue.startDate, 'HH:mm')}
+                  onChange={(e) => {
+                    const [hours, minutes] = e.target.value.split(':').map(Number);
+                    const newDate = new Date(localValue.startDate as Date);
+                    newDate.setHours(hours, minutes);
+                    setLocalValue({ ...localValue, startDate: newDate });
+                  }}
+                />
+              </TimeSelect>
               
-              <CalendarPanel $isComparison>
-                <CalendarHeader>
-                  <div className="header-label">
-                    {dateAdapter.adapter.format(comparisonViewDate, 'MMMM yyyy')}
-                  </div>
-                  <div className="header-actions">
-                    <button 
-                      className="header-button"
-                      onClick={() => handleMonthChange('prev', true)}
-                      aria-label="Previous month"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M15 18l-6-6 6-6" />
-                      </svg>
-                    </button>
-                    <button 
-                      className="header-button"
-                      onClick={() => handleMonthChange('next', true)}
-                      aria-label="Next month"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 18l6-6-6-6" />
-                      </svg>
-                    </button>
-                  </div>
-                </CalendarHeader>
-                
-                {renderWeekdays()}
-                {renderMonth(comparisonMonthDays, true)}
-              </CalendarPanel>
-            </>
+              <TimeSelect>
+                <span className="time-label">End:</span>
+                <input 
+                  type="time" 
+                  className="time-input" 
+                  value={dateAdapter.adapter.format(localValue.endDate, 'HH:mm')}
+                  onChange={(e) => {
+                    const [hours, minutes] = e.target.value.split(':').map(Number);
+                    const newDate = new Date(localValue.endDate as Date);
+                    newDate.setHours(hours, minutes);
+                    setLocalValue({ ...localValue, endDate: newDate });
+                  }}
+                />
+              </TimeSelect>
+            </TimeSelectContainer>
           )}
-        </PickerBody>
+        </CalendarPanel>
         
-        {/* Comparison mode toggle */}
-        <ComparisonSwitchContainer $color={color}>
-          <div className="label">Enable comparison</div>
-          <div className="switch">
-            <input 
-              type="checkbox" 
-              checked={isComparing} 
-              onChange={handleToggleComparison}
-              id="comparison-toggle"
-            />
-            <span className="switch-slider"></span>
-          </div>
-        </ComparisonSwitchContainer>
-        
-        {/* Control buttons */}
-        <ControlsFooter $color={color}>
-          <button className="cancel-button" onClick={handleCancel}>
-            Cancel
-          </button>
-          <button 
-            className="apply-button" 
-            onClick={handleApply}
-            disabled={!localValue.startDate || !localValue.endDate}
-          >
-            Apply
-          </button>
-        </ControlsFooter>
-      </PickerContainer>
-    );
-    
-    // Use portal for picker to avoid container clipping
-    if (typeof document !== 'undefined' && !inline) {
-      return createPortal(pickerContent, document.body);
-    }
-    
-    return pickerContent;
-  };
+        {/* Comparison calendar */}
+        {isComparing && (
+          <>
+            <div className="comparison-separator" />
+            
+            <CalendarPanel $isComparison>
+              <CalendarHeader>
+                <div className="header-label">
+                  {dateAdapter.adapter.format(comparisonViewDate, 'MMMM yyyy')}
+                </div>
+                <div className="header-actions">
+                  <button 
+                    className="header-button"
+                    onClick={() => handleMonthChange('prev', true)}
+                    aria-label="Previous month"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M15 18l-6-6 6-6" />
+                    </svg>
+                  </button>
+                  <button 
+                    className="header-button"
+                    onClick={() => handleMonthChange('next', true)}
+                    aria-label="Next month"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+                  </button>
+                </div>
+              </CalendarHeader>
+              
+              {renderWeekdays()}
+              {renderMonth(comparisonMonthDays, true)}
+            </CalendarPanel>
+          </>
+        )}
+      </PickerBody>
+      
+      {/* Comparison mode toggle */}
+      <ComparisonSwitchContainer $color={color}>
+        <div className="label">Enable comparison</div>
+        <div className="switch">
+          <input 
+            type="checkbox" 
+            checked={isComparing} 
+            onChange={handleToggleComparison}
+            id="comparison-toggle"
+          />
+          <span className="switch-slider"></span>
+        </div>
+      </ComparisonSwitchContainer>
+      
+      {/* Control buttons */}
+      <ControlsFooter $color={color}>
+        <button className="cancel-button" onClick={handleCancel}>
+          Cancel
+        </button>
+        <button 
+          className="apply-button" 
+          onClick={handleApply}
+          disabled={!localValue.startDate || !localValue.endDate}
+        >
+          Apply
+        </button>
+      </ControlsFooter>
+    </PopoverContainer>
+  );
+  
+  // Determine portal container
+  const portalContainer = !inline && typeof document !== 'undefined' ? document.body : null;
   
   return (
-    <DateRangePickerRoot
-      ref={rootRef}
-      $fullWidth={fullWidth}
-      $size={size}
-      $animate={animate}
-      $reducedMotion={reducedMotion}
-      className={className}
-      style={style}
+    <GlassLocalizationProvider
+      locale={locale}
+      adapter={createDateFnsAdapter(locale)}
     >
-      {label && <Label htmlFor={id || 'glass-date-range'}>{label}</Label>}
-      
-      {/* Custom input renderer */}
-      {renderInput ? (
-        renderInput({
-          startDate: localValue.startDate,
-          endDate: localValue.endDate,
-          onClick: handleInputClick,
-          placeholder,
-          inputRef: inputRef as React.RefObject<HTMLInputElement>
-        })
-      ) : (
-        <InputContainer
-          ref={inputRef as React.RefObject<HTMLDivElement>}
-          $size={size}
-          $focused={isOpen}
-          $disabled={disabled}
-          $hasError={error}
-          $glassVariant={glassVariant}
-          $blurStrength={blurStrength}
-          $color={color}
-          onClick={handleInputClick}
-          aria-haspopup="dialog"
-          aria-expanded={isOpen}
-          aria-label={ariaLabel || label || 'Date range picker'}
-          id={id || 'glass-date-range'}
-          role="button"
-          tabIndex={disabled ? -1 : 0}
-        >
-          <InputValue>
-            {localValue.startDate || localValue.endDate ? (
-              <>
-                <span className="date-label range-start">
-                  {formatDate(localValue.startDate)}
-                </span>
-                <span className="range-separator">–</span>
-                <span className="date-label range-end">
-                  {formatDate(localValue.endDate)}
-                </span>
-              </>
-            ) : (
-              <span className="empty-label">{placeholder}</span>
+      <DateRangePickerRoot
+        ref={rootRef}
+        $fullWidth={fullWidth}
+        $size={size}
+        $animate={animate}
+        $reducedMotion={prefersReducedMotion}
+        className={className}
+        style={style}
+      >
+        {label && <Label htmlFor={id || 'glass-date-range'}>{label}</Label>}
+        
+        {/* Custom input renderer */}
+        {renderInput ? (
+          renderInput({
+            startDate: localValue.startDate,
+            endDate: localValue.endDate,
+            onClick: handleInputClick,
+            placeholder,
+            inputRef: inputRef as React.RefObject<HTMLInputElement>
+          })
+        ) : (
+          <InputContainer
+            ref={inputRef as React.RefObject<HTMLDivElement>}
+            $size={size}
+            $focused={isOpen}
+            $disabled={disabled}
+            $hasError={error}
+            $glassVariant={glassVariant}
+            $blurStrength={blurStrength}
+            $color={color}
+            onClick={handleInputClick}
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
+            aria-label={ariaLabel || label || 'Date range picker'}
+            id={id || 'glass-date-range'}
+            role="button"
+            tabIndex={disabled ? -1 : 0}
+          >
+            <InputValue>
+              {localValue.startDate || localValue.endDate ? (
+                <>
+                  <span className="date-label range-start">
+                    {formatDate(localValue.startDate)}
+                  </span>
+                  <span className="range-separator">–</span>
+                  <span className="date-label range-end">
+                    {formatDate(localValue.endDate)}
+                  </span>
+                </>
+              ) : (
+                <span className="empty-label">{placeholder}</span>
+              )}
+            </InputValue>
+            
+            {/* Clear button */}
+            {clearable && !disabled && (localValue.startDate || localValue.endDate) && (
+              <ActionButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClear();
+                }}
+                aria-label="Clear date range"
+              >
+                <ClearIcon />
+              </ActionButton>
             )}
-          </InputValue>
-          
-          {/* Clear button */}
-          {clearable && !disabled && (localValue.startDate || localValue.endDate) && (
-            <ActionButton
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClear();
-              }}
-              aria-label="Clear date range"
-            >
-              <ClearIcon />
-            </ActionButton>
-          )}
-        </InputContainer>
-      )}
-      
-      {/* Error or helper text */}
-      {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
-      {helperText && !error && <HelperText>{helperText}</HelperText>}
-      
-      {/* Date picker popup */}
-      {renderPicker()}
-    </DateRangePickerRoot>
+          </InputContainer>
+        )}
+        
+        {/* Error or helper text */}
+        {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
+        {helperText && !error && <HelperText>{helperText}</HelperText>}
+        
+        {/* Portal for Picker */}
+        {portalContainer ? (
+          createPortal(
+            activeScene === 'visible' && renderPickerContent(),
+            portalContainer
+          )
+        ) : (
+          activeScene === 'visible' && renderPickerContent()
+        )}
+      </DateRangePickerRoot>
+    </GlassLocalizationProvider>
   );
 };
 

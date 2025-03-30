@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useEffect, useMemo } from 'react';
 import styled, { css } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
@@ -8,7 +8,15 @@ import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 
-export interface FabProps {
+// Galileo Animation Imports
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { AnimationProps } from '../../animations/types';
+import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
+
+export interface FabProps extends AnimationProps {
   /**
    * The content of the button
    */
@@ -78,6 +86,9 @@ export interface FabProps {
    * Type of the button
    */
   type?: 'button' | 'submit' | 'reset';
+
+  /** Controls visibility for entrance/exit animation */
+  isVisible?: boolean;
 }
 
 // Get color by name
@@ -208,7 +219,6 @@ const FabContainer = styled.button<{
   outline: none;
   user-select: none;
   z-index: ${props => props.$zIndex};
-  transition: all 0.2s ease-in-out;
   font-family: 'Inter', sans-serif;
   font-weight: 500;
   box-sizing: border-box;
@@ -284,26 +294,6 @@ const FabContainer = styled.button<{
       animation: pulse 1.5s infinite;
     `}
   
-  /* Hover effect */
-  &:hover {
-    ${props =>
-      props.$variant === 'glass'
-        ? css`
-            background-color: rgba(255, 255, 255, 0.15);
-            transform: scale(1.05);
-          `
-        : css`
-            background-color: ${getColorByName(props.$color)}dd;
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
-            transform: translateY(-2px);
-          `}
-  }
-
-  /* Active effect */
-  &:active {
-    transform: scale(0.98);
-  }
-
   /* Disabled state */
   &:disabled {
     ${props =>
@@ -318,15 +308,7 @@ const FabContainer = styled.button<{
             box-shadow: none;
           `}
     cursor: not-allowed;
-    transform: none;
   }
-
-  /* Entry animation */
-  ${accessibleAnimation({
-    animation: scaleUp,
-    duration: 0.3,
-    easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  })}
 `;
 
 // Tooltip component
@@ -387,7 +369,7 @@ const FabWrapper = styled.div<{
  *
  * A floating action button (FAB) performs the primary action in an application.
  */
-export const Fab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
+export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((props, ref) => {
   const {
     children,
     color = 'primary',
@@ -403,16 +385,162 @@ export const Fab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
     enhanced = false,
     zIndex = 1050,
     type = 'button',
+    isVisible = true,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Determine component type
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
+
+  const finalEntranceConfig = useMemo(() => {
+    const baseConfig = SpringPresets.DEFAULT;
+    let contextConf = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextConf = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object') {
+      contextConf = defaultSpring ?? {};
+    }
+    let propConf = {};
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in SpringPresets) {
+      propConf = SpringPresets[propSource as keyof typeof SpringPresets];
+    } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+      propConf = propSource as Partial<SpringConfig>;
+    }
+    return { ...baseConfig, ...contextConf, ...propConf };
+  }, [defaultSpring, animationConfig]);
+
+  const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+    const baseOptions: Partial<PhysicsInteractionOptions> = {
+      affectsScale: true,
+      scaleAmplitude: 0.05,
+      stiffness: SpringPresets.DEFAULT.tension,
+      dampingRatio: (SpringPresets.DEFAULT.friction / (2 * Math.sqrt(SpringPresets.DEFAULT.tension * (SpringPresets.DEFAULT.mass ?? 1)))),
+      mass: SpringPresets.DEFAULT.mass ?? 1,
+    };
+    
+    let contextResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+        contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+        contextResolvedConfig = defaultSpring;
+    }
+
+    let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
+    const configProp = animationConfig;
+    if (typeof configProp === 'string' && configProp in SpringPresets) {
+        const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+        propResolvedConfig = { 
+            stiffness: preset.tension, 
+            dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, 
+            mass: preset.mass 
+        };
+    } else if (typeof configProp === 'object' && configProp !== null) {
+        if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp) {
+            propResolvedConfig = { ...configProp } as Partial<PhysicsInteractionOptions>; // Spread to handle potential extra props
+        } else if ('tension' in configProp || 'friction' in configProp) {
+             const preset = configProp as Partial<SpringConfig>;
+             const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
+             const mass = preset.mass ?? 1;
+             propResolvedConfig = { 
+                 stiffness: tension, 
+                 dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(tension * mass)) : undefined, 
+                 mass: mass 
+            };
+        }
+        // Safely apply specific interaction options if they exist in the configProp object
+        if ('strength' in configProp && typeof configProp.strength === 'number') propResolvedConfig.strength = configProp.strength;
+        if ('radius' in configProp && typeof configProp.radius === 'number') propResolvedConfig.radius = configProp.radius;
+        if ('affectsRotation' in configProp && typeof configProp.affectsRotation === 'boolean') propResolvedConfig.affectsRotation = configProp.affectsRotation;
+        if ('affectsScale' in configProp && typeof configProp.affectsScale === 'boolean') propResolvedConfig.affectsScale = configProp.affectsScale;
+        if ('rotationAmplitude' in configProp && typeof configProp.rotationAmplitude === 'number') propResolvedConfig.rotationAmplitude = configProp.rotationAmplitude;
+        if ('scaleAmplitude' in configProp && typeof configProp.scaleAmplitude === 'number') propResolvedConfig.scaleAmplitude = configProp.scaleAmplitude;
+    }
+
+    const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness;
+    const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1; // Ensure mass is defined
+    const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
+                              (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt((finalStiffness ?? baseOptions.stiffness ?? 170) * calculatedMass)) : baseOptions.dampingRatio);
+    const finalMass = calculatedMass;
+    
+    return {
+        ...baseOptions,
+        stiffness: finalStiffness,
+        dampingRatio: finalDampingRatio,
+        mass: finalMass,
+        // Apply specific interaction options if they exist in propResolvedConfig
+        ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
+        ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
+        ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+        ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+        ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+        ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+        ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+    };
+
+  }, [defaultSpring, animationConfig, motionSensitivity]);
+
+  const { style: physicsHoverPressStyle, eventHandlers } = usePhysicsInteraction({
+      ...finalInteractionConfig,
+      reducedMotion: finalDisableAnimation || disabled, 
+  });
+
+  // State to track if the element should be rendered (for exit animation)
+  const [shouldRender, setShouldRender] = useState(isVisible);
+
+  // Use Galileo Spring for entrance/exit animation
+  const { value: visibilityProgress, isAnimating: isVisibilityAnimating } = useGalileoStateSpring(
+    isVisible ? 1 : 0, // Target 1 if visible, 0 if hidden
+    {
+      ...finalEntranceConfig, // Use the merged config
+      immediate: finalDisableAnimation, // Respect disable flag
+      onRest: (result) => {
+        // When animation finishes, if it was hiding, stop rendering
+        if (!isVisible && result.finished) {
+          setShouldRender(false);
+        }
+      },
+    }
+  );
+
+  // Update render state when isVisible changes
+  useEffect(() => {
+    if (isVisible) {
+      setShouldRender(true);
+    }
+    // No need to setShouldRender(false) here, onRest handles it
+  }, [isVisible]);
+
+  const combinedStyle = useMemo(() => {
+    // Interpolate styles based on spring progress
+    const opacity = visibilityProgress;
+    const scale = 0.5 + visibilityProgress * 0.5; // Interpolate 0.5 -> 1
+    const translateY = 20 - visibilityProgress * 20; // Interpolate 20 -> 0
+
+    const entranceStyle = {
+      opacity,
+      transform: `translateY(${translateY}px) scale(${scale})`,
+      // Ensure FAB is non-interactive while hiding/hidden unless animating out
+      pointerEvents: (isVisible || isVisibilityAnimating) ? 'auto' : 'none' as React.CSSProperties['pointerEvents'],
+    };
+
+    return {
+      ...entranceStyle,
+      ...(isVisible || isVisibilityAnimating ? physicsHoverPressStyle : {}), // Apply hover only when visible or animating
+    };
+  // Include isVisible and isVisibilityAnimating as dependencies
+  }, [visibilityProgress, physicsHoverPressStyle, isVisible, isVisibilityAnimating]);
+
   const Component = href ? 'a' : 'button';
 
   const fabButton = (
     <FabContainer
       as={Component}
-      ref={ref}
+      ref={ref as any}
       href={href}
       disabled={disabled}
       onClick={onClick}
@@ -425,18 +553,24 @@ export const Fab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => {
       $pulse={pulse}
       $enhanced={enhanced}
       $zIndex={zIndex}
+      style={combinedStyle}
+      {...eventHandlers}
       {...rest}
     >
       {children}
     </FabContainer>
   );
 
-  // If no tooltip, return just the button
+  // --- Conditional Rendering Logic ---
+  // Render if shouldRender is true (allows exit animation to complete)
+  if (!shouldRender) {
+    return null;
+  }
+
   if (!tooltip) {
     return fabButton;
   }
 
-  // Return button with tooltip
   return (
     <FabWrapper $position={position}>
       {fabButton}
@@ -459,3 +593,5 @@ export const GlassFab = forwardRef<HTMLButtonElement, FabProps>((props, ref) => 
 });
 
 GlassFab.displayName = 'GlassFab';
+
+export default Fab;

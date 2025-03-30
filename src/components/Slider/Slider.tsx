@@ -1,12 +1,17 @@
 import React, { forwardRef, useState, useEffect, useRef, useCallback } from 'react';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { AnimationProps } from '../../animations/types';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets } from '../../animations/physics/springPhysics';
 
 // Slider component props interface
-export interface SliderProps {
+export interface SliderProps extends AnimationProps {
   /**
    * The value of the slider
    */
@@ -163,17 +168,74 @@ const SliderFill = styled.div<{
   }}, 0.4);
 `;
 
+// Helper to interpolate scale based on interaction progress (0 -> 1, 0.5 -> 1.1, 1 -> 1.15)
+const interpolateScale = (progress: number): number => {
+  if (progress <= 0.5) {
+    return 1 + 0.1 * (progress / 0.5); // Interpolate 1 to 1.1 for hover
+  } else {
+    return 1.1 + 0.05 * ((progress - 0.5) / 0.5); // Interpolate 1.1 to 1.15 for drag
+  }
+};
+
+// Helper to interpolate box-shadow spread/alpha (0 -> none, 0.5 -> 8px/0.16, 1 -> 10px/0.2)
+const interpolateBoxShadow = (progress: number, colorRgb: string): string => {
+  if (progress <= 0) return 'none';
+  let spread: number;
+  let alpha: number;
+  if (progress <= 0.5) {
+    // Interpolate from 0 to hover state (8px spread, 0.16 alpha)
+    spread = 8 * (progress / 0.5);
+    alpha = 0.16 * (progress / 0.5);
+  } else {
+    // Interpolate from hover state (8px spread, 0.16 alpha) to drag state (10px spread, 0.2 alpha)
+    const dragProgress = (progress - 0.5) / 0.5;
+    spread = 8 + (10 - 8) * dragProgress;
+    alpha = 0.16 + (0.2 - 0.16) * dragProgress;
+  }
+  return `0 0 0 ${spread.toFixed(1)}px rgba(${colorRgb}, ${alpha.toFixed(2)})`;
+};
+
+// Helper to get RGB string from hex/name (avoids repeating logic)
+const getRgbString = (color: string): string => {
+  const hexColor = getColorByName(color);
+  if (hexColor.startsWith('#')) {
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    return `${r}, ${g}, ${b}`;
+  }
+  return '99, 102, 241'; // Default primary
+};
+
 const SliderThumb = styled.div<{
   $position: number;
   $color: string;
   $active: boolean;
   $size: string;
   $disabled: boolean;
+  $theme: any;
+  $interactionProgress: number;
 }>`
   position: absolute;
   top: 50%;
   left: ${props => props.$position}%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%); // Base transform
+  background-color: ${props => getColorByName(props.$color)};
+  border-radius: 50%;
+  cursor: ${props => (props.$disabled ? 'not-allowed' : props.$active ? 'grabbing' : 'grab')};
+  // Remove transition
+  // transition: transform 0.1s ease, box-shadow 0.2s ease;
+
+  /* Apply dynamic scale and shadow based on interactionProgress */
+  ${props => {
+    const scale = interpolateScale(props.$interactionProgress);
+    const rgbColor = getRgbString(props.$color);
+    const shadow = interpolateBoxShadow(props.$interactionProgress, rgbColor);
+    return `
+      transform: translate(-50%, -50%) scale(${scale.toFixed(3)});
+      box-shadow: ${shadow};
+    `;
+  }}
 
   /* Size specific styling */
   ${props => {
@@ -196,49 +258,7 @@ const SliderThumb = styled.div<{
     }
   }}
 
-  background-color: ${props => getColorByName(props.$color)};
-  border-radius: 50%;
-  cursor: ${props => (props.$disabled ? 'not-allowed' : 'grab')};
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
-
-  /* Active and hover states */
-  ${props =>
-    !props.$disabled &&
-    `
-    &:hover {
-      transform: translate(-50%, -50%) scale(1.1);
-      box-shadow: 0 0 0 8px rgba(${(() => {
-        const color = getColorByName(props.$color);
-        if (color.startsWith('#')) {
-          const r = parseInt(color.slice(1, 3), 16);
-          const g = parseInt(color.slice(3, 5), 16);
-          const b = parseInt(color.slice(5, 7), 16);
-          return `${r}, ${g}, ${b}`;
-        }
-        return '99, 102, 241';
-      })()}, 0.16);
-    }
-    
-    ${
-      props.$active &&
-      `
-      cursor: grabbing;
-      transform: translate(-50%, -50%) scale(1.15);
-      box-shadow: 0 0 0 10px rgba(${(() => {
-        const color = getColorByName(props.$color);
-        if (color.startsWith('#')) {
-          const r = parseInt(color.slice(1, 3), 16);
-          const g = parseInt(color.slice(3, 5), 16);
-          const b = parseInt(color.slice(5, 7), 16);
-          return `${r}, ${g}, ${b}`;
-        }
-        return '99, 102, 241';
-      })()}, 0.2);
-    `
-    }
-  `}
-
-  /* Glass effect for thumb */
+  /* Glass effect for thumb - pass theme */
   ${props =>
     !props.$disabled &&
     glassSurface({
@@ -246,17 +266,17 @@ const SliderThumb = styled.div<{
       blurStrength: 'minimal',
       backgroundOpacity: 'strong',
       borderOpacity: 'medium',
-      themeContext: createThemeContext({}),
+      themeContext: createThemeContext(props.$theme), // Pass theme
     })}
   
-  /* Glow effect for active state */
+  /* Glow effect for active state - pass theme and potentially vary intensity */
   ${props =>
     !props.$disabled &&
-    props.$active &&
+    props.$interactionProgress > 0.7 && // Only glow significantly when dragging
     glassGlow({
-      intensity: 'low',
+      intensity: 'low', // Could map intensity from props.$interactionProgress
       color: props.$color,
-      themeContext: createThemeContext({}),
+      themeContext: createThemeContext(props.$theme), // Pass theme
     })}
 `;
 
@@ -348,8 +368,14 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>((props, ref) => {
     helperText,
     size = 'medium',
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
+
+  const theme = useTheme();
+  const { defaultSpring } = useAnimationContext();
 
   const [currentValue, setCurrentValue] = useState<number>(
     value !== undefined ? value : defaultValue || min
@@ -357,6 +383,47 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>((props, ref) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  
+  // Determine if animation should run
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const shouldAnimate = !finalDisableAnimation;
+
+  // Interaction animation state
+  const baseInteractionConfig: Partial<GalileoSpringConfig> = SpringPresets.DEFAULT; 
+  
+  // Resolve context config
+  let contextResolvedConfig: Partial<GalileoSpringConfig> = {};
+  if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+  } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      contextResolvedConfig = defaultSpring;
+  }
+
+  // Resolve prop config
+  let propResolvedConfig: Partial<GalileoSpringConfig> = {};
+  if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+      propResolvedConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+  } else if (typeof animationConfig === 'object' && animationConfig !== null) {
+      // Assume it's a SpringConfig or compatible
+      propResolvedConfig = animationConfig as Partial<GalileoSpringConfig>;
+  }
+
+  // Merge: Prop > Context > Base
+  const finalConfig = { 
+      ...baseInteractionConfig, 
+      ...contextResolvedConfig, 
+      ...propResolvedConfig 
+  };
+
+  const { value: interactionProgress } = useGalileoStateSpring(
+    isDragging ? 1 : (isHovering ? 0.5 : 0),
+    {
+        ...finalConfig,
+        immediate: !shouldAnimate,
+    }
+  );
 
   // Handle controlled component updates
   useEffect(() => {
@@ -399,58 +466,63 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>((props, ref) => {
     }
   };
 
-  // Handle mouse events
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (disabled) return;
-      setIsDragging(true);
-      updateValue(e.clientX);
+  // Mouse/Touch event handlers (to set isDragging, isHovering)
+  const handleMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (disabled) return;
+    setIsDragging(true);
+    // Prevent text selection during drag
+    e.preventDefault();
+    // Add global listeners
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleTouchUp);
+  }, [disabled]);
 
-      // Capture events on window to handle drag outside the component
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    },
-    [disabled, updateValue]
-  );
-
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      updateValue(e.clientX);
-    },
-    [updateValue]
-  );
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    updateValue(e.clientX);
+  }, [updateValue]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', handleMouseUp);
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
   }, [handleMouseMove]);
 
-  // Clean up event listeners
-  useEffect(() => {
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [handleMouseMove, handleMouseUp]);
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (e.touches.length > 0) {
+      updateValue(e.touches[0].clientX);
+    }
+  }, [updateValue]);
 
-  // Handle track click
-  const handleTrackClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (disabled) return;
-      updateValue(e.clientX);
-    },
-    [disabled, updateValue]
-  );
+  const handleTouchUp = useCallback(() => {
+    setIsDragging(false);
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchUp);
+  }, [handleTouchMove]);
 
-  // Handle mouse enter/leave for hover state
+  // Hover handlers for the thumb
   const handleMouseEnter = useCallback(() => {
-    if (!disabled) setIsHovering(true);
+    if (!disabled) {
+      setIsHovering(true);
+    }
   }, [disabled]);
 
   const handleMouseLeave = useCallback(() => {
-    if (!isDragging) setIsHovering(false);
-  }, [isDragging]);
+    if (!disabled) {
+      setIsHovering(false);
+    }
+  }, [disabled]);
+
+  // Add useEffect for cleanup
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchUp);
+    };
+  }, [handleMouseMove, handleMouseUp, handleTouchMove, handleTouchUp]);
 
   // Generate marks if enabled
   const renderMarks = () => {
@@ -473,7 +545,8 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>((props, ref) => {
     return <SliderMarks $marks={marks}>{markElements}</SliderMarks>;
   };
 
-  const position = calculatePercentage(currentValue);
+  const fillWidth = calculatePercentage(currentValue);
+  const thumbPosition = fillWidth;
   const showValueLabel =
     valueLabelDisplay === 'on' || (valueLabelDisplay === 'auto' && (isHovering || isDragging));
 
@@ -488,7 +561,7 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>((props, ref) => {
       >
         {showValueLabel && (
           <ValueLabel
-            $position={position}
+            $position={fillWidth}
             $display={valueLabelDisplay}
             $active={isDragging}
             $color={color}
@@ -497,16 +570,22 @@ export const Slider = forwardRef<HTMLDivElement, SliderProps>((props, ref) => {
           </ValueLabel>
         )}
 
-        <SliderTrack ref={trackRef} $disabled={disabled} onClick={handleTrackClick}>
-          <SliderFill $fillWidth={position} $color={color} $size={size} />
+        <SliderTrack ref={trackRef} $disabled={disabled} onClick={(e) => updateValue(e.clientX)}>
+          <SliderFill $fillWidth={fillWidth} $color={color} $size={size} />
 
           <SliderThumb
-            $position={position}
+            ref={thumbRef}
+            $position={thumbPosition}
             $color={color}
             $active={isDragging}
             $size={size}
             $disabled={disabled}
+            $theme={theme}
+            $interactionProgress={interactionProgress}
             onMouseDown={handleMouseDown}
+            onTouchStart={handleMouseDown}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
           />
         </SliderTrack>
       </div>

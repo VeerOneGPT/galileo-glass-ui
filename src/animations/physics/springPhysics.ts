@@ -49,23 +49,33 @@ export interface SpringConfig {
  * Default spring configurations
  */
 export const SpringPresets = {
-  // Gentle, soft animation with little bounce
-  GENTLE: { tension: 120, friction: 24, mass: 1 },
-  
-  // Standard spring with moderate tension/friction
   DEFAULT: { tension: 170, friction: 26, mass: 1 },
-  
-  // Snappy, fast animation with minimal bounce
-  SNAPPY: { tension: 300, friction: 30, mass: 1 },
-  
-  // Bouncy animation with noticeable oscillation
-  BOUNCY: { tension: 200, friction: 10, mass: 1 },
-  
-  // Slow, heavy feeling with high mass
-  HEAVY: { tension: 280, friction: 60, mass: 5 },
-  
-  // Reduced motion preset for accessibility
-  REDUCED_MOTION: { tension: 500, friction: 50, mass: 1 }
+  GENTLE: { tension: 120, friction: 14, mass: 1 },
+  WOBBLY: { tension: 180, friction: 12, mass: 1 },
+  STIFF: { tension: 210, friction: 20, mass: 1 },
+  SLOW: { tension: 80, friction: 20, mass: 1 },
+  MASSIVE: { tension: 190, friction: 30, mass: 3 },
+  RESPONSIVE: { tension: 300, friction: 25, mass: 1 },
+  SNAPPY: { tension: 400, friction: 22, mass: 1 },
+  BOUNCY: { tension: 150, friction: 10, mass: 1 },
+  HEAVY: { tension: 250, friction: 35, mass: 2 },
+  REDUCED_MOTION: { tension: 170, friction: 40, mass: 1 }, // Example reduced motion preset
+  // --- Standard UI Interaction Presets ---
+  HOVER_QUICK: { tension: 350, friction: 25, mass: 1 },       // For quick hover effects
+  FOCUS_HIGHLIGHT: { tension: 250, friction: 28, mass: 1 }, // For focus rings/indicators
+  PRESS_FEEDBACK: { tension: 500, friction: 30, mass: 1 },      // For button press feedback
+  MODAL_TRANSITION: { tension: 200, friction: 22, mass: 1 }, // For modal/dialog entrance/exit
+  MENU_POPOVER: { tension: 280, friction: 24, mass: 1 },     // For menu/popover transitions
+  NOTIFICATION_SLIDE: { tension: 220, friction: 26, mass: 1 }, // For notification slides
+};
+
+// Common Default Configurations
+export const DefaultSprings = {
+  DEFAULT: SpringPresets.DEFAULT,
+  GENTLE: SpringPresets.GENTLE,
+  HOVER_QUICK: { tension: 300, friction: 20, mass: 1 },
+  MODAL_TRANSITION: { tension: 250, friction: 25, mass: 1 },
+  STIFF: SpringPresets.STIFF,
 };
 
 /**

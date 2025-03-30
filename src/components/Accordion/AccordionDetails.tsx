@@ -3,10 +3,11 @@
  *
  * The content area of an Accordion.
  */
-import React, { forwardRef, useContext } from 'react';
+import React, { forwardRef, useContext, useRef, useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
 
 import { AccordionContext } from './Accordion';
 import { AccordionDetailsProps } from './types';
@@ -26,18 +27,21 @@ const getPadding = (size: string): string => {
   }
 };
 
+// Inner wrapper for content height measurement
+const ContentWrapper = styled.div`
+  overflow: hidden;
+`;
+
 // Styled components
 const DetailsRoot = styled.div<{
   $expanded: boolean;
   $glass: boolean;
   $padding: string;
-  $reducedMotion: boolean;
 }>`
-  display: ${props => (props.$expanded ? 'block' : 'none')};
   padding: ${props => props.$padding};
   color: rgba(255, 255, 255, 0.8);
   overflow: hidden;
-  transition: ${props => (!props.$reducedMotion ? 'height 0.2s ease' : 'none')};
+  will-change: height, opacity;
 
   /* Glass content styling */
   ${props =>
@@ -68,6 +72,9 @@ function AccordionDetailsComponent(
     component = 'div',
     glass: propGlass,
     padding = 'medium',
+    animationConfig: propAnimationConfig,
+    disableAnimation: propDisableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
@@ -78,31 +85,83 @@ function AccordionDetailsComponent(
     throw new Error('AccordionDetails must be used within an Accordion');
   }
 
-  const { expanded, glass: contextGlass } = accordionContext;
+  const {
+    expanded,
+    glass: contextGlass,
+    animationConfig: contextAnimationConfig,
+    disableAnimation: contextDisableAnimation
+  } = accordionContext;
 
-  // Check if reduced motion is preferred
+  // Prioritize props over context for animation settings
+  const finalAnimationConfig = propAnimationConfig ?? contextAnimationConfig;
+  const finalDisableAnimation = propDisableAnimation ?? contextDisableAnimation;
+  
+  // Reduced motion check only needed here to determine immediate state
   const prefersReducedMotion = useReducedMotion();
+  const shouldAnimate = !(finalDisableAnimation ?? prefersReducedMotion);
 
-  // Merge props with context
+  // Merge props with context for glass
   const finalGlass = propGlass !== undefined ? propGlass : contextGlass;
-
-  // Get root component
-  const Root = DetailsRoot as unknown as React.ElementType;
   const paddingValue = getPadding(padding);
+
+  // State for content height
+  const [contentHeight, setContentHeight] = useState(0);
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Measure content height
+  useEffect(() => {
+    if (contentWrapperRef.current) {
+      // Use ResizeObserver for accurate height changes
+      const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          setContentHeight(entry.contentRect.height);
+        }
+      });
+      resizeObserver.observe(contentWrapperRef.current);
+      // Initial measurement
+      setContentHeight(contentWrapperRef.current.scrollHeight);
+      return () => resizeObserver.disconnect();
+    }
+    return () => {};
+  }, [children]); // Re-measure if children change
+
+  // Spring animation for height/opacity
+  const defaultSpringConfig = { tension: 300, friction: 30 };
+  const springConfig = finalAnimationConfig as Partial<GalileoSpringConfig> | undefined;
+  const finalConfig = springConfig ? { ...defaultSpringConfig, ...springConfig } : defaultSpringConfig;
+
+  const { value: animProgress } = useGalileoStateSpring(expanded ? 1 : 0, {
+    ...finalConfig,
+    // Pass immediate flag based on combined disable/reduced motion state
+    immediate: !shouldAnimate, 
+  });
+
+  // Calculate animated style based on shouldAnimate
+  const animatedStyle: React.CSSProperties = shouldAnimate ? {
+    height: `${animProgress * contentHeight}px`,
+    opacity: animProgress,
+    // Use visibility to prevent interaction when collapsed, even if opacity > 0 during animation
+    visibility: animProgress > 0.01 ? 'visible' : 'hidden', 
+  } : {
+    height: expanded ? 'auto' : '0px',
+    opacity: expanded ? 1 : 0,
+    visibility: expanded ? 'visible' : 'hidden',
+  };
+
+  const Root = DetailsRoot as unknown as React.ElementType;
 
   return (
     <Root
       as={component}
       ref={ref}
       className={className}
-      style={style}
+      style={{...style, ...animatedStyle}}
       $expanded={expanded}
       $glass={finalGlass}
       $padding={paddingValue}
-      $reducedMotion={prefersReducedMotion}
       {...rest}
     >
-      {children}
+      <ContentWrapper ref={contentWrapperRef}>{children}</ContentWrapper>
     </Root>
   );
 }

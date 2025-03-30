@@ -3,12 +3,15 @@
  *
  * An action button for the SpeedDial component.
  */
-import React, { forwardRef } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useCallback, useState, useMemo } from 'react';
+import styled, { useTheme } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 import { SpeedDialActionProps } from './types';
 
@@ -114,11 +117,6 @@ const ActionRoot = styled.div<{
     `
     &:hover {
       background-color: ${props.$glass ? 'rgba(48, 48, 48, 0.5)' : 'rgba(48, 48, 48, 0.85)'};
-      transform: ${props.$visible ? 'scale(1.1)' : 'scale(0.5)'};
-    }
-    
-    &:active {
-      transform: ${props.$visible ? 'scale(1.05)' : 'scale(0.5)'};
     }
   `}
 `;
@@ -245,30 +243,118 @@ function SpeedDialActionComponent(
     disabled = false,
     onClick,
     glass = false,
-    index,
-    totalActions,
-    direction,
+    index = 0,
+    totalActions = 1,
+    direction = 'up',
     transition = true,
     showTooltip = true,
     size = 'medium',
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
-  const prefersReducedMotion = useReducedMotion();
+  const theme = useTheme();
 
-  // Calculate position
+  const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring } = useAnimationContext();
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const usePhysics = !finalDisableAnimation && !disabled;
+
+  // Calculate final physics interaction config
+  const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+    const baseOptions: Partial<PhysicsInteractionOptions> = {
+      affectsScale: true,
+      scaleAmplitude: 0.1, // Default scale amplitude for this component
+    };
+    
+    let contextResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      contextResolvedConfig = defaultSpring;
+    }
+    
+    let propResolvedConfig: Partial<PhysicsInteractionOptions> = {}; // Use PhysicsInteractionOptions here
+    const configProp = animationConfig;
+    if (typeof configProp === 'string' && configProp in SpringPresets) {
+      const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+      propResolvedConfig = { stiffness: preset.tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, mass: preset.mass };
+    } else if (typeof configProp === 'object' && configProp !== null) {
+        // Check if it looks like PhysicsInteractionOptions first
+        if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp || 'scaleAmplitude' in configProp || 'rotationAmplitude' in configProp) {
+           propResolvedConfig = configProp as Partial<PhysicsInteractionOptions>;
+        } 
+        // Fallback to checking if it looks like SpringConfig
+        else if ('tension' in configProp || 'friction' in configProp) {
+          const preset = configProp as Partial<SpringConfig>;
+          const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
+          const mass = preset.mass ?? 1;
+          propResolvedConfig = { stiffness: tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(tension * mass)) : undefined, mass: mass };
+        }
+    }
+
+    const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness ?? SpringPresets.DEFAULT.tension;
+    const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1;
+    const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
+                              (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt(finalStiffness * calculatedMass)) : baseOptions.dampingRatio ?? 0.5);
+    const finalMass = calculatedMass;
+
+    // Merge all options: Prop Config > Base Options > Context Config > Hardcoded Base
+    return {
+      ...baseOptions, // Start with base scale/rotation settings derived from props
+      stiffness: finalStiffness,
+      dampingRatio: finalDampingRatio,
+      mass: finalMass,
+      // Explicitly apply overrides from propResolvedConfig if they exist
+      ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+      ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+      ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
+      ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
+      ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+      ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+      ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+    };
+  }, [defaultSpring, animationConfig, motionSensitivity]);
+
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+    eventHandlers
+  } = usePhysicsInteraction<HTMLDivElement>({
+    ...finalInteractionConfig, // Use the calculated config
+    reducedMotion: !usePhysics, // Correctly pass disable flag
+    // scaleAmplitude removed - now part of finalInteractionConfig
+  });
+
   const position = getPosition(direction, index, totalActions, size);
 
-  // Whether the action is visible
-  const visible = true; // This would be controlled by parent
+  const visible = true;
+
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+    if (!disabled && onClick) {
+      onClick(event);
+    }
+  };
+
+  const combinedRef = useCallback((node: HTMLDivElement | null) => {
+    (physicsRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref, physicsRef]);
 
   return (
     <ActionRoot
-      ref={ref}
+      ref={combinedRef}
       className={className}
-      style={style}
-      onClick={disabled ? undefined : onClick}
+      style={{ ...style, ...physicsStyle }}
+      onClick={handleClick}
+      {...eventHandlers}
       $position={position}
       $visible={visible}
       $glass={glass}
@@ -278,7 +364,10 @@ function SpeedDialActionComponent(
       $index={index}
       $totalActions={totalActions}
       $transition={transition}
-      $reducedMotion={prefersReducedMotion}
+      $reducedMotion={finalDisableAnimation}
+      role="button"
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
       {...rest}
     >
       {icon}
@@ -288,7 +377,7 @@ function SpeedDialActionComponent(
           $direction={direction}
           $visible={visible}
           $showTooltip={showTooltip}
-          $reducedMotion={prefersReducedMotion}
+          $reducedMotion={finalDisableAnimation}
         >
           {tooltipTitle}
         </TooltipWrapper>

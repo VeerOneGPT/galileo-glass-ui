@@ -19,6 +19,54 @@ import {
 import { CollisionShape, PhysicsMaterial } from './types';
 
 /**
+ * Enhanced collision filtering system
+ * Provides fine-grained control over which bodies can collide with each other
+ */
+
+/**
+ * Collision filter for a physics body
+ */
+export interface CollisionFilter {
+  /** 
+   * Collision category this body belongs to (powers of 2: 1, 2, 4, 8, 16...) 
+   * A body can only belong to one category
+   */
+  category: number;
+  
+  /** 
+   * Bit mask defining which categories this body can collide with 
+   * Combine multiple categories with bitwise OR: category1 | category2 | category3
+   */
+  mask: number;
+  
+  /** 
+   * Optional collision group for additional filtering
+   * Bodies with the same non-zero group value always collide (positive) or never collide (negative)
+   * Zero means no special group behavior
+   */
+  group?: number;
+}
+
+/**
+ * Predefined collision categories for common UI elements
+ */
+export const CollisionCategories = {
+  DEFAULT: 0x0001,
+  UI_ELEMENT: 0x0002,
+  DRAGGABLE: 0x0004,
+  BOUNDARY: 0x0008,
+  SENSOR: 0x0010,
+  PARTICLE: 0x0020,
+  MOUSE: 0x0040,
+  CUSTOM_1: 0x0080,
+  CUSTOM_2: 0x0100,
+  CUSTOM_3: 0x0200,
+  CUSTOM_4: 0x0400,
+  CUSTOM_5: 0x0800,
+  ALL: 0xFFFF
+};
+
+/**
  * Represents a physical body for collision detection
  */
 export interface CollisionBody {
@@ -49,8 +97,14 @@ export interface CollisionBody {
   /** Whether collision detection is enabled for this body */
   collisionEnabled?: boolean;
   
-  /** Collision layer (bodies only collide with matching layers) */
+  /** 
+   * @deprecated Use collisionFilter instead for more precise control
+   * Legacy collision layer (bodies only collide with matching layers) 
+   */
   collisionLayer?: number;
+  
+  /** Advanced collision filtering */
+  collisionFilter?: CollisionFilter;
   
   /** Rotation in radians */
   rotation?: number;
@@ -125,7 +179,8 @@ export function createCircleBody(
   mass: number,
   velocity: Vector2D = { x: 0, y: 0 },
   material?: PhysicsMaterial,
-  isStatic = false
+  isStatic = false,
+  collisionFilter?: CollisionFilter
 ): CollisionBody {
   return {
     id,
@@ -136,7 +191,11 @@ export function createCircleBody(
     shapeData: { radius },
     material,
     isStatic,
-    collisionEnabled: true
+    collisionEnabled: true,
+    collisionFilter: collisionFilter || {
+      category: CollisionCategories.DEFAULT,
+      mask: CollisionCategories.ALL
+    }
   };
 }
 
@@ -152,7 +211,8 @@ export function createRectangleBody(
   velocity: Vector2D = { x: 0, y: 0 },
   rotation = 0,
   material?: PhysicsMaterial,
-  isStatic = false
+  isStatic = false,
+  collisionFilter?: CollisionFilter
 ): CollisionBody {
   return {
     id,
@@ -164,7 +224,11 @@ export function createRectangleBody(
     rotation,
     material,
     isStatic,
-    collisionEnabled: true
+    collisionEnabled: true,
+    collisionFilter: collisionFilter || {
+      category: CollisionCategories.DEFAULT,
+      mask: CollisionCategories.ALL
+    }
   };
 }
 
@@ -179,7 +243,8 @@ export function createPolygonBody(
   velocity: Vector2D = { x: 0, y: 0 },
   rotation = 0,
   material?: PhysicsMaterial,
-  isStatic = false
+  isStatic = false,
+  collisionFilter?: CollisionFilter
 ): CollisionBody {
   return {
     id,
@@ -191,7 +256,11 @@ export function createPolygonBody(
     rotation,
     material,
     isStatic,
-    collisionEnabled: true
+    collisionEnabled: true,
+    collisionFilter: collisionFilter || {
+      category: CollisionCategories.DEFAULT,
+      mask: CollisionCategories.ALL
+    }
   };
 }
 
@@ -205,7 +274,8 @@ export function createPointBody(
   velocity: Vector2D = { x: 0, y: 0 },
   tolerance = 1,
   material?: PhysicsMaterial,
-  isStatic = false
+  isStatic = false,
+  collisionFilter?: CollisionFilter
 ): CollisionBody {
   return {
     id,
@@ -216,16 +286,163 @@ export function createPointBody(
     shapeData: { tolerance },
     material,
     isStatic,
-    collisionEnabled: true
+    collisionEnabled: true,
+    collisionFilter: collisionFilter || {
+      category: CollisionCategories.DEFAULT,
+      mask: CollisionCategories.ALL
+    }
   };
 }
 
 /**
- * Detects collision between two bodies
+ * Implements the Separating Axis Theorem (SAT) for polygon collision detection
  */
-export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
-  // Check if collision detection is disabled for either body
-  if (bodyA.collisionEnabled === false || bodyB.collisionEnabled === false) {
+
+/**
+ * Projects a polygon onto an axis
+ */
+function projectPolygon(vertices: Vector2D[], axis: Vector2D): { min: number; max: number } {
+  let min = dotProduct(vertices[0], axis);
+  let max = min;
+  
+  for (let i = 1; i < vertices.length; i++) {
+    const projection = dotProduct(vertices[i], axis);
+    if (projection < min) {
+      min = projection;
+    }
+    if (projection > max) {
+      max = projection;
+    }
+  }
+  
+  return { min, max };
+}
+
+/**
+ * Gets the edges of a polygon
+ */
+function getPolygonEdges(vertices: Vector2D[]): Vector2D[] {
+  const edges: Vector2D[] = [];
+  
+  for (let i = 0; i < vertices.length; i++) {
+    const nextIndex = (i + 1) % vertices.length;
+    edges.push({
+      x: vertices[nextIndex].x - vertices[i].x,
+      y: vertices[nextIndex].y - vertices[i].y
+    });
+  }
+  
+  return edges;
+}
+
+/**
+ * Gets the normal vectors from edges
+ */
+function getPolygonNormals(edges: Vector2D[]): Vector2D[] {
+  return edges.map(edge => {
+    // Perpendicular to edge
+    return normalizeVector({ x: -edge.y, y: edge.x });
+  });
+}
+
+/**
+ * Checks if two projections overlap and calculates overlap amount
+ */
+function projectionsOverlap(projA: { min: number; max: number }, projB: { min: number; max: number }): { overlap: boolean; amount: number } {
+  const overlap = Math.min(projA.max, projB.max) - Math.max(projA.min, projB.min);
+  return {
+    overlap: overlap > 0,
+    amount: overlap
+  };
+}
+
+/**
+ * Transforms polygon vertices accounting for position and rotation
+ */
+function transformPolygonVertices(vertices: Vector2D[], position: Vector2D, rotation: number = 0): Vector2D[] {
+  const transformedVertices: Vector2D[] = [];
+  
+  for (const vertex of vertices) {
+    if (rotation === 0) {
+      // Simple translation if no rotation
+      transformedVertices.push({
+        x: vertex.x + position.x,
+        y: vertex.y + position.y
+      });
+    } else {
+      // Apply rotation and translation
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+      transformedVertices.push({
+        x: vertex.x * cos - vertex.y * sin + position.x,
+        y: vertex.x * sin + vertex.y * cos + position.y
+      });
+    }
+  }
+  
+  return transformedVertices;
+}
+
+/**
+ * Detects collision between two polygons using SAT
+ */
+function detectPolygonPolygonCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
+  const polygonA = bodyA.shapeData as PolygonData;
+  const polygonB = bodyB.shapeData as PolygonData;
+  
+  // Transform vertices to account for position and rotation
+  const verticesA = transformPolygonVertices(
+    polygonA.vertices,
+    bodyA.position,
+    bodyA.rotation || 0
+  );
+  
+  const verticesB = transformPolygonVertices(
+    polygonB.vertices,
+    bodyB.position,
+    bodyB.rotation || 0
+  );
+  
+  // Get edges and normals for both polygons
+  const edgesA = getPolygonEdges(verticesA);
+  const edgesB = getPolygonEdges(verticesB);
+  
+  const normalsA = getPolygonNormals(edgesA);
+  const normalsB = getPolygonNormals(edgesB);
+  
+  // Combine all normals to check
+  const allNormals = [...normalsA, ...normalsB];
+  
+  // Track minimum overlap and corresponding normal for collision resolution
+  let minOverlap = Infinity;
+  let minOverlapNormal: Vector2D | null = null;
+  
+  // Check each normal as a potential separating axis
+  for (const normal of allNormals) {
+    const projA = projectPolygon(verticesA, normal);
+    const projB = projectPolygon(verticesB, normal);
+    
+    const { overlap, amount } = projectionsOverlap(projA, projB);
+    
+    // If no overlap on any axis, then no collision
+    if (!overlap) {
+      return {
+        collision: false,
+        bodyA,
+        bodyB
+      };
+    }
+    
+    // Track the minimum overlap and its normal
+    if (amount < minOverlap) {
+      minOverlap = amount;
+      minOverlapNormal = normal;
+    }
+  }
+  
+  // We have a collision; determine collision details
+  if (!minOverlapNormal) {
+    // This shouldn't happen, but as a safety check
     return {
       collision: false,
       bodyA,
@@ -233,12 +450,148 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
     };
   }
   
-  // Check if bodies are on different collision layers
+  // Calculate collision response data
+  
+  // Ensure normal points from A to B by checking relative positions
+  const centerA = bodyA.position;
+  const centerB = bodyB.position;
+  const direction = subtractVectors(centerB, centerA);
+  
+  // If the normal is pointing the wrong way, flip it
+  if (dotProduct(direction, minOverlapNormal) < 0) {
+    minOverlapNormal = { x: -minOverlapNormal.x, y: -minOverlapNormal.y };
+  }
+  
+  // Find contact point (approximate)
+  // For simplicity, we'll use the midpoint between the closest points
+  let contactPoint: Vector2D = { x: 0, y: 0 };
+  
+  // Find the closest vertices from each polygon to the other polygon
+  let minDistanceA = Infinity;
+  let closestVertexA: Vector2D | null = null;
+  
+  for (const vertex of verticesA) {
+    // Project the vertex onto the normal
+    const distance = dotProduct(subtractVectors(vertex, centerB), minOverlapNormal);
+    if (distance < minDistanceA) {
+      minDistanceA = distance;
+      closestVertexA = vertex;
+    }
+  }
+  
+  let minDistanceB = Infinity;
+  let closestVertexB: Vector2D | null = null;
+  
+  for (const vertex of verticesB) {
+    // Project the vertex onto the inverted normal
+    const invNormal = { x: -minOverlapNormal.x, y: -minOverlapNormal.y };
+    const distance = dotProduct(subtractVectors(vertex, centerA), invNormal);
+    if (distance < minDistanceB) {
+      minDistanceB = distance;
+      closestVertexB = vertex;
+    }
+  }
+  
+  if (closestVertexA && closestVertexB) {
+    contactPoint = {
+      x: (closestVertexA.x + closestVertexB.x) / 2,
+      y: (closestVertexA.y + closestVertexB.y) / 2
+    };
+  } else {
+    // Fallback to center point
+    contactPoint = {
+      x: (centerA.x + centerB.x) / 2,
+      y: (centerA.y + centerB.y) / 2
+    };
+  }
+  
+  // Calculate relative velocity
+  const relativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
+  
+  return {
+    collision: true,
+    bodyA,
+    bodyB,
+    normal: minOverlapNormal,
+    contactPoint,
+    penetration: minOverlap,
+    relativeVelocity
+  };
+}
+
+/**
+ * Converts a rectangle to a polygon for collision detection
+ */
+function rectangleToPolygon(body: CollisionBody): CollisionBody {
+  const rect = body.shapeData as RectangleData;
+  const halfWidth = rect.width / 2;
+  const halfHeight = rect.height / 2;
+  
+  // Create vertices for rectangle corners
+  const vertices: Vector2D[] = [
+    { x: -halfWidth, y: -halfHeight },
+    { x: halfWidth, y: -halfHeight },
+    { x: halfWidth, y: halfHeight },
+    { x: -halfWidth, y: halfHeight }
+  ];
+  
+  // Create a new polygon body with same properties
+  return {
+    ...body,
+    shape: CollisionShape.POLYGON,
+    shapeData: { vertices }
+  };
+}
+
+/**
+ * Checks if two bodies can collide based on their collision filters
+ */
+export function canBodiesCollide(bodyA: CollisionBody, bodyB: CollisionBody): boolean {
+  // Check if collision detection is disabled for either body
+  if (bodyA.collisionEnabled === false || bodyB.collisionEnabled === false) {
+    return false;
+  }
+  
+  // Handle legacy collision layers for backward compatibility
   if (
     bodyA.collisionLayer !== undefined &&
     bodyB.collisionLayer !== undefined &&
     bodyA.collisionLayer !== bodyB.collisionLayer
   ) {
+    return false;
+  }
+  
+  // If either body has no collision filter, use default behavior
+  if (!bodyA.collisionFilter || !bodyB.collisionFilter) {
+    return true;
+  }
+  
+  // Check collision groups (non-zero and same sign groups have special behavior)
+  const groupA = bodyA.collisionFilter.group || 0;
+  const groupB = bodyB.collisionFilter.group || 0;
+  
+  // If both bodies have the same non-zero group
+  if (groupA !== 0 && groupA === groupB) {
+    // Positive groups always collide, negative groups never collide
+    return groupA > 0;
+  }
+  
+  // Check category/mask pairs
+  const categoryA = bodyA.collisionFilter.category;
+  const maskA = bodyA.collisionFilter.mask;
+  const categoryB = bodyB.collisionFilter.category;
+  const maskB = bodyB.collisionFilter.mask;
+  
+  // Bodies collide if each one's category is in the other's mask
+  return (categoryA & maskB) !== 0 && (categoryB & maskA) !== 0;
+}
+
+/**
+ * Detects collision between two bodies
+ */
+export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
+  // Check if bodies can collide based on collision filters
+  if (!canBodiesCollide(bodyA, bodyB)) {
     return {
       collision: false,
       bodyA,
@@ -250,18 +603,63 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
   if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.CIRCLE) {
     return detectCircleCircleCollision(bodyA, bodyB);
   } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.RECTANGLE) {
-    return detectRectangleRectangleCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.RECTANGLE) {
-    return detectCircleRectangleCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.CIRCLE) {
+    // For rotated rectangles, convert to polygons and use SAT
+    if ((bodyA.rotation && bodyA.rotation !== 0) || (bodyB.rotation && bodyB.rotation !== 0)) {
+      const polyA = rectangleToPolygon(bodyA);
+      const polyB = rectangleToPolygon(bodyB);
+      return detectPolygonPolygonCollision(polyA, polyB);
+    } else {
+      // For non-rotated rectangles, use faster AABB check
+      return detectRectangleRectangleCollision(bodyA, bodyB);
+    }
+  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.POLYGON) {
+    return detectPolygonPolygonCollision(bodyA, bodyB);
+  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.POLYGON) {
+    const polyA = rectangleToPolygon(bodyA);
+    return detectPolygonPolygonCollision(polyA, bodyB);
+  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.RECTANGLE) {
+    const polyB = rectangleToPolygon(bodyB);
+    return detectPolygonPolygonCollision(bodyA, polyB);
+  } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.POLYGON) {
+    return detectCirclePolygonCollision(bodyA, bodyB);
+  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.CIRCLE) {
     // Swap the order and flip the normal
-    const result = detectCircleRectangleCollision(bodyB, bodyA);
+    const result = detectCirclePolygonCollision(bodyB, bodyA);
     if (result.collision && result.normal) {
       result.normal = { x: -result.normal.x, y: -result.normal.y };
       result.bodyA = bodyA;
       result.bodyB = bodyB;
     }
     return result;
+  } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.RECTANGLE) {
+    // For rotated rectangles, convert to polygon and use circle-polygon collision
+    if (bodyB.rotation && bodyB.rotation !== 0) {
+      const polyB = rectangleToPolygon(bodyB);
+      return detectCirclePolygonCollision(bodyA, polyB);
+    } else {
+      return detectCircleRectangleCollision(bodyA, bodyB);
+    }
+  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.CIRCLE) {
+    // For rotated rectangles, convert to polygon and use circle-polygon collision
+    if (bodyA.rotation && bodyA.rotation !== 0) {
+      const polyA = rectangleToPolygon(bodyA);
+      const result = detectCirclePolygonCollision(bodyB, polyA);
+      if (result.collision && result.normal) {
+        result.normal = { x: -result.normal.x, y: -result.normal.y };
+        result.bodyA = bodyA;
+        result.bodyB = bodyB;
+      }
+      return result;
+    } else {
+      // Swap the order and flip the normal
+      const result = detectCircleRectangleCollision(bodyB, bodyA);
+      if (result.collision && result.normal) {
+        result.normal = { x: -result.normal.x, y: -result.normal.y };
+        result.bodyA = bodyA;
+        result.bodyB = bodyB;
+      }
+      return result;
+    }
   } else if (bodyA.shape === CollisionShape.POINT && bodyB.shape === CollisionShape.CIRCLE) {
     return detectPointCircleCollision(bodyA, bodyB);
   } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.POINT) {
@@ -284,16 +682,19 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
       result.bodyB = bodyB;
     }
     return result;
-  } else if (bodyA.shape === CollisionShape.POLYGON || bodyB.shape === CollisionShape.POLYGON) {
-    // For polygon collisions, we would need more complex algorithms like SAT
-    // This is a simplified implementation
+  } else if (bodyA.shape === CollisionShape.POINT && bodyB.shape === CollisionShape.POLYGON) {
+    // Implementation will be added in future updates
     return {
       collision: false,
       bodyA,
-      bodyB,
-      normal: { x: 0, y: 0 },
-      contactPoint: { x: 0, y: 0 },
-      penetration: 0
+      bodyB
+    };
+  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.POINT) {
+    // Implementation will be added in future updates
+    return {
+      collision: false,
+      bodyA,
+      bodyB
     };
   }
   
@@ -634,6 +1035,147 @@ function detectPointRectangleCollision(bodyA: CollisionBody, bodyB: CollisionBod
 }
 
 /**
+ * Detects collision between a circle and a polygon
+ */
+function detectCirclePolygonCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
+  const circle = bodyA.shapeData as CircleData;
+  const polygon = bodyB.shapeData as PolygonData;
+  
+  // Transform polygon vertices to account for position and rotation
+  const transformedVertices = transformPolygonVertices(
+    polygon.vertices,
+    bodyB.position,
+    bodyB.rotation || 0
+  );
+  
+  // Get edges and normals for the polygon
+  const edges = getPolygonEdges(transformedVertices);
+  const normals = getPolygonNormals(edges);
+  
+  // Find the closest point on the polygon to the circle center
+  let closestPoint: Vector2D | null = null;
+  let minDistance = Infinity;
+  
+  // First, check if the circle center is inside the polygon
+  let inside = true;
+  
+  for (let i = 0; i < transformedVertices.length; i++) {
+    const v1 = transformedVertices[i];
+    const v2 = transformedVertices[(i + 1) % transformedVertices.length];
+    
+    // Vector from vertex to circle center
+    const toCircle = subtractVectors(bodyA.position, v1);
+    
+    // Edge vector
+    const edge = subtractVectors(v2, v1);
+    
+    // Normal to the edge (pointing outward)
+    const normal = normalizeVector({ x: -edge.y, y: edge.x });
+    
+    // If the circle center is on the outside of any edge, it's outside the polygon
+    if (dotProduct(toCircle, normal) > 0) {
+      inside = false;
+      
+      // Project the circle center onto the edge
+      const projection = dotProduct(toCircle, normalizeVector(edge));
+      
+      let closestOnEdge: Vector2D;
+      
+      if (projection <= 0) {
+        // Closest to v1
+        closestOnEdge = v1;
+      } else if (projection >= vectorMagnitude(edge)) {
+        // Closest to v2
+        closestOnEdge = v2;
+      } else {
+        // Closest to a point on the edge
+        closestOnEdge = {
+          x: v1.x + normalizeVector(edge).x * projection,
+          y: v1.y + normalizeVector(edge).y * projection
+        };
+      }
+      
+      const distance = vectorDistance(bodyA.position, closestOnEdge);
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = closestOnEdge;
+      }
+    }
+  }
+  
+  if (inside) {
+    // Circle center is inside polygon; find closest edge
+    let minPenetration = Infinity;
+    let penetrationNormal: Vector2D = { x: 0, y: 0 };
+    
+    for (let i = 0; i < normals.length; i++) {
+      const normal = normals[i];
+      
+      // Project circle center onto the normal
+      const distanceFromEdge = dotProduct(
+        subtractVectors(bodyA.position, transformedVertices[i]),
+        normal
+      );
+      
+      if (distanceFromEdge < minPenetration) {
+        minPenetration = distanceFromEdge;
+        penetrationNormal = normal;
+      }
+    }
+    
+    // We want the normal pointing from A to B, but the polygon is B, so invert
+    penetrationNormal = { x: -penetrationNormal.x, y: -penetrationNormal.y };
+    
+    return {
+      collision: true,
+      bodyA,
+      bodyB,
+      normal: penetrationNormal,
+      contactPoint: {
+        x: bodyA.position.x - penetrationNormal.x * (circle.radius - minPenetration),
+        y: bodyA.position.y - penetrationNormal.y * (circle.radius - minPenetration)
+      },
+      penetration: circle.radius + minPenetration,
+      relativeVelocity: subtractVectors(bodyB.velocity, bodyA.velocity)
+    };
+  }
+  
+  if (closestPoint && minDistance <= circle.radius) {
+    // Get collision normal (from polygon to circle)
+    const normal = normalizeVector(subtractVectors(bodyA.position, closestPoint));
+    
+    // Calculate penetration
+    const penetration = circle.radius - minDistance;
+    
+    // Calculate contact point
+    const contactPoint = {
+      x: closestPoint.x,
+      y: closestPoint.y
+    };
+    
+    // Calculate relative velocity
+    const relativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
+    
+    return {
+      collision: true,
+      bodyA,
+      bodyB,
+      normal,
+      contactPoint,
+      penetration,
+      relativeVelocity
+    };
+  }
+  
+  return {
+    collision: false,
+    bodyA,
+    bodyB
+  };
+}
+
+/**
  * Resolves a collision by calculating and applying impulses
  */
 export function resolveCollisionWithImpulse(result: CollisionResult): void {
@@ -725,23 +1267,292 @@ export function resolveCollisionWithImpulse(result: CollisionResult): void {
 }
 
 /**
+ * SpatialGrid for efficient broad-phase collision detection
+ * Divides the scene into cells for faster collision checks
+ */
+export class SpatialGrid {
+  private cells: Map<string, CollisionBody[]> = new Map();
+  private cellSize: number;
+
+  /**
+   * Creates a new spatial grid
+   * @param cellSize Size of each grid cell (larger = fewer cells but more objects per cell)
+   */
+  constructor(cellSize: number = 50) {
+    this.cellSize = cellSize;
+  }
+
+  /**
+   * Gets the cell key for a position
+   */
+  private getCellKey(x: number, y: number): string {
+    const cellX = Math.floor(x / this.cellSize);
+    const cellY = Math.floor(y / this.cellSize);
+    return `${cellX},${cellY}`;
+  }
+
+  /**
+   * Gets the cell keys that a body occupies
+   */
+  private getBodyCellKeys(body: CollisionBody): string[] {
+    const keys: string[] = [];
+    let minX: number, minY: number, maxX: number, maxY: number;
+
+    switch (body.shape) {
+      case CollisionShape.CIRCLE:
+        const circle = body.shapeData as CircleData;
+        minX = body.position.x - circle.radius;
+        minY = body.position.y - circle.radius;
+        maxX = body.position.x + circle.radius;
+        maxY = body.position.y + circle.radius;
+        break;
+      case CollisionShape.RECTANGLE:
+        const rect = body.shapeData as RectangleData;
+        minX = body.position.x - rect.width / 2;
+        minY = body.position.y - rect.height / 2;
+        maxX = body.position.x + rect.width / 2;
+        maxY = body.position.y + rect.height / 2;
+        break;
+      case CollisionShape.POINT:
+        // For points, just use the position
+        minX = maxX = body.position.x;
+        minY = maxY = body.position.y;
+        break;
+      case CollisionShape.POLYGON:
+        // For polygons, calculate the bounding box
+        const polygon = body.shapeData as PolygonData;
+        if (polygon.vertices.length === 0) {
+          minX = maxX = body.position.x;
+          minY = maxY = body.position.y;
+        } else {
+          minX = maxX = polygon.vertices[0].x + body.position.x;
+          minY = maxY = polygon.vertices[0].y + body.position.y;
+          
+          for (let i = 1; i < polygon.vertices.length; i++) {
+            const x = polygon.vertices[i].x + body.position.x;
+            const y = polygon.vertices[i].y + body.position.y;
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+          }
+        }
+        break;
+    }
+
+    // Get all cell keys this body occupies
+    const startCellX = Math.floor(minX / this.cellSize);
+    const startCellY = Math.floor(minY / this.cellSize);
+    const endCellX = Math.floor(maxX / this.cellSize);
+    const endCellY = Math.floor(maxY / this.cellSize);
+
+    for (let cellX = startCellX; cellX <= endCellX; cellX++) {
+      for (let cellY = startCellY; cellY <= endCellY; cellY++) {
+        keys.push(`${cellX},${cellY}`);
+      }
+    }
+
+    return keys;
+  }
+
+  /**
+   * Inserts a body into the grid
+   */
+  public insertBody(body: CollisionBody): void {
+    const cellKeys = this.getBodyCellKeys(body);
+    
+    for (const key of cellKeys) {
+      if (!this.cells.has(key)) {
+        this.cells.set(key, []);
+      }
+      this.cells.get(key)!.push(body);
+    }
+  }
+
+  /**
+   * Updates a body's position in the grid
+   */
+  public updateBody(body: CollisionBody): void {
+    this.removeBody(body);
+    this.insertBody(body);
+  }
+
+  /**
+   * Removes a body from the grid
+   */
+  public removeBody(body: CollisionBody): void {
+    for (const [key, bodies] of this.cells.entries()) {
+      const index = bodies.findIndex(b => b.id === body.id);
+      if (index !== -1) {
+        bodies.splice(index, 1);
+        if (bodies.length === 0) {
+          this.cells.delete(key);
+        }
+      }
+    }
+  }
+
+  /**
+   * Clears the grid
+   */
+  public clear(): void {
+    this.cells.clear();
+  }
+
+  /**
+   * Gets potential collision pairs
+   */
+  public getPotentialCollisionPairs(): { bodyA: CollisionBody; bodyB: CollisionBody }[] {
+    const pairs: { bodyA: CollisionBody; bodyB: CollisionBody }[] = [];
+    const checked = new Set<string>();
+
+    // For each cell
+    for (const [_, bodies] of this.cells.entries()) {
+      // Check each body against others in the same cell
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const bodyA = bodies[i];
+          const bodyB = bodies[j];
+          
+          // Skip if both are static
+          if (bodyA.isStatic && bodyB.isStatic) continue;
+          
+          // Skip if collision filtering prevents collision
+          if (!canBodiesCollide(bodyA, bodyB)) continue;
+          
+          // Create a unique pair ID to avoid duplicates
+          const pairId = bodyA.id < bodyB.id 
+            ? `${bodyA.id}-${bodyB.id}` 
+            : `${bodyB.id}-${bodyA.id}`;
+          
+          if (!checked.has(pairId)) {
+            checked.add(pairId);
+            pairs.push({ bodyA, bodyB });
+          }
+        }
+      }
+    }
+
+    return pairs;
+  }
+}
+
+/**
+ * Types of collision events
+ */
+export enum CollisionEventType {
+  /** Triggered when a collision starts (first detected) */
+  START = 'collisionStart',
+  
+  /** Triggered on each update while a collision continues */
+  ACTIVE = 'collisionActive',
+  
+  /** Triggered when a collision ends */
+  END = 'collisionEnd'
+}
+
+/**
+ * Collision event data passed to callbacks
+ */
+export interface CollisionEvent {
+  /** Type of collision event */
+  type: CollisionEventType;
+  
+  /** The collision result with detailed collision data */
+  collision: CollisionResult;
+  
+  /** Timestamp when the event occurred */
+  timestamp: number;
+  
+  /** Time duration of the collision (for ACTIVE and END events) */
+  duration?: number;
+  
+  /** Impulse applied during the collision */
+  impulse?: number;
+}
+
+/**
+ * Collision event callback function type
+ */
+export type CollisionEventCallback = (event: CollisionEvent) => void;
+
+/**
+ * Collision event subscription with filter options
+ */
+export interface CollisionEventSubscription {
+  /** Callback function to execute when event occurs */
+  callback: CollisionEventCallback;
+  
+  /** Optional body ID to filter events (only receive events for this body) */
+  bodyId?: string | number;
+  
+  /** Optional event type to filter (only receive this type of event) */
+  eventType?: CollisionEventType;
+  
+  /** Unique identifier for this subscription */
+  id: string;
+}
+
+/**
+ * Stores information about an active collision for tracking
+ */
+interface ActiveCollision {
+  /** Unique pair ID identifying the two colliding bodies */
+  pairId: string;
+  
+  /** The two colliding bodies */
+  bodyA: CollisionBody;
+  bodyB: CollisionBody;
+  
+  /** When the collision started */
+  startTime: number;
+  
+  /** Last collision result */
+  lastResult: CollisionResult;
+}
+
+/**
  * Collision system to manage all collision bodies and handle collision detection and response
  */
 export class CollisionSystem {
   private bodies: CollisionBody[] = [];
   private collisionPairs: { bodyA: CollisionBody; bodyB: CollisionBody }[] = [];
+  private spatialGrid: SpatialGrid;
+  private useSpatialGrid: boolean = true; // Enable by default for better performance
+  
+  // Collision event system
+  private eventSubscriptions: CollisionEventSubscription[] = [];
+  private activeCollisions: Map<string, ActiveCollision> = new Map();
+  
+  /**
+   * Creates a new collision system
+   * @param cellSize Size of spatial grid cells for broad-phase collision detection
+   * @param useSpatialGrid Whether to use spatial partitioning for broad-phase
+   */
+  constructor(cellSize: number = 50, useSpatialGrid: boolean = true) {
+    this.spatialGrid = new SpatialGrid(cellSize);
+    this.useSpatialGrid = useSpatialGrid;
+  }
   
   /**
    * Adds a collision body to the system
    */
   public addBody(body: CollisionBody): void {
     this.bodies.push(body);
+    if (this.useSpatialGrid) {
+      this.spatialGrid.insertBody(body);
+    }
   }
   
   /**
    * Removes a collision body from the system
    */
   public removeBody(id: string | number): void {
+    const body = this.bodies.find(body => body.id === id);
+    if (body && this.useSpatialGrid) {
+      this.spatialGrid.removeBody(body);
+    }
+    
     this.bodies = this.bodies.filter(body => body.id !== id);
     this.updateCollisionPairs();
   }
@@ -755,7 +1566,16 @@ export class CollisionSystem {
   ): void {
     const body = this.bodies.find(body => body.id === id);
     if (body) {
+      const oldPosition = { ...body.position };
       Object.assign(body, properties);
+      
+      // If position changed, update spatial grid
+      if (this.useSpatialGrid && 
+          (properties.position && 
+           (properties.position.x !== oldPosition.x || 
+            properties.position.y !== oldPosition.y))) {
+        this.spatialGrid.updateBody(body);
+      }
     }
   }
   
@@ -770,27 +1590,26 @@ export class CollisionSystem {
    * Updates collision pairs for efficient collision checking
    */
   private updateCollisionPairs(): void {
-    this.collisionPairs = [];
-    
-    for (let i = 0; i < this.bodies.length; i++) {
-      for (let j = i + 1; j < this.bodies.length; j++) {
-        const bodyA = this.bodies[i];
-        const bodyB = this.bodies[j];
-        
-        // Skip if both bodies are static
-        if (bodyA.isStatic && bodyB.isStatic) continue;
-        
-        // Skip if collision is disabled for either body
-        if (bodyA.collisionEnabled === false || bodyB.collisionEnabled === false) continue;
-        
-        // Skip if bodies are on different collision layers
-        if (
-          bodyA.collisionLayer !== undefined &&
-          bodyB.collisionLayer !== undefined &&
-          bodyA.collisionLayer !== bodyB.collisionLayer
-        ) continue;
-        
-        this.collisionPairs.push({ bodyA, bodyB });
+    if (this.useSpatialGrid) {
+      // Use spatial grid for efficient broad-phase collision detection
+      this.collisionPairs = this.spatialGrid.getPotentialCollisionPairs();
+    } else {
+      // Fallback to brute force method
+      this.collisionPairs = [];
+      
+      for (let i = 0; i < this.bodies.length; i++) {
+        for (let j = i + 1; j < this.bodies.length; j++) {
+          const bodyA = this.bodies[i];
+          const bodyB = this.bodies[j];
+          
+          // Skip if both bodies are static
+          if (bodyA.isStatic && bodyB.isStatic) continue;
+          
+          // Skip if collision filtering prevents collision
+          if (!canBodiesCollide(bodyA, bodyB)) continue;
+          
+          this.collisionPairs.push({ bodyA, bodyB });
+        }
       }
     }
   }
@@ -800,23 +1619,197 @@ export class CollisionSystem {
    * @returns Array of collision results
    */
   public update(): CollisionResult[] {
-    // Update collision pairs if needed
+    // Update spatial grid for all bodies (if using spatial grid)
+    if (this.useSpatialGrid) {
+      this.spatialGrid.clear();
+      for (const body of this.bodies) {
+        this.spatialGrid.insertBody(body);
+      }
+    }
+    
+    // Update collision pairs
     this.updateCollisionPairs();
     
     const collisionResults: CollisionResult[] = [];
+    const currentTime = Date.now();
+    const endedCollisions: string[] = [];
+    
+    // Track which pairs we've seen this update
+    const activePairIds = new Set<string>();
     
     // Check all collision pairs
     for (const pair of this.collisionPairs) {
       const result = detectBodyCollision(pair.bodyA, pair.bodyB);
       
+      // Create unique ID for this collision pair
+      const pairId = pair.bodyA.id < pair.bodyB.id 
+        ? `${pair.bodyA.id}-${pair.bodyB.id}` 
+        : `${pair.bodyB.id}-${pair.bodyA.id}`;
+      
+      activePairIds.add(pairId);
+      
       if (result.collision) {
         // Resolve the collision
         resolveCollisionWithImpulse(result);
         collisionResults.push(result);
+        
+        // Handle collision events
+        if (this.eventSubscriptions.length > 0) {
+          if (this.activeCollisions.has(pairId)) {
+            // Continuing collision
+            const activeCollision = this.activeCollisions.get(pairId)!;
+            activeCollision.lastResult = result;
+            
+            // Trigger ACTIVE event
+            this.triggerCollisionEvent({
+              type: CollisionEventType.ACTIVE,
+              collision: result,
+              timestamp: currentTime,
+              duration: currentTime - activeCollision.startTime,
+              impulse: this.calculateCollisionImpulse(result)
+            });
+          } else {
+            // New collision
+            this.activeCollisions.set(pairId, {
+              pairId,
+              bodyA: pair.bodyA,
+              bodyB: pair.bodyB,
+              startTime: currentTime,
+              lastResult: result
+            });
+            
+            // Trigger START event
+            this.triggerCollisionEvent({
+              type: CollisionEventType.START,
+              collision: result,
+              timestamp: currentTime,
+              impulse: this.calculateCollisionImpulse(result)
+            });
+          }
+        }
+      }
+    }
+    
+    // Check for ended collisions
+    if (this.eventSubscriptions.length > 0) {
+      for (const [pairId, activeCollision] of this.activeCollisions.entries()) {
+        if (!activePairIds.has(pairId)) {
+          // Collision has ended
+          endedCollisions.push(pairId);
+          
+          // Trigger END event
+          this.triggerCollisionEvent({
+            type: CollisionEventType.END,
+            collision: activeCollision.lastResult,
+            timestamp: currentTime,
+            duration: currentTime - activeCollision.startTime
+          });
+        }
+      }
+      
+      // Remove ended collisions
+      for (const pairId of endedCollisions) {
+        this.activeCollisions.delete(pairId);
       }
     }
     
     return collisionResults;
+  }
+  
+  /**
+   * Calculate the magnitude of collision impulse (approximation)
+   * @param result Collision result
+   * @returns Impulse magnitude
+   */
+  private calculateCollisionImpulse(result: CollisionResult): number {
+    if (!result.relativeVelocity || !result.normal) return 0;
+    
+    // Calculate relative velocity along normal
+    const velocityAlongNormal = dotProduct(result.relativeVelocity, result.normal);
+    
+    // If objects are separating, no impulse
+    if (velocityAlongNormal >= 0) return 0;
+    
+    // Get restitution
+    const restitutionA = result.bodyA.material?.restitution ?? 0.2;
+    const restitutionB = result.bodyB.material?.restitution ?? 0.2;
+    const restitution = Math.max(restitutionA, restitutionB);
+    
+    // Calculate impulse scalar
+    const totalMass = result.bodyA.isStatic 
+      ? result.bodyB.mass 
+      : (result.bodyB.isStatic ? result.bodyA.mass : result.bodyA.mass + result.bodyB.mass);
+    
+    return Math.abs((1 + restitution) * velocityAlongNormal * totalMass);
+  }
+  
+  /**
+   * Trigger collision event for subscribers
+   */
+  private triggerCollisionEvent(event: CollisionEvent): void {
+    for (const subscription of this.eventSubscriptions) {
+      // Skip if event type doesn't match the subscription
+      if (subscription.eventType !== undefined && subscription.eventType !== event.type) {
+        continue;
+      }
+      
+      // Skip if body ID filter doesn't match
+      if (subscription.bodyId !== undefined && 
+          event.collision.bodyA.id !== subscription.bodyId && 
+          event.collision.bodyB.id !== subscription.bodyId) {
+        continue;
+      }
+      
+      // Execute callback
+      subscription.callback(event);
+    }
+  }
+  
+  /**
+   * Subscribe to collision events
+   * @param callback Function to call when matching collision events occur
+   * @param options Optional filters to limit which events trigger the callback
+   * @returns Subscription ID that can be used to unsubscribe
+   */
+  public onCollision(
+    callback: CollisionEventCallback, 
+    options?: { 
+      bodyId?: string | number; 
+      eventType?: CollisionEventType 
+    }
+  ): string {
+    const subscriptionId = `sub_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    
+    this.eventSubscriptions.push({
+      id: subscriptionId,
+      callback,
+      bodyId: options?.bodyId,
+      eventType: options?.eventType
+    });
+    
+    return subscriptionId;
+  }
+  
+  /**
+   * Unsubscribe from collision events
+   * @param subscriptionId ID returned from onCollision
+   * @returns Whether the subscription was found and removed
+   */
+  public offCollision(subscriptionId: string): boolean {
+    const initialLength = this.eventSubscriptions.length;
+    
+    this.eventSubscriptions = this.eventSubscriptions.filter(
+      subscription => subscription.id !== subscriptionId
+    );
+    
+    return initialLength > this.eventSubscriptions.length;
+  }
+  
+  /**
+   * Remove all collision event subscriptions
+   */
+  public clearCollisionSubscriptions(): void {
+    this.eventSubscriptions = [];
   }
   
   /**
@@ -825,6 +1818,10 @@ export class CollisionSystem {
   public clear(): void {
     this.bodies = [];
     this.collisionPairs = [];
+    this.activeCollisions.clear();
+    if (this.useSpatialGrid) {
+      this.spatialGrid.clear();
+    }
   }
   
   /**
@@ -833,14 +1830,47 @@ export class CollisionSystem {
   public getBodyCount(): number {
     return this.bodies.length;
   }
+  
+  /**
+   * Enable or disable spatial grid for broad-phase collision detection
+   */
+  public setSpatialGridEnabled(enabled: boolean): void {
+    this.useSpatialGrid = enabled;
+  }
+  
+  /**
+   * Get the current collision pair count for performance monitoring
+   */
+  public getCollisionPairCount(): number {
+    return this.collisionPairs.length;
+  }
+  
+  /**
+   * Sets the collision filter for a body
+   */
+  public setCollisionFilter(id: string | number, filter: CollisionFilter): void {
+    const body = this.bodies.find(body => body.id === id);
+    if (body) {
+      body.collisionFilter = filter;
+    }
+  }
+  
+  /**
+   * Create a collision filter with the specified properties
+   */
+  public createCollisionFilter(category: number, mask: number, group: number = 0): CollisionFilter {
+    return { category, mask, group };
+  }
 }
 
 /**
  * Creates a new collision system
+ * @param cellSize Size of spatial grid cells for broad-phase collision detection
+ * @param useSpatialGrid Whether to use spatial partitioning for broad-phase
  * @returns A new collision system instance
  */
-export function createCollisionSystem(): CollisionSystem {
-  return new CollisionSystem();
+export function createCollisionSystem(cellSize: number = 50, useSpatialGrid: boolean = true): CollisionSystem {
+  return new CollisionSystem(cellSize, useSpatialGrid);
 }
 
 /**

@@ -1,54 +1,85 @@
-import React, { forwardRef } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useCallback, useState, useMemo, useRef } from 'react';
+import styled, { useTheme, css, keyframes, DefaultTheme } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { AnimationProps } from '../../animations/types';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { MotionSensitivityLevel } from '../../animations/core/types';
+import { useAnimationContext } from '../../contexts/AnimationContext';
 
-// Button props interface
-export interface ButtonProps {
-  /**
-   * The content of the button
-   */
-  children: React.ReactNode;
+// Define valid preset names as a type
+type SpringPresetName = keyof typeof SpringPresets;
 
-  /**
-   * The variant of the button
-   */
-  variant?: 'contained' | 'outlined' | 'text';
-
-  /**
-   * The color of the button
-   */
+/**
+ * Props for the Button component
+ */
+export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'color'>, AnimationProps {
+  /** Button variant */
+  variant?: 'text' | 'outlined' | 'contained' | 'glass';
+  /** Button color theme */
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
-
-  /**
-   * If true, the button will be disabled
-   */
-  disabled?: boolean;
-
-  /**
-   * The size of the button
-   */
+  /** Button size */
   size?: 'small' | 'medium' | 'large';
-
-  /**
-   * Click handler
-   */
-  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-
-  /**
-   * Additional CSS class name
-   */
+  /** If true, the button is disabled */
+  disabled?: boolean;
+  /** If true, the button takes up the full width of its container */
+  fullWidth?: boolean;
+  /** Element displayed before the children */
+  startIcon?: React.ReactNode;
+  /** Element displayed after the children */
+  endIcon?: React.ReactNode;
+  /** If true, shows a loading indicator */
+  isLoading?: boolean;
+  /** Text for the loading indicator */
+  loadingText?: string;
+  /** Additional CSS class */
   className?: string;
+  /** Inline styles */
+  style?: React.CSSProperties;
+  
+  /**
+   * Configuration for the button's press animation (physics interaction).
+   * Can be a preset name or a partial SpringConfig object.
+   */
+  animationConfig?: Partial<SpringConfig> | SpringPresetName;
+
+  /**
+   * Physics interaction options (advanced)
+   */
+  physicsOptions?: Partial<PhysicsInteractionOptions>;
+
+  /**
+   * Sensitivity level for motion effects.
+   */
+  motionSensitivity?: MotionSensitivityLevel;
+
+  /**
+   * Disable animation
+   */
+  disableAnimation?: boolean;
 }
+
+// Define default props if needed
+export const defaultButtonProps: Partial<ButtonProps> = {
+  variant: 'contained',
+  color: 'primary',
+  size: 'medium',
+  disabled: false,
+  fullWidth: false,
+};
 
 // Styled button with glass effects
 const StyledButton = styled.button<{
-  $variant: 'contained' | 'outlined' | 'text';
+  $variant: 'contained' | 'outlined' | 'text' | 'glass';
   $color: string;
   $disabled: boolean;
   $size: string;
+  $theme: any;
+  $fullWidth: boolean;
 }>`
   /* Base styles */
   display: inline-flex;
@@ -65,6 +96,7 @@ const StyledButton = styled.button<{
   font-weight: 500;
   font-family: 'Inter', sans-serif;
   border-radius: 4px;
+  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
 
   /* Size styles */
   ${props => {
@@ -90,16 +122,16 @@ const StyledButton = styled.button<{
     }
   }}
 
-  /* Glass effect styles for contained variant */
+  /* Glass effect styles for glass variant */
   ${props =>
-    props.$variant === 'contained' &&
+    props.$variant === 'glass' &&
     !props.$disabled &&
     glassSurface({
       elevation: 2,
       blurStrength: 'standard',
       backgroundOpacity: 'medium',
       borderOpacity: 'subtle',
-      themeContext: createThemeContext({}), // In real usage, this would use props.theme
+      themeContext: createThemeContext(props.$theme),
     })}
   
   /* Disabled state */
@@ -112,42 +144,42 @@ const StyledButton = styled.button<{
   
   /* Variant + color styles */
   ${props => {
-    if (props.$variant === 'contained') {
+    if (props.$variant === 'contained' || props.$variant === 'glass') {
       switch (props.$color) {
         case 'primary':
           return `
-            background-color: #6366F1;
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : '#6366F1'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
         case 'secondary':
           return `
-            background-color: #8B5CF6;
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : '#8B5CF6'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
         case 'success':
           return `
-            background-color: #10B981;
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : '#10B981'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
         case 'error':
           return `
-            background-color: #EF4444;
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : '#EF4444'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
         case 'warning':
           return `
-            background-color: #F59E0B;
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : '#F59E0B'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
         case 'info':
           return `
-            background-color: #3B82F6;
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : '#3B82F6'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
         default:
           return `
-            background-color: rgba(75, 85, 99, 0.8);
-            color: white;
+            background-color: ${props.$variant === 'glass' ? 'transparent' : 'rgba(75, 85, 99, 0.8)'};
+            color: ${props.$variant === 'glass' ? 'inherit' : 'white'};
           `;
       }
     } else if (props.$variant === 'outlined') {
@@ -236,21 +268,6 @@ const StyledButton = styled.button<{
       }
     }
   }}
-  
-  /* Hover styles */
-  ${props =>
-    !props.$disabled &&
-    `
-    transition: all 0.2s ease-in-out;
-    
-    &:hover {
-      filter: brightness(1.1);
-    }
-    
-    &:active {
-      transform: translateY(1px);
-    }
-  `}
 `;
 
 /**
@@ -267,19 +284,103 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) =>
     size = 'medium',
     onClick,
     className,
+    fullWidth = false,
+    style,
+    onMouseDown,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
+  const theme = useTheme();
+  const [isPressed, setIsPressed] = useState(false);
+  const { defaultSpring, pressSpringConfig } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+
+  const finalReducedMotion = disableAnimation ?? prefersReducedMotion;
+
+  const finalPhysicsConfig = useMemo(() => {
+    const presetName = animationConfig ?? pressSpringConfig ?? 'PRESS_FEEDBACK';
+    let config: Partial<SpringConfig> = {};
+    if (typeof presetName === 'string' && presetName in SpringPresets) {
+      config = SpringPresets[presetName as keyof typeof SpringPresets];
+    } else if (typeof presetName === 'object') {
+      config = presetName;
+    }
+    return {
+      stiffness: config.tension,
+      dampingRatio: config.friction ? config.friction / (2 * Math.sqrt((config.tension ?? 170) * (config.mass ?? 1))) : undefined,
+      mass: config.mass,
+      affectsScale: true,
+      scaleAmplitude: 0.02,
+    };
+  }, [animationConfig, pressSpringConfig]);
+
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+    applyImpulse,
+    reset
+  } = usePhysicsInteraction<HTMLButtonElement>({
+    type: 'spring',
+    ...finalPhysicsConfig,
+    reducedMotion: finalReducedMotion,
+  });
+
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled || finalReducedMotion) return;
+    setIsPressed(true);
+    applyImpulse({ x: 0, y: 1, z: 0 });
+    if (onMouseDown) {
+      onMouseDown(e);
+    }
+  }, [applyImpulse, disabled, onMouseDown, finalReducedMotion]);
+
+  const handleMouseUp = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    if (disabled || !isPressed) return;
+    setIsPressed(false);
+    reset();
+  }, [reset, disabled, isPressed]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (isPressed) {
+      setIsPressed(false);
+      reset();
+    }
+  }, [reset, isPressed]);
+
+  const combinedRef = (node: HTMLButtonElement | null) => {
+    (physicsRef as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!disabled && onClick) {
+      onClick(event);
+    }
+  };
+
   return (
     <StyledButton
-      ref={ref}
+      ref={combinedRef}
+      style={{ ...(finalReducedMotion ? {} : physicsStyle), ...style }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
       className={className}
       $variant={variant}
       $color={color}
       $disabled={disabled}
       $size={size}
-      onClick={onClick}
+      $theme={theme}
       disabled={disabled}
+      $fullWidth={fullWidth}
       {...rest}
     >
       {children}

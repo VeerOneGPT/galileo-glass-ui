@@ -3,8 +3,14 @@
  *
  * A component that provides accessible focus indicators.
  */
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useMemo } from 'react';
 import styled from 'styled-components';
+
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
+import { useMultiSpring } from '../../animations/physics/useMultiSpring';
+import { SpringPresets, type SpringConfig } from '../../animations/physics/springPhysics';
 
 import { FocusIndicatorProps } from './types';
 
@@ -34,87 +40,15 @@ const colorToRgb = (color: string): string => {
   }
 };
 
-// Get focus style based on type
-const getFocusStyle = (
-  style: string,
-  thickness: number,
-  color: string,
-  highContrast: boolean,
-  glass: boolean
-): string => {
-  const rgbColor = colorToRgb(color);
-  const highContrastColor = highContrast ? '255, 255, 0' : rgbColor; // Yellow for high contrast
-
-  switch (style) {
-    case 'dashed':
-      return `
-        outline: ${thickness}px dashed rgba(${highContrastColor}, ${highContrast ? 1 : 0.8});
-        outline-offset: 2px;
-      `;
-    case 'dotted':
-      return `
-        outline: ${thickness}px dotted rgba(${highContrastColor}, ${highContrast ? 1 : 0.8});
-        outline-offset: 2px;
-      `;
-    case 'glow':
-      return `
-        box-shadow: 0 0 0 ${thickness}px rgba(${rgbColor}, 0.2), 0 0 ${
-        thickness * 2
-      }px rgba(${rgbColor}, 0.4);
-        ${glass ? 'backdrop-filter: blur(4px);' : ''}
-      `;
-    case 'outline':
-      return `
-        outline: ${thickness}px solid rgba(${highContrastColor}, ${highContrast ? 1 : 0.8});
-        outline-offset: 2px;
-      `;
-    case 'solid':
-    default:
-      return `
-        box-shadow: 0 0 0 ${thickness}px rgba(${highContrastColor}, ${highContrast ? 1 : 0.5});
-      `;
-  }
-};
-
 // Styled components
 const FocusWrapper = styled.div<{
-  $visible: boolean;
-  $style: 'solid' | 'dashed' | 'dotted' | 'outline' | 'glow';
-  $thickness: number;
-  $color: string;
   $glass: boolean;
   $highContrast: boolean;
 }>`
   position: relative;
   display: inline-block;
-
-  /* Focus styling */
-  ${props =>
-    props.$visible &&
-    getFocusStyle(props.$style, props.$thickness, props.$color, props.$highContrast, props.$glass)}
-
-  /* Transition for smoother appearance */
-  transition: outline 0.2s ease, box-shadow 0.2s ease;
-
-  /* High-contrast focus indicator overlay for glass effect */
-  ${props =>
-    props.$visible &&
-    props.$glass &&
-    props.$highContrast &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      top: -${props.$thickness * 2}px;
-      left: -${props.$thickness * 2}px;
-      right: -${props.$thickness * 2}px;
-      bottom: -${props.$thickness * 2}px;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 1;
-      box-shadow: 0 0 0 ${props.$thickness}px rgba(255, 255, 0, 0.5);
-    }
-  `}
+  outline: none;
+  will-change: box-shadow, outline, opacity;
 `;
 
 /**
@@ -127,27 +61,127 @@ function FocusIndicatorComponent(
   const {
     children,
     visible = false,
-    color = 'primary',
-    thickness = 2,
-    style: focusStyle = 'solid',
+    color: propColor,
+    thickness: propThickness,
+    style: propFocusStyle,
     glass = false,
-    highContrast = false,
+    highContrast: propHighContrast,
     className,
     componentStyle,
+    disableAnimation: propDisableAnimation,
+    animationConfig: propAnimationConfig,
     ...rest
   } = props;
+
+  // --- Get Context Defaults --- 
+  const { defaultSpring } = useAnimationContext();
+  const { 
+      highContrast: contextHighContrast
+  } = useAccessibilitySettings();
+
+  // --- Determine Final Values --- 
+  const finalFocusStyle = propFocusStyle ?? 'solid';
+  const finalColor = propColor ?? 'primary';
+  const finalThickness = propThickness ?? 2;
+  const finalHighContrast = propHighContrast ?? contextHighContrast ?? false;
+  
+  const prefersReducedMotion = useReducedMotion();
+  const shouldAnimate = !(propDisableAnimation ?? prefersReducedMotion);
+
+  // --- Calculate Spring Config --- 
+  const finalSpringConfig = useMemo(() => {
+    const baseConfig: SpringConfig = SpringPresets.STIFF;
+    let contextResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+        contextResolvedConfig = defaultSpring;
+    }
+    let propResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof propAnimationConfig === 'string' && propAnimationConfig in SpringPresets) {
+        propResolvedConfig = SpringPresets[propAnimationConfig as keyof typeof SpringPresets];
+    } else if (typeof propAnimationConfig === 'object' && propAnimationConfig !== null) {
+        propResolvedConfig = propAnimationConfig;
+    }
+    return { ...baseConfig, ...contextResolvedConfig, ...propResolvedConfig };
+  }, [defaultSpring, propAnimationConfig]);
+
+  // --- Define Animation Targets --- 
+  const getTargets = () => {
+    const rgbColor = colorToRgb(finalColor);
+    const hcColor = finalHighContrast ? '255, 255, 0' : rgbColor; // Yellow or original
+    const hcOpacity = finalHighContrast ? 1 : 0.8;
+    const shadowOpacity = finalHighContrast ? 1 : 0.5;
+
+    if (!visible) {
+      return {
+          shadowSpread1: 0, shadowSpread2: 0, shadowOpacity: 0, 
+          outlineWidth: 0, outlineOpacity: 0, 
+      };
+    }
+
+    switch (finalFocusStyle) {
+      case 'glow':
+        return {
+          shadowSpread1: finalThickness, shadowSpread2: finalThickness * 2, shadowOpacity: 0.4,
+          outlineWidth: 0, outlineOpacity: 0,
+        };
+      case 'outline':
+      case 'dashed':
+      case 'dotted':
+        return {
+          shadowSpread1: 0, shadowSpread2: 0, shadowOpacity: 0,
+          outlineWidth: finalThickness, outlineOpacity: hcOpacity,
+        };
+      case 'solid':
+      default:
+        return {
+          shadowSpread1: finalThickness, shadowSpread2: 0, shadowOpacity: shadowOpacity,
+          outlineWidth: 0, outlineOpacity: 0,
+        };
+    }
+  };
+
+  // --- Initialize Spring Hook --- 
+  const { values: animatedValues, start: startFocusAnimation } = useMultiSpring({
+    from: {
+      shadowSpread1: 0,
+      shadowSpread2: 0,
+      shadowOpacity: 0,
+      outlineWidth: 0,
+      outlineOpacity: 0,
+    },
+    to: getTargets(),
+    animationConfig: finalSpringConfig,
+    immediate: !shouldAnimate,
+  });
+
+  // --- Construct Animated Style --- 
+  const animatedStyle = useMemo(() => {
+    const rgbColor = colorToRgb(finalColor);
+    const hcColor = finalHighContrast ? '255, 255, 0' : rgbColor;
+    const outlineStyle = finalFocusStyle === 'dashed' ? 'dashed' : (finalFocusStyle === 'dotted' ? 'dotted' : 'solid');
+
+    const style: React.CSSProperties = {
+        ...componentStyle,
+        boxShadow: `0 0 0 ${animatedValues.shadowSpread1}px rgba(${rgbColor}, ${animatedValues.shadowOpacity * 0.5}), 0 0 ${animatedValues.shadowSpread2}px rgba(${rgbColor}, ${animatedValues.shadowOpacity})`,
+        outline: `${animatedValues.outlineWidth}px ${outlineStyle} rgba(${hcColor}, ${animatedValues.outlineOpacity})`,
+        outlineOffset: '2px',
+    };
+    
+    // Add blur for glow + glass
+    if (finalFocusStyle === 'glow' && glass) {
+      style.backdropFilter = 'blur(4px)';
+    }
+
+    return style;
+  }, [componentStyle, animatedValues, finalFocusStyle, finalColor, finalHighContrast, glass]);
 
   return (
     <FocusWrapper
       ref={ref}
       className={className}
-      style={componentStyle}
-      $visible={visible}
-      $style={focusStyle}
-      $thickness={thickness}
-      $color={color}
+      style={animatedStyle}
       $glass={glass}
-      $highContrast={highContrast}
+      $highContrast={finalHighContrast}
       {...rest}
     >
       {children}

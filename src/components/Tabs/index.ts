@@ -1,4 +1,4 @@
 /**
  * Tabs Components
  */
-export { Tabs, Tab, TabPanel, GlassTabs, GlassTab, type TabsProps, type TabProps } from './Tabs';
+export { Tabs, TabPanel, GlassTabs, type TabsProps, type TabProps } from './Tabs';

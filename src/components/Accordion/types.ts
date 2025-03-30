@@ -5,11 +5,12 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Props for the Accordion component
  */
-export interface AccordionProps {
+export interface AccordionProps extends AnimationProps {
   /** Content of the accordion */
   children?: React.ReactNode;
 
@@ -85,7 +86,7 @@ export interface AccordionSummaryProps {
 /**
  * Props for the AccordionDetails component
  */
-export interface AccordionDetailsProps {
+export interface AccordionDetailsProps extends AnimationProps {
   /** Content of the accordion details */
   children?: React.ReactNode;
 

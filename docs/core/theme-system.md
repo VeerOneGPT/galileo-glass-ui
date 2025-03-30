@@ -561,8 +561,9 @@ function URLAwareThemeProvider({ children }) {
 For smooth transitions when theme changes:
 
 ```tsx
-import { AnimatePresence, motion } from 'framer-motion';
-import { useTheme } from '../../design/hooks';
+import { AccessibleAnimationConfig, useAccessibleAnimation } from '../../animations';
+import { useTheme } from '../../hooks';
+import { GlassButton } from '../GlassButton'; // Assuming GlassButton is importable
 
 function ThemeTransitionLayout({ children }) {
   const { isDark, currentTheme } = useTheme();

@@ -17,8 +17,8 @@ A comprehensive Glass UI framework for modern web applications, featuring glass 
 
 - **Glass Morphism Styling**: Create beautiful glass-like UI elements with blur effects, transparency, and lighting
 - **Comprehensive Component Library**: 85+ UI components including 58 specialized Glass components with glass morphism styling options
-- **Physics-Based Animations**: Natural animations using spring physics, particle systems, and magnetic effects
-- **Accessibility-First Design**: Includes reduced motion support, high contrast mode, and keyboard navigation
+- **Advanced Physics-Based Animation System**: Create complex, performant, and natural-feeling animations using an integrated spring physics engine. Features include interaction hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`), sequence orchestration (`useAnimationSequence`), gesture physics, magnetic effects, and more.
+- **Accessibility-First Design**: Comprehensive support including configurable reduced motion (`useReducedMotion`), motion sensitivity levels, animation categories, high contrast mode adaptations, and keyboard navigation.
 - **Performance Optimized**: Adapts to device capabilities for smooth performance on all devices
 - **Bundle Optimization**: Multiple import options including granular component imports and a slim bundle
 - **Tree-Shaking Support**: Fully optimized for modern bundlers with extensive tree-shaking capabilities
@@ -81,31 +81,31 @@ npm install github:VeerOneGPT/galileo-glass-ui styled-components
   </table>
 </div>
 
-#### What's New in v1.0.3
+#### What's New in v1.0.5
 
-#### Enhanced Animation System
-- **Custom Physics Engine**: Spring physics with inertial movement and momentum-based interactions
-- **Collision Detection**: Intelligent collision detection and response system
-- **Unified Physics API**: Comprehensive API with extensive interpolation functions
-- **Web Animations API**: WAAPI renderer with requestAnimationFrame fallback
-- **Performance Optimizations**: DOM operation batching and transform consolidation
-- **GPU Acceleration**: Hardware acceleration for smooth animations
-- **Device Capability Detection**: Adaptive performance based on device capabilities
-- **Enhanced Accessibility**: Improved support for motion sensitivity and reduced motion
-- **Animation Composition**: Timing-agnostic synchronization for complex animations
-- **Gesture-Driven System**: Natural gesture interactions with physics-based response
+#### Enhanced Chart Components
+- **ModularGlassDataChart Architecture**: Completely refactored GlassDataChart into smaller, modular components
+- **Adaptive Quality System**: Charts automatically adjust rendering quality based on device capabilities
+- **Physics-Based Animations**: Enhanced animations with damping ratio adjustments and proper motion preferences
+- **KPI Chart Type**: Specialized key performance indicator chart displays
+- **Specialized Components**: ChartRenderer, ChartTooltip, ChartFilters, KpiChart, and AtmosphericEffects
 
 #### New Glass Components
-- **GlassTooltip**: Physics-based glass tooltip with intelligent positioning
-- **GlassDataChart**: Chart components with glass styling and physics interactions
-- **GlassTabBar**: Advanced tab navigation with physics-based selection indicator
-- **GlassBreadcrumbs**: Z-space depth navigation component
-- **GlassCarousel**: Physics-based carousel with momentum scrolling
-- **GlassImageViewer**: Interactive image viewer with physics-based zoom/pan
-- **GlassMultiSelect**: Token-based multi-select with physics animations
-- **GlassDateRangePicker**: Date range picker with comparison mode
-- **GlassMasonry**: Physics-based masonry layout for content
-- **GlassTimeline**: Chronological data visualization component
+- **GlassCardLink Component**: Enhanced 3D perspective transforms with physics-based hover effects
+- **GlassTabs Component**: Glass-morphism styled tabs with animated active indicator
+- **ChartWrapper Component**: Lightweight container for chart components with consistent glass styling
+
+#### React 19 Compatibility
+- **Full Type Safety**: Proper forwardRef with TypeScript-friendly typing for props and refs
+- **Enhanced Refs**: Well-defined interfaces for component methods and APIs
+- **Null Safety**: Implemented proper default values and null-safe operations for all components
+- **DevTools Integration**: Added displayName for better debugging and React DevTools integration
+
+#### TypeScript and API Improvements
+- **Reference APIs**: Created comprehensive ref APIs for component control
+- **Safe Operations**: Made color conversion and animation properties safer with fallbacks
+- **Enhanced Tooltips**: Improved tooltip rendering with proper null checks
+- **IDE Integration**: Enhanced TypeScript definitions for better developer experience
 
 #### Optional Feature Dependencies
 
@@ -114,12 +114,6 @@ Galileo Glass UI uses a modular approach where specialized features only require
 ```bash
 # Only if using chart components (BarChart, LineChart, etc.)
 npm install chart.js react-chartjs-2
-
-# Only if using physics animations (spring, magnetic effects)
-npm install react-spring
-
-# Only if using advanced animations 
-npm install framer-motion popmotion
 
 # Only if using virtualized lists
 npm install react-window
@@ -225,37 +219,44 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
     <tr>
       <th>📚 Core Docs</th>
       <th>🎨 Styling</th>
-      <th>🔄 Animation</th>
+      <th>🔄 Animation System</th>
       <th>📊 Advanced Features</th>
       <th>🏗️ Development</th>
     </tr>
     <tr>
       <td><a href="./docs/core/framework-guide.md">Framework Guide</a></td>
       <td><a href="./docs/core/framework-guide.md#glass-surface-system">Glass Surfaces</a></td>
-      <td><a href="./docs/animations/animation-system.md">Animation System</a></td>
+      <td><a href="./docs/animations/physics-hooks.md">Core Physics Hooks</a></td>
       <td><a href="./docs/components/glass-charts.md">Chart Components</a></td>
       <td><a href="./docs/core/project-structure.md">Package Architecture</a></td>
     </tr>
     <tr>
       <td><a href="./docs/core/theme-system.md">Theme System</a></td>
       <td><a href="./docs/core/framework-guide.md#z-space-layering">Z-Space Layering</a></td>
-      <td><a href="./docs/animations/animation-system.md#physics-animation-system-for-modern-glass-ui">Physics Animations</a></td>
+      <td><a href="./docs/animations/orchestration.md">Sequence Orchestration</a></td>
       <td><a href="./docs/components/specialized-surfaces.md">Specialized Surfaces</a></td>
       <td><a href="./docs/performance/optimization/optimization-techniques.md">Optimization Techniques</a></td>
     </tr>
     <tr>
       <td><a href="./docs/components/advanced-components.md">Advanced Components</a></td>
       <td><a href="./docs/core/framework-guide.md#common-patterns">Common Patterns</a></td>
-      <td><a href="./docs/animations/animation-system.md#advanced-animation-systems">Advanced Animations</a></td>
-      <td><a href="./docs/animations/physics-animations.md">Physics System</a></td>
+      <td><a href="./docs/animations/context-config.md">Context & Configuration</a></td>
+      <td><a href="./docs/animations/physics-animations.md">Physics System (Legacy)</a></td> 
       <td><a href="./docs/development/component-patterns.md">Component Patterns</a></td>
     </tr>
     <tr>
       <td><a href="./INSTALLATION.md">Installation Guide</a></td>
       <td><a href="./docs/components/TROUBLESHOOTING.md">Troubleshooting</a></td>
-      <td><a href="./docs/development/implementation-notes.md">Implementation Notes</a></td>
+      <td><a href="./docs/animations/accessibility.md">Accessibility</a></td> 
       <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td><a href="./docs/animations/transition-hooks.md">(WIP) Transition Hooks</a></td>
+      <td></td>
+      <td><a href="./docs/development/implementation-notes.md">Implementation Notes</a></td>
     </tr>
   </table>
 </div>
@@ -767,7 +768,7 @@ node scripts/fix-hooks.js --fix
 6. **Imports**: Group imports: React, third-party, internal modules, relative imports.
 7. **Styled Components**: Use `$` prefix for transient props (e.g., `$variant`).
 8. **Error Handling**: For user interactions, provide graceful fallbacks with feedback.
-9. **Animation**: Use `accessibleAnimation` to respect user's reduced motion preferences.
+9. **Animation**: Utilize the integrated Galileo Animation System hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useAnimationSequence`). Respect user preferences via `useReducedMotion`.
 10. **Performance**: Use memoization for complex components and computations.
 
 For complete documentation on glass morphism styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).
@@ -830,3 +831,11 @@ We've configured automatic checks to run before each commit to maintain code qua
 ## Documentation
 
 For detailed documentation, see our [documentation site](https://docs.galileo-glass.dev).
+
+### Optional Peer Dependencies
+
+*   **Icons:** `@mui/icons-material` (for using Material Icons)
+
+```bash
+npm install @mui/icons-material @emotion/react @emotion/styled
+```

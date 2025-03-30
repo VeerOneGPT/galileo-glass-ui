@@ -100,7 +100,7 @@ export const MultiSelectDemo: React.FC = () => {
       
       <DemoSection>
         <DemoTitle>Basic Multi-Select</DemoTitle>
-        <GlassMultiSelect
+        <GlassMultiSelect<string>
           options={programmingLanguages}
           value={basicSelected}
           onChange={setBasicSelected}
@@ -112,7 +112,7 @@ export const MultiSelectDemo: React.FC = () => {
       
       <DemoSection>
         <DemoTitle>Physics Animations - Default</DemoTitle>
-        <GlassMultiSelect
+        <GlassMultiSelect<string>
           options={programmingLanguages}
           value={physicsSelected}
           onChange={setPhysicsSelected}
@@ -128,7 +128,7 @@ export const MultiSelectDemo: React.FC = () => {
       
       <DemoSection>
         <DemoTitle>Physics Animations - Snappy</DemoTitle>
-        <GlassMultiSelect
+        <GlassMultiSelect<string>
           options={programmingLanguages}
           value={snappySelected}
           onChange={setSnappySelected}
@@ -144,7 +144,7 @@ export const MultiSelectDemo: React.FC = () => {
       
       <DemoSection>
         <DemoTitle>Physics Animations - Bouncy</DemoTitle>
-        <GlassMultiSelect
+        <GlassMultiSelect<string>
           options={programmingLanguages}
           value={bouncySelected}
           onChange={setBouncySelected}
@@ -160,7 +160,7 @@ export const MultiSelectDemo: React.FC = () => {
       
       <DemoSection>
         <DemoTitle>Grouped Options</DemoTitle>
-        <GlassMultiSelect
+        <GlassMultiSelect<string>
           options={frameworks}
           value={groupedSelected}
           onChange={setGroupedSelected}

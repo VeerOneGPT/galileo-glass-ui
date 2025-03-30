@@ -2,6 +2,7 @@
  * Types for the GlassDateRangePicker component.
  */
 import React from 'react';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 /**
  * Date range object with start and end dates
@@ -202,8 +203,14 @@ export interface DateRangePickerProps {
     /** Whether to use a full-screen modal on mobile */
     fullScreen?: boolean;
     /** Different view for mobile devices */
-    mobileView?: 'stack' | 'tabs' | 'auto';
+    mobileView?: 'auto' | 'portrait' | 'landscape';
     /** Enable gesture-based navigation */
     enableGestures?: boolean;
   };
+  
+  /**
+   * Configuration for the popover entrance/exit animation.
+   * Can be a partial SpringConfig object or a preset name.
+   */
+  popoverAnimationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
 }

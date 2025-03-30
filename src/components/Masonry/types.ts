@@ -2,6 +2,8 @@
  * Types for the GlassMasonry component
  */
 import React from 'react';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Item sizing options to determine how items flow in the masonry layout
@@ -106,7 +108,7 @@ export interface MasonryItem {
 /**
  * Props for the GlassMasonry component
  */
-export interface MasonryProps {
+export interface MasonryProps extends AnimationProps {
   /** Array of items to display in the masonry layout */
   items: MasonryItem[];
   

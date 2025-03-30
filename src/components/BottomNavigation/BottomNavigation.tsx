@@ -1,15 +1,19 @@
-import React, { forwardRef, useState } from 'react';
-import PropTypes from 'prop-types';
+import React, { forwardRef, Children, cloneElement, useState, useEffect, useMemo, useRef } from 'react';
 import styled, { css } from 'styled-components';
-
-import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import { fadeIn, slideUp } from '../../animations/keyframes/basic';
-import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
+import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useMultiSpring } from '../../animations/physics/useMultiSpring';
+import { accessibleAnimation } from '../../animations/accessibility/accessibleAnimation';
+import { slideUp } from '../../animations/keyframes/basic';
+import { AnimationProps } from '../../animations/types'; // Import AnimationProps
 
-export interface BottomNavigationProps {
+export interface BottomNavigationProps extends AnimationProps {
   /**
    * The content of the bottom navigation
    */
@@ -52,7 +56,7 @@ export interface BottomNavigationProps {
   className?: string;
 }
 
-export interface BottomNavigationActionProps {
+export interface BottomNavigationActionProps extends AnimationProps {
   /**
    * The label for the action
    */
@@ -202,129 +206,95 @@ const BottomNavigationContainer = styled.div<{
 
 const ActionButton = styled.button<{
   $selected: boolean;
+  $size: 'small' | 'medium' | 'large';
   $showLabel: boolean;
-  $variant: string;
   $color: string;
   $disabled: boolean;
 }>`
+  /* Base styles */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: none;
-  border: none;
   flex: 1;
-  height: 100%;
-  padding: 6px 12px;
-  min-width: 80px;
+  padding: ${props => (props.$size === 'small' ? '6px 0' : props.$size === 'large' ? '10px 0' : '8px 0')};
+  min-width: 56px;
   max-width: 168px;
-  cursor: pointer;
+  color: ${props => (props.$selected ? getColorByName(props.$color) : 'rgba(255, 255, 255, 0.7)')};
+  background: transparent;
+  border: none;
+  cursor: ${props => props.$disabled ? 'not-allowed' : 'pointer'};
   outline: none;
-  transition: all 0.2s ease;
+  font-family: inherit;
+  transition: color 0.2s ease;
+  will-change: transform, color;
 
-  /* Icon container */
-  .icon-container {
+  /* Icon styles */
+  .action-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: ${props => (props.$selected || props.$showLabel ? '4px' : '0')};
-
+    width: ${props => (props.$size === 'small' ? '20px' : props.$size === 'large' ? '28px' : '24px')};
+    height: ${props => (props.$size === 'small' ? '20px' : props.$size === 'large' ? '28px' : '24px')};
+    margin-bottom: ${props => (props.$showLabel ? '2px' : '0')};
     svg {
-      width: 24px;
-      height: 24px;
-      transition: all 0.2s ease;
-      color: ${props => {
-        if (props.$disabled) {
-          return props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.4)' : '#94A3B8';
-        }
-        if (props.$selected) {
-          return props.$variant === 'glass' ? 'white' : getColorByName(props.$color);
-        }
-        return props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.7)' : '#64748B';
-      }};
+      width: 100%;
+      height: 100%;
     }
   }
 
-  /* Label styling */
-  .label {
-    font-size: 0.75rem;
-    font-family: 'Inter', sans-serif;
-    line-height: 1;
-    max-width: 100%;
-    text-overflow: ellipsis;
+  /* Label styles */
+  .action-label {
+    font-size: ${props => (props.$size === 'small' ? '0.7rem' : props.$size === 'large' ? '0.875rem' : '0.75rem')};
+    line-height: 1.2;
     white-space: nowrap;
     overflow: hidden;
-    transition: all 0.3s ease;
-    color: ${props => {
-      if (props.$disabled) {
-        return props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.4)' : '#94A3B8';
-      }
-      if (props.$selected) {
-        return props.$variant === 'glass' ? 'white' : getColorByName(props.$color);
-      }
-      return props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.7)' : '#64748B';
-    }};
-    transform: scale(${props => (props.$selected || props.$showLabel ? '1' : '0.75')});
-    opacity: ${props => (props.$selected || props.$showLabel ? '1' : '0')};
-    height: ${props => (props.$selected || props.$showLabel ? '1em' : '0')};
-    margin-top: ${props => (props.$selected || props.$showLabel ? '0' : '-8px')};
+    text-overflow: ellipsis;
+    opacity: ${props => (props.$selected || props.$showLabel ? 1 : 0)};
+    max-height: ${props => (props.$selected || props.$showLabel ? '1.2em' : '0')};
+    transition: opacity 0.2s ease;
+    will-change: opacity, max-height;
   }
-
-  /* Selected state */
-  ${props =>
-    props.$selected &&
-    css`
-      .icon-container svg {
-        transform: ${props.$variant === 'glass' ? 'scale(1.1)' : 'none'};
-      }
-    `}
 
   /* Hover effect */
   &:hover {
-    background-color: ${props =>
-      props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.04)'};
-
-    .icon-container svg {
-      color: ${props => {
-        if (props.$disabled) {
-          return props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.4)' : '#94A3B8';
-        }
-        return props.$variant === 'glass' ? 'white' : getColorByName(props.$color);
-      }};
-    }
-
-    .label {
-      color: ${props => {
-        if (props.$disabled) {
-          return props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.4)' : '#94A3B8';
-        }
-        return props.$variant === 'glass' ? 'white' : getColorByName(props.$color);
-      }};
-    }
+    color: ${props => !props.$disabled && (props.$selected ? getColorByName(props.$color) : 'rgba(255, 255, 255, 0.9)')};
   }
 
-  /* Disabled state */
-  ${props =>
-    props.$disabled &&
-    css`
-      cursor: not-allowed;
-      pointer-events: none;
-    `}
+  /* Selected state styles remain if needed, e.g., color change already handled */
 
-  /* Animation for selected item */
-  ${props =>
-    props.$selected &&
-    accessibleAnimation({
-      animation: fadeIn,
-      duration: 0.3,
-      easing: 'ease-out',
-    })}
+  /* Disabled state */
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: rgba(255, 255, 255, 0.5);
+
+    &:hover {
+      color: rgba(255, 255, 255, 0.5);
+    }
+  }
+`;
+
+// Indicator component
+const ActiveIndicator = styled.div.attrs<{ $style: React.CSSProperties }>(props => ({
+  style: props.$style,
+}))<{ $style: React.CSSProperties }>`
+  position: absolute;
+  height: 2px; // Or width if vertical
+  background-color: ${props => getColorByName(props.color || 'primary')};
+  bottom: 0; // Or left if vertical
+  left: 0;
+  width: 0;
+  border-radius: 1px;
+  pointer-events: none;
+  will-change: left, width; // Or top, height if vertical
+  z-index: 1;
 `;
 
 /**
  * BottomNavigation Component
  *
- * A bottom navigation bar for mobile applications.
+ * Provides navigation fixed to the bottom of the screen, often for mobile views.
  */
 export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps>((props, ref) => {
   const {
@@ -336,14 +306,90 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
     color = 'primary',
     elevation = 2,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Clone children with additional props
+  const [actionRefs, setActionRefs] = useState<Map<number | string, HTMLElement>>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { defaultSpring } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+
+  // Calculate final spring config for indicator using animationConfig
+  const finalIndicatorSpringConfig = useMemo(() => {
+    const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+    let contextConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object') {
+      contextConfig = defaultSpring ?? {};
+    }
+
+    let propConfig: Partial<SpringConfig> = {};
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in SpringPresets) {
+      propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+    } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+      propConfig = propSource as Partial<SpringConfig>;
+    }
+    return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]);
+
+  // Setup spring for indicator
+  const initialIndicatorStyle = { left: 0, width: 0, opacity: 0 };
+  const { values: indicatorStyle, start: animateIndicator } = useMultiSpring({
+    from: initialIndicatorStyle,
+    animationConfig: finalIndicatorSpringConfig,
+    immediate: finalDisableAnimation,
+    autoStart: false,
+  });
+
+  // Effect to update indicator position
+  useEffect(() => {
+    const selectedActionElement = actionRefs.get(value);
+    if (selectedActionElement && containerRef.current) {
+      const actionRect = selectedActionElement.getBoundingClientRect();
+      const containerRect = containerRef.current.getBoundingClientRect();
+
+      // Calculate position relative to the container
+      const newStyle = {
+        left: actionRect.left - containerRect.left,
+        width: actionRect.width,
+        opacity: 1,
+      };
+      animateIndicator({ to: newStyle });
+    } else {
+      // If no value or element not found, hide indicator
+      animateIndicator({ to: { ...initialIndicatorStyle, opacity: 0 } });
+    }
+  }, [value, actionRefs, animateIndicator, initialIndicatorStyle]);
+
+  // Clone children with additional props, including ref assignment
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
+      const childValue = child.props.value;
+      const childAnimProps: AnimationProps = {
+        animationConfig: child.props.animationConfig ?? animationConfig,
+        disableAnimation: child.props.disableAnimation ?? finalDisableAnimation,
+        motionSensitivity: child.props.motionSensitivity ?? motionSensitivity,
+      };
       return React.cloneElement(child, {
         ...child.props,
+        ref: (node: HTMLElement | null) => {
+          if (node) {
+            setActionRefs(prev => new Map(prev).set(childValue, node));
+          } else {
+            // Clean up ref if node is unmounted
+            setActionRefs(prev => {
+              const newMap = new Map(prev);
+              newMap.delete(childValue);
+              return newMap;
+            });
+          }
+        },
         selected: child.props.value === value,
         showLabel: showLabels || child.props.value === value,
         onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -356,6 +402,7 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
         },
         variant,
         color,
+        ...childAnimProps,
       } as React.HTMLAttributes<HTMLElement>);
     }
     return child;
@@ -363,7 +410,7 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
 
   return (
     <BottomNavigationContainer
-      ref={ref}
+      ref={containerRef}
       className={className}
       $variant={variant}
       $color={color}
@@ -371,86 +418,125 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
       {...rest}
     >
       {childrenWithProps}
+      <ActiveIndicator $style={indicatorStyle as React.CSSProperties} color={color} />
     </BottomNavigationContainer>
   );
 });
 
 BottomNavigation.displayName = 'BottomNavigation';
 
-// Add PropTypes for BottomNavigation
-BottomNavigation.propTypes = {
-  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
-  children: PropTypes.node.isRequired,
-  className: PropTypes.string,
-  variant: PropTypes.oneOf(['standard', 'glass']),
-  color: PropTypes.oneOf(['primary', 'secondary', 'default']),
-  elevation: PropTypes.oneOf([0, 1, 2, 3, 4]),
-  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  onChange: PropTypes.func,
-  showLabels: PropTypes.bool
-};
-
 /**
  * BottomNavigationAction Component
  *
- * Individual action items within the BottomNavigation.
+ * An individual action item within the BottomNavigation.
  */
 export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNavigationActionProps>(
   (props, ref) => {
     const {
       label,
       icon,
-      value,
       selected = false,
-      disabled = false,
-      showLabel,
+      value,
       onClick,
+      showLabel = false,
       className,
+      disabled = false,
+      animationConfig,
+      disableAnimation,
+      motionSensitivity,
       ...rest
     } = props;
 
-    // Get the variant and color from parent context (these are injected by BottomNavigation)
-    // TypeScript will complain about these props, but they are injected at runtime
-    const variant = (props as any).variant || 'standard';
-    const color = (props as any).color || 'primary';
+    // Placeholder context values (replace with actual context if implemented)
+    const size = 'medium';
+    const color = 'primary';
+
+    const { defaultSpring } = useAnimationContext();
+    const prefersReducedMotion = useReducedMotion();
+    const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+    const usePhysics = !finalDisableAnimation && !disabled; // Determine if physics should be used
+
+    // Calculate final physics interaction config
+    const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+        const baseOptions: Partial<PhysicsInteractionOptions> = {
+            affectsScale: true,
+            scaleAmplitude: 0.05, // Default scale amplitude for this component
+        };
+
+        let contextResolvedConfig: Partial<SpringConfig> = {};
+        if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+            contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+        } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+            contextResolvedConfig = defaultSpring;
+        }
+
+        let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
+        const configProp = animationConfig;
+        // Handle prop config (similar to SpeedDialAction)
+        if (typeof configProp === 'string' && configProp in SpringPresets) {
+            const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+            propResolvedConfig = { stiffness: preset.tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, mass: preset.mass };
+        } else if (typeof configProp === 'object' && configProp !== null) {
+            if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp || 'scaleAmplitude' in configProp || 'rotationAmplitude' in configProp) {
+                propResolvedConfig = configProp as Partial<PhysicsInteractionOptions>;
+            } else if ('tension' in configProp || 'friction' in configProp) {
+                const preset = configProp as Partial<SpringConfig>;
+                const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
+                const mass = preset.mass ?? 1;
+                propResolvedConfig = { stiffness: tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(tension * mass)) : undefined, mass: mass };
+            }
+        }
+
+        const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness ?? SpringPresets.DEFAULT.tension;
+        const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1;
+        const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
+                                  (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt(finalStiffness * calculatedMass)) : baseOptions.dampingRatio ?? 0.5);
+        const finalMass = calculatedMass;
+
+        return {
+            ...baseOptions,
+            stiffness: finalStiffness,
+            dampingRatio: finalDampingRatio,
+            mass: finalMass,
+            ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+            ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+            ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
+            ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
+            ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+            ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+            ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+        };
+    }, [defaultSpring, animationConfig, motionSensitivity]);
+
+    // Apply physics interaction hook with calculated config
+    const { style: animatedStyle, eventHandlers } = usePhysicsInteraction({
+        ...finalInteractionConfig, // Use the calculated config
+        reducedMotion: !usePhysics, // Correctly pass disable flag
+        // scaleAmplitude removed - now part of finalInteractionConfig
+    });
 
     return (
       <ActionButton
         ref={ref}
-        type="button"
-        disabled={disabled}
-        onClick={onClick}
-        className={className}
         $selected={selected}
-        $showLabel={showLabel || false}
-        $variant={variant}
+        $size={size}
+        $showLabel={showLabel || selected}
         $color={color}
         $disabled={disabled}
+        onClick={onClick}
+        className={className}
+        style={usePhysics ? animatedStyle : {}} // Apply physics style conditionally
+        {...(usePhysics ? eventHandlers : {})} // Apply handlers conditionally
         {...rest}
       >
-        <div className="icon-container">{icon}</div>
-        <span className="label">{label}</span>
+        {icon && <span className="action-icon">{icon}</span>}
+        {label && <span className="action-label">{label}</span>}
       </ActionButton>
     );
   }
 );
 
 BottomNavigationAction.displayName = 'BottomNavigationAction';
-
-// Add PropTypes
-BottomNavigationAction.propTypes = {
-  label: PropTypes.string.isRequired,
-  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
-  icon: PropTypes.node.isRequired,
-  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-  selected: PropTypes.bool,
-  disabled: PropTypes.bool,
-  showLabel: PropTypes.bool,
-  onClick: PropTypes.func,
-  className: PropTypes.string,
-  variant: PropTypes.oneOf(['standard', 'glass']),
-  color: PropTypes.oneOf(['primary', 'secondary', 'default'])
-};
 
 /**
  * GlassBottomNavigation Component
@@ -473,16 +559,3 @@ export const GlassBottomNavigation = forwardRef<HTMLDivElement, BottomNavigation
 );
 
 GlassBottomNavigation.displayName = 'GlassBottomNavigation';
-
-// Add PropTypes for GlassBottomNavigation
-GlassBottomNavigation.propTypes = {
-  // @ts-expect-error - PropTypes node is not perfectly compatible with React.ReactNode
-  children: PropTypes.node.isRequired,
-  className: PropTypes.string,
-  variant: PropTypes.oneOf(['standard', 'glass']),
-  color: PropTypes.oneOf(['primary', 'secondary', 'default']),
-  elevation: PropTypes.oneOf([0, 1, 2, 3, 4]),
-  value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
-  onChange: PropTypes.func,
-  showLabels: PropTypes.bool
-};

@@ -129,7 +129,16 @@ export enum AnimationCategory {
   SCROLL = 'scroll',
   
   /** Attention-grabbing animations */
-  ATTENTION = 'attention'
+  ATTENTION = 'attention',
+
+  /** General interactive animations */
+  INTERACTION = 'interaction',
+
+  /** Game-related animations */
+  GAME = 'game',
+
+  /** Generic animation category */
+  ANIMATION = 'animation'
 }
 
 /**

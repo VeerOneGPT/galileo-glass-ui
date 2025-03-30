@@ -2,7 +2,7 @@
  * DatePicker Component Exports
  */
 
-import DatePicker from './DatePicker';
+import { DatePicker } from './DatePicker';
 import { GlassDatePicker } from './GlassDatePicker';
 import GlassLocalizationProvider, { DateAdapter, useDateAdapter } from './GlassLocalizationProvider';
 import { createDateFnsAdapter } from './adapters/dateFnsAdapter';

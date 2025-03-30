@@ -3,15 +3,62 @@
  *
  * A comprehensive tag input component with glass morphism styling.
  */
-import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo, CSSProperties } from 'react';
+import styled, { useTheme } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
+import { innerGlow } from '../../core/mixins/effects/innerEffects';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings';
+import { AnimationProps } from '../../animations/types';
 import ClearIcon from '../icons/ClearIcon';
 
 import { Tag, TagInputProps } from './types';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
+
+// Helper functions (copied)
+const mapGlowIntensity = (progress: number): 'none' | 'subtle' | 'medium' => {
+  if (progress < 0.1) return 'none';
+  if (progress < 0.7) return 'subtle';
+  return 'medium';
+};
+
+const mapBorderOpacity = (progress: number): 'subtle' | 'medium' | 'strong' => {
+  if (progress < 0.1) return 'subtle';
+  if (progress < 0.8) return 'medium';
+  return 'strong';
+};
+
+const interpolateColor = (startColor: string, endColor: string, progress: number): string => {
+  try {
+    const parse = (color: string): number[] => {
+      if (color.startsWith('rgba')) {
+        const parts = color.match(/\d+\.?\d*/g)?.map(Number);
+        return parts?.length === 4 ? parts : [0, 0, 0, 1];
+      } else if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const a = hex.length === 8 ? parseInt(hex.substring(6, 8), 16) / 255 : 1;
+        return [r, g, b, a];
+      }
+      return [0, 0, 0, 1];
+    };
+    const start = parse(startColor);
+    const end = parse(endColor);
+    const r = Math.round(start[0] + (end[0] - start[0]) * progress);
+    const g = Math.round(start[1] + (end[1] - start[1]) * progress);
+    const b = Math.round(start[2] + (end[2] - start[2]) * progress);
+    const a = start[3] + (end[3] - start[3]) * progress;
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
+  } catch (e) {
+    return endColor;
+  }
+};
 
 // Utility function to generate unique ID
 const generateId = () => {
@@ -48,6 +95,8 @@ const InputContainer = styled.div<{
   $focused: boolean;
   $disabled: boolean;
   $hasError: boolean;
+  $theme: any;
+  $focusProgress: number;
 }>`
   position: relative;
   display: flex;
@@ -60,41 +109,41 @@ const InputContainer = styled.div<{
   padding: ${props =>
     props.$size === 'small' ? '4px 8px' : props.$size === 'large' ? '8px 16px' : '6px 12px'};
 
-  /* Enhanced glass styling */
-  ${props =>
-    glassSurface({
-      elevation: 1,
-      blurStrength: 'light',
-      borderOpacity: 'medium',
-      themeContext: createThemeContext(props.theme),
-    })}
+  /* Glass styling using focusProgress */
+  ${props => {
+    const borderOpacity = mapBorderOpacity(props.$focusProgress);
+    const glowIntensity = mapGlowIntensity(props.$focusProgress);
+    const borderColor = interpolateColor(
+      props.$hasError ? 'rgba(240, 82, 82, 0.5)' : 'rgba(255, 255, 255, 0.12)',
+      props.$hasError ? 'rgba(240, 82, 82, 0.9)' : 'rgba(99, 102, 241, 0.8)',
+      props.$focusProgress
+    );
 
-  border-radius: 8px;
-  border: 1px solid
-    ${props =>
-      props.$hasError
-        ? 'rgba(240, 82, 82, 0.8)'
-        : props.$focused
-        ? 'rgba(99, 102, 241, 0.8)'
-        : 'rgba(255, 255, 255, 0.12)'};
-  background-color: rgba(255, 255, 255, 0.03);
-  transition: all 0.2s ease;
+    let styles = `
+      border-radius: 8px;
+      border: 1px solid ${borderColor};
+      background-color: rgba(255, 255, 255, 0.03);
+    `;
 
-  /* Focused state */
-  ${props =>
-    props.$focused &&
-    `
-    border-color: rgba(99, 102, 241, 0.8);
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
-  `}
+    if (props.$focusProgress > 0.1) {
+      styles += glassSurface({
+        elevation: 1,
+        blurStrength: 'light',
+        borderOpacity: borderOpacity,
+        themeContext: createThemeContext(props.$theme),
+      });
+    }
 
-  /* Error state */
-  ${props =>
-    props.$hasError &&
-    `
-    border-color: rgba(240, 82, 82, 0.8);
-    box-shadow: 0 0 0 1px rgba(240, 82, 82, 0.3);
-  `}
+    if (glowIntensity !== 'none') {
+      styles += innerGlow({
+        color: props.$hasError ? 'error' : 'primary',
+        intensity: glowIntensity,
+        spread: 4,
+        themeContext: createThemeContext(props.$theme),
+      });
+    }
+    return styles;
+  }}
   
   /* Disabled state */
   ${props =>
@@ -233,42 +282,23 @@ const HelperText = styled.div<{
   color: ${props => (props.$hasError ? 'rgba(240, 82, 82, 0.9)' : 'rgba(255, 255, 255, 0.6)')};
 `;
 
-const SuggestionsContainer = styled.div<{
-  $open: boolean;
-  $reducedMotion: boolean;
-}>`
+const SuggestionsContainer = styled.div<{}>
+`
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
   margin-top: 8px;
   z-index: 1000;
-  display: ${props => (props.$open ? 'block' : 'none')};
   ${props =>
     glassSurface({
-      elevation: 3,
-      blurStrength: 'standard',
-      borderOpacity: 'medium',
-      themeContext: createThemeContext(props.theme),
+      // ... glass surface styles ...
     })}
   border-radius: 8px;
   max-height: 250px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.12);
-
-  /* Enhanced dropdown animation */
-  ${props =>
-    !props.$reducedMotion &&
-    `
-    animation: reveal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: top center;
-    
-    @keyframes reveal {
-      from { opacity: 0; transform: scaleY(0.9) translateY(-8px); }
-      to { opacity: 1; transform: scaleY(1) translateY(0); }
-    }
-  `}
 
   /* Subtle scrollbar styling */
   &::-webkit-scrollbar {
@@ -345,11 +375,14 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
     style,
     className,
     autoFocus = false,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
-  const prefersReducedMotion = useReducedMotion();
+  const theme = useTheme();
+  const reducedMotion = useReducedMotion();
 
   // Refs
   const rootRef = useRef<HTMLDivElement>(null);
@@ -362,6 +395,87 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
   const [tags, setTags] = useState<Tag[]>([]);
   const [showSuggestionsDropdown, setShowSuggestionsDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  
+  // --- Animation Setup --- 
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? reducedMotion;
+  const shouldAnimate = !finalDisableAnimation;
+
+  // Focus Animation Config & State
+  const finalFocusConfig = useMemo(() => {
+      const baseConfig = SpringPresets.DEFAULT;
+      let resolvedContextConfig: Partial<GalileoSpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+          resolvedContextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+          resolvedContextConfig = defaultSpring;
+      }
+      let propResolvedConfig: Partial<GalileoSpringConfig> = {};
+      if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+          propResolvedConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+      } else if (typeof animationConfig === 'object' && animationConfig !== null) {
+          propResolvedConfig = animationConfig as Partial<GalileoSpringConfig>;
+      }
+      return { ...baseConfig, ...resolvedContextConfig, ...propResolvedConfig };
+  }, [defaultSpring, animationConfig]);
+
+  const { value: focusProgress } = useGalileoStateSpring(focused ? 1 : 0, {
+      ...finalFocusConfig,
+      immediate: !shouldAnimate,
+  });
+
+  // Dropdown Animation Config & State
+  const finalDropdownConfig = useMemo(() => {
+      const baseConfig = SpringPresets.DEFAULT; 
+      let resolvedContextConfig: Partial<GalileoSpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+          resolvedContextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+          resolvedContextConfig = defaultSpring;
+      }
+      let propResolvedConfig: Partial<GalileoSpringConfig> = {};
+      if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+          propResolvedConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+      } else if (typeof animationConfig === 'object' && animationConfig !== null) {
+          propResolvedConfig = animationConfig as Partial<GalileoSpringConfig>;
+      }
+      return { ...baseConfig, ...resolvedContextConfig, ...propResolvedConfig };
+  }, [defaultSpring, animationConfig]);
+
+  const dropdownTargets = useMemo(() => ({
+      opacity: showSuggestionsDropdown ? 1 : 0,
+      scaleY: showSuggestionsDropdown ? 1 : 0.9,
+      translateY: showSuggestionsDropdown ? 0 : -8,
+  }), [showSuggestionsDropdown]);
+
+  const dropdownOpenRef = useRef(showSuggestionsDropdown);
+  useEffect(() => { dropdownOpenRef.current = showSuggestionsDropdown; }, [showSuggestionsDropdown]);
+  const [isDropdownRendered, setIsDropdownRendered] = useState(showSuggestionsDropdown);
+
+  const handleDropdownRest = useCallback((result: SpringsAnimationResult) => {
+      // Use ref to avoid stale closure on showSuggestionsDropdown
+      if (result.finished && !dropdownOpenRef.current) {
+          setIsDropdownRendered(false);
+      }
+  }, []); // No dependencies needed for ref access
+
+  const dropdownAnimatedValues = useGalileoSprings(dropdownTargets, {
+      config: finalDropdownConfig, 
+      immediate: !shouldAnimate,
+      onRest: handleDropdownRest,
+  });
+  
+  // Style for suggestions dropdown
+  const suggestionsStyle: CSSProperties = useMemo(() => ({
+      opacity: dropdownAnimatedValues.opacity,
+      transform: `scaleY(${dropdownAnimatedValues.scaleY}) translateY(${dropdownAnimatedValues.translateY}px)`,
+      transformOrigin: 'top center',
+      visibility: isDropdownRendered ? 'visible' : 'hidden',
+      // Ensure pointer events are handled correctly
+      pointerEvents: isDropdownRendered ? 'auto' : 'none',
+  }), [dropdownAnimatedValues, isDropdownRendered]);
+
+  // --- End Animation Setup ---
 
   // Initialize tags
   useEffect(() => {
@@ -528,21 +642,17 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
     [showSuggestions]
   );
 
-  const handleInputFocus = useCallback(() => {
+  const handleFocus = useCallback(() => {
+    if (readOnly || disabled) return;
     setFocused(true);
-    if (showSuggestions && inputValue.trim()) {
+    if (showSuggestions && suggestions.length > 0 && inputValue) {
       setShowSuggestionsDropdown(true);
     }
-  }, [showSuggestions, inputValue]);
+  }, [readOnly, disabled, showSuggestions, suggestions, inputValue]);
 
-  const handleInputBlur = useCallback(() => {
+  const handleBlur = useCallback(() => {
     setFocused(false);
-
-    // Add the current input as a tag if it has value
-    if (allowAdd && inputValue.trim() && validateTagFn(inputValue)) {
-      addTag(inputValue);
-    }
-  }, [allowAdd, inputValue, validateTagFn, addTag]);
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -653,15 +763,21 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
     );
   };
 
+  // Update dropdown render state when opening
+  useEffect(() => {
+    if (showSuggestionsDropdown) {
+        setIsDropdownRendered(true);
+    }
+  }, [showSuggestionsDropdown]);
+
   // Render suggestions
   const renderSuggestions = () => {
-    if (!showSuggestionsDropdown || filteredSuggestions.length === 0) return null;
+    if (!isDropdownRendered) return null; // Use render state
 
     return (
       <SuggestionsContainer
         ref={suggestionsRef}
-        $open={showSuggestionsDropdown}
-        $reducedMotion={prefersReducedMotion}
+        style={suggestionsStyle} // Apply animated style
       >
         {filteredSuggestions.length > 0 ? (
           filteredSuggestions.map((suggestion, index) => (
@@ -688,7 +804,7 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
       style={style}
       $fullWidth={fullWidth}
       $animate={animate}
-      $reducedMotion={prefersReducedMotion}
+      $reducedMotion={reducedMotion}
     >
       {label && <Label>{label}</Label>}
 
@@ -697,6 +813,8 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
         $focused={focused}
         $disabled={disabled}
         $hasError={hasError}
+        $theme={theme}
+        $focusProgress={focusProgress}
         onClick={() => {
           if (!disabled && !readOnly && inputRef.current) {
             inputRef.current.focus();
@@ -711,8 +829,8 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
               ref={inputRef}
               value={inputValue}
               onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              onBlur={handleInputBlur}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
               onKeyDown={handleKeyDown}
               placeholder={tags.length === 0 ? placeholder : ''}
               disabled={disabled}
@@ -739,6 +857,7 @@ function TagInputComponent(props: TagInputProps, ref: React.ForwardedRef<HTMLInp
  * A comprehensive tag input component with glass morphism styling.
  */
 const TagInput = forwardRef(TagInputComponent);
+TagInput.displayName = 'TagInput';
 
 /**
  * GlassTagInput Component

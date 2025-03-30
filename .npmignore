@@ -2,6 +2,7 @@
 .storybook
 src
 test
+**/__tests__/
 .eslintrc
 .gitignore
 .prettierrc

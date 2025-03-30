@@ -11,6 +11,8 @@ import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 import { AccordionProps } from './types';
+import { AnimationProps } from '../../animations/types';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 // Create context for accordion state
 export interface AccordionContextProps {
@@ -18,6 +20,8 @@ export interface AccordionContextProps {
   disabled: boolean;
   toggle: (event: React.SyntheticEvent) => void;
   glass: boolean;
+  animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
+  disableAnimation?: boolean;
 }
 
 export const AccordionContext = React.createContext<AccordionContextProps | null>(null);
@@ -117,6 +121,9 @@ function AccordionComponent(props: AccordionProps, ref: React.ForwardedRef<HTMLD
     transparency = 'medium',
     glass = false,
     enableTransitions = true,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
@@ -129,6 +136,9 @@ function AccordionComponent(props: AccordionProps, ref: React.ForwardedRef<HTMLD
   // Determine if component is controlled
   const isControlled = controlledExpanded !== undefined;
   const expanded = isControlled ? controlledExpanded : internalExpanded;
+
+  // Determine final disabled animation state for context
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
 
   // Toggle expanded state
   const toggle = useCallback(
@@ -148,15 +158,17 @@ function AccordionComponent(props: AccordionProps, ref: React.ForwardedRef<HTMLD
     [disabled, expanded, isControlled, onChange]
   );
 
-  // Context value
+  // Update context value to include animation props
   const contextValue = useMemo(
     () => ({
       expanded,
       disabled,
       toggle,
       glass,
+      animationConfig,
+      disableAnimation: finalDisableAnimation,
     }),
-    [expanded, disabled, toggle, glass]
+    [expanded, disabled, toggle, glass, animationConfig, finalDisableAnimation]
   );
 
   // Get root component
@@ -175,7 +187,7 @@ function AccordionComponent(props: AccordionProps, ref: React.ForwardedRef<HTMLD
       $transparency={transparency}
       $enableTransitions={enableTransitions}
       $bottomMargin={bottomMargin}
-      $reducedMotion={prefersReducedMotion}
+      $reducedMotion={finalDisableAnimation}
       {...rest}
     >
       <AccordionContext.Provider value={contextValue}>{children}</AccordionContext.Provider>

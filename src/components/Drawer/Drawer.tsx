@@ -1,26 +1,22 @@
-import React, { forwardRef, useState, useEffect, useCallback } from 'react';
+import React, { forwardRef, useState, useEffect, useCallback, useMemo, useRef, ForwardedRef, ReactNode } from 'react'; // Added ForwardedRef, ReactNode
 import ReactDOM from 'react-dom';
-import styled, { css } from 'styled-components';
+import styled, { css, createGlobalStyle } from 'styled-components';
+import { useFocusTrap } from '../../hooks/accessibility/useFocusTrap'; // Corrected path
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
-import {
-  fadeIn,
-  fadeOut,
-  slideInLeft,
-  slideOutLeft,
-  slideInRight,
-  slideOutRight,
-  slideInTop,
-  slideOutTop,
-  slideInBottom,
-  slideOutBottom,
-} from '../../animations/keyframes/basic';
-import { edgeHighlight } from '../../core/mixins/edgeEffects';
-import { glassSurface } from '../../core/mixins/glassSurface';
+import { fadeIn, fadeOut } from '../../animations/keyframes/basic';
+import { edgeHighlight } from '../../core/mixins/edgeEffects'; // Corrected import name
+import { glassSurface } from '../../core/mixins/glassSurface'; // Corrected import name
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+// Removed incorrect GlassSurfaceStyles and GlassEdgeHighlight imports
+import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
+import { AnimationProps } from '../../animations/types'; // Import AnimationProps
 
-export interface DrawerProps {
+export interface DrawerProps extends AnimationProps { // Extend AnimationProps
   /**
    * If true, the drawer is open
    */
@@ -90,23 +86,10 @@ export interface DrawerProps {
    * Additional CSS class
    */
   className?: string;
-}
 
-// Get animation keyframes based on anchor and state
-const getAnimation = (anchor: string, isOpen: boolean) => {
-  switch (anchor) {
-    case 'left':
-      return isOpen ? slideInLeft : slideOutLeft;
-    case 'right':
-      return isOpen ? slideInRight : slideOutRight;
-    case 'top':
-      return isOpen ? slideInTop : slideOutTop;
-    case 'bottom':
-      return isOpen ? slideInBottom : slideOutBottom;
-    default:
-      return isOpen ? slideInLeft : slideOutLeft;
-  }
-};
+  // REMOVED animationConfig prop
+  // animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
+}
 
 // Get dimension styles based on anchor, fullSize, and width/height
 const getDimensionStyles = (
@@ -185,7 +168,6 @@ const getColorByName = (color: string): string => {
 
 // Styled components
 const DrawerBackdrop = styled.div<{
-  $open: boolean;
   $zIndex: number;
   $variant: string;
 }>`
@@ -195,25 +177,14 @@ const DrawerBackdrop = styled.div<{
   right: 0;
   bottom: 0;
   z-index: ${props => props.$zIndex};
-  display: ${props => (props.$open ? 'block' : 'none')};
   background-color: ${props =>
     props.$variant === 'glass' ? 'rgba(15, 23, 42, 0.7)' : 'rgba(0, 0, 0, 0.5)'};
   backdrop-filter: ${props => (props.$variant === 'glass' ? 'blur(8px)' : 'none')};
   -webkit-backdrop-filter: ${props => (props.$variant === 'glass' ? 'blur(8px)' : 'none')};
-
-  /* Animation */
-  ${props =>
-    props.$open &&
-    accessibleAnimation({
-      animation: fadeIn,
-      duration: 0.3,
-      easing: 'ease-out',
-    })}
 `;
 
 const DrawerContainer = styled.div<{
   $anchor: string;
-  $open: boolean;
   $zIndex: number;
   $variant: string;
   $color: string;
@@ -224,7 +195,7 @@ const DrawerContainer = styled.div<{
   position: fixed;
   z-index: ${props => props.$zIndex + 1};
   box-sizing: border-box;
-  display: ${props => (props.$open ? 'flex' : 'none')};
+  display: flex;
   flex-direction: column;
   outline: 0;
   overflow-y: auto;
@@ -303,22 +274,10 @@ const DrawerContainer = styled.div<{
           : 'top',
       themeContext: createThemeContext({}),
     })}
-  
-  /* Animation */
-  ${props => {
-    const animation = getAnimation(props.$anchor, props.$open);
-    return accessibleAnimation({
-      animation,
-      duration: 0.3,
-      easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    });
-  }}
 `;
 
 /**
  * Drawer Component
- *
- * A panel that slides in from the edge of the screen.
  */
 export const Drawer = forwardRef<HTMLDivElement, DrawerProps>((props, ref) => {
   const {
@@ -336,11 +295,20 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>((props, ref) => {
     zIndex = 1200,
     color = 'default',
     className,
+    // Destructure AnimationProps
+    animationConfig,
+    disableAnimation,
+    motionSensitivity, // Keep if needed later
     ...rest
   } = props;
 
-  const [isOpen, setIsOpen] = useState(open);
   const drawerRef = React.useRef<HTMLDivElement>(null);
+  const backdropRef = React.useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring } = useAnimationContext();
+
+  // Determine if animation is disabled
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion; // Correct calculation
 
   // Convert width/height to string values
   const widthValue = typeof width === 'number' ? `${width}px` : width;
@@ -366,24 +334,19 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>((props, ref) => {
     [disableEscapeKeyDown, onClose]
   );
 
-  // Update isOpen when open prop changes
-  useEffect(() => {
-    setIsOpen(open);
-  }, [open]);
-
   // Add/remove event listener for Escape key
   useEffect(() => {
-    if (isOpen && !disableEscapeKeyDown) {
+    if (open && !disableEscapeKeyDown) {
       document.addEventListener('keydown', handleKeyDown);
       return () => {
         document.removeEventListener('keydown', handleKeyDown);
       };
     }
-  }, [isOpen, disableEscapeKeyDown, handleKeyDown]);
+  }, [open, disableEscapeKeyDown, handleKeyDown]);
 
   // Body scroll lock when drawer is open
   useEffect(() => {
-    if (isOpen && variant !== 'permanent') {
+    if (open && variant !== 'permanent') {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -392,59 +355,100 @@ export const Drawer = forwardRef<HTMLDivElement, DrawerProps>((props, ref) => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, variant]);
+  }, [open, variant]);
 
-  // Don't render anything if not open and not permanent
-  if (!isOpen && variant !== 'permanent') {
-    return null;
-  }
+  // Calculate final spring config using AnimationProps
+  const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      const contextSource = defaultSpring;
+      if (typeof contextSource === 'string' && contextSource in SpringPresets) {
+          contextConfig = SpringPresets[contextSource as keyof typeof SpringPresets];
+      } else if (typeof contextSource === 'object') {
+          contextConfig = contextSource ?? {};
+      }
 
-  // Get the drawer content
-  const drawerContent = (
-    <DrawerContainer
-      ref={node => {
-        drawerRef.current = node;
-        if (typeof ref === 'function') {
+      let propConfig: Partial<SpringConfig> = {};
+      // Use animationConfig from props
+      const propSource = animationConfig; 
+      if (typeof propSource === 'string' && propSource in SpringPresets) {
+          propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+      } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+          propConfig = propSource as Partial<SpringConfig>;
+      }
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+  }, [defaultSpring, animationConfig]); // Use animationConfig dependency
+
+  // Galileo Spring for Drawer position
+  const { value: drawerProgress, isAnimating: isDrawerAnimating } = useGalileoStateSpring(open ? 1 : 0, {
+      ...finalSpringConfig,
+      immediate: finalDisableAnimation, // Use corrected flag
+  });
+
+  // Galileo Spring for Backdrop opacity
+  const { value: backdropProgress, isAnimating: isBackdropAnimating } = useGalileoStateSpring(open ? 1 : 0, {
+      tension: 220, friction: 30, // Use specific config for backdrop fade
+      immediate: finalDisableAnimation, // Use corrected flag
+  });
+
+  // Calculate transform based on anchor and progress
+  const getTransform = (progress: number): string => {
+      const value = (1 - progress) * 100;
+      switch (anchor) {
+          case 'left': return `translateX(-${value}%)`;
+          case 'right': return `translateX(${value}%)`;
+          case 'top': return `translateY(-${value}%)`;
+          case 'bottom': return `translateY(${value}%)`;
+          default: return `translateX(-${value}%)`;
+      }
+  };
+
+  const drawerTransform = getTransform(drawerProgress);
+  const backdropOpacity = backdropProgress;
+
+  // Combine forwarded ref and internal ref
+  const combinedRef = useCallback((node: HTMLDivElement | null) => {
+      drawerRef.current = node;
+      if (typeof ref === 'function') {
           ref(node);
-        } else if (ref) {
-          (ref as React.MutableRefObject<HTMLDivElement>).current = node!;
-        }
-      }}
-      role="dialog"
-      aria-modal={variant !== 'permanent'}
-      tabIndex={-1}
-      className={className}
-      $anchor={anchor}
-      $open={isOpen}
-      $zIndex={zIndex}
-      $variant={variant === 'temporary' ? 'standard' : variant}
-      $color={color}
-      $width={widthValue}
-      $height={heightValue}
-      $fullSize={fullSize}
-      {...rest}
-    >
-      {children}
-    </DrawerContainer>
-  );
+      } else if (ref) {
+          ref.current = node;
+      }
+  }, [ref]);
+  
+  // Use focus trap hook
+  useFocusTrap(drawerRef, open); // Pass drawerRef and open state
 
-  // If permanent variant, render without portal
-  if (variant === 'permanent') {
-    return drawerContent;
-  }
+  const shouldRenderBackdrop = !hideBackdrop && variant !== 'permanent';
+  const isTemporary = variant === 'temporary';
 
-  // For temporary, persistent, and other variants, render with portal and backdrop
   return ReactDOM.createPortal(
     <>
-      {!hideBackdrop && (
+      {shouldRenderBackdrop && (
         <DrawerBackdrop
-          $open={isOpen}
-          $zIndex={zIndex}
-          $variant={variant === 'glass' ? 'glass' : 'standard'}
+          ref={backdropRef}
           onClick={handleBackdropClick}
+          style={{ opacity: backdropOpacity, pointerEvents: open ? 'auto' : 'none' }}
+          $zIndex={zIndex}
+          $variant={variant}
         />
       )}
-      {drawerContent}
+      <DrawerContainer
+        ref={combinedRef} // Use combined ref
+        tabIndex={-1} // Make focusable for escape key
+        className={className}
+        style={{ transform: drawerTransform }}
+        $anchor={anchor}
+        $zIndex={zIndex}
+        $variant={variant}
+        $color={color}
+        $width={widthValue}
+        $height={heightValue}
+        $fullSize={fullSize}
+        {...rest}
+      >
+        {children}
+      </DrawerContainer>
     </>,
     document.body
   );

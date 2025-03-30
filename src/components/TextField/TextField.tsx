@@ -1,14 +1,19 @@
 import React, { forwardRef, useState } from 'react';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/animationUtils';
 import { fadeIn } from '../../animations/keyframes/basic';
 import { innerGlow } from '../../core/mixins/effects/innerEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { AnimationProps } from '../../animations/types';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets } from '../../animations/physics/springPhysics';
 
 // TextField props interface
-export interface TextFieldProps {
+export interface TextFieldProps extends AnimationProps {
   /**
    * The label for the input
    */
@@ -100,6 +105,20 @@ export interface TextFieldProps {
   className?: string;
 }
 
+// Helper to map progress value (0-1) to intensity string
+const mapGlowIntensity = (progress: number): 'none' | 'subtle' | 'medium' => {
+  if (progress < 0.1) return 'none'; // No glow if not significantly focused
+  if (progress < 0.7) return 'subtle'; // Subtle glow during most of transition
+  return 'medium'; // Medium glow when fully focused
+};
+
+// Helper to map progress value (0-1) to border opacity string
+const mapBorderOpacity = (progress: number): 'subtle' | 'medium' | 'strong' => {
+  if (progress < 0.1) return 'subtle';
+  if (progress < 0.8) return 'medium';
+  return 'strong'; // Use stronger border when fully focused (adjust as needed)
+};
+
 // Styled container for the input
 const InputContainer = styled.div<{
   $fullWidth: boolean;
@@ -130,31 +149,40 @@ const InputWrapper = styled.div<{
   $focused: boolean;
   $error: boolean;
   $disabled: boolean;
+  $theme: any;
+  $focusProgress: number;
 }>`
   /* Base styles */
   position: relative;
   display: flex;
   align-items: center;
   border-radius: 4px;
-  transition: all 0.2s ease;
 
   /* Variant styles */
   ${props => {
     switch (props.$variant) {
       case 'outlined':
+        // Interpolate border color based on focusProgress
+        const outlineBorderColor = interpolateColor(
+          props.$error ? 'rgba(239, 68, 68, 0.7)' : 'rgba(255, 255, 255, 0.23)', // Start color (error or default)
+          props.$error ? '#EF4444' : '#6366F1', // End color (error or primary focus)
+          props.$focusProgress
+        );
         return `
-          border: 1px solid ${
-            props.$error ? '#EF4444' : props.$focused ? '#6366F1' : 'rgba(255, 255, 255, 0.23)'
-          };
+          border: 1px solid ${outlineBorderColor};
           background-color: transparent;
           padding: 0 12px;
         `;
       case 'filled':
+        // Interpolate bottom border color
+        const filledBorderColor = interpolateColor(
+          props.$error ? 'rgba(239, 68, 68, 0.7)' : 'rgba(255, 255, 255, 0.23)', // Start color
+          props.$error ? '#EF4444' : '#6366F1', // End color
+          props.$focusProgress
+        );
         return `
           background-color: rgba(255, 255, 255, 0.09);
-          border-bottom: 1px solid ${
-            props.$error ? '#EF4444' : props.$focused ? '#6366F1' : 'rgba(255, 255, 255, 0.23)'
-          };
+          border-bottom: 1px solid ${filledBorderColor};
           border-top-left-radius: 4px;
           border-top-right-radius: 4px;
           border-bottom-left-radius: 0;
@@ -162,33 +190,39 @@ const InputWrapper = styled.div<{
           padding: 0 12px;
         `;
       case 'glass':
+        const glowIntensity = mapGlowIntensity(props.$focusProgress);
+        const borderOpacity = mapBorderOpacity(props.$focusProgress);
         return (
           glassSurface({
             elevation: 1,
             blurStrength: 'light',
             backgroundOpacity: 'light',
-            borderOpacity: props.$focused ? 'medium' : 'subtle',
-            themeContext: createThemeContext({}), // In real usage, this would use props.theme
+            borderOpacity: borderOpacity, // Use animated border opacity
+            themeContext: createThemeContext(props.$theme),
           }) +
           `
           padding: 0 12px;
           ${
-            props.$focused &&
+            glowIntensity !== 'none' &&
             innerGlow({
               color: props.$error ? 'error' : 'primary',
-              intensity: 'subtle',
+              intensity: glowIntensity, // Use animated glow intensity
               spread: 4,
-              themeContext: createThemeContext({}), // In real usage, this would use props.theme
+              themeContext: createThemeContext(props.$theme),
             })
           }
         `
         );
       case 'standard':
       default:
+        // Interpolate bottom border color
+        const standardBorderColor = interpolateColor(
+          props.$error ? 'rgba(239, 68, 68, 0.7)' : 'rgba(255, 255, 255, 0.23)', // Start color
+          props.$error ? '#EF4444' : '#6366F1', // End color
+          props.$focusProgress
+        );
         return `
-          border-bottom: 1px solid ${
-            props.$error ? '#EF4444' : props.$focused ? '#6366F1' : 'rgba(255, 255, 255, 0.23)'
-          };
+          border-bottom: 1px solid ${standardBorderColor};
           background-color: transparent;
           padding: 0;
         `;
@@ -272,6 +306,40 @@ const EndIconContainer = styled.div`
   margin-left: 8px;
 `;
 
+// Add a simple color interpolation helper (replace with a proper one if available in utils)
+const interpolateColor = (startColor: string, endColor: string, progress: number): string => {
+  // Basic RGBA interpolation - assumes format rgba(r,g,b,a) or hex #RRGGBB(AA)
+  // This is a simplified example and might need a more robust implementation
+  try {
+    const parse = (color: string): number[] => {
+      if (color.startsWith('rgba')) {
+        const parts = color.match(/\d+\.?\d*/g)?.map(Number);
+        return parts?.length === 4 ? parts : [0, 0, 0, 1];
+      } else if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const a = hex.length === 8 ? parseInt(hex.substring(6, 8), 16) / 255 : 1;
+        return [r, g, b, a];
+      }
+      return [0, 0, 0, 1]; // Default fallback
+    };
+
+    const start = parse(startColor);
+    const end = parse(endColor);
+
+    const r = Math.round(start[0] + (end[0] - start[0]) * progress);
+    const g = Math.round(start[1] + (end[1] - start[1]) * progress);
+    const b = Math.round(start[2] + (end[2] - start[2]) * progress);
+    const a = start[3] + (end[3] - start[3]) * progress;
+
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
+  } catch (e) {
+    return endColor; // Fallback to end color on error
+  }
+};
+
 /**
  * TextField Component
  *
@@ -297,17 +365,31 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>((props, re
     startIcon,
     endIcon,
     className,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Track focus state
+  const theme = useTheme();
   const [focused, setFocused] = useState(false);
+  const { defaultSpring, focusSpringConfig } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
 
-  // Check if the input has a value
+  // Use context preset name or default
+  const focusPresetName = animationConfig ?? focusSpringConfig ?? 'FOCUS_HIGHLIGHT';
+
+  // Focus Animation Spring
+  const { value: focusProgress, start: animateFocus } = useGalileoStateSpring(0, {
+      ...(typeof focusPresetName === 'string' && focusPresetName in SpringPresets ? SpringPresets[focusPresetName] : typeof focusPresetName === 'object' ? focusPresetName : SpringPresets.DEFAULT),
+      immediate: finalDisableAnimation,
+  });
+
   const hasValue =
     (value !== undefined && value !== '') || (defaultValue !== undefined && defaultValue !== '');
 
-  // Generate a unique ID for the input if not provided
   const inputId = id || `input-${Math.random().toString(36).substring(2, 9)}`;
 
   return (
@@ -331,7 +413,14 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>((props, re
         </InputLabel>
       )}
 
-      <InputWrapper $variant={variant} $focused={focused} $error={error} $disabled={disabled}>
+      <InputWrapper 
+        $variant={variant} 
+        $focused={focused} 
+        $error={error} 
+        $disabled={disabled}
+        $theme={theme}
+        $focusProgress={focusProgress}
+      >
         {startIcon && <StartIconContainer>{startIcon}</StartIconContainer>}
 
         <StyledInput

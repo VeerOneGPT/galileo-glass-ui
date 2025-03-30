@@ -1,6 +1,17 @@
-# Galileo Glass UI: Physics Animation System
+> **Legacy Documentation:** This document describes animation concepts prior to Galileo Glass UI v1.0.5. The system has been significantly overhauled with a new physics engine and hooks.
+> Please refer to the current animation documentation:
+> *   [Physics Hooks](./physics-hooks.md)
+> *   [State and Transition Hooks](./transition-hooks.md)
+> *   [Orchestration](./orchestration.md)
+> *   [Context and Configuration](./context-config.md)
+> *   [Accessibility](./accessibility.md)
+> *   [Animation Migration Guide](../migration/animation-migration-v1.0.5.md)
+
+# Galileo Glass UI: Physics Animation System (Legacy - Pre v1.0.5)
 
 ## Overview
+
+This document describes the **previous** Physics Animation System, a core component of the Galileo Glass UI framework before version 1.0.5, which provided physically-based animations.
 
 The Physics Animation System is a core component of the Galileo Glass UI framework, providing realistic, physically-based animations that enhance user interactions. This system creates fluid, dynamic motion that mimics real-world physics to deliver an intuitive and engaging user experience.
 

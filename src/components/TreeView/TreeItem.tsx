@@ -3,10 +3,13 @@
  *
  * A item component for the TreeView.
  */
-import React, { forwardRef, useContext, useRef, useState } from 'react';
+import React, { forwardRef, useContext, useRef, useMemo, useState, useEffect, useLayoutEffect } from 'react';
 import styled from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings';
 
 import { TreeViewContext } from './TreeView';
 import { TreeItemProps } from './types';
@@ -97,16 +100,12 @@ const IconContainer = styled.div`
   margin-right: 4px;
 `;
 
-const TreeItemChildren = styled.ul<{
-  $expanded: boolean;
-  $reducedMotion: boolean;
-}>`
+const TreeItemChildren = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0;
   padding-left: 16px;
-  display: ${props => (props.$expanded ? 'block' : 'none')};
-  transition: ${props => (!props.$reducedMotion ? 'height 0.2s ease' : 'none')};
+  overflow: hidden;
 `;
 
 /**
@@ -126,14 +125,19 @@ function TreeItemComponent(props: TreeItemProps, ref: React.ForwardedRef<HTMLLIE
     collapseIcon,
     endIcon,
     disabled = false,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
   const prefersReducedMotion = useReducedMotion();
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
 
   // Refs
   const contentRef = useRef<HTMLDivElement>(null);
+  const childrenRef = useRef<HTMLUListElement>(null);
 
   // Get TreeView context
   const treeContext = useContext(TreeViewContext);
@@ -170,6 +174,62 @@ function TreeItemComponent(props: TreeItemProps, ref: React.ForwardedRef<HTMLLIE
 
   // Check if the node is focused
   const isFocused = focused === nodeId;
+
+  // Animation Context and Config Calculation
+  const finalSpringConfig = useMemo(() => {
+    const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+    let contextConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object') {
+      contextConfig = defaultSpring ?? {};
+    }
+
+    let propConfig: Partial<SpringConfig> = {};
+    const propSource = animationConfig;
+    if (typeof propSource === 'string' && propSource in SpringPresets) {
+      propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+    } else if (typeof propSource === 'object') {
+      propConfig = propSource ?? {};
+    }
+
+    // Return merged config
+    return { ...baseConfig, ...contextConfig, ...propConfig };
+
+  }, [defaultSpring, animationConfig]);
+
+  // State for measuring height
+  const [measuredHeight, setMeasuredHeight] = useState<number | 'auto'>('auto');
+
+  // UseLayoutEffect to measure height before animation
+  useLayoutEffect(() => {
+    if (isExpanded && childrenRef.current) {
+        // Temporarily set height to auto to measure natural height
+        // This might cause a flicker if not handled carefully, consider alternatives if problematic
+        const currentHeight = childrenRef.current.style.height;
+        childrenRef.current.style.height = 'auto';
+        const height = childrenRef.current.scrollHeight;
+        childrenRef.current.style.height = currentHeight; // Restore previous height immediately
+        setMeasuredHeight(height);
+    } else {
+        // Set to 0 when collapsed or no children
+        setMeasuredHeight(0);
+    }
+  }, [isExpanded, children]); // Rerun when expansion state or children change
+
+  // Define spring targets using useMemo
+  const animationTargets = useMemo(() => ({
+      // Use measuredHeight, ensuring it's a number for the spring
+      height: isExpanded && typeof measuredHeight === 'number' ? measuredHeight : 0,
+      opacity: isExpanded ? 1 : 0,
+  }), [isExpanded, measuredHeight]);
+
+  // Use useGalileoSprings hook for height and opacity animation
+  const animatedStyle = useGalileoSprings(animationTargets, {
+      config: finalSpringConfig,
+      immediate: finalDisableAnimation, // Pass final disable state
+      // onRest could be added here if needed after animation completes
+  });
 
   // Handle click event
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -262,7 +322,7 @@ function TreeItemComponent(props: TreeItemProps, ref: React.ForwardedRef<HTMLLIE
         $size={size}
         aria-disabled={finalDisabled}
       >
-        <IconContainer onClick={hasChildren ? handleToggle : undefined}>
+        <IconContainer onClick={hasChildren ? handleToggle : undefined} style={{ cursor: hasChildren ? 'pointer' : 'default' }}>
           {renderToggleIcon()}
         </IconContainer>
 
@@ -272,10 +332,19 @@ function TreeItemComponent(props: TreeItemProps, ref: React.ForwardedRef<HTMLLIE
       </TreeItemContent>
 
       {hasChildren && (
-        <TreeItemChildren role="group" $expanded={isExpanded} $reducedMotion={prefersReducedMotion}>
-          {children}
-        </TreeItemChildren>
-      )}
+          <TreeItemChildren
+            ref={childrenRef}
+            role="group"
+            key={`children-${nodeId}`}
+            style={{
+              ...animatedStyle, // Apply animated height and opacity
+              // Add will-change for performance
+              willChange: 'height, opacity',
+            }}
+          >
+            {children}
+          </TreeItemChildren>
+        )}
     </TreeItemRoot>
   );
 }

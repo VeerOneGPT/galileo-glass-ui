@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useState, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
@@ -6,7 +6,19 @@ import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 
-export interface ChipProps {
+// Physics Imports
+import { 
+  usePhysicsInteraction, 
+  type PhysicsInteractionOptions 
+} from '../../hooks/usePhysicsInteraction';
+import type { SpringConfig } from '../../animations/physics/springPhysics';
+import { SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
+import { AnimationProps } from '../../animations/types';
+
+export interface ChipProps extends AnimationProps {
   /**
    * The content of the chip
    */
@@ -66,6 +78,11 @@ export interface ChipProps {
    * Additional CSS class
    */
   className?: string;
+
+  /** 
+   * Optional style overrides. 
+   */
+  style?: React.CSSProperties; 
 }
 
 // Get color by name for theme consistency
@@ -107,9 +124,9 @@ const ChipRoot = styled.div<{
     if (props.$disabled) return 'default';
     return props.$interactive ? 'pointer' : 'default';
   }};
-  transition: all 0.2s ease;
   opacity: ${props => (props.$disabled ? 0.5 : 1)};
   user-select: none;
+  will-change: transform, opacity;
 
   /* Size styles */
   ${props => {
@@ -178,28 +195,6 @@ const ChipRoot = styled.div<{
       borderOpacity: 'medium',
       themeContext: createThemeContext({}),
     })}
-  
-  /* Interactive hover state */
-  ${props =>
-    props.$interactive &&
-    !props.$disabled &&
-    `
-    &:hover {
-      ${
-        props.$variant === 'filled'
-          ? `filter: brightness(1.1);`
-          : `background-color: rgba(0, 0, 0, 0.04);`
-      }
-    }
-    
-    &:active {
-      ${
-        props.$variant === 'filled'
-          ? `filter: brightness(0.9);`
-          : `background-color: rgba(0, 0, 0, 0.08);`
-      }
-    }
-  `}
   
   /* Glass glow for glass variant */
   ${props =>
@@ -290,41 +285,170 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
     interactive = false,
     shape = 'rounded',
     className,
+    style,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
+
+  // --- State for Delete Animation ---
+  const [isVisible, setIsVisible] = useState(true);
+  const deleteEventRef = useRef<React.MouseEvent<HTMLElement> | null>(null);
+
+  // --- Physics Hooks Setup --- 
+  const isInteractive = (interactive || !!onClick) && !disabled;
+  const { defaultSpring } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const usePhysics = isInteractive && !finalDisableAnimation;
+
+  // Resolve interaction config using animationConfig
+  const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+    const baseOptions: Partial<PhysicsInteractionOptions> = {
+      affectsScale: true,
+      scaleAmplitude: 0.04,
+      stiffness: SpringPresets.DEFAULT.tension,
+      dampingRatio: (SpringPresets.DEFAULT.friction / (2 * Math.sqrt(SpringPresets.DEFAULT.tension * (SpringPresets.DEFAULT.mass ?? 1)))),
+      mass: SpringPresets.DEFAULT.mass ?? 1,
+    };
+    
+    let contextResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+        contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+        contextResolvedConfig = defaultSpring;
+    }
+
+    let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
+    const configProp = animationConfig;
+    if (typeof configProp === 'string' && configProp in SpringPresets) {
+        const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+        propResolvedConfig = { 
+            stiffness: preset.tension, 
+            dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, 
+            mass: preset.mass 
+        };
+    } else if (typeof configProp === 'object' && configProp !== null) {
+        if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp) {
+            propResolvedConfig = configProp as Partial<PhysicsInteractionOptions>;
+        } else if ('tension' in configProp || 'friction' in configProp) {
+             const preset = configProp as Partial<SpringConfig>;
+             propResolvedConfig = { 
+                 stiffness: preset.tension, 
+                 dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt((preset.tension ?? SpringPresets.DEFAULT.tension) * (preset.mass ?? 1))) : undefined, 
+                 mass: preset.mass 
+            };
+        }
+    }
+
+    const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness;
+    const finalDampingRatio = propResolvedConfig.dampingRatio ?? (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt(finalStiffness ?? baseOptions.stiffness ?? 170)) : baseOptions.dampingRatio);
+    const finalMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass;
+    
+    return {
+        ...baseOptions,
+        stiffness: finalStiffness,
+        dampingRatio: finalDampingRatio,
+        mass: finalMass,
+        ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+        ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+    };
+
+  }, [defaultSpring, animationConfig, motionSensitivity]);
+
+  const { style: physicsHoverPressStyle, eventHandlers } = usePhysicsInteraction({
+      ...finalInteractionConfig,
+      reducedMotion: !usePhysics, 
+  });
+
+  // --- Delete Animation Spring --- 
+  const deleteSpringConfig = useMemo(() => {
+      const base = SpringPresets.STIFF;
+      let contextConf = {};
+      if(typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+         contextConf = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object') {
+         contextConf = defaultSpring ?? {};
+      }
+      return { ...base, ...contextConf };
+  }, [defaultSpring]);
+
+  const { value: deleteAnimProgress } = useGalileoStateSpring(isVisible ? 1 : 0, {
+      ...deleteSpringConfig,
+      immediate: finalDisableAnimation,
+      onRest: (result) => {
+          if (!isVisible && result.finished && onDelete && deleteEventRef.current) {
+              onDelete(deleteEventRef.current);
+              deleteEventRef.current = null;
+          }
+      },
+  });
+
+  // Calculate combined animated styles
+  const combinedStyle = useMemo(() => {
+    const base = { ...style };
+    let transform = '';
+
+    if (usePhysics && isVisible && physicsHoverPressStyle.transform) {
+      transform += physicsHoverPressStyle.transform + ' ';
+    }
+    
+    transform += `scale(${deleteAnimProgress})`;
+
+    return {
+      ...base,
+      opacity: deleteAnimProgress,
+      transform: transform.trim(),
+    };
+  }, [style, usePhysics, physicsHoverPressStyle, deleteAnimProgress, isVisible]);
+
+  // Determine event handlers
+  const finalEventHandlers = usePhysics ? eventHandlers : {};
 
   // Handle delete button click
   const handleDelete = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
-    if (disabled) return;
+    if (disabled || !isVisible) return;
 
-    if (onDelete) {
-      onDelete(event);
-    }
+    deleteEventRef.current = event;
+    setIsVisible(false);
   };
 
   // Handle click
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (disabled) return;
-
+    if (disabled || !isVisible) return;
+    if (finalEventHandlers.onClick) {
+      finalEventHandlers.onClick(event as any);
+    }
     if (onClick) {
       onClick(event);
     }
   };
 
+  if (deleteAnimProgress === 0 && !isVisible && !onDelete) {
+      return null;
+  }
+
   return (
     <ChipRoot
       ref={ref}
       className={className}
+      style={combinedStyle}
       $variant={variant}
       $color={color}
       $disabled={disabled}
       $size={size}
-      $interactive={interactive || !!onClick}
+      $interactive={isInteractive}
       $shape={shape}
       onClick={handleClick}
-      role={onClick ? 'button' : 'presentation'}
-      tabIndex={onClick && !disabled ? 0 : undefined}
+      onMouseEnter={finalEventHandlers.onMouseEnter}
+      onMouseLeave={finalEventHandlers.onMouseLeave}
+      onMouseDown={finalEventHandlers.onMouseDown}
+      onMouseUp={finalEventHandlers.onMouseUp}
+      role={isInteractive ? 'button' : 'presentation'}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-hidden={!isVisible && deleteAnimProgress < 0.1}
       {...rest}
     >
       {icon && <ChipIcon>{icon}</ChipIcon>}
@@ -337,6 +461,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
           onClick={handleDelete}
           aria-label="Remove"
           type="button"
+          disabled={disabled || !isVisible}
         >
           ×
         </DeleteButton>
@@ -350,12 +475,13 @@ Chip.displayName = 'Chip';
 /**
  * GlassChip Component
  *
- * A chip component with glass morphism styling.
+ * A Chip component with glass morphism styling.
  */
 export const GlassChip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
   const { className, variant = 'glass', ...rest } = props;
-
   return <Chip ref={ref} className={`glass-chip ${className || ''}`} variant={variant} {...rest} />;
 });
 
 GlassChip.displayName = 'GlassChip';
+
+export default Chip;

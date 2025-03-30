@@ -129,6 +129,24 @@ export const DEFAULT_ANIMATION_ARIA_ATTRIBUTES: Record<AnimationCategory, {
     announce: false,
     announcementType: AnnouncementType.NONE,
   },
+  
+  [AnimationCategory.INTERACTION]: {
+    description: 'User interaction feedback',
+    announce: false,
+    announcementType: AnnouncementType.POLITE
+  },
+  
+  [AnimationCategory.GAME]: {
+    description: 'Game-related visuals',
+    announce: false,
+    announcementType: AnnouncementType.NONE
+  },
+  
+  [AnimationCategory.ANIMATION]: {
+    description: 'General animation',
+    announce: false,
+    announcementType: AnnouncementType.NONE
+  },
 };
 
 /**

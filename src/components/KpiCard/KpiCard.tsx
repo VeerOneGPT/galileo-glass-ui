@@ -4,165 +4,23 @@
  * A card displaying key performance indicators with glass morphism styling.
  */
 import React, { forwardRef } from 'react';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
 
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { createThemeContext } from '../../core/themeContext';
+import DimensionalGlass from '../surfaces/DimensionalGlass';
+import { AnimationProps } from '../../animations/types';
 
 import { KpiCardProps } from './types';
 
-// Get color values based on theme color
-const getColorValues = (
-  color: string
-): { bg: string; border: string; text: string; accent: string } => {
-  switch (color) {
-    case 'primary':
-      return {
-        bg: 'rgba(99, 102, 241, 0.05)',
-        border: 'rgba(99, 102, 241, 0.4)',
-        text: 'rgba(99, 102, 241, 1)',
-        accent: 'rgba(99, 102, 241, 0.8)',
-      };
-    case 'secondary':
-      return {
-        bg: 'rgba(156, 39, 176, 0.05)',
-        border: 'rgba(156, 39, 176, 0.4)',
-        text: 'rgba(156, 39, 176, 1)',
-        accent: 'rgba(156, 39, 176, 0.8)',
-      };
-    case 'error':
-      return {
-        bg: 'rgba(240, 82, 82, 0.05)',
-        border: 'rgba(240, 82, 82, 0.4)',
-        text: 'rgba(240, 82, 82, 1)',
-        accent: 'rgba(240, 82, 82, 0.8)',
-      };
-    case 'info':
-      return {
-        bg: 'rgba(3, 169, 244, 0.05)',
-        border: 'rgba(3, 169, 244, 0.4)',
-        text: 'rgba(3, 169, 244, 1)',
-        accent: 'rgba(3, 169, 244, 0.8)',
-      };
-    case 'success':
-      return {
-        bg: 'rgba(76, 175, 80, 0.05)',
-        border: 'rgba(76, 175, 80, 0.4)',
-        text: 'rgba(76, 175, 80, 1)',
-        accent: 'rgba(76, 175, 80, 0.8)',
-      };
-    case 'warning':
-      return {
-        bg: 'rgba(255, 152, 0, 0.05)',
-        border: 'rgba(255, 152, 0, 0.4)',
-        text: 'rgba(255, 152, 0, 1)',
-        accent: 'rgba(255, 152, 0, 0.8)',
-      };
-    case 'default':
-    default:
-      return {
-        bg: 'rgba(255, 255, 255, 0.05)',
-        border: 'rgba(255, 255, 255, 0.2)',
-        text: 'rgba(255, 255, 255, 0.9)',
-        accent: 'rgba(255, 255, 255, 0.6)',
-      };
-  }
-};
-
 // Styled components
-const CardRoot = styled.div<{
-  $glass: boolean;
-  $color: string;
-  $colorValues: { bg: string; border: string; text: string; accent: string };
-  $size: 'small' | 'medium' | 'large';
-  $fullWidth: boolean;
-  $elevation: number;
-  $borderRadius: number | string;
-  $hover: boolean;
-  $align: 'left' | 'center' | 'right';
-  $clickable: boolean;
-}>`
-  display: flex;
-  flex-direction: column;
-  padding: ${props =>
-    props.$size === 'small' ? '12px 16px' : props.$size === 'large' ? '24px 32px' : '16px 24px'};
-  width: ${props => (props.$fullWidth ? '100%' : 'auto')};
-  min-width: ${props =>
-    props.$size === 'small' ? '200px' : props.$size === 'large' ? '320px' : '240px'};
-  height: auto;
-  border-radius: ${props =>
-    typeof props.$borderRadius === 'number' ? `${props.$borderRadius}px` : props.$borderRadius};
-  text-align: ${props => props.$align};
-  cursor: ${props => (props.$clickable ? 'pointer' : 'default')};
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  color: rgba(255, 255, 255, 0.9);
-
-  /* Glass styling */
-  ${props =>
-    props.$glass &&
-    glassSurface({
-      elevation: props.$elevation,
-      blurStrength: 'standard',
-      borderOpacity: 'medium',
-      themeContext: createThemeContext(props.theme),
-    })}
-
-  /* Non-glass styling */
-  ${props =>
-    !props.$glass &&
-    `
-    background-color: ${props.$colorValues.bg};
-    border: 1px solid ${props.$colorValues.border};
-    box-shadow: ${
-      props.$elevation === 0
-        ? 'none'
-        : props.$elevation === 1
-        ? '0 2px 4px rgba(0, 0, 0, 0.1)'
-        : props.$elevation === 2
-        ? '0 3px 6px rgba(0, 0, 0, 0.15)'
-        : props.$elevation === 3
-        ? '0 5px 10px rgba(0, 0, 0, 0.2)'
-        : props.$elevation === 4
-        ? '0 8px 16px rgba(0, 0, 0, 0.25)'
-        : '0 12px 24px rgba(0, 0, 0, 0.3)'
-    };
-  `}
-  
-  /* Hover effect */
-  ${props =>
-    props.$hover &&
-    `
-    &:hover {
-      transform: translateY(-4px);
-      box-shadow: ${
-        props.$glass
-          ? ''
-          : props.$elevation === 0
-          ? '0 2px 4px rgba(0, 0, 0, 0.1)'
-          : props.$elevation === 1
-          ? '0 4px 8px rgba(0, 0, 0, 0.15)'
-          : props.$elevation === 2
-          ? '0 6px 12px rgba(0, 0, 0, 0.2)'
-          : props.$elevation === 3
-          ? '0 8px 16px rgba(0, 0, 0, 0.25)'
-          : props.$elevation === 4
-          ? '0 12px 24px rgba(0, 0, 0, 0.3)'
-          : '0 16px 32px rgba(0, 0, 0, 0.35)'
-      };
-    }
-  `}
-`;
-
 const IconContainer = styled.div<{
   $size: 'small' | 'medium' | 'large';
-  $color: string;
-  $colorValues: { bg: string; border: string; text: string; accent: string };
+  $textColor: string;
 }>`
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
-  color: ${props => props.$colorValues.text};
+  color: ${props => props.$textColor};
 
   /* Size variations */
   font-size: ${props =>
@@ -193,13 +51,12 @@ const ValueContainer = styled.div<{
 
 const Value = styled.div<{
   $size: 'small' | 'medium' | 'large';
-  $color: string;
-  $colorValues: { bg: string; border: string; text: string; accent: string };
+  $textColor: string;
 }>`
   font-size: ${props =>
     props.$size === 'small' ? '1.5rem' : props.$size === 'large' ? '2.5rem' : '2rem'};
   font-weight: 600;
-  color: ${props => props.$colorValues.text};
+  color: ${props => props.$textColor};
   line-height: 1.2;
 `;
 
@@ -235,20 +92,21 @@ const ChangeValue = styled.div<{
   $value: number;
   $positiveIsGood: boolean;
   $size: 'small' | 'medium' | 'large';
+  theme?: any;
 }>`
   display: flex;
   align-items: center;
   font-size: ${props =>
     props.$size === 'small' ? '0.75rem' : props.$size === 'large' ? '0.875rem' : '0.8125rem'};
   font-weight: 500;
-
-  /* Color based on value */
   color: ${props => {
     const isPositive = props.$value >= 0;
+    const goodColor = props.theme?.colors?.success?.main || 'rgba(76, 175, 80, 1)';
+    const badColor = props.theme?.colors?.error?.main || 'rgba(240, 82, 82, 1)';
     if (props.$positiveIsGood) {
-      return isPositive ? 'rgba(76, 175, 80, 1)' : 'rgba(240, 82, 82, 1)';
+      return isPositive ? goodColor : badColor;
     } else {
-      return isPositive ? 'rgba(240, 82, 82, 1)' : 'rgba(76, 175, 80, 1)';
+      return isPositive ? badColor : goodColor;
     }
   }};
 
@@ -311,7 +169,6 @@ function KpiCardComponent(props: KpiCardProps, ref: React.ForwardedRef<HTMLDivEl
     icon,
     className,
     style,
-    glass = false,
     color = 'default',
     size = 'medium',
     fullWidth = false,
@@ -329,39 +186,47 @@ function KpiCardComponent(props: KpiCardProps, ref: React.ForwardedRef<HTMLDivEl
     positiveIsGood = true,
     period,
     prefix,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Get color values
-  const colorValues = getColorValues(color);
+  const theme = useTheme();
 
-  // Format the value
+  // Format values
   const formattedValue = typeof value === 'number' ? formatValue(value, valueFormat) : value;
-
-  // Format the change
   const formattedChange =
     change !== undefined ? formatValue(change, changeFormat || '+0.0%') : undefined;
 
+  // Get the specific text color from theme or fallback
+  const textColor = React.useMemo(() => {
+    const defaultText = 'rgba(255, 255, 255, 0.9)';
+    const colorTheme = theme?.colors?.[color];
+    return typeof colorTheme?.main === 'string' ? colorTheme.main : defaultText;
+  }, [theme, color]);
+
   return (
-    <CardRoot
+    <DimensionalGlass
       ref={ref}
       className={className}
       style={style}
       onClick={onClick}
-      $glass={glass}
-      $color={color}
-      $colorValues={colorValues}
-      $size={size}
-      $fullWidth={fullWidth}
-      $elevation={elevation}
-      $borderRadius={borderRadius}
-      $hover={hover}
-      $align={align}
-      $clickable={!!onClick}
+      elevation={elevation}
+      borderRadius={borderRadius}
+      interactive={hover}
+      padding={size === 'small' ? 16 : size === 'large' ? 32 : 24}
+      depth={0.5}
+      parallax={true}
+      dynamicShadow={true}
+      fullWidth={fullWidth}
+      animationConfig={animationConfig}
+      disableAnimation={disableAnimation}
+      motionSensitivity={motionSensitivity}
       {...rest}
     >
       {icon && (
-        <IconContainer $size={size} $color={color} $colorValues={colorValues}>
+        <IconContainer $size={size} $textColor={textColor}>
           {icon}
         </IconContainer>
       )}
@@ -370,7 +235,7 @@ function KpiCardComponent(props: KpiCardProps, ref: React.ForwardedRef<HTMLDivEl
 
       <ValueContainer $size={size} $align={align}>
         {prefix && <Prefix>{prefix}</Prefix>}
-        <Value $size={size} $color={color} $colorValues={colorValues}>
+        <Value $size={size} $textColor={textColor}>
           {formattedValue}
         </Value>
         {unit && <Unit>{unit}</Unit>}
@@ -381,7 +246,7 @@ function KpiCardComponent(props: KpiCardProps, ref: React.ForwardedRef<HTMLDivEl
       {(change !== undefined || period) && (
         <ChangePeriodContainer>
           {change !== undefined && (
-            <ChangeValue $value={change} $positiveIsGood={positiveIsGood} $size={size}>
+            <ChangeValue $value={change} $positiveIsGood={positiveIsGood} $size={size} theme={theme}>
               {formattedChange}
             </ChangeValue>
           )}
@@ -391,7 +256,7 @@ function KpiCardComponent(props: KpiCardProps, ref: React.ForwardedRef<HTMLDivEl
       )}
 
       {(footer || children) && <Footer>{footer || children}</Footer>}
-    </CardRoot>
+    </DimensionalGlass>
   );
 }
 
@@ -402,16 +267,5 @@ function KpiCardComponent(props: KpiCardProps, ref: React.ForwardedRef<HTMLDivEl
  */
 const KpiCard = forwardRef(KpiCardComponent);
 
-/**
- * GlassKpiCard Component
- *
- * Glass variant of the KpiCard component.
- */
-const GlassKpiCard = forwardRef<HTMLDivElement, KpiCardProps>((props, ref) => (
-  <KpiCard {...props} glass={true} ref={ref} />
-));
-
-GlassKpiCard.displayName = 'GlassKpiCard';
-
 export default KpiCard;
-export { KpiCard, GlassKpiCard };
+export { KpiCard };

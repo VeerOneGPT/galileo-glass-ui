@@ -693,7 +693,87 @@ export const DEFAULT_ALTERNATIVES: Record<AnimationCategory, Record<MotionIntens
       description: 'Simple fade for essential animations'
     },
   },
+  
+  // --- Additions for Interaction, Game, Animation ---
+  
+  [AnimationCategory.INTERACTION]: { // Copied from HOVER
+    [MotionIntensityLevel.NONE]: {
+      keyframes: keyframes``, type: AlternativeType.NONE, description: 'No animation for hover'
+    },
+    [MotionIntensityLevel.MINIMAL]: {
+      keyframes: simpleBorderPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 0, description: 'Simple border highlight for hover'
+    },
+    [MotionIntensityLevel.LOW]: {
+      keyframes: simpleShadowPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 200, description: 'Simple shadow pulse for hover'
+    },
+    [MotionIntensityLevel.MODERATE]: {
+      keyframes: simpleBackgroundChange, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 200, description: 'Simple background change for hover'
+    },
+    [MotionIntensityLevel.HIGH]: {
+      keyframes: simpleBorderPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 0, description: 'Simple border highlight for hover'
+    },
+    [MotionIntensityLevel.VERY_HIGH]: {
+      keyframes: keyframes``, type: AlternativeType.NONE, description: 'No animation for hover'
+    },
+    [MotionIntensityLevel.EXTREME]: {
+      keyframes: keyframes``, type: AlternativeType.NONE, description: 'No animation for hover'
+    },
+  },
+  
+  [AnimationCategory.GAME]: { // Copied from ATTENTION
+    [MotionIntensityLevel.NONE]: {
+      keyframes: keyframes``, type: AlternativeType.NONE, description: 'No animation for attention'
+    },
+    [MotionIntensityLevel.MINIMAL]: {
+      keyframes: simpleBorderPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 800, iterations: 3, description: 'Simple border pulse for attention'
+    },
+    [MotionIntensityLevel.LOW]: {
+      keyframes: simpleOpacityPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 800, iterations: 3, description: 'Simple opacity pulse for attention'
+    },
+    [MotionIntensityLevel.MODERATE]: {
+      keyframes: simpleOpacityPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 800, iterations: 3, description: 'Simple opacity pulse for attention'
+    },
+    [MotionIntensityLevel.HIGH]: {
+      keyframes: simpleOpacityPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 800, iterations: 3, description: 'Simple opacity pulse for attention'
+    },
+    [MotionIntensityLevel.VERY_HIGH]: {
+      keyframes: simpleBorderPulse, type: AlternativeType.ALTERNATIVE_PROPERTY, duration: 1000, iterations: 2, description: 'Simple border pulse for attention'
+    },
+    [MotionIntensityLevel.EXTREME]: {
+      keyframes: keyframes``, type: AlternativeType.NONE, description: 'No animation for attention'
+    },
+  },
+  
+  [AnimationCategory.ANIMATION]: { // Copied from ENTRANCE
+    [MotionIntensityLevel.NONE]: {
+      keyframes: simpleFadeIn, type: AlternativeType.FADE, duration: 200, easing: 'ease-out', description: 'Simple fade in for entrance'
+    },
+    [MotionIntensityLevel.MINIMAL]: {
+      keyframes: simpleFadeIn, type: AlternativeType.FADE, duration: 250, easing: 'ease-out', description: 'Simple fade in for entrance'
+    },
+    [MotionIntensityLevel.LOW]: {
+      keyframes: simpleScaleIn, type: AlternativeType.SIMPLIFIED, duration: 300, easing: 'ease-out', description: 'Simple scale in for entrance'
+    },
+    [MotionIntensityLevel.MODERATE]: {
+      keyframes: subtleSlideUp, type: AlternativeType.REDUCED_DISTANCE, duration: 350, easing: 'ease-out', description: 'Subtle slide up for entrance'
+    },
+    [MotionIntensityLevel.HIGH]: {
+      keyframes: simpleScaleIn, type: AlternativeType.SIMPLIFIED, duration: 300, easing: 'ease-out', description: 'Simple scale in for entrance'
+    },
+    [MotionIntensityLevel.VERY_HIGH]: {
+      keyframes: simpleFadeIn, type: AlternativeType.FADE, duration: 200, easing: 'ease-out', description: 'Simple fade in for entrance'
+    },
+    [MotionIntensityLevel.EXTREME]: {
+      keyframes: simpleFadeIn, type: AlternativeType.FADE, duration: 150, easing: 'ease-out', description: 'Simple fade in for entrance'
+    },
+  },
+  
 };
+
+// Add defaults for the new categories by copying existing ones
+DEFAULT_ALTERNATIVES[AnimationCategory.INTERACTION] = DEFAULT_ALTERNATIVES[AnimationCategory.HOVER];
+DEFAULT_ALTERNATIVES[AnimationCategory.GAME] = DEFAULT_ALTERNATIVES[AnimationCategory.ATTENTION];
+DEFAULT_ALTERNATIVES[AnimationCategory.ANIMATION] = DEFAULT_ALTERNATIVES[AnimationCategory.ENTRANCE];
 
 /**
  * Custom alternative animations registry

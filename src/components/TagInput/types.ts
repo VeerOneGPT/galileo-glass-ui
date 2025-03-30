@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Tag structure for each tag item
@@ -20,7 +21,7 @@ export interface Tag {
 /**
  * Props for the TagInput component
  */
-export interface TagInputProps {
+export interface TagInputProps extends AnimationProps {
   /** Array of tags currently in the input */
   value?: Tag[];
 

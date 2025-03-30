@@ -86,7 +86,7 @@ export const highContrast = (options: HighContrastOptions) => {
   } = options;
 
   // If not enabled, return empty
-  if (!enabled) return '';
+  if (!enabled) return css``;
 
   // Determine if dark mode
   const isDarkMode = themeContext?.isDarkMode || false;

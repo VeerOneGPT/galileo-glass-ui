@@ -1,10 +1,13 @@
-import React, { forwardRef, useState } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useState, useMemo, useEffect, useRef } from 'react';
+import styled, { css } from 'styled-components';
+import { glassSurface } from '../../core/mixins/glassSurface';
+import { glassGlow } from '../../core/mixins/glowEffects';
 
 import { accessibleAnimation } from '../../animations/animationUtils';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
 import { fadeIn, scaleIn } from '../../animations/keyframes/basic';
 import { innerGlow } from '../../core/mixins/effects/innerEffects';
-import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 
 // Checkbox props interface
@@ -78,6 +81,11 @@ export interface CheckboxProps {
    * Additional CSS class name
    */
   className?: string;
+
+  /**
+   * Optional spring configuration for the toggle animation.
+   */
+  animationConfig?: Partial<GalileoSpringConfig>;
 }
 
 // Get the checkbox color
@@ -213,7 +221,7 @@ const HiddenInput = styled.input`
 `;
 
 // The visible checkbox
-const CheckboxControl = styled.span<{
+const CheckboxControl = styled.div<{
   $checked: boolean;
   $disabled: boolean;
   $size: string;
@@ -250,11 +258,15 @@ const CheckboxControl = styled.span<{
       themeContext: createThemeContext({}), // In real usage, this would use props.theme
     })}
 
-  /* Check/indeterminate icon animation */
+  /* Check/indeterminate icon animation - handled by motion.svg below */
   & > svg {
-    opacity: ${props => (props.$checked || props.$indeterminate ? 1 : 0)};
-    transform: ${props => (props.$checked || props.$indeterminate ? 'scale(1)' : 'scale(0.8)')};
-    transition: all 0.2s ease;
+    /* Remove direct transitions, controlled by motion */
+    position: absolute; /* Ensure SVG is positioned correctly for independent animation */
+    width: 80%; /* Adjust size as needed */
+    height: 80%;
+    /* opacity: ${props => (props.$checked || props.$indeterminate ? 1 : 0)}; */
+    /* transform: ${props => (props.$checked || props.$indeterminate ? 'scale(1)' : 'scale(0.8)')}; */
+    /* transition: all 0.2s ease; */
   }
 
   /* Hover effect */
@@ -308,14 +320,28 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>((props, ref)
     labelPlacement = 'end',
     glass = false,
     className,
+    animationConfig,
     ...rest
   } = props;
+
+  // Animation Context
+  const { defaultSpring } = useAnimationContext();
 
   // Internal state for uncontrolled component
   const [internalChecked, setInternalChecked] = useState(defaultChecked || false);
 
   // Determine if checkbox is checked (controlled or uncontrolled)
   const isChecked = checked !== undefined ? checked : internalChecked;
+  const isActive = isChecked || indeterminate;
+
+  // Setup physics spring for icon animation
+  const finalAnimationConfig = useMemo(() => {
+      const baseConfig: Partial<GalileoSpringConfig> = { tension: 300, friction: 25 };
+      const contextConfig = typeof defaultSpring === 'string' ? {} : defaultSpring;
+      return { ...baseConfig, ...contextConfig, ...animationConfig };
+  }, [defaultSpring, animationConfig]);
+
+  const { value: progressValue } = useGalileoStateSpring(isActive ? 1 : 0, finalAnimationConfig);
 
   // Handle change
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -360,11 +386,23 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>((props, ref)
         $glass={glass}
         $indeterminate={indeterminate}
       >
-        {indeterminate ? (
-          <IndeterminateIcon color={getCheckboxColor(color)} />
-        ) : (
-          <CheckIcon color={getCheckboxColor(color)} />
-        )}
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{
+              opacity: progressValue,
+              transform: `scale(${progressValue})`,
+          }}
+        >
+           {indeterminate ? (
+             <path d="M19 13H5v-2h14v2z" />
+           ) : (
+             <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
+           )}
+        </svg>
       </CheckboxControl>
 
       {label && <LabelText>{label}</LabelText>}

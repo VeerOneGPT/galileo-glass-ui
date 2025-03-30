@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { glowEffects } from '../../core/mixins/effects/glowEffects';
@@ -13,6 +13,12 @@ import { Typography } from '../Typography';
 // Import correct path for glowEffects
 
 import { CookieConsentProps } from './types';
+
+// Physics/Animation Imports
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
 
 // Cookie management utility
 const setCookie = (name: string, value: string, days: number): void => {
@@ -35,7 +41,6 @@ const getCookie = (name: string): string | null => {
 
 const StyledCookieConsent = styled.div<{
   $position: CookieConsentProps['position'];
-  $animate: boolean;
   $glassIntensity: number;
 }>`
   position: fixed;
@@ -45,8 +50,8 @@ const StyledCookieConsent = styled.div<{
   width: 100%;
   max-width: 420px;
   box-sizing: border-box;
-  transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  will-change: transform, opacity;
 
   ${({ $position }) => {
     switch ($position) {
@@ -54,13 +59,11 @@ const StyledCookieConsent = styled.div<{
         return `
           bottom: 20px;
           left: 50%;
-          transform: translateX(-50%);
         `;
       case 'top':
         return `
           top: 20px;
           left: 50%;
-          transform: translateX(-50%);
         `;
       case 'bottom-left':
         return `
@@ -116,31 +119,6 @@ const StyledCookieConsent = styled.div<{
       themeContext,
     });
   }}
-  
-  ${({ $animate, $position }) =>
-    $animate &&
-    `
-    animation: slideIn 0.5s ease forwards;
-    
-    @keyframes slideIn {
-      0% {
-        opacity: 0;
-        transform: ${
-          $position?.includes('top')
-            ? 'translateY(-20px)'
-            : $position?.includes('bottom')
-            ? 'translateY(20px)'
-            : 'translateY(20px)'
-        } ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) ${
-          $position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''
-        };
-      }
-    }
-  `}
   
   @media (max-width: 480px) {
     max-width: 100%;
@@ -203,13 +181,20 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
       dismissible = true,
       cookieExpiration = 365,
       style,
+      animationConfig,
+      disableAnimation,
+      motionSensitivity,
       ...rest
     }: CookieConsentProps,
     ref
   ) => {
     const [visible, setVisible] = useState(false);
+    const [isRendered, setIsRendered] = useState(false);
     const prefersReducedMotion = useReducedMotion();
-    const shouldAnimate = animate && !prefersReducedMotion;
+    const { defaultSpring } = useAnimationContext();
+
+    const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+    const shouldAnimate = animate && !finalDisableAnimation;
 
     useEffect(() => {
       // Check if user has already made a choice
@@ -237,29 +222,51 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
       }
     }, [visible, timeout, onTimeout]);
 
-    const handleAccept = () => {
-      setCookie('cookie-consent', 'accepted', cookieExpiration);
-      setVisible(false);
-      if (onAccept) {
-        onAccept();
+    const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      const contextSource = defaultSpring;
+      if (typeof contextSource === 'string' && contextSource in SpringPresets) {
+        contextConfig = SpringPresets[contextSource as keyof typeof SpringPresets];
+      } else if (typeof contextSource === 'object') {
+        contextConfig = contextSource ?? {};
       }
+      let propConfig = {};
+      const propSource = animationConfig;
+      if (typeof propSource === 'string' && propSource in SpringPresets) {
+          propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
+      } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
+          propConfig = propSource as Partial<SpringConfig>;
+      }
+      return { ...baseConfig, ...contextConfig, ...propConfig };
+    }, [defaultSpring, animationConfig]);
+
+    const isTop = position?.startsWith('top');
+    const exitY = isTop ? -20 : 20;
+
+    const { value: animatedOpacity } = useGalileoStateSpring(visible ? 1 : 0, {
+      ...finalSpringConfig,
+      immediate: !shouldAnimate,
+    });
+
+    const { value: animatedTranslateY } = useGalileoStateSpring(visible ? 0 : exitY, {
+      ...finalSpringConfig,
+      immediate: !shouldAnimate,
+    });
+
+    useEffect(() => {
+      if (visible) {
+        setIsRendered(true);
+      }
+    }, [visible]);
+
+    const isCentered = position === 'top' || position === 'bottom';
+    const animatedStyle: React.CSSProperties = {
+      opacity: animatedOpacity,
+      transform: `translateY(${animatedTranslateY}px)${isCentered ? ' translateX(-50%)' : ''}`,
     };
 
-    const handleDecline = () => {
-      setCookie('cookie-consent', 'declined', cookieExpiration);
-      setVisible(false);
-      if (onDecline) {
-        onDecline();
-      }
-    };
-
-    const handleSettings = () => {
-      if (onSettings) {
-        onSettings();
-      }
-    };
-
-    if (!visible) {
+    if (!isRendered && !visible) {
       return null;
     }
 
@@ -267,10 +274,10 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
       <StyledCookieConsent
         ref={ref}
         $position={position}
-        $animate={shouldAnimate}
         $glassIntensity={glassIntensity}
         className={className}
-        style={style}
+        style={{ ...style, ...animatedStyle }}
+        aria-hidden={!visible}
         {...rest}
       >
         <Box>
@@ -294,18 +301,18 @@ export const CookieConsent = forwardRef<HTMLDivElement, CookieConsentProps>(
 
           <ButtonContainer>
             {dismissible && (
-              <Button variant="outlined" onClick={handleDecline} size="small">
+              <Button variant="outlined" onClick={onDecline} size="small">
                 {declineButtonText}
               </Button>
             )}
 
             {enableSettings && (
-              <Button variant="outlined" onClick={handleSettings} size="small">
+              <Button variant="outlined" onClick={onSettings} size="small">
                 {settingsButtonText}
               </Button>
             )}
 
-            <Button variant="contained" onClick={handleAccept} size="small">
+            <Button variant="contained" onClick={onAccept} size="small">
               {acceptButtonText}
             </Button>
           </ButtonContainer>

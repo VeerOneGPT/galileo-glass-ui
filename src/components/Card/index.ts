@@ -1,4 +1,5 @@
 /**
  * Card Component
  */
-export { Card, GlassCard } from './Card';
+export { Card } from './Card';
+export type { CardProps } from './Card';

@@ -3,11 +3,16 @@
  *
  * A button that can be toggled on/off, with glass morphism styling.
  */
-import React, { forwardRef } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, useCallback, useState, useMemo } from 'react';
+import styled, { useTheme } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringPresets } from '../../animations/physics/springPhysics';
+import { SpringConfig } from '../../animations/physics/springPhysics';
 
 import { ToggleButtonProps } from './types';
 
@@ -144,7 +149,6 @@ const ButtonRoot = styled.button<{
         : '0'
       : '4px'};
   width: ${props => (props.$fullWidth ? '100%' : 'auto')};
-  transition: background-color 0.3s, box-shadow 0.3s, border-color 0.3s, color 0.3s;
 
   /* Base styling based on variant */
   background-color: ${props =>
@@ -201,15 +205,6 @@ const ButtonRoot = styled.button<{
           ? `border-color: ${props.$colorValues.border};`
           : ''
       }
-    `}
-  }
-
-  /* Active state */
-  &:active {
-    ${props =>
-      !props.$disabled &&
-      `
-      background-color: ${props.$colorValues.activeBg};
     `}
   }
 
@@ -285,35 +280,119 @@ function ToggleButtonComponent(
     size = 'medium',
     fullWidth = false,
     variant = 'outlined',
-    // Group props passed from ToggleButtonGroup
+    // Group props
     grouped = false,
     groupOrientation = 'horizontal',
     isGroupStart = false,
     isGroupEnd = false,
+    // Destructure AnimationProps
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
+
+  const theme = useTheme();
+  const [isPressed, setIsPressed] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const usePhysics = !finalDisableAnimation && !disabled;
 
   // Get color values
   const colorValues = getColorValues(color, variant);
 
-  // Handle click event
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (disabled) return;
+  const { defaultSpring } = useAnimationContext();
 
-    if (onChange) {
+  // Calculate final interaction config (includes motionSensitivity logic)
+  const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+    const baseOptions: Partial<PhysicsInteractionOptions> = {
+      affectsScale: true,
+      scaleAmplitude: 0.05, 
+    };
+    let contextResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      contextResolvedConfig = defaultSpring;
+    }
+    let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
+    const configProp = animationConfig;
+    if (typeof configProp === 'string' && configProp in SpringPresets) {
+      const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+      propResolvedConfig = { 
+        stiffness: preset.tension, 
+        dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, 
+        mass: preset.mass 
+      };
+    } else if (typeof configProp === 'object' && configProp !== null) {
+      if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp) {
+        propResolvedConfig = { ...configProp } as Partial<PhysicsInteractionOptions>;
+      } else if ('tension' in configProp || 'friction' in configProp) {
+        const preset = configProp as Partial<SpringConfig>;
+        const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
+        const mass = preset.mass ?? 1;
+        propResolvedConfig = { 
+          stiffness: tension, 
+          dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(tension * mass)) : undefined, 
+          mass: mass 
+        };
+      }
+      if ('strength' in configProp && typeof configProp.strength === 'number') propResolvedConfig.strength = configProp.strength;
+      if ('radius' in configProp && typeof configProp.radius === 'number') propResolvedConfig.radius = configProp.radius;
+      if ('affectsRotation' in configProp && typeof configProp.affectsRotation === 'boolean') propResolvedConfig.affectsRotation = configProp.affectsRotation;
+      if ('affectsScale' in configProp && typeof configProp.affectsScale === 'boolean') propResolvedConfig.affectsScale = configProp.affectsScale;
+      if ('rotationAmplitude' in configProp && typeof configProp.rotationAmplitude === 'number') propResolvedConfig.rotationAmplitude = configProp.rotationAmplitude;
+      if ('scaleAmplitude' in configProp && typeof configProp.scaleAmplitude === 'number') propResolvedConfig.scaleAmplitude = configProp.scaleAmplitude;
+    }
+
+    const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness ?? SpringPresets.DEFAULT.tension;
+    const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1;
+    const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
+                              (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt(finalStiffness * calculatedMass)) : baseOptions.dampingRatio ?? 0.5);
+    const finalMass = calculatedMass;
+
+    return {
+      ...baseOptions,
+      stiffness: finalStiffness,
+      dampingRatio: finalDampingRatio,
+      mass: finalMass,
+      ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
+      ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
+      ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+      ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+      ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+      ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+      ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+    };
+  }, [defaultSpring, animationConfig, motionSensitivity]);
+
+  const { style: physicsHoverPressStyle, eventHandlers } = usePhysicsInteraction({
+    ...finalInteractionConfig,
+    reducedMotion: !usePhysics,
+  });
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (!disabled && onChange) {
       onChange(event, value);
     }
+    if (eventHandlers.onClick) {
+      eventHandlers.onClick(event);
+    }
   };
+
+  // Combine styles
+  const combinedStyle = { ...style, ...physicsHoverPressStyle };
 
   return (
     <ButtonRoot
       ref={ref}
+      style={combinedStyle}
       type="button"
       aria-pressed={selected}
       disabled={disabled}
       onClick={handleClick}
+      {...eventHandlers}
       className={className}
-      style={style}
       $selected={selected}
       $disabled={disabled}
       $glass={glass}

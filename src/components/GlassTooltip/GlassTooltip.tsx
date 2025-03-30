@@ -8,7 +8,7 @@ import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'rea
 import ReactDOM from 'react-dom';
 import styled, { css } from 'styled-components';
 
-import { useSpring } from '../../animations/physics/useSpring';
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
 import { useInertialMovement } from '../../animations/physics/useInertialMovement';
 import { useAccessibleAnimation } from '../../hooks/useAccessibleAnimation';
 import { AnimationCategory } from '../../animations/accessibility/MotionSensitivity';
@@ -16,6 +16,8 @@ import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 import { useGlassTheme } from '../../hooks/useGlassTheme';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
 // import { edgeEffects } from '../../core/mixins/edgeEffects';
 // Define edge effects inline instead of importing
 const applyEdgeEffects = (props: any) => {
@@ -733,34 +735,15 @@ interface UseMultiSpringResult {
 }
 
 // Custom hook to manage multiple spring animations
-const useMultiSpring = (
-  initialValues: SpringPosition = { x: 0, y: 0, scale: 0, opacity: 0 },
-  config: any = {}
-): UseMultiSpringResult => {
+const useMultiSpring = (initialValues: SpringPosition, config: any): UseMultiSpringResult => {
   // Create separate springs for each property
-  const { value: x, isAnimating: isAnimatingX, start: startX } = useSpring({
-    from: initialValues.x,
-    to: initialValues.x,
-    config
-  });
+  const { value: x, isAnimating: isAnimatingX, start: startX } = useGalileoStateSpring(initialValues.x, config);
   
-  const { value: y, isAnimating: isAnimatingY, start: startY } = useSpring({
-    from: initialValues.y,
-    to: initialValues.y,
-    config
-  });
+  const { value: y, isAnimating: isAnimatingY, start: startY } = useGalileoStateSpring(initialValues.y, config);
   
-  const { value: scale, isAnimating: isAnimatingScale, start: startScale } = useSpring({
-    from: initialValues.scale,
-    to: initialValues.scale,
-    config
-  });
+  const { value: scale, isAnimating: isAnimatingScale, start: startScale } = useGalileoStateSpring(initialValues.scale, config);
   
-  const { value: opacity, isAnimating: isAnimatingOpacity, start: startOpacity } = useSpring({
-    from: initialValues.opacity,
-    to: initialValues.opacity,
-    config
-  });
+  const { value: opacity, isAnimating: isAnimatingOpacity, start: startOpacity } = useGalileoStateSpring(initialValues.opacity, config);
   
   // Combine all values into a single object
   const combinedValue = {

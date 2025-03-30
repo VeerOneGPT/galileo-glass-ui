@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useState } from 'react';
+import React, { forwardRef, useEffect, useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { glassBorder } from '../../core/mixins/glassBorder';
@@ -7,6 +7,10 @@ import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Button } from '../Button';
 import { Typography } from '../Typography';
+
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 import { CompactCookieNoticeProps } from './types';
 
@@ -31,7 +35,6 @@ const getCookie = (name: string): string | null => {
 
 const StyledCompactCookieNotice = styled.div<{
   $position: CompactCookieNoticeProps['position'];
-  $animate: boolean;
   $glassIntensity: number;
 }>`
   position: fixed;
@@ -45,8 +48,8 @@ const StyledCompactCookieNotice = styled.div<{
   box-sizing: border-box;
   width: auto;
   max-width: 100%;
-  transition: all 0.3s ease;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  will-change: transform, opacity;
 
   ${({ $position }) => {
     switch ($position) {
@@ -109,31 +112,6 @@ const StyledCompactCookieNotice = styled.div<{
     });
   }}
   
-  ${({ $animate, $position }) =>
-    $animate &&
-    `
-    animation: slideIn 0.4s ease forwards;
-    
-    @keyframes slideIn {
-      0% {
-        opacity: 0;
-        transform: ${
-          $position?.includes('top')
-            ? 'translateY(-15px)'
-            : $position?.includes('bottom')
-            ? 'translateY(15px)'
-            : 'translateY(15px)'
-        } ${$position?.includes('left') || $position?.includes('right') ? '' : 'translateX(-50%)'};
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0) ${
-          $position === 'bottom' || $position === 'top' ? 'translateX(-50%)' : ''
-        };
-      }
-    }
-  `}
-  
   @media (max-width: 600px) {
     flex-direction: column;
     align-items: flex-start;
@@ -178,15 +156,18 @@ export const CompactCookieNotice = forwardRef<HTMLDivElement, CompactCookieNotic
       onMoreInfo,
       style,
       className,
-      animate = true,
       glassIntensity = 0.6,
       position = 'bottom-left',
+      animate = true,
       ...rest
     }: CompactCookieNoticeProps,
     ref
   ) => {
     const [visible, setVisible] = useState(false);
+    const [isRendered, setIsRendered] = useState(false);
     const prefersReducedMotion = useReducedMotion();
+    const { defaultSpring } = useAnimationContext();
+
     const shouldAnimate = animate && !prefersReducedMotion;
 
     useEffect(() => {
@@ -212,7 +193,48 @@ export const CompactCookieNotice = forwardRef<HTMLDivElement, CompactCookieNotic
       }
     };
 
-    if (!visible) {
+    // --- Animation Setup ---
+    const finalSpringConfig = useMemo(() => {
+      const baseConfig: SpringConfig = SpringPresets.DEFAULT;
+      let contextConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+        contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object') {
+        contextConfig = defaultSpring ?? {};
+      }
+      return { ...baseConfig, ...contextConfig };
+    }, [defaultSpring]);
+
+    const isTop = position?.startsWith('top');
+    const exitY = isTop ? -15 : 15;
+
+    // Spring for Opacity
+    const { value: animatedOpacity } = useGalileoStateSpring(visible ? 1 : 0, {
+      ...finalSpringConfig,
+      immediate: !shouldAnimate,
+    });
+
+    // Spring for TranslateY
+    const { value: animatedTranslateY } = useGalileoStateSpring(visible ? 0 : exitY, {
+      ...finalSpringConfig,
+      immediate: !shouldAnimate,
+    });
+
+    // Immediately render when becoming visible
+    useEffect(() => {
+      if (visible) {
+        setIsRendered(true);
+      }
+    }, [visible]);
+
+    // Calculate transform
+    const isCentered = position === 'top' || position === 'bottom';
+    const animatedStyle: React.CSSProperties = {
+      opacity: animatedOpacity,
+      transform: `translateY(${animatedTranslateY}px)${isCentered ? ' translateX(-50%)' : ''}`,
+    };
+
+    if (!visible && !isRendered) {
       return null;
     }
 
@@ -220,10 +242,10 @@ export const CompactCookieNotice = forwardRef<HTMLDivElement, CompactCookieNotic
       <StyledCompactCookieNotice
         ref={ref}
         $position={position}
-        $animate={shouldAnimate}
         $glassIntensity={glassIntensity}
         className={className}
-        style={style}
+        style={{ ...style, ...animatedStyle }}
+        aria-hidden={!visible}
         {...rest}
       >
         <Typography variant="body2" component="span">

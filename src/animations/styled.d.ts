@@ -13,7 +13,14 @@ declare module 'styled-components' {
   }
 
   export interface DefaultTheme {
-    [key: string]: any;
+    colors?: {
+      primary?: {
+        main?: string;
+        // Add other potential shades if known
+      };
+      // Add other potential color categories if known (e.g., secondary, background)
+    };
+    // Add other known theme properties (e.g., typography, spacing)
   }
 }
 

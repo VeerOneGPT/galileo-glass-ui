@@ -1,7 +1,9 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useState, useMemo } from 'react';
 import styled from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/animationUtils';
+import { useGalileoStateSpring, GalileoSpringConfig } from '../../hooks/useGalileoStateSpring';
+import { useAnimationContext } from '../../contexts/AnimationContext';
 import { fadeIn } from '../../animations/keyframes/basic';
 import { glassGlow } from '../../core/mixins/effects/glowEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -73,6 +75,11 @@ export interface SwitchProps {
    * Additional CSS class name
    */
   className?: string;
+
+  /**
+   * Optional spring configuration for the toggle animation.
+   */
+  animationConfig?: Partial<GalileoSpringConfig>;
 }
 
 // Get the switch color
@@ -213,7 +220,6 @@ const SwitchTrack = styled.span<{
   width: ${props => `${props.$width}px`};
   height: ${props => `${props.$height}px`};
   border-radius: ${props => `${props.$height}px`};
-  transition: all 0.2s ease;
   background-color: ${props =>
     props.$checked ? getSwitchColor(props.$color) : 'rgba(255, 255, 255, 0.2)'};
 
@@ -264,13 +270,10 @@ const SwitchThumb = styled.span<{
   position: absolute;
   display: block;
   top: 50%;
-  transform: translateY(-50%)
-    ${props => (props.$checked ? `translateX(${props.$thumbOffset}px)` : 'translateX(3px)')};
   width: ${props => `${props.$thumbSize}px`};
   height: ${props => `${props.$thumbSize}px`};
   border-radius: 50%;
   background-color: white;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 `;
 
@@ -300,14 +303,27 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>((props, ref) => 
     labelPlacement = 'end',
     glass = false,
     className,
+    animationConfig,
     ...rest
   } = props;
+
+  // Animation Context
+  const { defaultSpring } = useAnimationContext();
 
   // Internal state for uncontrolled component
   const [internalChecked, setInternalChecked] = useState(defaultChecked || false);
 
   // Determine if switch is checked (controlled or uncontrolled)
   const isChecked = checked !== undefined ? checked : internalChecked;
+
+  // Setup physics spring for thumb/track animation
+  const finalAnimationConfig = useMemo(() => {
+    const baseConfig: Partial<GalileoSpringConfig> = { tension: 300, friction: 25 }; // Default subtle spring
+    const contextConfig = typeof defaultSpring === 'string' ? {} : defaultSpring;
+    return { ...baseConfig, ...contextConfig, ...animationConfig };
+  }, [defaultSpring, animationConfig]);
+
+  const { value: progressValue } = useGalileoStateSpring(isChecked ? 1 : 0, finalAnimationConfig);
 
   // Handle change
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -361,6 +377,9 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>((props, ref) => 
           $size={size}
           $thumbSize={dimensions.thumbSize}
           $thumbOffset={dimensions.thumbOffset}
+          style={{
+            transform: `translateX(${3 + progressValue * (dimensions.thumbOffset - 3)}px) translateY(-50%)`,
+          }}
         />
       </SwitchTrack>
 

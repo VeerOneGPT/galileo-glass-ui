@@ -31,9 +31,7 @@ Galileo Glass is a React-based UI framework that implements glass morphism desig
 This framework guide serves as the primary entry point for understanding the Galileo Glass UI system. For specific features and implementation details, please refer to the specialized documentation files:
 
 ### Core Concepts
-- [Animation System](./AnimationSystem.md) - Complete animation framework
 - [Theme Provider](./ThemeProvider.md) - Theme system implementation details
-- [Physics Animations](./PhysicsAnimations.md) - Physics-based animation system
 - [Specialized Surfaces](./SpecializedSurfaces.md) - Advanced glass surfaces
 - [Glass Charts](./GlassCharts.md) - Data visualization components
 - [Advanced Components](./AdvancedComponents.md) - Complex UI components
@@ -97,17 +95,14 @@ This framework guide serves as the primary entry point for understanding the Gal
     3. [Relationship Between Z-Index Systems](#relationship-between-z-index-systems)  
     4. [Component-to-Layer Mapping](#component-to-layer-mapping)  
     5. [Z-Space Mixins](#z-space-mixins)  
-11. [Animation System](#animation-system-1)  
+11. [Animation System (v1.0.5 Overhaul)](#animation-system-v105-overhaul)  
     1. [Animation Principles](#animation-principles)  
     2. [Animation Architecture](#animation-architecture)  
-    3. [Performance-Optimized Animation System](#performanmation-system)  
-    4. [Dimensional Depth Animation System](#dimensional-depth-animation-system)  
-    5. [Micro-Interaction Choreography](#micro-interaction-choreography)  
-    6. [Enhanced Accessibility System](#enhanced-accessibility-system)  
-    7. [Animation Implementation](#animation-implementation)  
-    8. [Using the Optimized Animation Hook](#using-the-optimized-animation-hook)  
-    9. [Animation Utilities](#animation-utilities)  
-    10. [Timing Guidelines](#timing-guidelines)  
+    3. [Core Animation Hooks](#core-animation-hooks)  
+    4. [Performance & Optimization](#performance-optimization)  
+    5. [Accessibility](#accessibility)  
+    6. [Configuration](#configuration)  
+    7. [Timing Guidelines](#timing-guidelines)  
 12. [Advanced Features](#advanced-features)  
     1. [Dynamic Atmospheric Backgrounds](#dynamic-atmospheric-backgrounds)  
     2. [Context-Aware Glass](#context-aware-glass)  
@@ -257,12 +252,8 @@ const CardContainer = styled.div<{ theme: any }>`
   padding: 24px;
   border-radius: 12px;
   margin-bottom: 24px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
+  /* Transitions for hover/active effects are now typically handled by animation hooks */
+  /* See Section 11 or the Animation Migration Guide */
 `;
 
 interface GlassCardProps {
@@ -284,7 +275,7 @@ const GlassCard: React.FC<GlassCardProps> = ({
         {title}
       </GlassTypography>
       <GlassTypography variant="body1" inBo}>
- ion}sTypassBy" o
+    ion}sTypassBy" o
    
        <xportCard;th Efatter Reacimpor-components';
 import { innerGlow } from '../../design/mixins/depth/innerEffects';
@@ -316,20 +307,8 @@ const StyledButton = styled.button<{ theme: any }>`
     themeContext: createThemeContext(props.theme)
   })}
   
-  /* Add hover glow effect with theme context */
-  &:hover {
-    transform: translateY(-2px);
-    ${props => glassGlow({ 
-      intensity: 'medium', 
-      color: 'primary',
-      themeContext: createThemeContext(props.theme)
-    })}
-  }
-  
-  /* Add active state */
-  &:active {
-    transform: translateY(1px);
-  }
+  /* Hover/Active effects are now typically handled by animation hooks */
+  /* See Section 11 or the Animation Migration Guide */
 `;
 
 interface CustomGlassButtonProps {
@@ -569,41 +548,13 @@ frontend/src/design/
 └── ThemeProvider.tsx      # Unified theme provider
 ```
 
-### Animation System
+### Animation System (v1.0.5+)
 
-The animation system focuses on performance, accessibility, and browser compatibility:
+_Introduced in v1.0.5, replacing previous animation methods._
 
-#### Key Features
+The animation system is a core part of the Galileo Glass UI, built on an integrated physics engine (powered by React Spring) for natural, performant, and accessible motion. It utilizes a set of hooks for implementation and context for global configuration.
 
-- **Dimensional Depth Animation**: Z-Space animation system for creating true depth perception  
-- **Micro-Interaction Choreography**: Coordination of animations across components for narrative experiences  
-- **Reduced Motion Support**: Comprehensive accessibility features for users with motion sensitivity  
-- **Performance Optimization**: Automatic adaptation based on device capabilities  
-- **Browser Compatibility**: Robust support across Chrome 76+, Firefox 70+, Safari 9+, Edge 79+  
-
-#### Usage Example
-
-```tsx
-import { animate } from '../../design/animations/presets/accessibleAnimations';
-import { fadeIn } from '../../design/animations/keyframes/basic';
-import { createThemeContext } from '../../design/core/themeContext';
-
-const MyAnimatedComponent = styled.div`
-  ${props => animate({
-    animation: fadeIn,
-    duration: 0.3,
-    easing: 'ease-out',
-    fillMode: 'forwards',
-    themeContext: createThemeContext(props.theme)
-  })}
-`;
-```
-
-#### Documentation
-
-- [Animation System Documentation](./AnimationSystem.md)  
-- [Physics Animation Documentation](./PhysicsAnimations.md)  
-- [Advanced Components Documentation](./AdvancedComponents.md)  
+See [Section 11: Animation System (v1.0.5 Overhaul)](#animation-system-v105-overhaul) for a comprehensive overview and links to detailed documentation.
 
 ### Theme Access Pattern
 
@@ -1186,210 +1137,131 @@ const ModalContainer = styled.div<{ theme: any }>`
 
 ---
 
-## Animation System
+## Animation System (v1.0.5 Overhaul)
 
-The Glass UI includes a comprehensive animation system with physically accurate motion, focusing on consistency, performance, accessibility, and developer experience.
+Version 1.0.5 introduced a completely redesigned, integrated animation system built from the ground up for Galileo Glass UI. This system prioritizes **realistic physics-based motion**, **performance**, **accessibility**, and a **unified developer experience**, replacing previous methods and external dependencies.
 
 ### Animation Principles
 
-- **Purpose**: Animations should guide attention, provide feedback, or express brand personality  
-- **Natural Motion**: Mimic natural physics with appropriate easing and timing  
-- **Subtlety**: Enhance the experience without being distracting  
-- **Consistency**: Keep animation patterns consistent throughout the application  
-- **Accessibility**: Respect user preferences for reduced motion  
-- **Performance**: Optimize animations across all devices  
+- **Natural Motion**: Leverage spring physics for organic, responsive movement that mimics the real world.
+- **Purposeful Interaction**: Animations should provide clear feedback, guide attention, and enhance usability without being distracting.
+- **Performance First**: Ensure smooth 60fps animations across devices through adaptive quality scaling and GPU acceleration.
+- **Accessibility Centric**: Comprehensive support for reduced motion preferences with fine-grained control.
+- **Consistency**: Provide a unified set of hooks and patterns for all animations.
 
 ### Animation Architecture
 
-- **React Spring**: Physics-based animations with natural motion  
-- **Framer Motion**: Gesture handling and advanced transitions  
-- **Popmotion**: Animation primitives and sophisticated easing functions  
+The new system is built around a core set of integrated modules:
 
-Proprietary extensions:
-- **Z-Space Animation System**: Custom 3D space management for glass depth  
-- **Animation Choreography System**: Orchestration for coordinated animations  
-- **Glass-Specific Physics**: Custom material properties for glass interactions  
+- **Physics Engine (`galileoPhysicsSystem.ts`)**: Manages spring calculations, collision detection, forces, and performance optimizations.
+- **Interaction Hooks**: Provide easy-to-use abstractions for common animation scenarios:
+    - `usePhysicsInteraction`: For hover/press effects on elements.
+    - `useGalileoStateSpring`: For animating single numerical values.
+    - `useMultiSpring`: For animating multiple values (vectors) concurrently.
+    - `useGesturePhysics`: For physics-based responses to user gestures.
+- **Orchestration (`useAnimationSequence`)**: Enables complex, timed, and dependent sequences.
+- **Accessibility (`useReducedMotion`)**: Manages user preferences for reduced motion, sensitivity levels, categories, and alternatives.
+- **Adaptive Performance**: Modules like `useDeviceCapabilities` and `useQualityTier` adjust animation fidelity based on the runtime environment.
+- **Rendering**: Primarily uses `requestAnimationFrame` for direct style manipulation, ensuring optimal control and performance.
 
-### Performance-Optimized Animation System
+### Core Animation Hooks
 
-1. **Quality-Adaptive Animations**  
-2. **Motion Sensitivity System**  
-3. **GPU Acceleration**  
-4. **Animation Repository**  
+These hooks are the primary tools for implementing animations:
 
-### Dimensional Depth Animation System
-
-```tsx
-import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
-import { ZSpaceLayer } from '../../design/animations/dimensional/ZSpaceAnimation';
-
-function ZSpaceComponent() {
-  const { animate, styles } = useZSpaceAnimation({
-    fromLayer: ZSpaceLayer.SURFACE,
-    toLayer: ZSpaceLayer.FOREGROUND,
-    trajectory: 'forward',
-    atmosphericFog: true,
-    depthShadows: true
+- **`usePhysicsInteraction`**: Apply physics (spring, magnetic) to elements on hover/press. Ideal for buttons, cards, interactive elements.
+  ```tsx
+  import { usePhysicsInteraction } from '../../hooks/usePhysicsInteraction';
+  
+  const { ref, style, eventHandlers } = usePhysicsInteraction({
+    animationConfig: 'gentle', // Use context presets
+    affectsScale: true,
+    scaleAmplitude: 0.05
   });
+  // Apply ref, style, eventHandlers to the element
+  ```
+- **`useGalileoStateSpring`**: Animate a single number (e.g., opacity, height).
+  ```tsx
+  import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
   
-  return (
-    <div style={styles} onClick={() => animate()}>
-      Click to animate in Z-Space
-    </div>
-  );
-}
-```
-
-### Micro-Interaction Choreography
-
-```tsx
-import { useOrchestration } from '../../hooks/useOrchestration';
-import { gestaltPatterns } from '../../design/animations/orchestration/GestaltPatterns';
-
-function OrchestrationDemo() {
-  const elementRefs = {
-    hero: useRef(null),
-    subtitle: useRef(null),
-    cards: [useRef(null), useRef(null), useRef(null)]
-  };
-  
-  const { playSequence } = useOrchestration(
-    gestaltPatterns.hierarchicalReveal(elementRefs, {
-      continuity: 'smooth',
-      pacing: 'natural'
-    })
-  );
-  
-  useEffect(() => {
-    playSequence();
-  }, []);
-  
-  return (
-    <div>
-      <h1 ref={elementRefs.hero}>Title</h1>
-      <p ref={elementRefs.subtitle}>Subtitle</p>
-      {elementRefs.cards.map((ref, i) => (
-        <div key={i} ref={ref}>Card {i+1}</div>
-      ))}
-    </div>
-  );
-}
-```
-
-### Enhanced Accessibility System
-
-```tsx
-import { MotionSensitivity } from '../../design/animations/accessibility/MotionSensitivity';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
-
-function AccessibleComponent() {
-  const { motionSensitivity } = useReducedMotion();
-  
-  let animationVariant;
-  switch(motionSensitivity) {
-    case MotionSensitivity.NONE:
-      animationVariant = "none";
-      break;
-    case MotionSensitivity.MINIMAL:
-      animationVariant = "opacity";
-      break;
-    case MotionSensitivity.REDUCED:
-      animationVariant = "subtle";
-      break;
-    default:
-      animationVariant = "standard";
-  }
-  
-  return (
-    <AnimatedElement variant={animationVariant}>
-      Motion-sensitive content
-    </AnimatedElement>
-  );
-}
-```
-
-### Animation Implementation
-
-```tsx
-import { 
-  slideInBottom,
-  fadeIn,
-  createGlassReveal,
-  naturalTimingFunctions
-} from '../../design/enhancedAnimations';
-
-const EnhancedComponent = styled.div`
-  ${slideInBottom.animation(0.5, 'standardSpring')}
-`;
-
-const CustomComponent = styled.div`
-  ${fadeIn.animation(0.3, { dampingRatio: 0.7, frequency: 2.5 })}
-`;
-```
-
-### Using the Optimized Animation Hook
-
-```tsx
-import { useOptimizedAnimation } from '../../hooks/useOptimizedAnimation';
-import { fadeIn } from '../../design/animations/keyframes';
-
-function PerformanceOptimizedComponent() {
-  const { animationProps, shouldAnimate } = useOptimizedAnimation({
-    animation: fadeIn,
-    duration: 0.3,
-    easing: 'ease-out',
-    reducedMotionAlternative: 'opacity',
-    qualityTierAdjustments: true
+  const { value: opacity } = useGalileoStateSpring(isVisible ? 1 : 0, {
+    animationConfig: 'DEFAULT'
   });
+  // Use opacity in style={{ opacity }}
+  ```
+- **`useMultiSpring`**: Animate multiple numbers simultaneously (e.g., position, scale).
+  ```tsx
+  import { useMultiSpring } from '../../animations/physics/useMultiSpring';
   
-  return shouldAnimate ? (
-    <div style={animationProps}>
-      Performance-optimized animation
-    </div>
-  ) : (
-    <div>Static alternative</div>
-  );
-}
-```
+  const { values } = useMultiSpring({
+    from: { x: 0, scale: 1 },
+    to: { x: 100, scale: 1.1 },
+    animationConfig: 'wobbly'
+  });
+  // Use values.x, values.scale in transform style
+  ```
+- **`useAnimationSequence`**: Create complex sequences with timing, dependencies, and staggering.
+  ```tsx
+  import { useAnimationSequence } from '../../animations/orchestration/useAnimationSequence';
 
-### Animation Utilities
+  const controls = useAnimationSequence({
+    stages: [
+      { id: 'fade', type: 'style', targets: '#el', duration: 500, from: { opacity: 0 }, to: { opacity: 1 } },
+      { id: 'move', type: 'style', targets: '#el', duration: 800, dependsOn: ['fade'], to: { transform: 'translateX(100px)' } }
+    ]
+  });
+  // Use controls.play(), controls.pause(), etc.
+  ```
 
-#### accessibleAnimation()
+**For detailed API and usage, see:**
+- [Core Physics Hooks Documentation](../../animations/physics-hooks.md)
+- [Sequence Orchestration Documentation](../../animations/orchestration.md)
+
+### Performance & Optimization
+
+- **Adaptive Quality**: Automatically adjusts physics precision and effect fidelity based on device capabilities.
+- **Object Sleeping**: Physics calculations pause for elements at rest.
+- **GPU Acceleration**: Utilizes `transform: translate3d` and `will-change` where appropriate.
+- **Efficient Updates**: Optimized `requestAnimationFrame` loop.
+
+### Accessibility (`useReducedMotion`)
+
+The system provides robust accessibility support via the `useReducedMotion` hook:
+- Detects system `prefers-reduced-motion`.
+- Allows app-level overrides and persistence via `localStorage`.
+- Supports **Motion Sensitivity Levels** (Low, Medium, High) to fine-tune animation intensity.
+- Uses **Animation Categories** (Essential, Transition, Feedback, etc.) to allow selective disabling/modification.
+- Provides **Alternative Animations** (Fade, Static, etc.) when motion is reduced.
+
+Components internally use `useReducedMotion` to check `prefersReducedMotion`, `isAnimationAllowed(category)`, `getAdjustedDuration()`, etc., to adapt behavior.
+
+**For details, see:** [Animation Accessibility Documentation](../../animations/accessibility.md)
+
+### Configuration (`useAnimationContext`)
+
+Default animation behaviors (especially spring presets) can be configured globally using `AnimationProvider`.
 
 ```tsx
-accessibleAnimation({
-  animation: keyframe,     
-  duration: 0.3,          
-  easing: 'ease',         
-  delay: 0,               
-  iterationCount: 1,      
-  direction: 'normal',    
-  fillMode: 'none',       
-  themeContext: themeContext
-});
+import { AnimationProvider } from '../../contexts/AnimationContext';
+
+<AnimationProvider value={{ defaultSpring: 'gentle', pressSpringConfig: 'SNAPPY' }}>
+  {/* App components */} 
+</AnimationProvider>
 ```
 
-#### createStaggered()
+Components use `useAnimationContext` to consume these defaults, ensuring consistency.
 
-```tsx
-createStaggered(
-  animation,      
-  index,          
-  baseDelay = 0.1,
-  staggerDelay = 0.05,
-  duration = 0.4,
-  easing = 'standardSpring'
-)
-```
+**For details, see:** [Context & Configuration Documentation](../../animations/context-config.md)
 
 ### Timing Guidelines
 
-| Animation Type         | Recommended Duration | Examples                                     |
-|------------------------|---------------------:|----------------------------------------------|
-| Micro-interactions     | 100–300ms           | Button clicks, toggles, small state changes  |
-| UI Entrances/Exits     | 200–500ms           | Component entrances, modal dialogs           |
-| Complex Transitions    | 400–800ms           | Page transitions, complex view changes       |
-| Attention Effects      | 500–1500ms          | Often looped or repeated                     |
+While physics-based animations don't have fixed durations, the perceived speed is controlled by `tension` and `friction` (or presets). General timing goals remain similar:
+
+| Interaction Type       | Goal           | Typical Presets              |
+|------------------------|----------------|------------------------------|
+| Micro-interactions     | Quick Feedback | `SNAPPY`, `PRESS_FEEDBACK`, `HOVER_QUICK` |
+| UI Entrances/Exits     | Smooth & Clear | `DEFAULT`, `GENTLE`, `MODAL_TRANSITION` |
+| Complex Transitions    | Engaging Flow  | `GENTLE`, `WOBBLY` (use carefully) |
+| Attention Effects      | Noticeable     | `BOUNCY`, `ELASTIC` (use sparingly) |
 
 ---
 
@@ -1494,73 +1366,56 @@ import { ContextAwareGlass } from '../../components/Glass';
    </GlassContainer>
    
 
-### Animation Guidelines
+### Animation Guidelines (v1.0.5+)
 
-1. **Always Use CSS Helper with Keyframes**:
-   
-   import { css } from 'styled-components';
-   import { fadeIn } from '../../design/animations';
-   
-   // Correct: Wrap keyframes with css helper
-   const AnimatedComponent = styled.div`
-     animation: ${css`${fadeIn}`} 0.5s ease-out;
-   `;
-   
-   // Alternatively, use animation utility functions
-   
-2. **Use Animation Utility Functions**:
-   
-   import { animate, accessibleAnimation } from '../../design/animationUtils';
-   import { fadeIn } from '../../design/animations';
-   
-   const Component = styled.div`
-     ${animate({
-       animation: fadeIn,
-       duration: 0.3,
-       easing: 'ease-out'
-     })}
-     
-     ${accessibleAnimation({
-       animation: fadeIn,
-       duration: 0.3,
-       easing: 'ease-out'
-     })}
-   `;
-   
-3. **Honor Reduced Motion Preferences**:
-   
-   const AccessibleComponent = styled.div`
-     ${accessibleAnimation({
-       animation: fadeIn,
-       duration: 0.3
-     })}
-   `;
-   
-4. **Use Animation Keyframes from Central Libraries**:
-   
-   import { fadeIn, slideUp, pulse } from '../../design/animations';
-   
-5. **Performance Considerations**:
-   - Prefer animating `transform` and `opacity`  
-   - Avoid animating layout properties (`width`, `height`, `position`)  
-   - Use `will-change` sparingly  
-   - Reduce complexity on lower-end devices  
+1.  **Use Core Animation Hooks:**
+    *   Prefer the provided hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useAnimationSequence`) over direct CSS transitions/animations or external libraries (like Framer Motion, which has been removed).
+    *   Choose the appropriate hook for the task (single value, multiple values, interaction, sequence).
+2.  **Leverage Animation Context & Presets:**
+    *   Use `useAnimationContext` to consume default spring configurations.
+    *   Prefer using standard preset names (e.g., `'gentle'`, `'PRESS_FEEDBACK'`) passed to the `animationConfig` prop of hooks for consistency.
+    *   Define custom `SpringConfig` objects (`{ tension, friction, mass }`) only when necessary.
+3.  **Prioritize Performance:**
+    *   The new system is optimized, but be mindful of animating many elements simultaneously, especially with complex sequences or physics.
+    *   Rely on the built-in adaptive performance features.
+    *   Continue to prefer animating `transform` and `opacity` where applicable, although the hooks manage this internally.
+    *   Use `will-change` judiciously if profiling reveals specific bottlenecks not handled by the hooks.
+4.  **Ensure Accessibility:**
+    *   Assign meaningful `AnimationCategory` values where appropriate (though hooks often infer this).
+    *   Rely on the `useReducedMotion` hook (used internally by core hooks) to handle `prefers-reduced-motion`.
+    *   Test components with reduced motion enabled.
+    *   Provide non-animation alternatives for conveying critical information if complex animations are used.
+5.  **Keep Animations Purposeful:**
+    *   Ensure animations serve a purpose (feedback, guidance, delight) and aren't purely decorative unless appropriate and controllable (e.g., background effects).
+    *   Follow recommended timing/feel guidelines by using appropriate presets.
 
 ---
 
 ## Accessibility
 
+Galileo Glass UI is designed with accessibility as a fundamental principle.
+
 ### Contrast Requirements
 
-- **Minimum 4.5:1** contrast ratio for text on glass (WCAG 2.1 AA)  
-- **7:1** ratio for highly important text (AAA compliance)  
-- Distinctive focus states for interactive elements (3:1 contrast)  
+- **Minimum 4.5:1** contrast ratio for text on glass (WCAG 2.1 AA).
+- **7:1** ratio for highly important text (AAA compliance) recommended.
+- Distinctive focus states for interactive elements (minimum 3:1 contrast ratio for the focus indicator against its background).
 
-### Reduced Motion
+### Reduced Motion (v1.0.5+)
 
-- All Glass UI animations respect `prefers-reduced-motion`  
-- Use the `accessibleAnimation` utility for consistent handling  
-- Provide static alternatives for highly animated elements  
+- **Comprehensive Support:** The framework deeply integrates accessibility for motion sensitivity using the `useReducedMotion` hook.
+- **System & App Settings:** Detects `prefers-reduced-motion` and allows persistent app-level overrides via `localStorage`.
+- **Fine-Grained Control:** Supports sensitivity levels, animation categories, and alternative animation types (e.g., fade, static).
+- **Automatic Adaptation:** Core animation hooks (`usePhysicsInteraction`, `useGalileoStateSpring`, etc.) automatically respect these preferences, often disabling or modifying animations appropriately.
+- **Developer Guidance:** See the dedicated [Animation Accessibility Documentation](../../animations/accessibility.md) for details on using `useReducedMotion` and best practices.
+
+### Keyboard Navigation & Focus Management
+- All interactive components are designed for full keyboard navigability (Tab, Shift+Tab, Arrow keys where appropriate).
+- Focus indicators (`GlassFocusIndicator`) are clearly visible and respect reduced motion.
+- Focus is managed logically within complex components like Modals, Drawers, and Menus.
+
+### ARIA Attributes
+- Appropriate ARIA roles, states, and properties are used to ensure compatibility with screen readers and other assistive technologies.
 
 ---
 

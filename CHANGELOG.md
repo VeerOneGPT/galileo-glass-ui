@@ -1,5 +1,50 @@
 # Galileo Glass UI Changelog
 
+## [1.0.6] - YYYY-MM-DD
+
+### Fixed
+
+*   Resolved build errors related to invalid TypeScript declaration (`.d.ts`) file generation. Specifically addressed issues caused by `PropTypes` type inference within dependencies (like `@types/react`), which resulted in incorrect syntax (e.g., `= undefined<T>;`) in the bundled declaration files (`animations.d.ts`, `hooks.d.ts`, `index.d.ts`). Implemented a post-build patching step in `rollup.config.js` to correct this syntax automatically.
+*   Updated build process dependencies (`rollup-plugin-terser` replaced with `@rollup/plugin-terser`) and configuration (`rollup.config.js`) to ensure compatibility with Rollup 3.
+*   Corrected component exports (`BottomNavigation`) that were preventing successful builds.
+
+## [1.0.5] - YYYY-MM-DD
+
+This major release introduces a comprehensive overhaul of the animation system, replacing previous methods (CSS transitions, Framer Motion) with a unified, physics-based system powered by React Spring and custom Galileo hooks. It also includes significant documentation updates and component integrations.
+
+### Added
+
+*   **New Physics-Based Animation System:**
+    *   Introduced core hooks: `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`.
+    *   Added transition management hooks: `useTransitioningState`, `useDropdownTransition`.
+    *   Implemented animation sequence orchestration: `useAnimationSequence`.
+    *   Created `AnimationProvider` and `useAnimationContext` for global configuration and presets.
+    *   Integrated `useReducedMotion` for enhanced accessibility.
+    *   Specialized hooks like `useInertialMovement`, `useMagneticElement` (details in component integrations).
+*   **Comprehensive Animation Documentation:**
+    *   Added new documentation sections for [Physics Hooks](../docs/animations/physics-hooks.md), [Transition Hooks](../docs/animations/transition-hooks.md), [Orchestration](../docs/animations/orchestration.md), [Context/Config](../docs/animations/context-config.md), and [Accessibility](../docs/animations/accessibility.md).
+    *   Added an [Animation Migration Guide](../docs/migration/animation-migration-v1.0.5.md).
+*   **Component Animation Integration:**
+    *   Refactored numerous components (Buttons, Inputs, Modals, Menus, Cards, Navigation, etc.) to use the new animation system (see integration checklist in `animate2.md` for full list).
+    *   Removed Framer Motion dependency from components like `TreeView`.
+    *   Standardized animations across the library using context presets.
+
+### Changed
+
+*   **BREAKING CHANGE:** Removed internal usage of Framer Motion. Projects relying on Framer Motion within Galileo components may need updates.
+*   **BREAKING CHANGE:** CSS transitions/animations previously applied to Galileo components for interactions might be overridden or removed. Rely on the new animation hooks and props (`animationConfig`, `disableAnimation`).
+*   Updated base component types (e.g., Buttons) to include optional `AnimationProps`.
+
+### Removed
+
+*   Framer Motion dependency (implicitly removed where replaced).
+*   Legacy animation-related CSS from core components.
+*   Old animation documentation files.
+
+### Fixed
+
+*   Addressed various import errors, type errors, and linter warnings encountered during the animation system integration (see checklist in `animate2.md` for specifics).
+
 ## [1.0.4] - 2024-08-23
 
 This maintenance release focuses on chart visualizations and data presentation capabilities, adding several improvements to the GlassDataChart component.

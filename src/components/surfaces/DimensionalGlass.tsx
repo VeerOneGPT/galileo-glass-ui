@@ -3,12 +3,16 @@
  *
  * A glass surface with enhanced depth and dimensional effects.
  */
-import React, { forwardRef, useState, useRef, useEffect } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useMemo } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { AnimationProps } from '../../animations/types';
 
 import { DimensionalGlassProps } from './types';
 
@@ -17,6 +21,12 @@ const float = keyframes`
   0% { transform: translateY(0px) translateZ(0); }
   50% { transform: translateY(-5px) translateZ(20px); }
   100% { transform: translateY(0px) translateZ(0); }
+`;
+
+// Add internal content wrapper to apply tilt/scale without affecting layout
+const DimensionalContent = styled.div`
+  transform-style: preserve-3d;
+  will-change: transform;
 `;
 
 // Styled components
@@ -39,6 +49,8 @@ const DimensionalContainer = styled.div<{
   $backgroundColor: string;
   $isHovered: boolean;
   $reducedMotion: boolean;
+  $maxTilt?: number;
+  $hoverScale?: number;
 }>`
   position: relative;
   display: block;
@@ -84,22 +96,8 @@ const DimensionalContainer = styled.div<{
 
   /* Depth effect using transform and shadow */
   transform-style: preserve-3d;
-  transform: ${props =>
-    props.$animate && !props.$reducedMotion
-      ? 'translateZ(0)'
-      : props.$parallax && props.$isHovered
-      ? `translateZ(${props.$depth * 20}px)`
-      : `translateZ(0)`};
-
-  /* Shadow based on depth */
-  box-shadow: ${props =>
-    props.$dynamicShadow && props.$isHovered
-      ? `0 ${10 + props.$depth * 10}px ${20 + props.$depth * 20}px rgba(0, 0, 0, 0.3)`
-      : `0 ${5 + props.$depth * 5}px ${10 + props.$depth * 10}px rgba(0, 0, 0, 0.2)`};
-
-  /* Transition for interactive effects */
-  transition: ${props =>
-    !props.$reducedMotion ? 'transform 0.3s ease, box-shadow 0.3s ease' : 'none'};
+  /* Base transform for depth/shadow, hover effect applied to inner Content */
+  transform: ${props => `translateZ(${props.$isHovered ? props.$depth * 10 : 0}px)`};
 
   /* Animation if enabled */
   ${props =>
@@ -109,41 +107,10 @@ const DimensionalContainer = styled.div<{
       animation: ${float} 6s ease-in-out infinite;
     `}
 
-  /* Interactive hover effect */
-  ${props =>
-    props.$interactive &&
-    !props.$reducedMotion &&
-    `
-    &:hover {
-      transform: translateZ(${props.$depth * 10}px);
-      box-shadow: 0 ${10 + props.$depth * 5}px ${20 + props.$depth * 10}px rgba(0, 0, 0, 0.25);
-    }
-  `}
-  
   /* Perspective effect for children */
   & > * {
     transform: translateZ(${props => props.$depth * 5}px);
   }
-`;
-
-// Inner content with enhanced depth
-const DimensionalContent = styled.div<{
-  $depth: number;
-  $parallax: boolean;
-  $isHovered: boolean;
-  $reducedMotion: boolean;
-}>`
-  position: relative;
-  z-index: 1;
-
-  /* Parallax effect for children if enabled */
-  ${props =>
-    props.$parallax &&
-    !props.$reducedMotion &&
-    `
-    transform: ${props.$isHovered ? `translateZ(${props.$depth * 10}px)` : 'translateZ(0)'};
-    transition: transform 0.3s ease;
-  `}
 `;
 
 /**
@@ -168,72 +135,96 @@ function DimensionalGlassComponent(
     interactive = true,
     padding = 16,
     depth = 0.5,
-    parallax = true,
     dynamicShadow = true,
     animate = false,
     zIndex = 1,
     backgroundColor = 'rgba(255, 255, 255, 0.1)',
+    maxTilt = 5,
+    hoverScale = 1.02,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
+  // Get context and reduced motion preference
+  const { defaultSpring } = useAnimationContext();
   const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const usePhysics = interactive && !finalDisableAnimation;
 
-  // State for hover effects
-  const [isHovered, setIsHovered] = useState(false);
-
-  // Refs for parallax effect
+  // --- Physics Interaction Setup --- 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Handle mouse events for parallax effect
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!parallax || !containerRef.current || prefersReducedMotion) return;
-
-    // Calculate mouse position relative to the container
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Calculate rotation based on mouse position
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const rotateX = ((y - centerY) / (rect.height / 2)) * (depth * 5);
-    const rotateY = ((centerX - x) / (rect.width / 2)) * (depth * 5);
-
-    // Apply rotation transform
-    if (containerRef.current) {
-      containerRef.current.style.transform = `
-        perspective(1000px) 
-        rotateX(${rotateX}deg) 
-        rotateY(${rotateY}deg) 
-        translateZ(${depth * 10}px)
-      `;
+  // Calculate final physics configuration
+  const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
+    const baseOptions: Partial<PhysicsInteractionOptions> = {
+      affectsScale: true,
+      affectsRotation: true,
+      scaleAmplitude: hoverScale - 1, // Convert hoverScale to amplitude
+      rotationAmplitude: maxTilt, 
+      // Add defaults for spring based on context or presets
+    };
+    
+    let contextResolvedConfig: Partial<SpringConfig> = {};
+    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+      contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+    } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+      contextResolvedConfig = defaultSpring;
     }
-  };
-
-  const handleMouseOut = () => {
-    if (!parallax || !containerRef.current || prefersReducedMotion) return;
-
-    // Reset transform when mouse leaves
-    if (containerRef.current) {
-      containerRef.current.style.transform =
-        'perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0)';
+    
+    let propResolvedConfig: Partial<PhysicsInteractionOptions> = {}; // Use PhysicsInteractionOptions here
+    const configProp = animationConfig;
+    if (typeof configProp === 'string' && configProp in SpringPresets) {
+      const preset = SpringPresets[configProp as keyof typeof SpringPresets];
+      propResolvedConfig = { stiffness: preset.tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(preset.tension * (preset.mass ?? 1))) : undefined, mass: preset.mass };
+    } else if (typeof configProp === 'object' && configProp !== null) {
+        // Check if it looks like PhysicsInteractionOptions first
+        if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp || 'scaleAmplitude' in configProp || 'rotationAmplitude' in configProp) {
+           propResolvedConfig = configProp as Partial<PhysicsInteractionOptions>;
+        } 
+        // Fallback to checking if it looks like SpringConfig
+        else if ('tension' in configProp || 'friction' in configProp) {
+          const preset = configProp as Partial<SpringConfig>;
+          const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
+          const mass = preset.mass ?? 1;
+          propResolvedConfig = { stiffness: tension, dampingRatio: preset.friction ? preset.friction / (2 * Math.sqrt(tension * mass)) : undefined, mass: mass };
+        }
     }
-  };
+
+    const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness ?? SpringPresets.DEFAULT.tension;
+    const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1;
+    const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
+                              (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt(finalStiffness * calculatedMass)) : baseOptions.dampingRatio ?? 0.5);
+    const finalMass = calculatedMass;
+
+    // Merge all options: Prop Config > Base Options derived from props > Context Config > Hardcoded Base
+    return {
+      ...baseOptions, // Start with base scale/rotation settings derived from props
+      stiffness: finalStiffness,
+      dampingRatio: finalDampingRatio,
+      mass: finalMass,
+      // Explicitly apply overrides from propResolvedConfig if they exist
+      ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
+      ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
+      ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
+      ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
+      ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
+      ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
+      ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+    };
+  }, [defaultSpring, animationConfig, motionSensitivity, hoverScale, maxTilt]);
+
+  // Initialize the physics interaction hook
+  const { style: physicsStyle, eventHandlers } = usePhysicsInteraction<HTMLDivElement>({
+    ...finalInteractionConfig,
+    reducedMotion: !usePhysics, // Pass the final disable flag
+  });
+  // --- End Physics Interaction Setup --- 
 
   // Use forwarded ref and local ref
   const setRefs = (element: HTMLDivElement) => {
     containerRef.current = element;
-
-    // Handle the forwarded ref
     if (typeof ref === 'function') {
       ref(element);
     } else if (ref) {
@@ -241,15 +232,13 @@ function DimensionalGlassComponent(
     }
   };
 
+  // Combine styles
+  const combinedStyle = useMemo(() => ({ ...style, ...physicsStyle }), [style, physicsStyle]);
+
   return (
     <DimensionalContainer
       ref={setRefs}
       className={className}
-      style={style}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      onMouseMove={handleMouseMove}
-      onMouseOut={handleMouseOut}
       $elevation={elevation}
       $blurStrength={blurStrength}
       $opacity={opacity}
@@ -261,21 +250,17 @@ function DimensionalGlassComponent(
       $interactive={interactive}
       $padding={padding}
       $depth={depth}
-      $parallax={parallax}
+      $parallax={false}
       $dynamicShadow={dynamicShadow}
       $animate={animate}
       $zIndex={zIndex}
       $backgroundColor={backgroundColor}
-      $isHovered={isHovered}
+      $isHovered={false}
       $reducedMotion={prefersReducedMotion}
+      {...(usePhysics ? eventHandlers : {})}
       {...rest}
     >
-      <DimensionalContent
-        $depth={depth}
-        $parallax={parallax}
-        $isHovered={isHovered}
-        $reducedMotion={prefersReducedMotion}
-      >
+      <DimensionalContent style={combinedStyle}>
         {children}
       </DimensionalContent>
     </DimensionalContainer>

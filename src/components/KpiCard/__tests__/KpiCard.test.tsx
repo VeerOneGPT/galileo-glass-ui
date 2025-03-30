@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 
 import { ThemeProvider } from '../../../theme/ThemeProvider';
-import { KpiCard, GlassKpiCard } from '../KpiCard';
+import { KpiCard } from '../KpiCard';
 
 // Test wrapper with ThemeProvider
 const renderWithTheme = (ui: React.ReactElement) => {
@@ -115,19 +115,5 @@ describe('KpiCard Component', () => {
     );
 
     expect(screen.getByText('Extra information')).toBeInTheDocument();
-  });
-});
-
-describe('GlassKpiCard Component', () => {
-  test('renders with glass styling enabled', () => {
-    renderWithTheme(<GlassKpiCard title="Glass Effect" value={999} />);
-
-    expect(screen.getByText('Glass Effect')).toBeInTheDocument();
-    expect(screen.getByText('999')).toBeInTheDocument();
-
-    // The card should have glass set to true, but we can't directly test styled-component props
-    // Instead, we can verify the component renders
-    const card = screen.getByText('Glass Effect').closest('div');
-    expect(card).toBeInTheDocument();
   });
 });

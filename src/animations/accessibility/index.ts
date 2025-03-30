@@ -30,3 +30,50 @@ export * from './ReducedMotionAlternatives';
 
 // Export intelligent fallbacks
 export * from './IntelligentFallbacks';
+
+// Export accessibility hooks
+export { default as useReducedMotion } from './useReducedMotion';
+export { default as useHighContrast } from './useHighContrast';
+
+// Export focus animation utilities
+export {
+  useAccessibleFocusAnimation,
+  createAccessibleFocusAnimation,
+  focusAnimation,
+  mapFocusToHighContrastType,
+  FocusAnimationStyle,
+  FocusAnimationIntensity
+} from './AccessibleFocusAnimation';
+
+// Export animation pause controls
+export {
+  AnimationPauseControllerProvider,
+  useAnimationPauseController,
+  useControllableAnimation,
+  usePauseableAnimation,
+  createGlobalPauseControl,
+  installGlobalPauseControl,
+  removeGlobalPauseControl,
+  createAnimationPauseButton,
+  installAnimationPauseButton,
+  removeAnimationPauseButton,
+  autoInstallAnimationControls,
+  type AnimationControlInterface,
+  type AnimationControlOptions,
+  type AnimationPauseControllerContextType
+} from './AnimationPauseController';
+
+// Export vestibular fallbacks
+export {
+  useVestibularFallback,
+  vestibularFallback,
+  createVestibularFallback,
+  setVestibularFallbackPreferences,
+  getVestibularFallbackPreferences,
+  resetVestibularFallbackPreferences,
+  FeedbackType,
+  StateChangeType,
+  ImportanceLevel,
+  type VestibularFallbackOptions,
+  type FeedbackThresholds
+} from './VestibularFallbacks';

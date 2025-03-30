@@ -203,3 +203,21 @@ If you're still experiencing problems after trying these solutions:
 1. Check the [GitHub issues](https://github.com/VeerOneGPT/galileo-glass-ui/issues) to see if your problem has been reported
 2. Create a new issue with detailed reproduction steps
 3. Try the minimal reproduction in [CodeSandbox](https://codesandbox.io) to isolate the problem
+
+npm install chart.js react-chartjs-2
+
+### Problem: VirtualizedList or DataGrid components are not working.
+
+**Cause**: Missing optional peer dependencies (`react-virtual` or `react-window`).
+
+**Solution**: Install the required dependency:
+
+```bash
+# For VirtualizedList
+npm install react-virtual
+
+# For DataGrid
+npm install react-window
+```
+
+## Styling Issues

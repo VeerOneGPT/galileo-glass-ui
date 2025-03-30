@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect, useCallback } from 'react';
+import React, { forwardRef, useState, useEffect, useCallback, useRef, useMemo, ForwardedRef, ReactNode } from 'react';
 import styled from 'styled-components';
 
 import { glowEffects } from '../../core/mixins/effects/glowEffects';
@@ -6,11 +6,17 @@ import { glassBorder } from '../../core/mixins/glassBorder';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { Badge } from '../Badge';
+import { Badge } from '../Badge/Badge';
 import { Box } from '../Box';
 import { Button } from '../Button';
-import { Icon } from '../Icon';
-import { Tooltip } from '../Tooltip';
+import { Icon } from '../Icon/Icon';
+import { Tooltip } from '../Tooltip/Tooltip';
+import { useMultiSpring } from '../../animations/physics/useMultiSpring';
+import { AnimationProps } from '../../types/animation';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useGalileoSprings } from '../../hooks/useGalileoSprings';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { PhysicsConfig } from '../../animations/physics/galileoPhysicsSystem';
 
 import { GlassNavigationProps, NavigationItem } from './types';
 
@@ -152,12 +158,24 @@ const ActionsContainer = styled.div`
   gap: 0.75rem;
 `;
 
+const ActiveIndicator = styled.div.attrs<{ $style: React.CSSProperties }>(props => ({
+  style: props.$style,
+}))<{ $style: React.CSSProperties }>`
+  position: absolute;
+  background-color: ${props => props.theme.palette?.primary?.main || '#1976d2'};
+  border-radius: 2px;
+  z-index: 0;
+  pointer-events: none;
+  will-change: left, top, width, height;
+`;
+
 const NavItem = styled.li<{
   $isActive: boolean;
   $disabled: boolean;
   $variant: GlassNavigationProps['variant'];
 }>`
   position: relative;
+  z-index: 1;
 
   a,
   button {
@@ -176,7 +194,7 @@ const NavItem = styled.li<{
     border: none;
     background: none;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, transform 0.1s;
+    transition: transform 0.1s;
     opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
     pointer-events: ${({ $disabled }) => ($disabled ? 'none' : 'auto')};
 
@@ -188,22 +206,6 @@ const NavItem = styled.li<{
       transform: scale(0.98);
     }
   }
-
-  ${({ $isActive, theme }) =>
-    $isActive &&
-    `
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 20px;
-      height: 3px;
-      background-color: ${theme.palette?.primary?.main || '#1976d2'};
-      border-radius: 4px;
-    }
-  `}
 `;
 
 const ChildrenContainer = styled.ul<{
@@ -215,11 +217,8 @@ const ChildrenContainer = styled.ul<{
   background: rgba(255, 255, 255, 0.08);
   border-radius: 6px;
   margin-top: 0.25rem;
-  max-height: ${({ $isOpen }) => ($isOpen ? '500px' : '0')};
   overflow: hidden;
-  transition: max-height 0.3s ease;
-  opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
-  visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
+  will-change: max-height, opacity;
 `;
 
 const MobileMenuButton = styled.button`
@@ -312,14 +311,81 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
       initialCollapsed = false,
       ...rest
     }: GlassNavigationProps,
-    ref
-  ) => {
+    ref: ForwardedRef<HTMLDivElement>
+  ): React.ReactElement | null => {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [expandedItems, setExpandedItems] = useState<string[]>(initialExpandedItems);
     const [collapsed, setCollapsed] = useState(initialCollapsed);
     const prefersReducedMotion = useReducedMotion();
+    const navItemsRef = useRef<HTMLUListElement>(null);
+    const itemRefs = useRef<Record<string, HTMLLIElement | null>>({});
+    const { defaultSpring } = useAnimationContext();
 
-    // Handle mobile menu toggle
+    const finalChildAnimationConfig = useMemo(() => {
+      const baseFallback: SpringConfig = SpringPresets.DEFAULT; 
+      let resolvedConfig: SpringConfig;
+
+      if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+        resolvedConfig = { ...baseFallback, ...defaultSpring };
+      } else if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+        resolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else {
+        resolvedConfig = baseFallback;
+      }
+      
+      return resolvedConfig;
+    }, [defaultSpring]);
+
+    const disableChildAnimation = useMemo(() => {
+      return prefersReducedMotion;
+    }, [prefersReducedMotion]);
+
+    const initialIndicatorStyle = { left: 0, top: 0, width: 0, height: 0, opacity: 0 }; 
+    const { values: indicatorStyle, start: animateIndicator } = useMultiSpring({
+      from: initialIndicatorStyle,
+      animationConfig: { tension: 300, friction: 30 },
+      autoStart: false,
+    });
+
+    useEffect(() => {
+      if (disableChildAnimation) {
+        animateIndicator({ 
+          to: { ...indicatorStyle, opacity: 0 }, 
+        });
+        return;
+      }
+
+      const activeElement = activeItem ? itemRefs.current[activeItem] : null;
+      const containerElement = navItemsRef.current;
+
+      if (activeElement && containerElement) {
+        const itemRect = activeElement.getBoundingClientRect();
+        const containerRect = containerElement.getBoundingClientRect();
+
+        let newStyle: typeof initialIndicatorStyle;
+        if (position === 'left' || position === 'right') {
+          newStyle = {
+            left: position === 'left' ? 0 : containerRect.width - 3,
+            top: itemRect.top - containerRect.top,
+            width: 3,
+            height: itemRect.height,
+            opacity: 1,
+          };
+        } else {
+          newStyle = {
+            left: itemRect.left - containerRect.left,
+            top: position === 'top' ? containerRect.height - 3 : 0,
+            width: itemRect.width,
+            height: 3,
+            opacity: 1,
+          };
+        }
+        animateIndicator({ to: newStyle });
+      } else {
+        animateIndicator({ to: { ...indicatorStyle, opacity: 0 } });
+      }
+    }, [activeItem, position, collapsed, disableChildAnimation, animateIndicator, indicatorStyle]);
+
     const toggleMobileMenu = useCallback(() => {
       const newState = !mobileMenuOpen;
       setMobileMenuOpen(newState);
@@ -328,7 +394,6 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
       }
     }, [mobileMenuOpen, onMenuToggle]);
 
-    // Handle item click
     const handleItemClick = useCallback(
       (id: string, item: NavigationItem) => {
         if (item.onClick) {
@@ -339,14 +404,12 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
           onItemClick(id);
         }
 
-        // If the item has children, toggle its expanded state
         if (item.children && item.children.length > 0) {
           setExpandedItems(prev =>
             prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
           );
         }
 
-        // Close mobile menu when an item is clicked
         if (mobileMenuOpen) {
           setMobileMenuOpen(false);
           if (onMenuToggle) {
@@ -357,22 +420,41 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
       [onItemClick, mobileMenuOpen, onMenuToggle]
     );
 
-    // Toggle collapsed state for collapsible navigation
     const toggleCollapsed = useCallback(() => {
       setCollapsed(prev => !prev);
     }, []);
 
-    // Render navigation item
+    const childSpringTargets = useMemo(() => {
+      const targets: Record<string, number> = {};
+      items.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          const isExpanded = expandedItems.includes(item.id);
+          targets[`${item.id}_opacity`] = isExpanded ? 1 : 0;
+          targets[`${item.id}_maxHeight`] = isExpanded ? 500 : 0;
+        }
+      });
+      return targets;
+    }, [items, expandedItems]);
+
+    const childSpringValues = useGalileoSprings(childSpringTargets, {
+      config: finalChildAnimationConfig,
+      immediate: disableChildAnimation,
+    });
+
     const renderNavItem = useCallback(
-      (item: NavigationItem, level = 0) => {
+      (item: NavigationItem, level = 0): ReactNode => {
         const isActive = activeItem === item.id || item.active;
         const hasChildren = item.children && item.children.length > 0;
         const isExpanded = expandedItems.includes(item.id);
 
-        // If it's a custom element, render it directly
+        const assignRef = (el: HTMLLIElement | null) => {
+          itemRefs.current[item.id] = el;
+        };
+
         if (item.customElement) {
           return (
             <NavItem
+              ref={assignRef}
               key={item.id}
               $isActive={isActive}
               $disabled={!!item.disabled}
@@ -429,8 +511,18 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
           </button>
         );
 
+        const childrenStyle = {
+          opacity: childSpringValues[`${item.id}_opacity`] ?? 0,
+          maxHeight: `${childSpringValues[`${item.id}_maxHeight`] ?? 0}px`,
+          overflow: 'hidden',
+          visibility: ((childSpringValues[`${item.id}_opacity`] ?? 0) > 0.01 
+                         ? 'visible' 
+                         : 'hidden') as React.CSSProperties['visibility'], 
+        };
+
         return (
           <NavItem
+            ref={assignRef}
             key={item.id}
             $isActive={isActive}
             $disabled={!!item.disabled}
@@ -445,16 +537,15 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
               navItem
             )}
 
-            {/* Render children if expanded */}
             {hasChildren && (
-              <ChildrenContainer $isOpen={isExpanded && !collapsed}>
+              <ChildrenContainer $isOpen={isExpanded && !collapsed} style={childrenStyle}>
                 {item.children?.map(child => renderNavItem(child, level + 1))}
               </ChildrenContainer>
             )}
           </NavItem>
         );
       },
-      [activeItem, expandedItems, collapsed, variant, handleItemClick]
+      [activeItem, expandedItems, collapsed, variant, handleItemClick, childSpringValues]
     );
 
     return (
@@ -479,30 +570,26 @@ export const GlassNavigation = forwardRef<HTMLDivElement, GlassNavigationProps>(
         }}
         {...rest}
       >
-        {/* Mobile menu toggle button */}
         <MobileMenuButton onClick={toggleMobileMenu}>
           <Icon>{mobileMenuOpen ? 'close' : 'menu'}</Icon>
         </MobileMenuButton>
 
-        {/* Logo section */}
         {logo && <LogoContainer $position={position}>{logo}</LogoContainer>}
 
-        {/* Main navigation items */}
         <NavItemsContainer
+          ref={navItemsRef}
           $position={position}
           $variant={variant}
           className={mobileMenuOpen ? 'mobile-open' : ''}
         >
+          {!prefersReducedMotion && <ActiveIndicator $style={indicatorStyle as React.CSSProperties} />}
           {items.map(item => renderNavItem(item))}
         </NavItemsContainer>
 
-        {/* Optional divider */}
         {showDivider && <NavDivider $position={position} />}
 
-        {/* Actions section */}
         {actions && <ActionsContainer>{actions}</ActionsContainer>}
 
-        {/* Collapsible button for side navigation */}
         {collapsible && (position === 'left' || position === 'right') && (
           <CollapsibleButton
             $collapsed={collapsed}

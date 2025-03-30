@@ -9,7 +9,6 @@ import styled, { css, keyframes } from 'styled-components';
 import { ResizeObserver } from '@juggle/resize-observer';
 
 // Physics-related imports
-import { useSpring } from '../../animations/physics/useSpring';
 import { useInertialMovement } from '../../animations/physics/useInertialMovement';
 import { SpringPresets } from '../../animations/physics/springPhysics';
 
@@ -19,6 +18,9 @@ import { createThemeContext } from '../../core/themeContext';
 
 // Hooks and utilities
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+
+// Animation Props Type
+import { AnimationProps } from '../../animations/types';
 
 // Types
 import { 
@@ -145,7 +147,7 @@ const MasonryItemContainer = styled.div<{
   $animation: ItemAnimationType;
   $origin: AnimationOrigin;
   $delay: number;
-  $reducedMotion: boolean;
+  $shouldAnimate: boolean;
   $isDragging: boolean;
   $animateOnMount: boolean;
   $translateX: number;
@@ -162,7 +164,7 @@ const MasonryItemContainer = styled.div<{
   grid-column: ${props => props.$columnSpan > 1 ? `span ${props.$columnSpan}` : 'auto'};
   grid-row: ${props => props.$rowSpan > 1 ? `span ${props.$rowSpan}` : 'auto'};
   transform-origin: center;
-  transition: ${props => props.$reducedMotion ? 'none' : 'transform 0.05s linear'};
+  transition: ${props => props.$shouldAnimate ? 'none' : 'transform 0.05s linear'};
   will-change: transform;
   z-index: ${props => props.$isDragging ? 10 : 1};
   box-sizing: border-box;
@@ -196,7 +198,7 @@ const MasonryItemContainer = styled.div<{
   
   /* Animation types */
   ${props => {
-    if (props.$reducedMotion || !props.$animateOnMount) return '';
+    if (!props.$shouldAnimate || !props.$animateOnMount) return '';
     
     let animation;
     switch (props.$animation) {
@@ -406,7 +408,11 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
   animateOnChange = true,
   enableImagePreview = false,
   previewRenderer,
-  id
+  id,
+  // AnimationProps
+  animationConfig: propAnimationConfig,
+  disableAnimation: propDisableAnimation,
+  motionSensitivity
 }) => {
   // State for masonry layout
   const [layout, setLayout] = useState<{
@@ -441,6 +447,9 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
   
   // Accessibility
   const reducedMotion = useReducedMotion();
+  
+  // Determine if animation should run (prioritize prop, then reduced motion)
+  const shouldAnimate = !propDisableAnimation && !reducedMotion && (animateOnMount || animateOnChange);
   
   // Determine actual column count (handle responsive columns)
   const columnCount = useMemo(() => {
@@ -502,6 +511,15 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
   
   // Get physics configuration
   const springConfig = useMemo(() => {
+    // Prioritize propAnimationConfig if provided
+    if (propAnimationConfig) {
+      if (typeof propAnimationConfig === 'string') {
+        return SpringPresets[propAnimationConfig.toUpperCase() as keyof typeof SpringPresets] || SpringPresets.DEFAULT;
+      }
+      return propAnimationConfig;
+    }
+    
+    // Fallback to component's physics prop
     const baseConfig = physics.preset 
       ? SpringPresets[physics.preset.toUpperCase() as keyof typeof SpringPresets] 
       : {
@@ -1299,7 +1317,7 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
       id={id}
     >
       <div style={{ position: 'relative', height: `${layout.containerHeight}px` }}>
-        {layout.items.map(layoutItem => {
+        {layout.items.map((layoutItem, index) => {
           const itemId = layoutItem.item.id;
           const isItemVisible = visibleItems.has(itemId);
           const isItemDragging = isDragging === itemId;
@@ -1352,7 +1370,7 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
               $animation={itemAnimation}
               $origin={animationOrigin}
               $delay={staggerDelay}
-              $reducedMotion={reducedMotion}
+              $shouldAnimate={shouldAnimate}
               $isDragging={isItemDragging}
               $animateOnMount={animateOnMount}
               $translateX={finalTranslateX}

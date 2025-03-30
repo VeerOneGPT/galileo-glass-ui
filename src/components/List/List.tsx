@@ -1,11 +1,25 @@
-import React, { forwardRef } from 'react';
-import styled from 'styled-components';
+import React, { forwardRef, Children, cloneElement, useMemo, useRef, useEffect, useCallback, ReactElement } from 'react';
+import styled, { css } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { 
+  useAnimationSequence, 
+  AnimationSequenceConfig,
+  AnimationStage,
+  StyleAnimationStage,
+  StaggerAnimationStage,
+} from '../../animations/orchestration/useAnimationSequence';
 
-export interface ListProps {
+// Physics/Animation Imports
+import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
+
+export interface ListProps extends AnimationProps {
   /**
    * The content of the list
    */
@@ -65,9 +79,19 @@ export interface ListProps {
    * If true, add shadow to the list
    */
   elevated?: boolean;
+
+  /** 
+   * If true, animate list items on mount. 
+   */
+  animateEntrance?: boolean;
+
+  /** 
+   * Configuration for the entrance animation sequence. 
+   */
+  entranceAnimationConfig?: Partial<AnimationSequenceConfig>;
 }
 
-export interface ListItemProps {
+export interface ListItemProps extends AnimationProps {
   /**
    * The content of the list item
    */
@@ -127,6 +151,15 @@ export interface ListItemProps {
    * Additional CSS class
    */
   className?: string;
+
+  /**
+   * Index of the item in the list (used for animation staggering).
+   * This might be injected by the List component.
+   */
+  index?: number;
+
+  /** Optional style prop */
+  style?: React.CSSProperties;
 }
 
 // Get color by name for theme consistency
@@ -219,6 +252,7 @@ const ListRoot = styled.ul<{
     })}
 `;
 
+// Update ListItemRoot to accept animation style and physics prop
 const ListItemRoot = styled.li<{
   $button: boolean;
   $disabled: boolean;
@@ -229,6 +263,8 @@ const ListItemRoot = styled.li<{
   $hasIcon: boolean;
   $hasAction: boolean;
   $hasBothTexts: boolean;
+  $usePhysics: boolean;
+  style?: React.CSSProperties;
 }>`
   display: flex;
   align-items: ${props => (props.$hasBothTexts ? 'flex-start' : 'center')};
@@ -239,6 +275,8 @@ const ListItemRoot = styled.li<{
   box-sizing: border-box;
   ${props => (props.$button ? 'cursor: pointer;' : '')}
   ${props => (props.$disabled ? 'opacity: 0.5; pointer-events: none;' : '')}
+  
+  /* Focused/Selected styles remain */
   ${props => (props.$focused ? `background-color: rgba(0, 0, 0, 0.04);` : '')}
   ${props =>
     props.$selected
@@ -275,10 +313,11 @@ const ListItemRoot = styled.li<{
     }
   `}
   
-  /* Button functionality */
+  /* Remove CSS-based button hover/active styles if using physics */
   ${props =>
     props.$button &&
     !props.$disabled &&
+    !props.$usePhysics && // Only apply CSS transitions if not using physics
     `
     transition: background-color 0.2s ease;
     &:hover {
@@ -288,6 +327,9 @@ const ListItemRoot = styled.li<{
       background-color: rgba(0, 0, 0, 0.08);
     }
   `}
+
+  /* Apply physics/animation transforms */
+  will-change: transform, opacity;
 `;
 
 const ListItemIcon = styled.div`
@@ -335,6 +377,14 @@ const Divider = styled.hr`
   background-color: rgba(0, 0, 0, 0.12);
 `;
 
+// Helper to check if entranceAnimationConfig requests staggering
+const wantsStaggering = (config: Partial<AnimationSequenceConfig> | undefined): boolean => {
+    return !!config?.stages?.[0] && 
+           config.stages[0].type === 'stagger' && 
+           (config.stages[0] as Partial<StaggerAnimationStage>).staggerDelay !== undefined &&
+           (config.stages[0] as Partial<StaggerAnimationStage>).staggerDelay! > 0;
+};
+
 /**
  * List Component
  *
@@ -354,29 +404,162 @@ export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
     hasBackground = false,
     className,
     elevated = false,
+    animateEntrance = false,
+    entranceAnimationConfig,
+    animationConfig: propAnimationConfig,
+    disableAnimation: propDisableAnimation,
     ...rest
   } = props;
 
-  // Process children to add dividers between list items
-  const processedChildren = React.Children.toArray(children).map((child, index, array) => {
-    if (index === array.length - 1) {
-      return child; // Last item doesn't need a divider
-    }
+  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+  const finalDisableAnimation = propDisableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
 
-    return dividers ? (
-      <React.Fragment key={index}>
-        {child}
-        <Divider />
+  const listItemsRef = useRef<HTMLLIElement[]>([]);
+  
+  const defaultEntranceSequence: AnimationSequenceConfig = useMemo(() => ({
+    id: 'list-entrance-default',
+    repeatCount: 1,
+    stages: [
+      {
+        id: 'list-item-stagger-entrance',
+        type: 'stagger',
+        targets: listItemsRef as any,
+        staggerDelay: 50, 
+        duration: 300,
+        from: { opacity: 0, transform: 'translateY(10px)' },
+        to: { opacity: 1, transform: 'translateY(0px)' },
+        animations: [],
+      }
+    ],
+  }), []);
+
+  const finalEntranceConfig: AnimationSequenceConfig = useMemo(() => {
+      const userConfig = entranceAnimationConfig ?? {};
+      const defaultStage = defaultEntranceSequence.stages[0] as StaggerAnimationStage;
+      const userStage = userConfig.stages?.[0] as Partial<StaggerAnimationStage> | undefined;
+      
+      const mergedStage: StaggerAnimationStage = {
+          id: userStage?.id ?? defaultStage.id,
+          type: 'stagger',
+          targets: listItemsRef as any,
+          staggerDelay: userStage?.staggerDelay ?? defaultStage.staggerDelay,
+          duration: userStage?.duration ?? defaultStage.duration,
+          from: userStage?.from ?? defaultStage.from,
+          to: userStage?.to ?? defaultStage.to,
+          easing: userStage?.easing ?? defaultStage.easing,
+          staggerPattern: userStage?.staggerPattern ?? defaultStage.staggerPattern,
+          staggerPatternFn: userStage?.staggerPatternFn ?? defaultStage.staggerPatternFn,
+          staggerOverlap: userStage?.staggerOverlap ?? defaultStage.staggerOverlap,
+          startTime: userStage?.startTime ?? defaultStage.startTime,
+          direction: userStage?.direction ?? defaultStage.direction,
+          repeatCount: userStage?.repeatCount ?? defaultStage.repeatCount,
+          repeatDelay: userStage?.repeatDelay ?? defaultStage.repeatDelay,
+          yoyo: userStage?.yoyo ?? defaultStage.yoyo,
+          dependsOn: userStage?.dependsOn ?? defaultStage.dependsOn,
+          reducedMotionAlternative: userStage?.reducedMotionAlternative ?? defaultStage.reducedMotionAlternative,
+          category: userStage?.category ?? defaultStage.category,
+          onStart: userStage?.onStart ?? defaultStage.onStart,
+          onUpdate: userStage?.onUpdate ?? defaultStage.onUpdate,
+          onComplete: userStage?.onComplete ?? defaultStage.onComplete,
+      };
+      
+      return {
+          id: userConfig.id ?? defaultEntranceSequence.id,
+          repeatCount: userConfig.repeatCount ?? defaultEntranceSequence.repeatCount,
+          yoyo: userConfig.yoyo ?? defaultEntranceSequence.yoyo,
+          direction: userConfig.direction ?? defaultEntranceSequence.direction,
+          autoplay: userConfig.autoplay ?? false, 
+          onStart: userConfig.onStart,
+          onUpdate: userConfig.onUpdate,
+          onComplete: userConfig.onComplete,
+          stages: [mergedStage],
+      };
+  }, [entranceAnimationConfig, defaultEntranceSequence]);
+
+  const entranceAnimation = useAnimationSequence(finalEntranceConfig);
+
+  useEffect(() => {
+    if (animateEntrance && !finalDisableAnimation) {
+      const targets = listItemsRef.current.filter(el => el !== null);
+      if (targets.length > 0) {
+          const timeoutId = setTimeout(() => {
+             entranceAnimation.play(); 
+          }, 50);
+          return () => clearTimeout(timeoutId);
+      }
+    }
+    return () => {
+      entranceAnimation.stop();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animateEntrance, finalDisableAnimation, finalEntranceConfig]);
+
+  const items = Children.toArray(children);
+  const mappedChildren = items.map((child, index) => {
+    let itemElement: ReactElement | null = null;
+    const isLastItem = index === items.length - 1;
+
+    if (React.isValidElement(child)) {
+        const childProps: Partial<ListItemProps> = { 
+            ...child.props,
+            index: index,
+            animationConfig: child.props.animationConfig ?? propAnimationConfig,
+            disableAnimation: child.props.disableAnimation ?? finalDisableAnimation,
+        };
+
+        let physicsProps: { style?: React.CSSProperties, handlers?: object, usePhysics: boolean } = { usePhysics: false };
+        if (child.props.button && !child.props.disabled) {
+            physicsProps = useListItemPhysics(childProps, propAnimationConfig ?? defaultSpring); 
+        }
+
+        itemElement = cloneElement(child, {
+            ...childProps,
+            style: {
+                ...child.props.style,
+                ...physicsProps.style,
+                opacity: (animateEntrance && !finalDisableAnimation) ? 0 : child.props.style?.opacity ?? 1,
+            },
+            ...(physicsProps.handlers),
+            ref: (node: HTMLLIElement | null) => {
+                listItemsRef.current[index] = node;
+                const { ref: childRef } = child as any;
+                if (typeof childRef === 'function') {
+                    childRef(node);
+                } else if (childRef) {
+                    childRef.current = node;
+                }
+            },
+        } as any);
+    } else {
+      // Handle non-element children (e.g., strings, numbers)
+      if (typeof child === 'string' || typeof child === 'number') {
+        // Wrap primitives, or handle differently if needed
+        itemElement = <span>{child}</span> as ReactElement;
+      } else {
+        // If it's some other non-element type, maybe skip or log warning
+        console.warn('Skipping non-renderable child in List:', child);
+        itemElement = null; // Skip rendering this child
+      }
+    }
+    
+    // Ensure itemElement is not null before proceeding
+    if (!itemElement) {
+        return null; // Don't render fragment if itemElement is null
+    }
+    
+    return (
+      <React.Fragment key={(child as any)?.key ?? index}>
+        {itemElement}
+        {dividers && !isLastItem && <Divider />}
       </React.Fragment>
-    ) : (
-      child
     );
   });
 
   return (
-    <ListRoot
+    <Component
       ref={ref}
-      as={Component}
+      role="list"
       className={className}
       $dense={dense}
       $disablePadding={disablePadding}
@@ -389,72 +572,65 @@ export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
       $elevated={elevated}
       {...rest}
     >
-      {processedChildren}
-    </ListRoot>
+      {mappedChildren}
+    </Component>
   );
 });
-
-List.displayName = 'List';
 
 /**
- * ListItem Component
- *
- * A component for displaying individual items within a list.
+ * Internal hook to manage physics for a ListItem
  */
-export const ListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) => {
-  const {
-    children,
-    button = false,
-    disabled = false,
-    focused = false,
-    selected = false,
-    primaryText,
-    secondaryText,
-    icon,
-    action,
-    accentLeft = false,
-    onClick,
-    className,
-    ...rest
-  } = props;
+const useListItemPhysics = (itemProps: Partial<ListItemProps>, contextDefaultSpringConfig: Partial<SpringConfig> | keyof typeof SpringPresets | undefined): { style?: React.CSSProperties, handlers?: object, usePhysics: boolean } => {
+    const { 
+        animationConfig: itemAnimConfig, 
+        disableAnimation: itemDisableAnim, 
+    } = itemProps;
 
-  // Determine if we have a text structure
-  const hasTextStructure = primaryText !== undefined;
-  const hasBothTexts = hasTextStructure && secondaryText !== undefined;
+    const finalDisable = itemDisableAnim;
 
-  return (
-    <ListItemRoot
-      ref={ref}
-      className={className}
-      onClick={onClick}
-      $button={button || !!onClick}
-      $disabled={disabled}
-      $focused={focused}
-      $selected={selected}
-      $accentLeft={accentLeft}
-      $color="primary"
-      $hasIcon={!!icon}
-      $hasAction={!!action}
-      $hasBothTexts={hasBothTexts}
-      {...rest}
-    >
-      {icon && <ListItemIcon>{icon}</ListItemIcon>}
+    const finalPhysicsOptions = useMemo(() => {
+        const baseOptions: Partial<PhysicsInteractionOptions> = {
+            affectsScale: true,
+            scaleAmplitude: 0.03,
+        };
 
-      {hasTextStructure ? (
-        <ListItemTexts>
-          <PrimaryText>{primaryText}</PrimaryText>
-          {secondaryText && <SecondaryText>{secondaryText}</SecondaryText>}
-        </ListItemTexts>
-      ) : (
-        children
-      )}
+        let resolvedConfig: Partial<SpringConfig> = {};
 
-      {action && <ListItemAction>{action}</ListItemAction>}
-    </ListItemRoot>
-  );
-});
+        // Simplify: Prioritize item prop if it's a valid SpringConfig, else use context/default
+        if (typeof itemAnimConfig === 'object' && ('tension' in itemAnimConfig || 'friction' in itemAnimConfig || 'mass' in itemAnimConfig)) {
+            resolvedConfig = itemAnimConfig as Partial<SpringConfig>;
+        } else if (typeof contextDefaultSpringConfig === 'string' && contextDefaultSpringConfig in SpringPresets) {
+             resolvedConfig = SpringPresets[contextDefaultSpringConfig as keyof typeof SpringPresets];
+        } else if (typeof contextDefaultSpringConfig === 'object') {
+             resolvedConfig = contextDefaultSpringConfig;
+        } else {
+            resolvedConfig = SpringPresets.DEFAULT;
+        }
+        
+        const finalSpringConfig = { ...SpringPresets.DEFAULT, ...resolvedConfig };
 
-ListItem.displayName = 'ListItem';
+        // Map SpringConfig to PhysicsInteractionOptions
+        const interactionOptions: Partial<PhysicsInteractionOptions> = {
+             stiffness: finalSpringConfig.tension,
+             dampingRatio: finalSpringConfig.friction ? 
+                 finalSpringConfig.friction / (2 * Math.sqrt(finalSpringConfig.tension * (finalSpringConfig.mass ?? 1))) 
+                 : undefined, // Pass undefined if friction is not set
+             mass: finalSpringConfig.mass,
+        };
+
+        return { 
+            ...baseOptions, 
+            ...interactionOptions,
+            disabled: finalDisable,
+        };
+    }, [itemAnimConfig, contextDefaultSpringConfig, finalDisable]);
+
+    const { style, eventHandlers } = usePhysicsInteraction(finalPhysicsOptions);
+    
+    return { style, handlers: eventHandlers, usePhysics: !finalDisable };
+};
+
+List.displayName = 'List';
 
 /**
  * GlassList Component
@@ -489,3 +665,64 @@ export const GlassListItem = forwardRef<HTMLLIElement, ListItemProps>((props, re
 });
 
 GlassListItem.displayName = 'GlassListItem';
+
+// *** Add Basic ListItem Definition ***
+export const ListItem = forwardRef<HTMLLIElement, ListItemProps>((props, ref) => {
+  const {
+    children,
+    button = false,
+    disabled = false,
+    focused = false,
+    selected = false,
+    primaryText,
+    secondaryText,
+    icon,
+    action,
+    accentLeft = false,
+    onClick,
+    className,
+    style,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
+    index,
+    ...rest
+  } = props;
+
+  const listContext = { color: 'default' }; // Placeholder or use actual context
+
+  return (
+    <ListItemRoot
+      ref={ref}
+      $button={button}
+      $disabled={disabled}
+      $focused={focused}
+      $selected={selected}
+      $accentLeft={accentLeft}
+      $color={listContext.color}
+      $hasIcon={!!icon}
+      $hasAction={!!action}
+      $hasBothTexts={!!(primaryText && secondaryText)}
+      $usePhysics={button && !disabled} // Indicate if physics might be used (passed from List)
+      onClick={button && !disabled ? onClick : undefined}
+      className={className}
+      style={style} // Apply style passed down from List
+      role={button ? 'button' : 'listitem'}
+      tabIndex={button && !disabled ? 0 : undefined}
+      {...rest}
+    >
+      {icon && <ListItemIcon>{icon}</ListItemIcon>}
+      {(primaryText || secondaryText) ? (
+        <ListItemTexts>
+          {primaryText && <PrimaryText>{primaryText}</PrimaryText>}
+          {secondaryText && <SecondaryText>{secondaryText}</SecondaryText>}
+        </ListItemTexts>
+      ) : (
+        <ListItemTexts>{children}</ListItemTexts> // Fallback to children if texts aren't provided
+      )}
+      {action && <ListItemAction>{action}</ListItemAction>}
+    </ListItemRoot>
+  );
+});
+
+ListItem.displayName = 'ListItem';

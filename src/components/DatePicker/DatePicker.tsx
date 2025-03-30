@@ -9,8 +9,12 @@ import styled from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
+// import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useAnimationContext } from '../../contexts/AnimationContext';
+// import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings'; // Import Galileo hook
+import { useGalileoStateSpring, GalileoStateSpringOptions, GalileoSpringResult } from '../../hooks/useGalileoStateSpring'; // Import useGalileoStateSpring
 import ClearIcon from '../icons/ClearIcon';
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 import { DatePickerProps, CalendarView } from './types';
 
@@ -197,19 +201,6 @@ const DatePickerRoot = styled.div<{
   flex-direction: column;
   width: ${props => (props.$fullWidth ? '100%' : '300px')};
   position: relative;
-
-  /* Animation on mount */
-  ${props =>
-    props.$animate &&
-    !props.$reducedMotion &&
-    `
-    animation: fadeIn 0.4s ease-out;
-    
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  `}
 `;
 
 const InputContainer = styled.div<{
@@ -353,8 +344,7 @@ const ClearButton = styled.button`
 `;
 
 const CalendarContainer = styled.div<{
-  $open: boolean;
-  $reducedMotion: boolean;
+  // Removed $reducedMotion as hook handles it
 }>`
   position: absolute;
   top: 100%;
@@ -362,7 +352,7 @@ const CalendarContainer = styled.div<{
   right: 0;
   margin-top: 8px;
   z-index: 1000;
-  display: ${props => (props.$open ? 'block' : 'none')};
+  display: block;
   ${props =>
     glassSurface({
       elevation: 3,
@@ -374,19 +364,8 @@ const CalendarContainer = styled.div<{
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.12);
   overflow: hidden;
-
-  /* Enhanced dropdown animation */
-  ${props =>
-    !props.$reducedMotion &&
-    `
-    animation: reveal 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    transform-origin: top center;
-    
-    @keyframes reveal {
-      from { opacity: 0; transform: scaleY(0.9) translateY(-8px); }
-      to { opacity: 1; transform: scaleY(1) translateY(0); }
-    }
-  `}
+  will-change: transform, opacity;
+  transform-origin: top center;
 `;
 
 const CalendarHeader = styled.div`
@@ -646,208 +625,214 @@ const TodayButton = styled.button`
  */
 function DatePickerComponent(props: DatePickerProps, ref: React.ForwardedRef<HTMLInputElement>) {
   const {
-    value,
+    value: controlledValue,
     defaultValue,
     onChange,
-    minDate,
-    maxDate,
-    disabled = false,
+    onFocus,
+    onBlur,
+    format = 'MM/dd/yyyy',
+    placeholder = 'Select date',
     label,
     helperText,
-    error = false,
-    placeholder = 'Select date',
-    format = 'MM/dd/yyyy',
-    clearable = true,
-    size = 'medium',
+    error,
+    disabled = false,
     fullWidth = false,
-    animate = false,
-    locale = 'en-US',
-    firstDayOfWeek = 0,
-    disableDates,
-    showTodayButton = true,
+    size = 'medium',
+    minDate: minDateProp,
+    maxDate: maxDateProp,
     disablePast = false,
     disableFuture = false,
-    autoFocus = false,
-    disablePortal = false,
-    popperContainer,
+    disableDates,
+    clearable = true,
+    closeOnSelect = true,
+    firstDayOfWeek = 0, // 0 = Sunday, 1 = Monday
     monthNames = DEFAULT_MONTH_NAMES,
     dayNames = DEFAULT_DAY_NAMES,
-    showYearSelection = true,
+    showTodayButton = true,
+    todayButtonLabel = 'Today',
+    calendarPlacement = 'bottom-start',
     showMonthSelection = true,
-    style,
-    className,
+    showYearSelection = true,
+    id, // Use provided id or generate one
+    autoFocus,
     ...rest
   } = props;
 
-  // Check if reduced motion is preferred
-  const prefersReducedMotion = useReducedMotion();
+  // Animation Context
+  const {
+    modalSpringConfig: contextModalSpringConfig,
+    disableAnimation: contextDisableAnimation,
+  } = useAnimationContext();
 
-  // Refs
-  const rootRef = useRef<HTMLDivElement>(null);
+  // Determine if animation should be immediate (prop takes precedence if AnimationProps were added)
+  const immediate = contextDisableAnimation; // Add || propDisableAnimation later
+
+  // Resolve final spring config inline
+  const finalModalSpringConfig = useMemo<Partial<SpringConfig>>(() => {
+    const baseConfig = SpringPresets.DEFAULT;
+    let resolvedContextConfig = {};
+    if (typeof contextModalSpringConfig === 'string' && contextModalSpringConfig in SpringPresets) {
+      resolvedContextConfig = SpringPresets[contextModalSpringConfig as keyof typeof SpringPresets];
+    } else if (typeof contextModalSpringConfig === 'object') {
+      resolvedContextConfig = contextModalSpringConfig ?? {};
+    }
+    // Add propAnimationConfig merging later if AnimationProps is formally added
+    return { ...baseConfig, ...resolvedContextConfig };
+  }, [contextModalSpringConfig]);
+
+  // State for controlled/uncontrolled input value
+  const [internalValue, setInternalValue] = useState<Date | null>(() => {
+    const initialValue = controlledValue !== undefined ? controlledValue : defaultValue;
+    return isValidDate(initialValue) ? initialValue : null;
+  });
+
+  // State for calendar visibility and current view date
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [currentViewDate, setCurrentViewDate] = useState<Date>(() => {
+    const initialDate = internalValue || new Date();
+    initialDate.setDate(1); // Start view at beginning of month
+    return initialDate;
+  });
+  const [calendarView, setCalendarView] = useState<CalendarView>('days'); // 'days', 'months', 'years'
+
+  // Refs for input and calendar container
   const inputRef = useRef<HTMLInputElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
-  // State
-  const [open, setOpen] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [calendarView, setCalendarView] = useState<CalendarView>('days');
-
-  // Initialize with value or defaultValue
+  // Update internal state if controlled value changes
   useEffect(() => {
-    const initialDate = value !== undefined ? value : defaultValue;
-
-    if (initialDate && isValidDate(initialDate)) {
-      setSelectedDate(initialDate);
-      setCalendarDate(new Date(initialDate));
-      setInputValue(formatDate(initialDate, format));
+    if (controlledValue !== undefined) {
+      setInternalValue(isValidDate(controlledValue) ? controlledValue : null);
     }
-  }, []);
+  }, [controlledValue]);
 
-  // Handle controlled component updates
-  useEffect(() => {
-    if (value !== undefined) {
-      if (value && isValidDate(value)) {
-        setSelectedDate(value);
-        setCalendarDate(new Date(value));
-        setInputValue(formatDate(value, format));
-      } else {
-        setSelectedDate(null);
-        setInputValue('');
+  // Format date for display
+  const displayValue = useMemo(() => formatDate(internalValue, format), [internalValue, format]);
+
+  // Min/Max date parsing
+  const minDate = useMemo(() => (minDateProp instanceof Date ? minDateProp : undefined), [minDateProp]);
+  const maxDate = useMemo(() => (maxDateProp instanceof Date ? maxDateProp : undefined), [maxDateProp]);
+
+  // Use Galileo Spring for entrance/exit animation
+  const calendarAnimation: GalileoSpringResult = useGalileoStateSpring(
+      isCalendarOpen ? 1 : 0, // Target value
+      { // Options object
+          ...finalModalSpringConfig, // Spread the resolved physics config
+          immediate: immediate, // Pass the immediate flag
+          // Add onRest if needed later for display: none
       }
-    }
-  }, [value, format]);
+  );
 
-  // Handle outside clicks to close calendar
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+  // Determine if the calendar should be rendered (open or animating closed)
+  const shouldRenderCalendar = isCalendarOpen || calendarAnimation.isAnimating;
+
+  // Click outside handler
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
       if (
-        rootRef.current &&
-        !rootRef.current.contains(event.target as Node) &&
-        !(calendarRef.current && calendarRef.current.contains(event.target as Node))
+        calendarRef.current &&
+        !calendarRef.current.contains(event.target as Node) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target as Node)
       ) {
-        setOpen(false);
+        setIsCalendarOpen(false);
       }
-    };
+    },
+    [] // Refs are stable
+  );
 
-    document.addEventListener('mousedown', handleClickOutside);
+  useEffect(() => {
+    if (isCalendarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isCalendarOpen, handleClickOutside]);
 
-  // Handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    setInputValue(newValue);
+    setInternalValue(parseDate(newValue, format));
+  };
 
-    // Try to parse the input value
-    const parsedDate = parseDate(newValue, format);
-
-    if (parsedDate && isValidDate(parsedDate)) {
-      setSelectedDate(parsedDate);
-      setCalendarDate(new Date(parsedDate));
-
-      if (onChange) {
-        onChange(parsedDate);
-      }
-    } else if (newValue === '') {
-      // Clear the date
-      setSelectedDate(null);
-
-      if (onChange) {
-        onChange(null);
-      }
+  const handleInputClick = () => {
+    if (!disabled) {
+      setIsCalendarOpen(!isCalendarOpen);
     }
   };
 
-  const handleInputFocus = () => {
-    setFocused(true);
-    setOpen(true);
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (onFocus) onFocus(e);
   };
 
-  const handleInputBlur = () => {
-    setFocused(false);
-
-    // If input is empty or invalid, reset to selected date format or empty
-    if (selectedDate) {
-      setInputValue(formatDate(selectedDate, format));
-    } else if (inputValue && parseDate(inputValue, format) === null) {
-      setInputValue('');
-    }
+  const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (onBlur) onBlur(e);
   };
 
   const handleDateSelect = (date: Date) => {
-    if (isDateDisabled(date, minDate, maxDate, disablePast, disableFuture, disableDates)) {
-      return;
+    if (isDateDisabled(date, minDate, maxDate, disablePast, disableFuture, disableDates)) return;
+
+    setInternalValue(date);
+    if (closeOnSelect) {
+      setIsCalendarOpen(false);
     }
+    setCalendarView('days');
 
-    setSelectedDate(date);
-    setInputValue(formatDate(date, format));
-    setOpen(false);
-
-    if (onChange) {
+    if (onChange && (controlledValue === undefined || controlledValue?.getTime() !== date.getTime())) {
       onChange(date);
     }
+
+    inputRef.current?.focus();
   };
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setInternalValue(null);
+    setIsCalendarOpen(false);
 
-    setSelectedDate(null);
-    setInputValue('');
-
-    if (onChange) {
+    if (onChange && (controlledValue === undefined || controlledValue !== null)) {
       onChange(null);
     }
 
-    // Focus the input after clearing
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   };
 
   const handleTodayClick = () => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    if (!isDateDisabled(today, minDate, maxDate, disablePast, disableFuture, disableDates)) {
-      setSelectedDate(today);
-      setCalendarDate(today);
-      setInputValue(formatDate(today, format));
+    if (isDateDisabled(today, minDate, maxDate, disablePast, disableFuture, disableDates)) return;
 
-      if (onChange) {
-        onChange(today);
-      }
-
-      setOpen(false);
+    setInternalValue(today);
+    setCurrentViewDate(new Date(today));
+    if (closeOnSelect) {
+      setIsCalendarOpen(false);
     }
+    setCalendarView('days');
+
+    if (onChange && (controlledValue === undefined || controlledValue?.getTime() !== today.getTime())) {
+      onChange(today);
+    }
+    inputRef.current?.focus();
   };
 
   const handleMonthChange = (increment: number) => {
-    const newDate = new Date(calendarDate);
-    newDate.setMonth(calendarDate.getMonth() + increment);
-    setCalendarDate(newDate);
+    setCurrentViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + increment, 1));
   };
 
   const handleYearChange = (increment: number) => {
-    const newDate = new Date(calendarDate);
-    newDate.setFullYear(calendarDate.getFullYear() + increment);
-    setCalendarDate(newDate);
+    setCurrentViewDate(prev => new Date(prev.getFullYear() + increment, prev.getMonth(), 1));
   };
 
   const handleMonthSelect = (month: number) => {
-    const newDate = new Date(calendarDate);
-    newDate.setMonth(month);
-    setCalendarDate(newDate);
+    setCurrentViewDate(prev => new Date(prev.getFullYear(), month, 1));
     setCalendarView('days');
   };
 
   const handleYearSelect = (year: number) => {
-    const newDate = new Date(calendarDate);
-    newDate.setFullYear(year);
-    setCalendarDate(newDate);
+    setCurrentViewDate(prev => new Date(year, prev.getMonth(), 1));
     setCalendarView('months');
   };
 
@@ -859,307 +844,143 @@ function DatePickerComponent(props: DatePickerProps, ref: React.ForwardedRef<HTM
     }
   };
 
-  // Generate calendar data
-  const monthData = useMemo(() => {
-    return getMonthData(calendarDate.getFullYear(), calendarDate.getMonth(), firstDayOfWeek);
-  }, [calendarDate, firstDayOfWeek]);
+  const finalInputRef = ref || inputRef;
 
-  // Generate years for year selection (±10 years from current)
-  const yearsData = useMemo(() => {
-    const years = [];
-    const currentYear = calendarDate.getFullYear();
-    const startYear = currentYear - 10;
-    const endYear = currentYear + 10;
+  const monthData = useMemo(
+    () => getMonthData(currentViewDate.getFullYear(), currentViewDate.getMonth(), firstDayOfWeek),
+    [currentViewDate, firstDayOfWeek]
+  );
 
-    for (let year = startYear; year <= endYear; year++) {
-      years.push(year);
-    }
+  const currentMonthName = monthNames[currentViewDate.getMonth()];
+  const currentYear = currentViewDate.getFullYear();
 
-    return years;
-  }, [calendarDate]);
-
-  // Adjust day names according to first day of week
-  const adjustedDayNames = useMemo(() => {
-    const names = [...dayNames];
-    return [...names.slice(firstDayOfWeek), ...names.slice(0, firstDayOfWeek)];
-  }, [dayNames, firstDayOfWeek]);
-
-  // Handle forwarded ref
-  React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
-
-  // Determine helper text content
-  const helperTextContent =
-    error === true ? helperText : typeof error === 'string' ? error : helperText;
-  const hasError = Boolean(error);
-
-  // Show clear button?
-  const showClearButton = clearable && !disabled && selectedDate !== null;
-
-  // Render calendar
-  const renderCalendar = () => {
-    if (!open) return null;
-
-    const calendarContent = (
-      <CalendarContainer ref={calendarRef} $open={open} $reducedMotion={prefersReducedMotion}>
-        <CalendarHeader>
-          {calendarView === 'days' && (
-            <>
-              <NavigationButton onClick={() => handleMonthChange(-1)} aria-label="Previous month">
-                ←
-              </NavigationButton>
-
-              <MonthYearDisplay onClick={handleHeaderClick}>
-                {monthNames[calendarDate.getMonth()]} {calendarDate.getFullYear()}
-              </MonthYearDisplay>
-
-              <NavigationButton onClick={() => handleMonthChange(1)} aria-label="Next month">
-                →
-              </NavigationButton>
-            </>
-          )}
-
-          {calendarView === 'months' && (
-            <>
-              <NavigationButton onClick={() => handleYearChange(-1)} aria-label="Previous year">
-                ←
-              </NavigationButton>
-
-              <MonthYearDisplay onClick={handleHeaderClick}>
-                {calendarDate.getFullYear()}
-              </MonthYearDisplay>
-
-              <NavigationButton onClick={() => handleYearChange(1)} aria-label="Next year">
-                →
-              </NavigationButton>
-            </>
-          )}
-
-          {calendarView === 'years' && (
-            <>
-              <NavigationButton
-                onClick={() => {
-                  const newDate = new Date(calendarDate);
-                  newDate.setFullYear(calendarDate.getFullYear() - 10);
-                  setCalendarDate(newDate);
-                }}
-                aria-label="Previous decade"
-              >
-                ←
-              </NavigationButton>
-
-              <MonthYearDisplay>
-                {yearsData[0]} - {yearsData[yearsData.length - 1]}
-              </MonthYearDisplay>
-
-              <NavigationButton
-                onClick={() => {
-                  const newDate = new Date(calendarDate);
-                  newDate.setFullYear(calendarDate.getFullYear() + 10);
-                  setCalendarDate(newDate);
-                }}
-                aria-label="Next decade"
-              >
-                →
-              </NavigationButton>
-            </>
-          )}
-        </CalendarHeader>
-
-        {calendarView === 'days' && (
-          <>
-            <WeekdayHeader>
-              {adjustedDayNames.map((day, index) => (
-                <WeekdayLabel key={index}>{day}</WeekdayLabel>
-              ))}
-            </WeekdayHeader>
-
-            <DaysGrid>
-              {monthData.map((date, index) => {
-                const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
-                const isToday =
-                  isCurrentMonth &&
-                  date.getDate() === new Date().getDate() &&
-                  date.getMonth() === new Date().getMonth() &&
-                  date.getFullYear() === new Date().getFullYear();
-                const isSelected =
-                  selectedDate &&
-                  date.getDate() === selectedDate.getDate() &&
-                  date.getMonth() === selectedDate.getMonth() &&
-                  date.getFullYear() === selectedDate.getFullYear();
-                const isDisabled = isDateDisabled(
-                  date,
-                  minDate,
-                  maxDate,
-                  disablePast,
-                  disableFuture,
-                  disableDates
-                );
-
-                return (
-                  <DayCell
-                    key={index}
-                    $isCurrentMonth={isCurrentMonth}
-                    $isSelected={!!isSelected}
-                    $isToday={isToday}
-                    $isDisabled={isDisabled}
-                    onClick={() => !isDisabled && handleDateSelect(date)}
-                    disabled={isDisabled}
-                    tabIndex={isCurrentMonth && !isDisabled ? 0 : -1}
-                    aria-label={date.toLocaleDateString(locale)}
-                    aria-selected={isSelected || undefined}
-                  >
-                    {date.getDate()}
-                  </DayCell>
-                );
-              })}
-            </DaysGrid>
-          </>
-        )}
-
-        {calendarView === 'months' && (
-          <MonthsGrid>
-            {monthNames.map((month, index) => {
-              const monthDate = new Date(calendarDate);
-              monthDate.setMonth(index);
-
-              // Check if this month is disabled
-              const firstDay = new Date(calendarDate.getFullYear(), index, 1);
-              const lastDay = new Date(calendarDate.getFullYear(), index + 1, 0);
-
-              // A month is disabled if all its days are disabled
-              const isDisabled =
-                (minDate && lastDay < minDate) ||
-                (maxDate && firstDay > maxDate) ||
-                (disablePast &&
-                  lastDay < new Date() &&
-                  (new Date().getMonth() !== index ||
-                    new Date().getFullYear() !== calendarDate.getFullYear())) ||
-                (disableFuture &&
-                  firstDay > new Date() &&
-                  (new Date().getMonth() !== index ||
-                    new Date().getFullYear() !== calendarDate.getFullYear()));
-
-              const isSelected =
-                selectedDate &&
-                selectedDate.getMonth() === index &&
-                selectedDate.getFullYear() === calendarDate.getFullYear();
-
-              return (
-                <MonthCell
-                  key={index}
-                  $isSelected={!!isSelected}
-                  $isDisabled={isDisabled}
-                  onClick={() => !isDisabled && handleMonthSelect(index)}
-                  disabled={isDisabled}
-                  aria-label={month}
-                  aria-selected={isSelected || undefined}
-                >
-                  {month.substring(0, 3)}
-                </MonthCell>
-              );
-            })}
-          </MonthsGrid>
-        )}
-
-        {calendarView === 'years' && (
-          <YearsGrid>
-            {yearsData.map((year, index) => {
-              // Check if this year is disabled
-              const firstDay = new Date(year, 0, 1);
-              const lastDay = new Date(year, 11, 31);
-
-              const isDisabled =
-                (minDate && lastDay < minDate) ||
-                (maxDate && firstDay > maxDate) ||
-                (disablePast && lastDay < new Date() && year !== new Date().getFullYear()) ||
-                (disableFuture && firstDay > new Date() && year !== new Date().getFullYear());
-
-              const isSelected = selectedDate && selectedDate.getFullYear() === year;
-
-              return (
-                <YearCell
-                  key={index}
-                  $isSelected={!!isSelected}
-                  $isDisabled={isDisabled}
-                  onClick={() => !isDisabled && handleYearSelect(year)}
-                  disabled={isDisabled}
-                  aria-label={year.toString()}
-                  aria-selected={isSelected || undefined}
-                >
-                  {year}
-                </YearCell>
-              );
-            })}
-          </YearsGrid>
-        )}
-
-        {showTodayButton && calendarView === 'days' && (
-          <CalendarFooter>
-            <TodayButton onClick={handleTodayClick} aria-label="Go to today">
-              Today
-            </TodayButton>
-          </CalendarFooter>
-        )}
-      </CalendarContainer>
-    );
-
-    // Use portal if not disabled
-    if (!disablePortal) {
-      const portalTarget = popperContainer || document.body;
-      return createPortal(calendarContent, portalTarget);
-    }
-
-    return calendarContent;
-  };
+  const inputId = useMemo(() => id || `datepicker-${Math.random().toString(36).substring(2, 9)}`, [id]);
 
   return (
     <DatePickerRoot
-      ref={rootRef}
-      className={className}
-      style={style}
       $fullWidth={fullWidth}
-      $animate={animate}
-      $reducedMotion={prefersReducedMotion}
+      $animate={!contextDisableAnimation}
+      $reducedMotion={contextDisableAnimation}
     >
-      {label && <Label>{label}</Label>}
-
+      {label && <Label htmlFor={inputId} id={`label-${inputId}`}>{label}</Label>}
       <InputContainer
         $size={size}
-        $focused={focused}
+        $focused={isCalendarOpen}
         $disabled={disabled}
-        $hasError={hasError}
-        onClick={() => {
-          if (!disabled && inputRef.current) {
-            inputRef.current.focus();
-            setOpen(true);
-          }
-        }}
+        $hasError={!!error}
+        onClick={handleInputClick}
       >
         <Input
-          ref={inputRef}
-          value={inputValue}
+          ref={finalInputRef}
+          id={inputId}
+          type="text"
+          value={displayValue}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onBlur={handleInputBlur}
           placeholder={placeholder}
           disabled={disabled}
-          readOnly
+          autoFocus={autoFocus}
           $size={size}
           $disabled={disabled}
-          autoFocus={autoFocus}
+          aria-haspopup="dialog"
+          aria-expanded={isCalendarOpen}
+          aria-controls={isCalendarOpen ? `calendar-${inputId}` : undefined}
+          aria-invalid={!!error}
+          aria-labelledby={label ? `label-${inputId}` : undefined}
+          autoComplete="off"
           {...rest}
         />
-
-        {showClearButton && (
-          <ClearButton onClick={handleClear} title="Clear" aria-label="Clear date">
+        {clearable && internalValue && !disabled && (
+          <ClearButton onClick={handleClear} aria-label="Clear date">
             <ClearIcon />
           </ClearButton>
         )}
       </InputContainer>
 
-      {renderCalendar()}
+      {shouldRenderCalendar && createPortal(
+        <CalendarContainer
+          ref={calendarRef}
+          id={`calendar-${inputId}`}
+          style={{
+              opacity: calendarAnimation.value,
+              transform: `scaleY(${calendarAnimation.value})`,
+              pointerEvents: isCalendarOpen ? 'auto' : 'none',
+              visibility: (isCalendarOpen || calendarAnimation.isAnimating) ? 'visible' : 'hidden',
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={label ? `label-${inputId}` : undefined}
+          aria-label={!label ? 'Date selection calendar' : undefined}
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <CalendarHeader>
+            <NavigationButton
+              onClick={() => handleMonthChange(-1)}
+              aria-label="Previous month"
+              disabled={calendarView !== 'days'}
+            >
+              &lt;
+            </NavigationButton>
+            <MonthYearDisplay onClick={handleHeaderClick}>
+              {currentMonthName} {currentYear}
+            </MonthYearDisplay>
+            <NavigationButton
+              onClick={() => handleMonthChange(1)}
+              aria-label="Next month"
+              disabled={calendarView !== 'days'}
+            >
+              &gt;
+            </NavigationButton>
+          </CalendarHeader>
+          <WeekdayHeader>
+            {Array.from({ length: 7 }).map((_, i) => {
+              const dayIndex = (firstDayOfWeek + i) % 7;
+              return <WeekdayLabel key={i}>{dayNames[dayIndex]}</WeekdayLabel>;
+            })}
+          </WeekdayHeader>
+          <DaysGrid>
+            {calendarView === 'days' && monthData.map((day, index) => {
+              const isSelected = internalValue?.getTime() === day.getTime();
+              const isTodayFlag = day.toDateString() === new Date().toDateString();
+              const isDisabledFlag = isDateDisabled(
+                day,
+                minDate,
+                maxDate,
+                disablePast,
+                disableFuture,
+                disableDates
+              );
+              const isCurrentMonthFlag = day.getMonth() === currentViewDate.getMonth();
 
-      {helperTextContent && <HelperText $hasError={hasError}>{helperTextContent}</HelperText>}
+              return (
+                <DayCell
+                  key={index}
+                  onClick={() => handleDateSelect(day)}
+                  $isCurrentMonth={isCurrentMonthFlag}
+                  $isSelected={isSelected}
+                  $isToday={isTodayFlag}
+                  $isDisabled={isDisabledFlag}
+                  disabled={isDisabledFlag}
+                  aria-label={`Select ${formatDate(day, 'MMMM d, yyyy')}${isSelected ? ', selected' : ''}`}
+                  aria-current={isTodayFlag ? 'date' : undefined}
+                  tabIndex={isCalendarOpen && isCurrentMonthFlag && !isDisabledFlag ? 0 : -1}
+                >
+                  {day.getDate()}
+                </DayCell>
+              );
+            })}
+          </DaysGrid>
+          {showTodayButton && (
+            <CalendarFooter>
+              <TodayButton onClick={handleTodayClick}>{todayButtonLabel}</TodayButton>
+            </CalendarFooter>
+          )}
+        </CalendarContainer>,
+        document.body
+      )}
+
+      {helperText && <HelperText $hasError={!!error}>{helperText}</HelperText>}
     </DatePickerRoot>
   );
 }
@@ -1169,14 +990,8 @@ function DatePickerComponent(props: DatePickerProps, ref: React.ForwardedRef<HTM
  *
  * A comprehensive date picker component with glass morphism styling.
  */
-const DatePicker = forwardRef(DatePickerComponent);
+export const DatePicker = forwardRef(DatePickerComponent);
+DatePicker.displayName = 'DatePicker';
 
-/**
- * GlassDatePicker Component
- *
- * Glass variant of the DatePicker component.
- */
-const GlassDatePicker = DatePicker;
-
-export default DatePicker;
-export { DatePicker, GlassDatePicker };
+// Export types
+export type { DatePickerProps, CalendarView };

@@ -2,7 +2,7 @@ import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
 import { babel } from '@rollup/plugin-babel';
-import { terser } from 'rollup-plugin-terser';
+import terser from '@rollup/plugin-terser';
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
 import dts from 'rollup-plugin-dts';
 import path from 'path';
@@ -139,14 +139,11 @@ const baseExternal = [
   'chart.js',
   'react-chartjs-2',
   '@mui/icons-material',
-  '@mui/material',
   'color',
   'csstype',
   'date-fns',
-  'framer-motion',
   'polished',
   'popmotion',
-  'react-spring',
   'react-window',
   'react-intersection-observer',
   'resize-observer-polyfill',
@@ -327,9 +324,7 @@ const dtsExternal = [
   'chart.js',
   'react-chartjs-2',
   'date-fns',
-  'framer-motion', 
   'popmotion',
-  'react-spring',
   'react-window',
   'react-intersection-observer',
   'resize-observer-polyfill',

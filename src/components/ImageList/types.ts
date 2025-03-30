@@ -5,11 +5,12 @@
  */
 
 import React from 'react';
+import { AnimationProps } from '../../animations/types';
 
 /**
  * Props for the ImageList component
  */
-export interface ImageListProps {
+export interface ImageListProps extends AnimationProps {
   /** The content of the component (ImageListItem components) */
   children?: React.ReactNode;
 
@@ -40,6 +41,9 @@ export interface ImageListProps {
   /** If true, the grid items will be of different sizes */
   variableSize?: boolean;
 
+  /** Enable entrance animation for items */
+  enableEntranceAnimation?: boolean;
+
   /** Additional props */
   [key: string]: any;
 }
@@ -47,7 +51,7 @@ export interface ImageListProps {
 /**
  * Props for the ImageListItem component
  */
-export interface ImageListItemProps {
+export interface ImageListItemProps extends AnimationProps {
   /** The content of the component (usually img or picture tag) */
   children?: React.ReactNode;
 

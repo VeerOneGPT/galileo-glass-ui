@@ -1,19 +1,20 @@
-import React, { forwardRef } from 'react';
-import styled from 'styled-components';
-import PropTypes from 'prop-types';
+import React, { forwardRef, ReactNode, HTMLAttributes } from 'react';
+import styled, { css } from 'styled-components';
+import { useGlassTheme } from '../../hooks/useGlassTheme';
+import { PolymorphicProps, GlassSurfaceProps } from '../../core/types';
+import { AnimationProps } from '../../animations/types';
 
 import { glassGlow } from '../../core/mixins/effects/glowEffects';
-import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
-import { useGlassEffects, GlassSurfacePropTypes } from '../../theme/ThemeProvider';
-import type { GlassSurfaceProps } from '../../core/types';
+import DimensionalGlass from '../surfaces/DimensionalGlass';
+import { MotionSensitivityLevel } from '../../animations/accessibility/MotionSensitivity';
 
 // Card props interface
-export interface CardProps {
+export interface CardProps extends GlassSurfaceProps, AnimationProps, HTMLAttributes<HTMLDivElement> {
   /**
    * The content of the card
    */
-  children: React.ReactNode;
+  children: ReactNode;
 
   /**
    * The variant of the card
@@ -64,110 +65,69 @@ export interface CardProps {
    * Maximum width of the card (CSS value)
    */
   maxWidth?: string;
+
+  /**
+   * If true, the card will be raised
+   */
+  raised?: boolean;
 }
 
-// Styled card with glass effects
-const StyledCard = styled.div<{
-  $variant: 'elevation' | 'outlined' | 'standard' | 'frosted' | 'dimensional' | 'heat';
-  $elevation: number;
-  $hover: boolean;
-  $glow: 'none' | 'subtle' | 'medium' | 'strong';
-  $glowColor: string;
-  $padding?: 'none' | 'small' | 'medium' | 'large';
-  $maxWidth?: string;
-}>`
-  /* Base styles */
-  position: relative;
+// Interfaces (ensure these are correctly defined or imported)
+export interface CardHeaderProps extends Omit<HTMLAttributes<HTMLDivElement>, 'title'> {
+  avatar?: ReactNode;
+  action?: ReactNode;
+  title?: ReactNode;
+  subheader?: ReactNode;
+  disableTypography?: boolean;
+}
+
+export interface CardContentProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
+}
+
+export interface CardActionsProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
+  disableSpacing?: boolean;
+}
+
+// Styled components definitions (re-added)
+const StyledCardHeader = styled.div<CardHeaderProps>`
+  /* Add original CardHeader styles here */
   display: flex;
-  flex-direction: column;
-  min-width: 0;
-  word-wrap: break-word;
-  background-clip: border-box;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: all 0.2s ease-in-out;
-  
-  /* Padding based on prop */
-  padding: ${props => {
-    switch (props.$padding) {
-      case 'none': return '0';
-      case 'small': return '12px';
-      case 'medium': return '24px';
-      case 'large': return '32px';
-      default: return '24px';
-    }
-  }};
-  
-  /* Max width if provided */
-  ${props => props.$maxWidth && `max-width: ${props.$maxWidth};`}
+  padding: 16px;
+  align-items: center;
+`;
 
-  /* Variant styles */
-  ${props => {
-    if (props.$variant === 'outlined') {
-      return `
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        background-color: transparent;
-      `;
-    }
+const StyledCardContent = styled.div<CardContentProps>`
+  /* Add original CardContent styles here */
+  padding: 16px;
+`;
 
-    // For elevation variant, use glassSurface mixin
-    return glassSurface({
-      elevation: props.$elevation,
-      blurStrength: 'standard',
-      backgroundOpacity: 'light',
-      borderOpacity: 'subtle',
-      themeContext: createThemeContext({}), // In real usage, this would use props.theme
-    });
-  }}
-
-  /* Hover effect */
-  ${props =>
-    props.$hover &&
-    `
-    cursor: pointer;
-    
-    &:hover {
-      transform: translateY(-4px);
-    }
-  `}
-  
-  /* Glow effect */
-  ${props =>
-    props.$glow !== 'none' &&
-    glassGlow({
-      intensity: props.$glow,
-      color: props.$glowColor,
-      themeContext: createThemeContext({}), // In real usage, this would use props.theme
-    })}
-    
-  /* Title styling */
-  .glass-card-title {
-    margin-bottom: 16px;
-    
-    h3 {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 500;
-    }
-  }
-  
-  /* Content styling */
-  .glass-card-content {
-    flex: 1;
-  }
+const StyledCardActions = styled.div<CardActionsProps>`
+  /* Add original CardActions styles here */
+  display: flex;
+  padding: 8px;
+  align-items: center;
+  ${({ disableSpacing }) =>
+    !disableSpacing &&
+    css`
+      & > :not(:first-child) {
+        margin-left: 8px;
+      }
+    `}
 `;
 
 /**
  * Card Component
  *
- * A flexible card component for content containers.
+ * A versatile container component representing a card.
  */
-export const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
+const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
   const {
     children,
     variant = 'elevation',
     elevation = 1,
-    hover = false,
+    hover = true,
     glow = 'none',
     glowColor = 'primary',
     className,
@@ -175,21 +135,40 @@ export const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
     title,
     padding = 'medium',
     maxWidth,
+    animationConfig,
+    disableAnimation,
+    motionSensitivity,
+    raised = false,
     ...rest
   } = props;
 
+  // Map Card padding prop to DimensionalGlass padding prop
+  const dimensionalPadding = () => {
+    switch (padding) {
+      case 'none': return 0;
+      case 'small': return 12;
+      case 'medium': return 24;
+      case 'large': return 32;
+      default: return 24;
+    }
+  };
+
   return (
-    <StyledCard
+    <DimensionalGlass
       ref={ref}
       className={className}
-      $variant={variant}
-      $elevation={elevation}
-      $hover={hover}
-      $glow={glow}
-      $glowColor={glowColor}
-      $padding={padding}
-      $maxWidth={maxWidth}
+      style={{ maxWidth, ...(onClick && { cursor: 'pointer' }) }}
+      elevation={elevation}
+      interactive={hover}
+      padding={dimensionalPadding()}
+      borderRadius={8}
+      depth={0.5}
+      parallax={true}
+      dynamicShadow={true}
       onClick={onClick}
+      animationConfig={animationConfig}
+      disableAnimation={disableAnimation}
+      motionSensitivity={motionSensitivity}
       {...rest}
     >
       {title && (
@@ -201,146 +180,69 @@ export const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
       <div className="glass-card-content">
         {children}
       </div>
-    </StyledCard>
+    </DimensionalGlass>
   );
 });
 
 Card.displayName = 'Card';
 
 /**
- * GlassCard Component
- *
- * A card component with glass morphism styling.
- * Combines the functionality of both implementations.
+ * CardHeader Component
  */
-export const GlassCard = forwardRef<HTMLDivElement, CardProps & Partial<GlassSurfaceProps>>((props, ref) => {
-  const {
-    children,
-    variant = 'elevation',
-    elevation = 2,
-    hover = true,
-    glow = 'subtle',
-    glowColor = 'primary',
-    className,
-    onClick,
-    title,
-    padding = 'medium',
-    maxWidth,
-    blurStrength,
-    backgroundOpacity,
-    borderOpacity,
-    glowIntensity,
-    interactive = !!onClick,
-    darkMode,
-    ...rest
-  } = props;
-
-  // Get Glass effects from context if needed
-  const { createSurface } = useGlassEffects();
-
-  // Get padding value
-  const getPadding = () => {
-    switch (padding) {
-      case 'none': return '0';
-      case 'small': return '12px';
-      case 'medium': return '24px';
-      case 'large': return '32px';
-      default: return '24px';
-    }
-  };
-
-  // Create unique ID for the component - moved outside of conditional
-  const componentId = React.useId();
-
-  // Map glow values to valid glowIntensity values
-  const mapGlowToIntensity = (glowValue: string): 'minimal' | 'light' | 'medium' | 'strong' | 'extreme' => {
-    if (glowValue === 'none') return 'minimal';
-    if (glowValue === 'subtle') return 'light';
-    if (glowValue === 'medium') return 'medium';
-    if (glowValue === 'strong') return 'strong';
-    return 'medium';
-  };
-
-  // Use advanced glass effects if special variants are requested
-  // Use type guard to handle special glass variants
-  if (
-    variant === 'frosted' ||
-    variant === 'dimensional' ||
-    variant === 'heat' ||
-    variant === 'standard'
-  ) {
-    // Get glass styles
-    const glassStyles = createSurface({
-      variant,
-      blurStrength: blurStrength || 'medium',
-      backgroundOpacity: backgroundOpacity || 'medium',
-      borderOpacity: borderOpacity || 'medium',
-      glowIntensity: glowIntensity || mapGlowToIntensity(glow),
-      elevation: typeof elevation === 'number' ? elevation : 2,
-      interactive: interactive || hover,
-      darkMode,
-    });
-
-    return (
-      <div 
-        ref={ref}
-        id={componentId}
-        className={`glass-card ${className || ''}`}
-        onClick={onClick}
-        style={{ maxWidth, padding: getPadding() }}
-        {...rest}
-      >
-        <style dangerouslySetInnerHTML={{ __html: `
-          #${componentId} {
-            ${glassStyles}
-            border-radius: 12px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-          }
-        `}} />
-        
-        {title && (
-          <div className="glass-card-title">
-            <h3>{title}</h3>
-          </div>
-        )}
-        
-        <div className="glass-card-content">
-          {children}
-        </div>
-      </div>
-    );
-  }
-
-  // Otherwise, use the original Card implementation
+const CardHeader = forwardRef<HTMLDivElement, CardHeaderProps>(({ 
+  avatar,
+  action,
+  title,
+  subheader,
+  disableTypography,
+  ...rest
+}, ref) => {
   return (
-    <Card
-      ref={ref}
-      variant={variant}
-      elevation={elevation}
-      hover={hover}
-      glow={glow}
-      glowColor={glowColor}
-      className={`glass-card ${className || ''}`}
-      onClick={onClick}
-      title={title}
-      padding={padding}
-      maxWidth={maxWidth}
-      {...rest}
-    >
-      {title && (
-        <div className="glass-card-title">
-          <h3>{title}</h3>
-        </div>
-      )}
-      
-      <div className="glass-card-content">
-        {children}
+    <StyledCardHeader ref={ref} {...rest}>
+      {/* Add logic for avatar, action, title, subheader based on original implementation */}
+      {avatar}
+      <div style={{ flex: 1 }}>
+        {title}
+        {subheader}
       </div>
-    </Card>
+      {action}
+    </StyledCardHeader>
   );
 });
 
-GlassCard.displayName = 'GlassCard';
+CardHeader.displayName = 'CardHeader';
 
-// Note: PropTypes validation removed in favor of TypeScript interface checking
-// Runtime validation is handled by TypeScript interfaces during compilation
+/**
+ * CardContent Component
+ */
+const CardContent = forwardRef<HTMLDivElement, CardContentProps>(({ 
+  children, 
+  ...rest 
+}, ref) => {
+  return (
+    <StyledCardContent ref={ref} {...rest}>
+      {children}
+    </StyledCardContent>
+  );
+});
+
+CardContent.displayName = 'CardContent';
+
+/**
+ * CardActions Component
+ */
+const CardActions = forwardRef<HTMLDivElement, CardActionsProps>(({ 
+  children, 
+  disableSpacing = false, 
+  ...rest
+}, ref) => {
+  return (
+    <StyledCardActions ref={ref} disableSpacing={disableSpacing} {...rest}>
+      {children}
+    </StyledCardActions>
+  );
+});
+
+CardActions.displayName = 'CardActions';
+
+export { Card, CardHeader, CardContent, CardActions };

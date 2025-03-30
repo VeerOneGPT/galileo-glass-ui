@@ -10,14 +10,21 @@ import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 
 // Physics-related imports
-import { useSpring } from '../../animations/physics/useSpring';
+import { useGalileoStateSpring, GalileoStateSpringOptions, GalileoSpringResult } from '../../hooks/useGalileoStateSpring';
 import { useInertialMovement } from '../../animations/physics/useInertialMovement';
-import { SpringPresets } from '../../animations/physics/springPhysics';
+import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
+import {
+  useAnimationSequence,
+  AnimationSequenceConfig,
+  StaggerAnimationStage,
+  SequenceControls,
+} from '../../animations/orchestration/useAnimationSequence';
 
 // Core styling imports
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glowEffects } from '../../core/mixins/effects/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
+import { useAnimationContext } from '../../contexts/AnimationContext';
 
 // Hooks and utilities
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -30,6 +37,49 @@ import {
   MultiSelectProps,
   FilterFunction
 } from './types';
+import { AnimationProps } from '../../types/animation';
+
+// --- Helper Functions (copied from Select/Autocomplete) ---
+const mapGlowIntensity = (progress: number): 'none' | 'subtle' | 'medium' => {
+  if (progress < 0.1) return 'none';
+  if (progress < 0.7) return 'subtle';
+  return 'medium';
+};
+
+const mapBorderOpacity = (progress: number): 'subtle' | 'medium' | 'strong' => {
+  if (progress < 0.1) return 'subtle';
+  if (progress < 0.8) return 'medium';
+  return 'strong';
+};
+
+const interpolateColor = (startColor: string, endColor: string, progress: number): string => {
+  try {
+    const parse = (color: string): number[] => {
+      if (color.startsWith('rgba')) {
+        const parts = color.match(/\d+\.?\d*/g)?.map(Number);
+        return parts?.length === 4 ? parts : [0, 0, 0, 1];
+      } else if (color.startsWith('#')) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const a = hex.length === 8 ? parseInt(hex.substring(6, 8), 16) / 255 : 1;
+        return [r, g, b, a];
+      }
+      return [0, 0, 0, 1];
+    };
+    const start = parse(startColor);
+    const end = parse(endColor);
+    const r = Math.round(start[0] + (end[0] - start[0]) * progress);
+    const g = Math.round(start[1] + (end[1] - start[1]) * progress);
+    const b = Math.round(start[2] + (end[2] - start[2]) * progress);
+    const a = start[3] + (end[3] - start[3]) * progress;
+    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
+  } catch (e) {
+    return endColor;
+  }
+};
+// --- End Helper Functions ---
 
 // Animation keyframes
 const fadeIn = keyframes`
@@ -158,13 +208,11 @@ const TokensContainer = styled.div`
 
 const Token = styled.div<{
   $isDisabled: boolean;
-  $animate: boolean;
-  $reducedMotion: boolean;
-  $animateRemove: boolean;
   $translateX: number;
   $translateY: number;
   $scale: number;
   $isDragging: boolean;
+  $initialOpacity?: number;
 }>`
   display: flex;
   align-items: center;
@@ -180,26 +228,16 @@ const Token = styled.div<{
   color: rgba(255, 255, 255, 0.95);
   transition: background-color 0.2s ease;
   user-select: none;
-  
-  /* Optional: initial pop-in animation */
-  ${props => props.$animate && !props.$reducedMotion && css`
-    animation: ${popIn} 0.3s ease-out;
-  `}
-  
-  /* Physics-based positioning */
-  transform: translate(${props => props.$translateX}px, ${props => props.$translateY}px) 
+  transform: translate(${props => props.$translateX}px, ${props => props.$translateY}px)
              scale(${props => props.$scale});
+  will-change: transform, opacity;
+  opacity: ${props => props.$initialOpacity ?? 1};
   
   /* Dragging state */
   ${props => props.$isDragging && css`
     opacity: 0.8;
     z-index: 10;
     cursor: grabbing;
-  `}
-  
-  /* Remove animation */
-  ${props => props.$animateRemove && !props.$reducedMotion && css`
-    animation: ${fadeIn} 0.2s ease-out reverse;
   `}
   
   /* Hover styles */
@@ -287,8 +325,6 @@ const DropdownContainer = styled.div<{
   $width: number;
   $maxHeight: string | number;
   $openUp: boolean;
-  $animate: boolean;
-  $reducedMotion: boolean;
   $popperWidth?: string;
 }>`
   position: absolute;
@@ -315,12 +351,8 @@ const DropdownContainer = styled.div<{
   
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  
-  /* Animation */
-  ${props => props.$animate && !props.$reducedMotion && css`
-    animation: ${fadeIn} 0.2s ease-out;
-    transform-origin: ${props.$openUp ? 'bottom' : 'top'};
-  `}
+  will-change: transform, opacity;
+  transform-origin: ${props => props.$openUp ? 'bottom center' : 'top center'};
 `;
 
 const OptionsList = styled.ul`
@@ -536,785 +568,565 @@ const usePositionInertia = (
 
 // Component implementation
 function GlassMultiSelectInternal<T = string>(
-  props: MultiSelectProps<T> & { ref?: React.Ref<HTMLInputElement> }
+  props: MultiSelectProps<T> & AnimationProps & { ref?: React.Ref<HTMLInputElement> }
 ) {
-  // Destructure props with defaults
   const {
     options = [],
-    value = [],
-    placeholder = 'Select options...',
+    value: controlledValue,
     onChange,
     onSelect,
     onRemove,
-    width,
-    fullWidth = false,
-    size = 'medium',
-    maxHeight = '300px',
-    className,
-    disabled = false,
-    error = false,
-    errorMessage,
+    onInputChange,
+    placeholder = 'Select options...',
     label,
     helperText,
-    animate = true,
-    openUp = false,
-    filterFunction,
+    error = false,
+    errorMessage,
+    disabled = false,
+    fullWidth = false,
+    width,
+    size = 'medium',
+    maxHeight = 300,
+    clearable = true,
+    searchable = true,
     creatable = false,
     onCreateOption,
+    filterFunction,
+    withGroups = false,
+    groups = [],
+    closeOnSelect = false,
+    clearInputOnSelect = false,
+    id,
+    autoFocus,
+    animate: propAnimate = true,
+    openUp = false,
+    className,
+    keyboardNavigation = true,
+    ariaLabel,
+    physics = {},
+    onOpen,
+    onClose,
     maxSelections,
     maxDisplay,
     renderToken,
     renderOption,
     renderGroup,
-    closeOnSelect = false,
-    clearInputOnSelect = false,
-    keyboardNavigation = true,
-    clearable = true,
-    searchable = true,
-    autoFocus = false,
-    id,
-    ariaLabel,
-    withGroups = false,
-    groups = [],
-    onOpen,
-    onClose,
-    onInputChange,
     virtualization,
-    physics = {
-      tension: 180,
-      friction: 12,
-      animationPreset: 'default',
-      dragToReorder: true,
-      hoverEffects: true
-    },
-    async = {
-      loading: false
-    },
-    touchFriendly = true,
-    ref
+    async: asyncProps,
+    animationConfig,
+    disableAnimation: propDisableAnimation,
+    ...rest
   } = props;
 
-  // Physics configuration
-  const springConfig = useMemo(() => {
-    if (physics.animationPreset === 'gentle') return SpringPresets.GENTLE;
-    if (physics.animationPreset === 'snappy') return SpringPresets.SNAPPY;
-    if (physics.animationPreset === 'bouncy') return SpringPresets.BOUNCY;
-    
-    // Default or custom configuration
-    return {
-      tension: physics.tension || 180,
-      friction: physics.friction || 12,
-      mass: 1
-    };
-  }, [physics.animationPreset, physics.tension, physics.friction]);
+  // Extract nested props with defaults
+  const loading = asyncProps?.loading ?? false;
+  const loadingMessage = asyncProps?.loadingIndicator ?? 'Loading...';
+  const virtualized = virtualization?.enabled ?? false;
+  const itemHeight = virtualization?.itemHeight ?? 40;
+  const defaultNoOptionsMessage = 'No options';
 
-  // State
-  const [inputValue, setInputValue] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(-1);
-  const [selectedOptions, setSelectedOptions] = useState<MultiSelectOption<T>[]>(value);
-  const [containerWidth, setContainerWidth] = useState(0);
-  const [animatingTokenIds, setAnimatingTokenIds] = useState<string[]>([]);
-  const [draggedTokenId, setDraggedTokenId] = useState<string | null>(null);
-  const [resetShake, setResetShake] = useState(false);
-  
-  // References
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Refs
+  const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const tokenRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const tokenPositions = useRef<Map<string, { x: number, y: number }>>(new Map());
-  const tokenStartPosition = useRef<{ x: number, y: number } | null>(null);
-  const tokenOriginalOrder = useRef<string[]>([]);
-  
-  // Accessibility
-  const reducedMotion = useReducedMotion();
-  
-  // Inertial movement for token dragging
-  const { position: dragPosition, setPosition: setDragPosition } = usePositionInertia({ x: 0, y: 0 });
-  
-  // Spring for token animations
-  const { value: tokenScale, start: animateTokenScale } = useSpring({
-    from: 1,
-    to: 1,
-    config: springConfig
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // State
+  const [internalValue, setInternalValue] = useState<MultiSelectOption<T>[]>(() => {
+    const initial = controlledValue ?? [];
+    return Array.isArray(initial) ? initial : [];
   });
-  
-  // Filtered options based on input
+  const [inputValue, setInputValue] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [focusedOptionIndex, setFocusedOptionIndex] = useState(-1);
+  const [isRendered, setIsRendered] = useState(isDropdownOpen);
+
+  // Animation Context & Settings
+  const {
+    modalSpringConfig: contextModalSpringConfig,
+    defaultSpring: contextDefaultSpring,
+    disableAnimation: contextDisableAnimation
+  } = useAnimationContext();
+  const prefersReducedMotion = useReducedMotion();
+
+  // Calculate final disable state again
+  const finalDisableAnimation = propDisableAnimation ?? contextDisableAnimation ?? prefersReducedMotion ?? !propAnimate;
+
+  // Dropdown immediate flag
+  const dropdownImmediate = finalDisableAnimation;
+
+  // Resolve final spring config for dropdown (using nested physics prop)
+  const finalDropdownSpringConfig = useMemo<Partial<SpringConfig>>(() => {
+    const baseConfig = SpringPresets.DEFAULT;
+    let resolvedContextConfig = {};
+    if (typeof contextModalSpringConfig === 'string' && contextModalSpringConfig in SpringPresets) {
+      resolvedContextConfig = SpringPresets[contextModalSpringConfig as keyof typeof SpringPresets];
+    } else if (typeof contextModalSpringConfig === 'object') {
+      resolvedContextConfig = contextModalSpringConfig ?? {};
+    }
+    // Merge config from the nested physics prop
+    const propPhysicsConfig = physics?.animationPreset === 'gentle' ? SpringPresets.GENTLE :
+                             physics?.animationPreset === 'snappy' ? SpringPresets.SNAPPY :
+                             physics?.animationPreset === 'bouncy' ? SpringPresets.BOUNCY :
+                             (typeof physics?.tension === 'number' && typeof physics?.friction === 'number' ? { tension: physics.tension, friction: physics.friction } : {}); // Use tension/friction if present
+                             
+    return { ...baseConfig, ...resolvedContextConfig, ...propPhysicsConfig };
+  }, [contextModalSpringConfig, physics?.animationPreset, physics?.tension, physics?.friction]);
+
+  // Use Galileo Spring for dropdown entrance/exit
+  const dropdownAnimation: GalileoSpringResult = useGalileoStateSpring(
+      isDropdownOpen ? 1 : 0,
+      {
+          ...finalDropdownSpringConfig,
+          immediate: dropdownImmediate,
+          onRest: (result) => {
+              if (!isDropdownOpen && result.finished) {
+                  setIsRendered(false);
+              }
+          }
+      }
+  );
+
+  const shouldRenderDropdown = isRendered;
+
+  // Effects (value control, portal rendering)
+  useEffect(() => {
+    if (controlledValue !== undefined) {
+      const controlledArray = Array.isArray(controlledValue) ? controlledValue : [];
+      if (JSON.stringify(controlledArray) !== JSON.stringify(internalValue)) {
+          setInternalValue(controlledArray);
+      }
+    }
+  }, [controlledValue, internalValue]);
+
+  useEffect(() => {
+      if (isDropdownOpen) {
+          setIsRendered(true);
+          if (onOpen) onOpen();
+      } else {
+          if (onClose) onClose();
+      }
+  }, [isDropdownOpen, onOpen, onClose]);
+
+  // Filtered options computation
   const filteredOptions = useMemo(() => {
-    if (!searchable || inputValue.trim() === '') {
-      return options;
+    let result = options;
+    if (searchable && inputValue) {
+        const filterFn = filterFunction || ((option, input) => 
+            option.label.toLowerCase().includes(input.toLowerCase())
+        );
+        try {
+             result = options.filter(option => filterFn(option, inputValue, internalValue));
+        } catch (e) {
+             console.warn("Filter function failed, check arguments", e);
+             result = options.filter(option => (filterFn as any)(option, inputValue));
+        }
     }
-    
-    // If custom filter function is provided, use it
-    if (filterFunction) {
-      return options.filter(option => filterFunction(option, inputValue, selectedOptions));
+    if (creatable && inputValue && !options.some(opt => opt.label === inputValue)) {
+        const creatableOption: any = {
+             label: `Create "${inputValue}"`,
+             value: inputValue, 
+             id: `__creatable__${inputValue}`,
+             __isCreatable__: true
+        };
+        result = [creatableOption as MultiSelectOption<any>, ...result];
     }
-    
-    // Default filtering: case-insensitive search in label
-    const normalizedInput = inputValue.toLowerCase().trim();
-    return options.filter(option => 
-      option.label.toLowerCase().includes(normalizedInput) ||
-      (option.description && option.description.toLowerCase().includes(normalizedInput))
-    );
-  }, [options, inputValue, searchable, filterFunction, selectedOptions]);
-  
-  // Group options for rendering
+    return result;
+  }, [options, inputValue, searchable, creatable, filterFunction, internalValue]);
+
+  // Grouped options computation
   const groupedOptions = useMemo(() => {
     if (!withGroups) {
-      return { default: filteredOptions };
+      return [{ group: null, options: filteredOptions }];
     }
+    const groupMap: { [key: string]: MultiSelectOption<T>[] } = {};
+    groups.forEach(g => groupMap[g.id] = []);
     
-    // Create a map of group id to options
-    const result: Record<string, MultiSelectOption<T>[]> = {};
-    
-    // Initialize each group with an empty array
-    groups.forEach(group => {
-      result[group.id] = [];
-    });
-    
-    // Add options to their groups
     filteredOptions.forEach(option => {
-      const groupId = option.group || 'default';
-      if (!result[groupId]) {
-        result[groupId] = [];
-      }
-      result[groupId].push(option);
+      const groupId = option.group || '__no_group__';
+      if (!groupMap[groupId]) groupMap[groupId] = [];
+      groupMap[groupId].push(option);
     });
     
-    // Handle options without a group
-    if (result.default && result.default.length === 0) {
-      delete result.default;
-    }
-    
-    return result;
+    const orderedGroups: { group: OptionGroup | null; options: MultiSelectOption<T>[] }[] = [];
+    groups.forEach(g => {
+        if (groupMap[g.id]?.length > 0) orderedGroups.push({ group: g, options: groupMap[g.id] });
+    });
+    if (groupMap['__no_group__']?.length > 0) orderedGroups.push({ group: null, options: groupMap['__no_group__'] });
+    Object.keys(groupMap).forEach(groupId => {
+        if (groupId !== '__no_group__' && !groups.some(g => g.id === groupId) && groupMap[groupId].length > 0) {
+            orderedGroups.push({ group: { id: groupId, label: groupId }, options: groupMap[groupId] });
+        }
+    });
+    return orderedGroups;
   }, [filteredOptions, withGroups, groups]);
-  
-  // Handle input change
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInputValue(value);
-    
-    // If dropdown is not open and we start typing, open it
-    if (!isOpen && value.trim() !== '') {
-      setIsOpen(true);
-      onOpen?.();
-    }
-    
-    // Call the onInputChange callback
-    onInputChange?.(value);
-  }, [isOpen, onInputChange, onOpen]);
-  
-  // Handle option selection
-  const handleSelectOption = useCallback((option: MultiSelectOption<T>) => {
-    // Don't select disabled options
-    if (option.disabled) return;
-    
-    // Check if we're at max selections
-    if (maxSelections && selectedOptions.length >= maxSelections) {
-      // Show shake animation on the container
-      setResetShake(true);
-      setTimeout(() => setResetShake(false), 10);
-      
-      return;
-    }
-    
-    // Add the option if it's not already selected
-    if (!selectedOptions.some(selected => selected.id === option.id)) {
-      const newSelectedOptions = [...selectedOptions, option];
-      setSelectedOptions(newSelectedOptions);
-      
-      // Add to animating tokens for entrance animation
-      setAnimatingTokenIds(prev => [...prev, String(option.id)]);
-      
-      // Remove animation after delay
-      setTimeout(() => {
-        setAnimatingTokenIds(prev => prev.filter(id => id !== String(option.id)));
-      }, 300);
-      
-      // Call callbacks
-      onChange?.(newSelectedOptions);
-      onSelect?.(option);
-      
-      // Clear input if needed
-      if (clearInputOnSelect) {
-        setInputValue('');
-      }
-      
-      // Close dropdown if needed
-      if (closeOnSelect) {
-        setIsOpen(false);
-        onClose?.();
-      }
-    }
-  }, [selectedOptions, maxSelections, onChange, onSelect, clearInputOnSelect, closeOnSelect, onClose]);
-  
-  // Handle token removal
-  const handleRemoveToken = useCallback((option: MultiSelectOption<T>) => {
-    // Add to animating tokens for exit animation
-    setAnimatingTokenIds(prev => [...prev, String(option.id)]);
-    
-    // Wait for animation to complete before removal
-    setTimeout(() => {
-      // First remove from animating tokens
-      setAnimatingTokenIds(prev => prev.filter(id => id !== String(option.id)));
-      
-      // Then remove from selected options
-      const newSelectedOptions = selectedOptions.filter(selected => selected.id !== option.id);
-      setSelectedOptions(newSelectedOptions);
-      
-      // Call callbacks
-      onChange?.(newSelectedOptions);
-      onRemove?.(option);
-    }, 200);
-  }, [selectedOptions, onChange, onRemove]);
-  
-  // Handle clear all tokens
-  const handleClearAll = useCallback(() => {
-    // Add all tokens to animating list for exit animation
-    setAnimatingTokenIds(
-      selectedOptions.map(option => String(option.id))
-    );
-    
-    // Wait for animation to complete before clearing
-    setTimeout(() => {
-      setSelectedOptions([]);
-      setAnimatingTokenIds([]);
-      
-      // Call callback
-      onChange?.([]);
-    }, 200);
-  }, [selectedOptions, onChange]);
-  
-  // Handle container focus
-  const handleContainerFocus = useCallback(() => {
-    // Don't focus if disabled
-    if (disabled) return;
-    
-    setIsFocused(true);
-    inputRef.current?.focus();
-  }, [disabled]);
-  
-  // Handle input focus
-  const handleInputFocus = useCallback(() => {
-    setIsFocused(true);
-  }, []);
-  
-  // Handle input blur
-  const handleInputBlur = useCallback(() => {
-    // Short delay to allow for click handling
-    setTimeout(() => {
-      // Only blur if no element inside the container has focus
+
+  const flatOptions = useMemo(() => groupedOptions.flatMap(g => g.options), [groupedOptions]);
+
+  // Click outside handler
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
       if (
-        containerRef.current && 
-        !containerRef.current.contains(document.activeElement)
+        dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+        rootRef.current && !rootRef.current.contains(event.target as Node)
       ) {
-        setIsFocused(false);
-        setIsOpen(false);
-        onClose?.();
+        setIsDropdownOpen(false);
+        setFocused(false);
       }
-    }, 100);
-  }, [onClose]);
-  
-  // Handle dropdown toggle
-  const handleToggleDropdown = useCallback(() => {
-    if (disabled) return;
-    
-    const newIsOpen = !isOpen;
-    setIsOpen(newIsOpen);
-    
-    if (newIsOpen) {
-      onOpen?.();
-      // Focus the input when opening
-      inputRef.current?.focus();
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
     } else {
-      onClose?.();
+      document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [disabled, isOpen, onOpen, onClose]);
-  
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isDropdownOpen, handleClickOutside]);
+
+  // Event Handlers
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (!disabled) {
+      setFocused(true);
+    }
+  };
+
+  const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTimeout(() => {
+        if (rootRef.current && !rootRef.current.contains(document.activeElement)) {
+            setFocused(false);
+            setIsDropdownOpen(false);
+        }
+    }, 150);
+  };
+
+  const handleContainerClick = () => {
+      if (!disabled) {
+          inputRef.current?.focus();
+          if (!isDropdownOpen) {
+              setIsDropdownOpen(true);
+          }
+      }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    if (!isDropdownOpen) setIsDropdownOpen(true);
+    setFocusedOptionIndex(0);
+    if (onInputChange) onInputChange(newValue);
+  };
+
+  const handleOptionClick = (option: MultiSelectOption<T>) => {
+    if (option.disabled || (option as any).__isDisabled__) return;
+    if ((option as any).__isCreatable__) {
+        if (onCreateOption) {
+            const createdOption = onCreateOption(inputValue);
+            if (createdOption) handleOptionSelectInternal(createdOption);
+            if (clearInputOnSelect) setInputValue('');
+            if (!closeOnSelect) inputRef.current?.focus();
+            else setIsDropdownOpen(false);
+        }
+        return;
+    }
+    handleOptionSelectInternal(option);
+  };
+
+  const handleOptionSelectInternal = (option: MultiSelectOption<T>) => {
+    let newValue: MultiSelectOption<T>[];
+    const isSelected = internalValue.some(v => v.id === option.id);
+
+    if (isSelected) {
+      newValue = internalValue.filter(v => v.id !== option.id);
+      if (onRemove) onRemove(option);
+    } else {
+      if (maxSelections && internalValue.length >= maxSelections) return;
+      newValue = [...internalValue, option];
+      if (onSelect) onSelect(option);
+    }
+    if (controlledValue === undefined) setInternalValue(newValue);
+    if (onChange) onChange(newValue);
+    if (clearInputOnSelect) setInputValue('');
+    if (!closeOnSelect) inputRef.current?.focus();
+    else setIsDropdownOpen(false);
+  };
+
+  const handleTokenRemove = (e: React.MouseEvent, optionToRemove: MultiSelectOption<T>) => {
+    e.stopPropagation();
+    if (optionToRemove.disabled || disabled) return;
+    const newValue = internalValue.filter(v => v.id !== optionToRemove.id);
+    if (controlledValue === undefined) setInternalValue(newValue);
+    if (onChange) onChange(newValue);
+    if (onRemove) onRemove(optionToRemove);
+    inputRef.current?.focus();
+  };
+
+  const handleClearAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (controlledValue === undefined) setInternalValue([]);
+    if (onChange) onChange([]);
+    setInputValue('');
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!keyboardNavigation || disabled) return;
-    
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        if (!isOpen) {
-          setIsOpen(true);
-          onOpen?.();
-          setFocusedIndex(0);
+        if (!isDropdownOpen) {
+            setIsDropdownOpen(true);
+            setFocusedOptionIndex(0);
         } else {
-          setFocusedIndex(prevIndex => {
-            const nextIndex = prevIndex + 1;
-            // Convert flat array from grouped options
-            const flatOptions = Object.values(groupedOptions).flat();
-            return nextIndex >= flatOptions.length ? 0 : nextIndex;
-          });
+            setFocusedOptionIndex(prev => Math.min(prev + 1, flatOptions.length - 1));
         }
         break;
-        
       case 'ArrowUp':
         e.preventDefault();
-        if (!isOpen) {
-          setIsOpen(true);
-          onOpen?.();
-          // Select last option when opening with arrow up
-          const flatOptions = Object.values(groupedOptions).flat();
-          setFocusedIndex(flatOptions.length - 1);
-        } else {
-          setFocusedIndex(prevIndex => {
-            const flatOptions = Object.values(groupedOptions).flat();
-            const nextIndex = prevIndex - 1;
-            return nextIndex < 0 ? flatOptions.length - 1 : nextIndex;
-          });
+        if (isDropdownOpen) {
+            setFocusedOptionIndex(prev => Math.max(prev - 1, 0));
         }
         break;
-        
       case 'Enter':
-        e.preventDefault();
-        if (isOpen && focusedIndex >= 0) {
-          // Get flat array of options
-          const flatOptions = Object.values(groupedOptions).flat();
-          if (focusedIndex < flatOptions.length) {
-            handleSelectOption(flatOptions[focusedIndex]);
+        if (isDropdownOpen && focusedOptionIndex >= 0 && focusedOptionIndex < flatOptions.length) {
+          e.preventDefault();
+          const selectedOption = flatOptions[focusedOptionIndex];
+          if (!selectedOption.disabled && !(selectedOption as any).__isDisabled__) {
+            handleOptionClick(selectedOption);
           }
-        } else if (!isOpen) {
-          setIsOpen(true);
-          onOpen?.();
         }
         break;
-        
       case 'Escape':
-        e.preventDefault();
-        if (isOpen) {
-          setIsOpen(false);
-          onClose?.();
+        if (isDropdownOpen) {
+          e.preventDefault();
+          setIsDropdownOpen(false);
         }
         break;
-        
       case 'Backspace':
-        // Remove the last selected token if input is empty
-        if (inputValue === '' && selectedOptions.length > 0) {
-          handleRemoveToken(selectedOptions[selectedOptions.length - 1]);
+        if (!inputValue && internalValue.length > 0) {
+          e.preventDefault();
+          const lastOption = internalValue[internalValue.length - 1];
+          handleTokenRemove(e as any, lastOption);
         }
         break;
+      default: break;
     }
-  }, [
-    keyboardNavigation, 
-    disabled, 
-    isOpen, 
-    focusedIndex,
-    groupedOptions,
-    inputValue, 
-    selectedOptions,
-    handleSelectOption,
-    handleRemoveToken,
-    onOpen,
-    onClose
-  ]);
-  
-  // Measure container width for dropdown positioning
+  };
+
+  // Scroll into view logic
   useEffect(() => {
-    if (containerRef.current) {
-      setContainerWidth(containerRef.current.offsetWidth);
-    }
-  }, []);
-  
-  // Set initial value
-  useEffect(() => {
-    setSelectedOptions(value);
-  }, [value]);
-  
-  // Auto focus on mount
-  useEffect(() => {
-    if (autoFocus && inputRef.current && !disabled) {
-      inputRef.current.focus();
-    }
-  }, [autoFocus, disabled]);
-  
-  // Track token positions for animation
-  useEffect(() => {
-    // Update positions for all tokens
-    tokenRefs.current.forEach((elem, id) => {
-      const rect = elem.getBoundingClientRect();
-      if (rect) {
-        tokenPositions.current.set(id, { x: rect.left, y: rect.top });
+      if (isDropdownOpen && focusedOptionIndex >= 0 && listRef.current) {
+          const optionElement = listRef.current.querySelector(`[data-option-index="${focusedOptionIndex}"]`) as HTMLLIElement;
+          if (optionElement) optionElement.scrollIntoView({ block: 'nearest' });
       }
-    });
-    
-    // Track token order
-    tokenOriginalOrder.current = selectedOptions.map(opt => String(opt.id));
-  }, [selectedOptions]);
-  
-  // Touch event handlers for token dragging
-  const handleTokenMouseDown = useCallback((e: React.MouseEvent | React.TouchEvent, option: MultiSelectOption<T>) => {
-    if (disabled || !physics.dragToReorder) return;
-    
-    // Prevent default to avoid text selection
-    e.preventDefault();
-    
-    const id = String(option.id);
-    setDraggedTokenId(id);
-    
-    // Store initial position for relative movement
-    const eventPosition = 'touches' in e 
-      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
-      : { x: e.clientX, y: e.clientY };
-      
-    tokenStartPosition.current = eventPosition;
-    
-    // Reset drag position
-    setDragPosition({ x: 0, y: 0 }, false);
-    
-    // Animate scale up
-    animateTokenScale({ to: 1.05 });
-    
-    // Setup window events for dragging
-    const handleMouseMove = (moveEvent: MouseEvent | TouchEvent) => {
-      if (!tokenStartPosition.current) return;
-      
-      const currentPosition = 'touches' in moveEvent 
-        ? { x: moveEvent.touches[0].clientX, y: moveEvent.touches[0].clientY }
-        : { x: moveEvent.clientX, y: moveEvent.clientY };
-        
-      // Calculate delta from start position
-      const deltaX = currentPosition.x - tokenStartPosition.current.x;
-      const deltaY = currentPosition.y - tokenStartPosition.current.y;
-      
-      // Update position
-      setDragPosition({ x: deltaX, y: deltaY }, false);
-      
-      // TODO: Handle reordering of tokens based on position
-      // This would require complex collision detection
+  }, [focusedOptionIndex, isDropdownOpen]);
+
+  // --- Token Entrance Animation Implementation ---
+
+  // Define the sequence configuration MEMOIZED
+  const entranceSequenceConfig = useMemo((): AnimationSequenceConfig => {
+    // Default stage config
+    const entranceStage: StaggerAnimationStage = {
+      id: 'token-entrance-stagger',
+      type: 'stagger',
+      targets: '.galileo-multiselect-token', // Target the class name
+      from: { opacity: 0, transform: 'translateY(5px) scale(0.95)' },
+      to: { opacity: 1, transform: 'translateY(0px) scale(1)' },
+      duration: 300,
+      staggerDelay: 30,
+      easing: 'easeOutCubic',
+      // Optional: Use animationConfig prop for physics override
+      // config: animationConfig ?? contextDefaultSpring ?? SpringPresets.SNAPPY 
     };
-    
-    const handleMouseUp = () => {
-      // Reset dragging state
-      setDraggedTokenId(null);
-      tokenStartPosition.current = null;
-      
-      // Animate back to original position with spring physics
-      setDragPosition({ x: 0, y: 0 }, true);
-      
-      // Animate scale down
-      animateTokenScale({ to: 1 });
-      
-      // Remove window event listeners
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('touchmove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-      window.removeEventListener('touchend', handleMouseUp);
+    return {
+      id: `multiselect-token-entrance-${id || 'default'}`,
+      stages: [entranceStage],
+      autoplay: false, // Trigger manually
     };
-    
-    // Add window event listeners
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('touchmove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    window.addEventListener('touchend', handleMouseUp);
-  }, [disabled, physics.dragToReorder, setDragPosition, animateTokenScale]);
-  
-  // Handle option virtualization
-  const getVirtualizedOptions = useCallback(() => {
-    // Get flat array of options
-    const flatOptions = Object.values(groupedOptions).flat();
-    
-    // Enable virtualization if there are many options
-    const shouldVirtualize = virtualization?.enabled || 
-      (virtualization?.itemHeight && flatOptions.length > 100);
-      
-    if (!shouldVirtualize || !virtualization?.itemHeight) {
-      return flatOptions;
+  }, [id]); // Depends on ID for uniqueness, config could be added if used
+
+  // Instantiate the sequence hook
+  const { play: playEntranceAnimation }: SequenceControls = useAnimationSequence(entranceSequenceConfig);
+
+  // Ref to track if initial animation has run
+  const initialAnimationPlayed = useRef(false);
+
+  // Trigger the entrance animation on mount/value change if enabled
+  useEffect(() => {
+    if (propAnimate && !finalDisableAnimation && internalValue.length > 0 && !initialAnimationPlayed.current) {
+      // Small delay to ensure elements are rendered before targeting
+      const timer = setTimeout(() => {
+        playEntranceAnimation();
+        initialAnimationPlayed.current = true; // Mark as played
+      }, 50); // Adjust delay if needed
+      return () => clearTimeout(timer);
     }
-    
-    // Simple virtualization: only render a window of items
-    const itemCount = virtualization.itemCount || 30;
-    const startIndex = Math.max(0, focusedIndex - Math.floor(itemCount / 2));
-    
-    return flatOptions.slice(startIndex, startIndex + itemCount);
-  }, [groupedOptions, virtualization, focusedIndex]);
-  
-  // Custom token renderer
-  const renderTokenComponent = useCallback((option: MultiSelectOption<T>, index: number) => {
-    // Check if token is being animated
-    const isAnimating = animatingTokenIds.includes(String(option.id));
-    const isDragging = draggedTokenId === String(option.id);
-    
-    // Get token position transforms
-    const translateX = isDragging ? dragPosition.x : 0;
-    const translateY = isDragging ? dragPosition.y : 0;
-    const scale = isDragging ? tokenScale : 1;
-    
-    // If custom renderer is provided, wrap it with animation props
-    if (renderToken) {
-      return renderToken(option, () => handleRemoveToken(option));
+    // Reset flag if value becomes empty (optional, for re-animation)
+    if (internalValue.length === 0) {
+        initialAnimationPlayed.current = false;
     }
-    
-    // Default token rendering
-    return (
-      <Token
-        key={String(option.id)}
-        ref={(el) => {
-          if (el) tokenRefs.current.set(String(option.id), el);
-          else tokenRefs.current.delete(String(option.id));
-        }}
-        $isDisabled={disabled || !!option.disabled}
-        $animate={animate && isAnimating && !isAnimating}
-        $reducedMotion={reducedMotion}
-        $animateRemove={isAnimating}
-        $translateX={translateX}
-        $translateY={translateY}
-        $scale={scale}
-        $isDragging={isDragging}
-        onMouseDown={(e) => handleTokenMouseDown(e, option)}
-        onTouchStart={(e) => touchFriendly && handleTokenMouseDown(e, option)}
-      >
-        {option.icon && <span className="token-icon">{option.icon}</span>}
-        <TokenLabel>{option.label}</TokenLabel>
-        {!disabled && !option.disabled && (
-          <RemoveButton
-            type="button"
-            className="remove-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRemoveToken(option);
-            }}
-            aria-label={`Remove ${option.label}`}
-            tabIndex={-1}
-          >
-            <ClearIcon />
-          </RemoveButton>
-        )}
-      </Token>
-    );
-  }, [
-    animatingTokenIds,
-    draggedTokenId,
-    dragPosition,
-    tokenScale,
-    animate,
-    reducedMotion,
-    disabled,
-    renderToken,
-    handleRemoveToken,
-    handleTokenMouseDown,
-    touchFriendly
-  ]);
-  
-  // Custom option renderer
-  const renderOptionComponent = useCallback((option: MultiSelectOption<T>, index: number) => {
-    // Check if option is selected
-    const isSelected = selectedOptions.some(selected => selected.id === option.id);
-    
-    // Check if option is focused
-    const isFocused = index === focusedIndex;
-    
-    // If custom renderer is provided, use it
-    if (renderOption) {
-      return renderOption(option, {
-        selected: isSelected,
-        focused: isFocused,
-        disabled: !!option.disabled
-      });
-    }
-    
-    // Default option rendering
-    return (
-      <OptionItem
-        key={String(option.id)}
-        $isSelected={isSelected}
-        $isFocused={isFocused}
-        $isDisabled={!!option.disabled}
-        $size={size}
-        onClick={() => !option.disabled && handleSelectOption(option)}
-        onMouseEnter={() => !option.disabled && setFocusedIndex(index)}
-      >
-        {option.icon && <span className="option-icon">{option.icon}</span>}
-        <OptionText>
-          <span className="option-label">{option.label}</span>
-          {option.description && (
-            <span className="option-description">{option.description}</span>
-          )}
-        </OptionText>
-      </OptionItem>
-    );
-  }, [selectedOptions, focusedIndex, renderOption, size, handleSelectOption]);
-  
-  // Custom group renderer
-  const renderGroupComponent = useCallback((groupId: string, options: MultiSelectOption<T>[]) => {
-    // Skip rendering if there are no options in this group
-    if (options.length === 0) return null;
-    
-    // Find group configuration
-    const group = groups.find(g => g.id === groupId);
-    
-    // If no group info and it's the default group, just render options
-    if (!group && groupId === 'default') {
-      return options.map((option, index) => renderOptionComponent(option, index));
-    }
-    
-    // If custom renderer is provided, use it
-    if (renderGroup && group) {
-      return (
-        <React.Fragment key={groupId}>
-          {renderGroup(group)}
-          {options.map((option, index) => renderOptionComponent(option, index))}
-        </React.Fragment>
-      );
-    }
-    
-    // Default group rendering
-    return (
-      <React.Fragment key={groupId}>
-        <GroupHeader $size={size}>
-          {group ? group.label : groupId}
-        </GroupHeader>
-        {options.map((option, index) => renderOptionComponent(option, index))}
-      </React.Fragment>
-    );
-  }, [groups, renderGroup, renderOptionComponent, size]);
-  
-  // Portal for dropdown to avoid container clipping
+  // Dependency: only run when animation state or value length changes
+  }, [propAnimate, finalDisableAnimation, internalValue.length, playEntranceAnimation]);
+
+  // --- End Token Entrance Animation Implementation ---
+
+  // Render function for dropdown content
   const renderDropdown = () => {
-    if (!isOpen) return null;
-    
-    // Create portal content
-    const dropdown = (
+    const content = (
+        <> 
+            {loading && <LoadingIndicator>{loadingMessage}</LoadingIndicator>}
+            {!loading && flatOptions.length === 0 && <NoOptions>{defaultNoOptionsMessage}</NoOptions>}
+            {!loading && flatOptions.length > 0 && (
+                <OptionsList ref={listRef} role="listbox" id={`listbox-${id || 'gms'}`}>
+                    {groupedOptions.map((groupInfo, groupIndex) => (
+                        <React.Fragment key={groupInfo.group?.id || `group-${groupIndex}`}>
+                            {groupInfo.group && (
+                                renderGroup ? renderGroup(groupInfo.group) :
+                                <GroupHeader $size={size}>{groupInfo.group.label}</GroupHeader>
+                            )}
+                            {groupInfo.options.map(option => {
+                                const isSelected = internalValue.some(v => v.id === option.id);
+                                const isDisabled = option.disabled || disabled;
+                                const currentIndex = flatOptions.findIndex(opt => opt.id === option.id);
+                                const isFocused = currentIndex === focusedOptionIndex;
+                                const optionContent = renderOption ? renderOption(option, { selected: isSelected, focused: isFocused, disabled: !!isDisabled }) :
+                                    <>{option.label} {isSelected && <span>✓</span>}</>; 
+                                return (
+                                    <OptionItem
+                                        key={option.id}
+                                        $isSelected={isSelected}
+                                        $isFocused={isFocused}
+                                        $isDisabled={!!isDisabled}
+                                        $size={size}
+                                        onClick={() => !isDisabled && handleOptionClick(option)}
+                                        onMouseEnter={() => !isDisabled && setFocusedOptionIndex(currentIndex)}
+                                        role="option"
+                                        aria-selected={isSelected}
+                                        aria-disabled={isDisabled}
+                                        data-option-index={currentIndex}
+                                    >
+                                        {optionContent}
+                                    </OptionItem>
+                                );
+                            })}
+                        </React.Fragment>
+                    ))}
+                </OptionsList>
+            )}
+        </>
+    );
+
+    if (typeof document === 'undefined') return null;
+
+    return createPortal(
       <DropdownContainer
         ref={dropdownRef}
-        $width={containerWidth}
+        $width={rootRef.current?.offsetWidth || 300}
         $maxHeight={maxHeight}
         $openUp={openUp}
-        $animate={animate}
-        $reducedMotion={reducedMotion}
+        style={{
+            opacity: dropdownAnimation.value,
+            transform: `scaleY(${dropdownAnimation.value})`,
+            pointerEvents: isDropdownOpen ? 'auto' : 'none',
+            visibility: shouldRenderDropdown ? 'visible' : 'hidden',
+        }}
+        onMouseDown={(e) => e.preventDefault()}
       >
-        <OptionsList>
-          {Object.entries(groupedOptions).length === 0 ? (
-            <NoOptions>No options available</NoOptions>
-          ) : withGroups ? (
-            Object.entries(groupedOptions).map(([groupId, options]) => 
-              renderGroupComponent(groupId, options)
-            )
-          ) : (
-            filteredOptions.map((option, index) => renderOptionComponent(option, index))
-          )}
-          
-          {/* Loading indicator for async loading */}
-          {async.loading && (
-            <LoadingIndicator>
-              {async.loadingIndicator || <div className="spinner" />}
-            </LoadingIndicator>
-          )}
-          
-          {/* Create option UI */}
-          {creatable && inputValue.trim() !== '' && !filteredOptions.some(
-            opt => opt.label.toLowerCase() === inputValue.toLowerCase()
-          ) && (
-            <OptionItem
-              $isSelected={false}
-              $isFocused={focusedIndex === filteredOptions.length}
-              $isDisabled={false}
-              $size={size}
-              onClick={() => {
-                if (onCreateOption) {
-                  const newOption = onCreateOption(inputValue);
-                  handleSelectOption(newOption);
-                  setInputValue('');
-                }
-              }}
-            >
-              <OptionText>
-                <span className="option-label">Create "{inputValue}"</span>
-              </OptionText>
-            </OptionItem>
-          )}
-        </OptionsList>
-      </DropdownContainer>
+        {content}
+      </DropdownContainer>,
+      document.body
     );
-    
-    // Use portal if document is available (client-side)
-    if (typeof document !== 'undefined') {
-      return createPortal(dropdown, document.body);
-    }
-    
-    return dropdown;
   };
-  
-  // Main component render
+
+  // Component Return
   return (
     <MultiSelectRoot
-      ref={containerRef}
+      ref={rootRef}
       $fullWidth={fullWidth}
       $width={width}
-      $animate={animate}
-      $reducedMotion={reducedMotion}
+      $animate={propAnimate && !dropdownImmediate}
+      $reducedMotion={prefersReducedMotion}
       className={className}
-      style={resetShake ? { animation: `${shake} 0.4s ease-in-out` } : undefined}
-      onClick={handleContainerFocus}
     >
-      {label && <Label htmlFor={id || 'glass-multi-select'}>{label}</Label>}
-      
+      {label && <Label htmlFor={id || 'gms-input'}>{label}</Label>}
       <InputContainer
         $size={size}
-        $focused={isFocused}
+        $focused={focused}
         $disabled={disabled}
-        $hasError={error}
+        $hasError={!!error}
+        onClick={handleContainerClick}
       >
         <TokensContainer>
-          {/* Render selected tokens */}
-          {selectedOptions.map((option, index) => renderTokenComponent(option, index))}
-          
-          {/* Input field */}
-          <Input
-            ref={ref || inputRef}
-            type="text"
-            id={id || 'glass-multi-select'}
-            value={inputValue}
-            onChange={handleInputChange}
-            onFocus={handleInputFocus}
-            onBlur={handleInputBlur}
-            onKeyDown={handleKeyDown}
-            placeholder={selectedOptions.length === 0 ? placeholder : ''}
-            disabled={disabled}
-            readOnly={!searchable}
-            aria-label={ariaLabel || label || 'Multi select'}
-            aria-controls="multi-select-dropdown"
-            aria-expanded={isOpen}
-            aria-autocomplete="list"
-            role="combobox"
-            autoComplete="off"
-            $size={size}
-          />
+          {internalValue.map((option, index) => (
+             renderToken ? renderToken(option, (e: any) => handleTokenRemove(e, option)) :
+             <Token
+                key={option.id}
+                className="galileo-multiselect-token"
+                $isDisabled={disabled || !!option.disabled}
+                $translateX={0}
+                $translateY={0}
+                $scale={1}
+                $isDragging={false}
+                $initialOpacity={propAnimate && !finalDisableAnimation ? 0 : 1}
+            >
+                <TokenLabel>{option.label}</TokenLabel>
+                {!(disabled || !!option.disabled) && (
+                    <RemoveButton
+                        className="remove-button"
+                        onClick={(e) => handleTokenRemove(e, option)}
+                        aria-label={`Remove ${option.label}`}
+                    >
+                        <ClearIcon />
+                    </RemoveButton>
+                )}
+            </Token>
+          ))}
+          {searchable && (
+            <Input
+              ref={inputRef}
+              type="text"
+              value={inputValue}
+              onChange={handleInputChange}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
+              onKeyDown={handleKeyDown}
+              placeholder={internalValue.length === 0 ? placeholder : ''}
+              disabled={disabled}
+              $size={size}
+              id={id || 'gms-input'}
+              autoFocus={autoFocus}
+              aria-haspopup="listbox"
+              aria-expanded={isDropdownOpen}
+              aria-controls={isDropdownOpen ? `listbox-${id || 'gms'}` : undefined}
+              aria-label={ariaLabel || label}
+              autoComplete="off"
+              {...rest}
+            />
+          )}
         </TokensContainer>
-        
-        {/* Clear button */}
-        {clearable && selectedOptions.length > 0 && !disabled && (
-          <ClearButton 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleClearAll();
-            }}
-            aria-label="Clear all"
-          >
+        {clearable && internalValue.length > 0 && !disabled && (
+          <ClearButton onClick={handleClearAll} aria-label="Clear all selected">
             <ClearIcon />
           </ClearButton>
         )}
       </InputContainer>
-      
-      {/* Error message or helper text */}
-      {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
       {helperText && !error && <HelperText>{helperText}</HelperText>}
+      {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
       
-      {/* Dropdown menu */}
-      {renderDropdown()}
+      {shouldRenderDropdown && renderDropdown()}
+
     </MultiSelectRoot>
   );
 }
 
-// Export with forwardRef wrapper for ref passing
+// Forward Ref and Export
 export const GlassMultiSelect = forwardRef(GlassMultiSelectInternal) as <T = string>(
-  props: MultiSelectProps<T> & { ref?: React.Ref<HTMLInputElement> }
-) => JSX.Element;
+  props: MultiSelectProps<T> & AnimationProps & { ref?: React.Ref<HTMLInputElement> }
+) => React.ReactElement;
+
+(GlassMultiSelect as any).displayName = 'GlassMultiSelect';
 
 export default GlassMultiSelect;

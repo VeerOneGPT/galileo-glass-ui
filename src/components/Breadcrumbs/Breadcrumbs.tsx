@@ -4,13 +4,13 @@ import styled, { css } from 'styled-components';
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { fadeIn } from '../../animations/keyframes/basic';
 import { SpringPresets } from '../../animations/physics/springPhysics';
-import { useSpring } from '../../animations/physics/useSpring';
 import { useZSpaceAnimation } from '../../animations/dimensional/ZSpaceAnimation';
 import { glassGlow } from '../../core/mixins/glowEffects';
 import { glassBorder } from '../../core/mixins/glassBorder';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
 
 export interface BreadcrumbsProps {
   /**
@@ -482,10 +482,8 @@ export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref
   const prefersReducedMotion = useReducedMotion();
   
   // Spring animation for hover effect
-  const { value: hoverScale } = useSpring({
-    from: 1,
-    to: hoveredItem !== null ? 1.05 : 1,
-    config: prefersReducedMotion ? SpringPresets.REDUCED_MOTION : SpringPresets.GENTLE,
+  const { value: hoverScale } = useGalileoStateSpring(hoveredItem !== null ? 1.05 : 1, {
+    ...(prefersReducedMotion ? SpringPresets.REDUCED_MOTION : SpringPresets.GENTLE),
     immediate: prefersReducedMotion
   });
 

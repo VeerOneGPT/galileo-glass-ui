@@ -129,7 +129,7 @@ export interface MultiSelectProps<T = string> {
   maxDisplay?: number;
   
   /** Custom renderer for the selected options/tokens */
-  renderToken?: (option: MultiSelectOption<T>, onRemove: () => void) => React.ReactNode;
+  renderToken?: (option: MultiSelectOption<T>, onRemove: (event: React.MouseEvent) => void) => React.ReactNode;
   
   /** Custom renderer for option in the dropdown */
   renderOption?: (option: MultiSelectOption<T>, state: { 
