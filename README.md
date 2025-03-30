@@ -83,36 +83,32 @@ npm install github:VeerOneGPT/galileo-glass-ui styled-components
 
 #### What's New in v1.0.6
 
-##### Build Fixes (v1.0.6)
-- **Critical Fix**: Resolved build errors related to invalid TypeScript declaration (`.d.ts`) generation caused by `PropTypes` type inference, ensuring compatibility with consuming projects.
+Version 1.0.6 includes the major features originally planned for 1.0.5, plus critical build fixes.
 
-##### Previous v1.0.5 Enhancements
+##### ✨ Comprehensive Animation System Overhaul
+- **Integrated Physics Engine:** Introduced a completely redesigned, powerful physics engine (`galileoPhysicsSystem.ts`) powering all animations. Features highly configurable spring physics, advanced collision detection, global forces, and performance optimizations like object sleeping.
+- **New Interaction & State Hooks:** Added intuitive hooks like `usePhysicsInteraction` (for rich hover/press feedback), `useGalileoStateSpring` (animating single values), `useMultiSpring` (animating vectors/transforms), and `useGesturePhysics` (natural gesture responses with inertia).
+- **Animation Orchestration:** `useAnimationSequence` enables complex, precisely timed animation sequences with dependencies, staggering, grouping, and lifecycle control.
+- **Advanced Accessibility:** Enhanced `useReducedMotion` provides fine-grained control with sensitivity levels, animation categories, and alternative animation preferences.
+- **Specialized Effects:** Includes hooks and utilities for Z-space management (`useZSpace`), 3D transforms (`use3DTransform`), parallax, particle systems, and more.
+- **Unified System:** Replaces previous CSS transitions and external libraries (like Framer Motion) for a consistent, performant, and integrated animation experience across the library.
+- **Context & Configuration:** `AnimationProvider` and `useAnimationContext` allow global configuration of animation defaults and presets.
 
-###### Enhanced Chart Components
-- **ModularGlassDataChart Architecture**: Completely refactored GlassDataChart into smaller, modular components
-- **Adaptive Quality System**: Charts automatically adjust rendering quality based on device capabilities
-- **Physics-Based Animations**: Enhanced animations with damping ratio adjustments and proper motion preferences
-- **KPI Chart Type**: Specialized key performance indicator chart displays
-- **Specialized Components**: ChartRenderer, ChartTooltip, ChartFilters, KpiChart, and AtmosphericEffects
+##### 🆕 New Components
+- **GlassCardLink:** An interactive card designed for navigation, featuring enhanced 3D perspective transforms, physics-based hover effects, and interactive lighting.
+- **GlassTabs:** Glass-morphism styled tabs with an animated active indicator, physics-inspired transitions, and full keyboard accessibility.
+- **ChartWrapper:** A lightweight, styled container for embedding chart components consistently within the Glass UI aesthetic.
 
-#### New Glass Components
-- **GlassCardLink Component**: Enhanced 3D perspective transforms with physics-based hover effects
-- **GlassTabs Component**: Glass-morphism styled tabs with animated active indicator
-- **ChartWrapper Component**: Lightweight container for chart components with consistent glass styling
+##### 📊 Enhanced Charting & Data
+- **ModularGlassDataChart Architecture:** Refactored `GlassDataChart` into smaller, maintainable components (`ChartRenderer`, `ChartTooltip`, `KpiChart`, `AtmosphericEffects`, etc.).
+- **Adaptive Quality:** Charts automatically adjust rendering quality and animation fidelity based on device capabilities.
 
-#### React 19 Compatibility
-- **Full Type Safety**: Proper forwardRef with TypeScript-friendly typing for props and refs
-- **Enhanced Refs**: Well-defined interfaces for component methods and APIs
-- **Null Safety**: Implemented proper default values and null-safe operations for all components
-- **DevTools Integration**: Added displayName for better debugging and React DevTools integration
+##### ✅ React 19 Compatibility & TypeScript Improvements
+- **Full React 19 Support:** Ensured compatibility with React's latest features and type checking.
+- **Enhanced Refs & Types:** Implemented proper `forwardRef` usage, defined ref interfaces (`GlassDataChartRef`), and improved overall type safety and null-checking.
+- **Build Fix:** Resolved critical build errors related to invalid TypeScript declaration (`.d.ts`) generation, ensuring compatibility with consuming projects.
 
-#### TypeScript and API Improvements
-- **Reference APIs**: Created comprehensive ref APIs for component control
-- **Safe Operations**: Made color conversion and animation properties safer with fallbacks
-- **Enhanced Tooltips**: Improved tooltip rendering with proper null checks
-- **IDE Integration**: Enhanced TypeScript definitions for better developer experience
-
-#### Optional Feature Dependencies
+##### Optional Feature Dependencies
 
 Galileo Glass UI uses a modular approach where specialized features only require their dependencies when you use them:
 
