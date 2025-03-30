@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { QualityTier, QualityFeatureFlags } from './useQualityTier';
+import { QualityTier, QualityFeatureFlags } from './types';
 
 /**
  * Storage keys for animation preferences

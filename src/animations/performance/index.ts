@@ -28,12 +28,6 @@ export {
   type ElementTransformState
 } from './TransformConsolidator';
 
-// Export example components
-export { default as DomBatcherExample } from './examples/DomBatcherExample';
-export { default as TransformConsolidatorExample } from './examples/TransformConsolidatorExample';
-export { default as GPUAccelerationExample } from './examples/GPUAccelerationExample';
-export { default as AnimationPreferencesExample } from './examples/AnimationPreferencesExample';
-
 // Device capabilities detection hooks
 export { 
   default as useDeviceCapabilities, 
@@ -49,10 +43,14 @@ export {
 // Quality tier management hook
 export {
   default as useQualityTier,
-  QualityTier,
-  type QualityFeatureFlags,
   type QualityTierOptions
 } from './useQualityTier';
+
+// Export QualityTier enum and QualityFeatureFlags type from types.ts
+export { 
+  QualityTier, 
+  type QualityFeatureFlags 
+} from './types';
 
 // Physics settings presets
 export {
@@ -79,6 +77,9 @@ export {
   type PerformanceSample,
   type QualityAdjustmentOptions
 } from './performanceMonitor';
+
+// Export shared types
+export * from './types';
 
 // User animation preferences
 export {

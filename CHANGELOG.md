@@ -1,6 +1,6 @@
 # Galileo Glass UI Changelog
 
-## [1.0.6] - YYYY-MM-DD
+## [1.0.6] - 03-31-2025
 
 ### Fixed
 

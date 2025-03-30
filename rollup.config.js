@@ -43,48 +43,83 @@ if (skipTypeCheck) {
   console.log('🚨 Building with TypeScript checks disabled'); 
 }
 
-// Patch declaration files to fix path issues
+// Patch declaration files to fix path issues and invalid syntax
 const patchDeclarationFiles = {
   name: 'patch-declaration-files',
   writeBundle: async () => {
-    // Custom fix for animations/presets
+    console.log('🚀 Running post-build declaration file patching...');
+
+    // --- Step 1: Fix internal imports in intermediate files (existing logic) ---
     const presetsIndexDtsPath = path.join(__dirname, 'dist/dts/animations/presets/index.d.ts');
-    
     if (fs.existsSync(presetsIndexDtsPath)) {
-      console.log('Patching declaration file imports...');
-      
+      console.log('  -> Patching imports in dist/dts/animations/presets/index.d.ts...');
       let content = fs.readFileSync(presetsIndexDtsPath, 'utf8');
-      
-      // Replace problematic import with the correct path
       content = content.replace(
         /import\s+{([^}]+)}\s+from\s+['"]\.\/(animationPresets)['"]/g, 
         'import {$1} from "../animationPresets"'
       );
-
-      // Also handle default imports if present
       content = content.replace(
         /import\s+(\w+)\s+from\s+['"]\.\/(animationPresets)['"]/g, 
         'import $1 from "../animationPresets"'
       );
-      
       fs.writeFileSync(presetsIndexDtsPath, content);
-      console.log('✅ Fixed imports in presets index declaration file');
+      console.log('     ✅ Fixed imports.');
     }
+    
+    // --- Step 2: Fix final bundled declaration files --- 
+    const finalBundledDtsFiles = [
+      path.join(__dirname, 'dist/animations.d.ts'),
+      path.join(__dirname, 'dist/hooks.d.ts'),
+      path.join(__dirname, 'dist/index.d.ts')
+    ];
 
-    // Also check for the final declaration file that might have the issue
-    const finalDtsPath = path.join(__dirname, 'dist/animations.d.ts');
-    if (fs.existsSync(finalDtsPath)) {
-      let content = fs.readFileSync(finalDtsPath, 'utf8');
-      
-      // Fix any problematic imports in the final bundled declaration file
-      content = content.replace(
-        /from\s+['"]\.\/(animationPresets)['"]/g, 
-        'from "./animationPresets"'
-      );
-      
-      fs.writeFileSync(finalDtsPath, content);
-      console.log('✅ Fixed imports in final animations declaration file');
+    for (const dtsPath of finalBundledDtsFiles) {
+      if (fs.existsSync(dtsPath)) {
+        const relativePath = path.relative(__dirname, dtsPath);
+        console.log(`  -> Patching syntax in ${relativePath}...`);
+        let content = fs.readFileSync(dtsPath, 'utf8');
+
+        // Fix 1: Replace `= undefined<T>;` with `= any;` (or `= unknown;`)
+        // Using `any` for broader compatibility for now.
+        const fix1Regex = / = undefined<T>;/g;
+        const originalContentFix1 = content;
+        content = content.replace(fix1Regex, ' = any;');
+        if (content !== originalContentFix1) {
+          console.log('     ✅ Replaced invalid `= undefined<T>;` syntax.');
+        } else {
+          console.log('     ℹ️  No invalid `= undefined<T>;` syntax found.');
+        }
+        
+        // Fix 2: Remove `, undefined<T>` from MergePropTypes/Defaultize calls
+        // This attempts to fix patterns like `MergePropTypes<P, undefined<T>>`
+        const fix2Regex = /, undefined<T>/g;
+        const originalContentFix2 = content;
+        content = content.replace(fix2Regex, ''); 
+        if (content !== originalContentFix2) {
+          console.log('     ✅ Removed invalid `, undefined<T>` from complex types.');
+        } else {
+          console.log('     ℹ️  No invalid `, undefined<T>` patterns found.');
+        }
+
+        // Fix 3: Fix remaining problematic preset imports (if any slip through)
+        // This might be redundant now but kept as a safeguard
+        const originalContentFix3 = content;
+        content = content.replace(
+          /from\s+['"]\.\/(animationPresets)['"]/g, 
+          'from "./animationPresets"'
+        );
+         if (content !== originalContentFix3) {
+          console.log('     ✅ Fixed remaining preset imports.');
+        }
+
+        // Write the patched content back
+        fs.writeFileSync(dtsPath, content);
+        console.log(`     ✅ Patched ${relativePath}.`);
+      } else {
+        console.log(`  -> Skipping patch for non-existent file: ${path.relative(__dirname, dtsPath)}`);
+      }
     }
+    console.log('✅ Declaration file patching complete.');
   }
 };
 
@@ -439,8 +474,23 @@ const dtsConfigs = [
   }
 ];
 
-// Export all configs
+// Add patchDeclarationFiles to the main configs if writeBundle doesn't run after dts bundling
+// Need to ensure patching happens at the very end.
+// Let's modify the main config generation slightly
+const mainConfigs = entryPoints.map(entry => createConfig(entry.input, entry.output));
+
+// Add the patching plugin to the *last* main config's plugin list
+// This assumes writeBundle in a plugin added here runs after all bundling is complete.
+if (mainConfigs.length > 0) {
+    // Find the main index config or just use the last one
+    const targetConfigIndex = mainConfigs.findIndex(c => c.input === 'src/index.ts');
+    const configToPatch = mainConfigs[targetConfigIndex !== -1 ? targetConfigIndex : mainConfigs.length - 1];
+    // Ensure plugins array exists before spreading
+    configToPatch.plugins = [...(configToPatch.plugins || []), patchDeclarationFiles];
+}
+
+// Final export (combine modified mainConfigs and dtsConfigs)
 export default [
-  ...entryPoints.map(entry => createConfig(entry.input, entry.output)),
+  ...mainConfigs,
   ...dtsConfigs
 ];

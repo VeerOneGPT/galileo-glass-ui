@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
-import useQualityTier, { QualityTier } from '../useQualityTier';
+import { useQualityTier } from '../useQualityTier';
+import { QualityTier } from '../types';
 import { DeviceTier, DeviceType } from '../useDeviceCapabilities';
 
 // Mock the useDeviceCapabilities hook

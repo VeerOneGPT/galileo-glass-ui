@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-hooks';
 import { useAnimationPreferences, PreferenceMode } from '../useAnimationPreferences';
-import { QualityTier } from '../useQualityTier';
+import { QualityTier } from '../types';
 
 // Mock localStorage
 const localStorageMock = (() => {

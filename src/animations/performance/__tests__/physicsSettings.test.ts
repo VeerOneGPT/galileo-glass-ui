@@ -7,7 +7,7 @@ import {
   PHYSICS_SETTINGS_PRESETS,
   SPECIALIZED_PHYSICS_PRESETS
 } from '../physicsSettings';
-import { QualityTier } from '../useQualityTier';
+import { QualityTier } from '../types';
 
 describe('physicsSettings', () => {
   test('should provide default physics settings', () => {

@@ -213,10 +213,10 @@ export {
   type TransformOptions,
   type TransformOperation,
   type ElementTransformState,
-  // Examples
-  DomBatcherExample,
-  TransformConsolidatorExample,
-  GPUAccelerationExample,
+  // Examples - REMOVED
+  // DomBatcherExample, // Removed
+  // TransformConsolidatorExample, // Removed
+  // GPUAccelerationExample, // Removed
 } from './performance';
 
 // Animation Effects (Parallax, etc.)

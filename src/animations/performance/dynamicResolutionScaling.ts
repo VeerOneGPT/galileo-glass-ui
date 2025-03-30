@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQualityTier, QualityTier } from './useQualityTier';
+import { useQualityTier } from './useQualityTier';
+import { QualityTier } from './types';
 import { PhysicsSettings } from './physicsSettings';
 
 /**

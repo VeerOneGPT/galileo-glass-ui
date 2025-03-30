@@ -222,7 +222,7 @@ const AnimationPreferencesExample: React.FC = () => {
         <Section>
           <SectionTitle>Quality Tier</SectionTitle>
           <RadioGroup>
-            {Object.values(QualityTier).map(tier => (
+            {Object.values(QualityTier).map((tier: QualityTier) => (
               <RadioLabel key={tier}>
                 <input 
                   type="radio" 

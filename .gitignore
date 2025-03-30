@@ -64,3 +64,6 @@ tmp/
 dist-min/
 temp_dist/
 test-install/
+
+# GitHub specific files
+.github/

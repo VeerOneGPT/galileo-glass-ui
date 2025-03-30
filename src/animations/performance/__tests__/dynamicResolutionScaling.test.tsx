@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import useDynamicResolutionScaling, { ResolutionScalingConfig } from '../dynamicResolutionScaling';
-import { QualityTier } from '../useQualityTier';
+import { QualityTier } from '../types';
 import { PhysicsSettings } from '../physicsSettings';
 
 // Mock the useQualityTier hook

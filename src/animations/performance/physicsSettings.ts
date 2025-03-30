@@ -5,7 +5,9 @@
  * ensuring consistent feel while scaling performance.
  */
 
-import { QualityTier } from './useQualityTier';
+import { useMemo } from 'react';
+import { SpringConfig, SpringPresets } from '../physics/springPhysics';
+import { QualityTier } from './types';
 import { Vector2D } from '../physics/physicsCalculations';
 
 /**

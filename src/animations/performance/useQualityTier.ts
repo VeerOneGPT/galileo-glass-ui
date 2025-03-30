@@ -8,70 +8,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import useDeviceCapabilities, { DeviceTier } from './useDeviceCapabilities';
 import useAnimationPreferences, { PreferenceMode } from './useAnimationPreferences';
-
-/**
- * Animation quality tier
- */
-export enum QualityTier {
-  /** Minimal animations, optimized for performance */
-  MINIMAL = 'minimal',
-  
-  /** Low quality animations with basic effects */
-  LOW = 'low',
-  
-  /** Medium quality animations with standard effects */
-  MEDIUM = 'medium',
-  
-  /** High quality animations with advanced effects */
-  HIGH = 'high',
-  
-  /** Ultra quality animations with all effects enabled */
-  ULTRA = 'ultra'
-}
-
-/**
- * Animation feature flags for different quality tiers
- */
-export interface QualityFeatureFlags {
-  /** Number of maximum particles in particle systems */
-  maxParticles: number;
-  
-  /** Whether to use blur effects */
-  blurEffects: boolean;
-  
-  /** Whether to use reflection effects */
-  reflectionEffects: boolean;
-  
-  /** Whether to use shadow effects */
-  shadowEffects: boolean;
-  
-  /** Whether physics simulations should be high precision */
-  highPrecisionPhysics: boolean;
-  
-  /** Whether to apply depth effects (parallax, etc) */
-  depthEffects: boolean;
-  
-  /** Maximum number of simultaneous physics objects */
-  maxPhysicsObjects: number;
-  
-  /** Whether to use high-quality anti-aliasing */
-  antiAliasing: boolean;
-  
-  /** Texture resolution scale (1.0 = normal, 0.5 = half) */
-  textureScale: number;
-  
-  /** Maximum simultaneous animations */
-  maxConcurrentAnimations: number;
-  
-  /** Physics simulation frequency */
-  physicsHz: number;
-  
-  /** Whether to use SIMD optimizations when available */
-  useSIMD: boolean;
-  
-  /** Whether to use WebGL for rendering where appropriate */
-  useWebGL: boolean;
-}
+import { QualityTier, QualityFeatureFlags } from './types';
 
 /**
  * Feature flags for different quality tiers

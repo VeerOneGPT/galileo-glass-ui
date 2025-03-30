@@ -1,6 +1,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import usePerformanceMonitor, { PerformanceMetricType } from '../performanceMonitor';
+import { QualityTier } from '../types';
 
 // Mock the useQualityTier hook
 jest.mock('../useQualityTier', () => {
@@ -18,7 +19,7 @@ jest.mock('../useQualityTier', () => {
 });
 
 // Import the mocked module to control its behavior
-import { useQualityTier, QualityTier } from '../useQualityTier';
+import { useQualityTier } from '../useQualityTier';
 
 describe('usePerformanceMonitor', () => {
   // Mock requestAnimationFrame and performance.now
