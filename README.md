@@ -81,9 +81,14 @@ npm install github:VeerOneGPT/galileo-glass-ui styled-components
   </table>
 </div>
 
-#### What's New in v1.0.5
+#### What's New in v1.0.6
 
-#### Enhanced Chart Components
+##### Build Fixes (v1.0.6)
+- **Critical Fix**: Resolved build errors related to invalid TypeScript declaration (`.d.ts`) generation caused by `PropTypes` type inference, ensuring compatibility with consuming projects.
+
+##### Previous v1.0.5 Enhancements
+
+###### Enhanced Chart Components
 - **ModularGlassDataChart Architecture**: Completely refactored GlassDataChart into smaller, modular components
 - **Adaptive Quality System**: Charts automatically adjust rendering quality based on device capabilities
 - **Physics-Based Animations**: Enhanced animations with damping ratio adjustments and proper motion preferences
