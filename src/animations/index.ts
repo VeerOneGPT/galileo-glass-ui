@@ -133,26 +133,26 @@ export {
 // Animation orchestration
 export {
   GestaltPatterns,
-  createStaggeredAnimation,
-  createAnimationSequence,
+  StaggeredAnimator,
   coordinatedAnimations,
   animationOrchestrator,
   withOrchestration,
 } from './orchestration';
+export type { AnimationSequence } from './orchestration';
 
 // Z-Space animations
 export { ZSpaceAnimator, useZSpaceAnimation, type ZSpaceAnimationOptions } from './dimensional';
 
 // Game animations
-export {
-  useGameAnimation,
-  TransitionType,
-  TransitionDirection,
-  type GameAnimationState,
-  type StateTransition,
-  type GameAnimationConfig,
-  type GameAnimationController,
-} from './game';
+// export {
+//   useGameAnimation,
+//   TransitionType,
+//   TransitionDirection,
+//   type GameAnimationState,
+//   type StateTransition,
+//   type GameAnimationConfig,
+//   type GameAnimationController,
+// } from './game';
 
 // Scene transitions and level changes
 export {
@@ -176,14 +176,14 @@ export {
   type KeyframeEffect,
   type AnimationTarget,
   type AnimationPerformanceMetrics,
-  type AnimationRendererFactory
+  type AnimationRendererFactory,
 } from './renderers';
 
 // Performance optimizations
 export {
   // GPU Acceleration
   AnimationComplexity as AnimationPerformanceComplexity,
-  gpuAccelerationManager,
+  GPUAccelerationManager,
   isGPUAccelerationAvailable,
   getGPUAccelerationCSS,
   getOptimizedGPUAcceleration,
@@ -223,10 +223,7 @@ export {
 export * from './effects';
 
 // Unified Physics API (including renderers)
-export {
-  GalileoPhysics,
-  default as Physics
-} from './physics/unifiedPhysicsAPI';
+export { GalileoPhysics, default as Physics } from './physics/unifiedPhysicsAPI';
 
 // Version
 export const animationsVersion = '1.3.0';
