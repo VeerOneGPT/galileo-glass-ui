@@ -6,9 +6,10 @@ import React from 'react';
 import { render, cleanup, waitFor } from '@testing-library/react';
 import { useMagneticSystemElement } from '../useMagneticSystemElement';
 import { MagneticSystemProvider } from '../MagneticSystemProvider';
+import { useReducedMotion } from '../../accessibility/useReducedMotion';
 
 // Mock the useReducedMotion hook
-jest.mock('../accessibility/useReducedMotion', () => ({
+jest.mock('../../accessibility/useReducedMotion', () => ({
   useReducedMotion: jest.fn(() => false)
 }));
 
@@ -146,7 +147,7 @@ describe('useMagneticSystemElement', () => {
   
   test('should respect reduced motion setting', () => {
     // Mock useReducedMotion to return true
-    require('../accessibility/useReducedMotion').useReducedMotion.mockReturnValue(true);
+    (useReducedMotion as jest.Mock).mockReturnValue(true);
     
     // Create a test component with reduced motion support
     const TestComponent = () => {

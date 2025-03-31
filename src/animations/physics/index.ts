@@ -48,7 +48,6 @@ export {
   oscillateAround,
   noise,
   applyNoise,
-  type Vector2D,
   type SpringParams,
   type ParticleState,
 } from './physicsCalculations';
@@ -329,8 +328,8 @@ export {
 } from './useMagneticLayout';
 
 // Game physics system
+export { useGamePhysics } from './useGamePhysics';
 export {
-  useGamePhysics,
   GamePhysicsBehavior,
   GameGravityPreset,
   type GamePhysicsConfig,
@@ -419,3 +418,14 @@ export {
 
 // Export the unified API as the default
 // export { default } from './unifiedPhysicsAPI';
+
+// Export the physics engine hook and types
+export { useGalileoPhysicsEngine } from './useGalileoPhysicsEngine';
+export type {
+  PhysicsBodyOptions,
+  PhysicsBodyState,
+  CollisionEvent,
+  Vector2D,
+  UnsubscribeFunction,
+  GalileoPhysicsEngineAPI
+} from './engineTypes';

@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { css, ThemeProvider as StyledThemeProvider, createGlobalStyle } from 'styled-components';
 
-import { createThemeContext as __createThemeContext } from '../core/themeUtils';
+import { createThemeContext as ___createThemeContext } from '../core/themeUtils';
 import type { ThemeContext as _ThemeContextType} from '../core/themeUtils';
 import type { ColorMode, ThemeVariant as _ThemeVariant, Theme as _Theme, GlassSurfaceProps } from '../core/types';
 

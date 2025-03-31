@@ -3,6 +3,7 @@
  *
  * Physics-based magnetic attraction/repulsion effects for interactive elements
  */
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { css } from 'styled-components';
 
 import { cssWithKebabProps } from '../../core/cssUtils';

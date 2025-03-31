@@ -189,7 +189,7 @@ export class GestureResponder {
   private responders: ResponderConfig[];
   private state: PhysicsState;
   private lastUpdate: number;
-  private isActive: boolean = false;
+  private isActive = false;
   private animationFrameId: number | null = null;
   private onStateUpdate: ((state: PhysicsState) => void) | null = null;
   
@@ -702,7 +702,7 @@ export class GestureResponder {
 
     // Vibration logic: Apply alternating force/target based on time
     const startTime = Date.now();
-    let elapsed = 0;
+    const elapsed = 0;
     let vibrationFrameId: number | null = null;
 
     const updateVibration = () => {

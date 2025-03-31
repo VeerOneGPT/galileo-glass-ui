@@ -621,7 +621,7 @@ export const GamePhysicsDemo: React.FC = () => {
   /**
    * Create a DOM element for a physics object
    */
-  const createObjectElement = (id: string, size: number, color: string, content: string = '') => {
+  const createObjectElement = (id: string, size: number, color: string, content = '') => {
     if (!sceneRef.current) return;
     
     // Create the element

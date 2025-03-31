@@ -1,6 +1,5 @@
-import { ReactNode, CSSProperties } from 'react';
+import React, { ReactNode, CSSProperties } from 'react';
 import { DefaultTheme } from 'styled-components';
-import React from 'react';
 import type { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 
 /**

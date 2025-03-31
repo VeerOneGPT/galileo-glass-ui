@@ -370,7 +370,7 @@ const generateAnimationCss = (
   } = params;
   
   // Set CSS variables for the animation
-  let cssVariables = `
+  const cssVariables = `
     --hc-primary-color: ${primaryColor || 'currentColor'};
     --hc-secondary-color: ${secondaryColor || 'currentColor'};
     --hc-border-width: ${borderWidth}px;

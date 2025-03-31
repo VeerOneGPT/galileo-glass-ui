@@ -1,3 +1,4 @@
+/* eslint-env node */
 /**
  * Visual Regression Testing Configuration
  * 

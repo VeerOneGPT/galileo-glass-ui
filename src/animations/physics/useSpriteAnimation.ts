@@ -322,7 +322,7 @@ export function useSpriteAnimation(
   /**
    * Play a specific animation
    */
-  const play = useCallback((animationId: string, resetPosition: boolean = true): boolean => {
+  const play = useCallback((animationId: string, resetPosition = true): boolean => {
     const manager = getManager();
     const success = manager.play(animationId, resetPosition);
     

@@ -7,6 +7,7 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import 'jest-styled-components';
+import styled from 'styled-components';
 import { ThemeProvider } from '../../../theme';
 // Import the types only
 import { TimelineItem } from '../types';
@@ -44,7 +45,7 @@ interface MockTimelineProps {
 // Mock before importing
 jest.mock('../GlassTimeline', () => {
   // Use TypeScript's import syntax for styled-components
-  const styled = require('styled-components').default;
+  // const styled = require('styled-components').default; // Remove require
 
   // Define styled component with proper typing
   const MockTimelineContainer = styled.div<MockContainerProps>`

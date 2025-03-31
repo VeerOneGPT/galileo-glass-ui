@@ -8,6 +8,7 @@ import {
   GestaltPatterns,
   createStaggeredAnimation,
   createAnimationSequence,
+  coordinatedAnimations,
 } from '../GestaltPatterns';
 
 // Mock styled-components
@@ -207,9 +208,6 @@ describe('createAnimationSequence', () => {
 
 describe('coordinatedAnimations', () => {
   test('should export well-defined animation patterns', () => {
-    // Import dynamically to avoid hoisting issues with jest.mock
-    const { coordinatedAnimations } = require('../GestaltPatterns');
-
     // Check parent-child relationship animations
     expect(coordinatedAnimations.parentChild).toBeDefined();
     expect(coordinatedAnimations.parentChild.parent).toBeDefined();

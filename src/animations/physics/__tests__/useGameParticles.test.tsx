@@ -98,6 +98,12 @@ jest.mock('../GameParticleSystem', () => {
   };
 });
 
+// Import the mocked module
+import * as GameParticleSystemModule from '../GameParticleSystem';
+
+// Access the mocks via the imported module (with type assertion)
+const mocks = (GameParticleSystemModule as any).__mocks__;
+
 // Mock useReducedMotion
 jest.mock('../../accessibility/useReducedMotion', () => ({
   useReducedMotion: jest.fn().mockReturnValue({
@@ -149,8 +155,7 @@ describe('useGameParticles', () => {
     
     unmount();
     
-    const { mockDispose } = require('../GameParticleSystem').__mocks__;
-    expect(mockDispose).toHaveBeenCalled();
+    expect(mocks.mockDispose).toHaveBeenCalled();
   });
   
   describe('Action Methods', () => {
@@ -161,8 +166,7 @@ describe('useGameParticles', () => {
         result.current.actions.burst({ x: 100, y: 100 });
       });
       
-      const { mockBurst } = require('../GameParticleSystem').__mocks__;
-      expect(mockBurst).toHaveBeenCalledWith(
+      expect(mocks.mockBurst).toHaveBeenCalledWith(
         { x: 100, y: 100 }, 
         expect.any(Object)
       );
@@ -173,13 +177,12 @@ describe('useGameParticles', () => {
       const mockElement = document.createElement('div');
       const { result } = renderHook(() => useGameParticles());
       
-      let emitterId: string = '';
+      let emitterId = '';
       act(() => {
         emitterId = result.current.actions.createTrail(mockElement);
       });
       
-      const { mockCreateTrail } = require('../GameParticleSystem').__mocks__;
-      expect(mockCreateTrail).toHaveBeenCalledWith(
+      expect(mocks.mockCreateTrail).toHaveBeenCalledWith(
         mockElement, 
         expect.any(Object)
       );
@@ -194,8 +197,7 @@ describe('useGameParticles', () => {
         result.current.actions.triggerEvent(GameEventType.SUCCESS, { x: 100, y: 100 });
       });
       
-      const { mockTriggerEvent } = require('../GameParticleSystem').__mocks__;
-      expect(mockTriggerEvent).toHaveBeenCalledWith(
+      expect(mocks.mockTriggerEvent).toHaveBeenCalledWith(
         GameEventType.SUCCESS, 
         { x: 100, y: 100 }
       );
@@ -205,7 +207,7 @@ describe('useGameParticles', () => {
     test('addEmitter action adds a new emitter', () => {
       const { result } = renderHook(() => useGameParticles());
       
-      let emitterId: string = '';
+      let emitterId = '';
       act(() => {
         emitterId = result.current.actions.addEmitter({
           position: { x: 100, y: 100, z: 0 },
@@ -213,8 +215,7 @@ describe('useGameParticles', () => {
         });
       });
       
-      const { mockAddEmitter } = require('../GameParticleSystem').__mocks__;
-      expect(mockAddEmitter).toHaveBeenCalledWith({
+      expect(mocks.mockAddEmitter).toHaveBeenCalledWith({
         position: { x: 100, y: 100, z: 0 },
         burstCount: 10
       });
@@ -230,8 +231,7 @@ describe('useGameParticles', () => {
         success = result.current.actions.removeEmitter('test-emitter');
       });
       
-      const { mockRemoveEmitter } = require('../GameParticleSystem').__mocks__;
-      expect(mockRemoveEmitter).toHaveBeenCalledWith('test-emitter');
+      expect(mocks.mockRemoveEmitter).toHaveBeenCalledWith('test-emitter');
       expect(success).toBe(true);
     });
     
@@ -245,8 +245,7 @@ describe('useGameParticles', () => {
         });
       });
       
-      const { mockUpdateEmitter } = require('../GameParticleSystem').__mocks__;
-      expect(mockUpdateEmitter).toHaveBeenCalledWith('test-emitter', {
+      expect(mocks.mockUpdateEmitter).toHaveBeenCalledWith('test-emitter', {
         position: { x: 200, y: 200, z: 0 }
       });
       expect(success).toBe(true);
@@ -259,8 +258,7 @@ describe('useGameParticles', () => {
         result.current.actions.start();
       });
       
-      const { mockStart } = require('../GameParticleSystem').__mocks__;
-      expect(mockStart).toHaveBeenCalled();
+      expect(mocks.mockStart).toHaveBeenCalled();
       expect(result.current.isActive).toBe(true);
       expect(result.current.isPaused).toBe(false);
     });
@@ -272,8 +270,7 @@ describe('useGameParticles', () => {
         result.current.actions.stop();
       });
       
-      const { mockStop } = require('../GameParticleSystem').__mocks__;
-      expect(mockStop).toHaveBeenCalled();
+      expect(mocks.mockStop).toHaveBeenCalled();
       expect(result.current.isActive).toBe(false);
       expect(result.current.isPaused).toBe(false);
     });
@@ -285,8 +282,7 @@ describe('useGameParticles', () => {
         result.current.actions.pause();
       });
       
-      const { mockPause } = require('../GameParticleSystem').__mocks__;
-      expect(mockPause).toHaveBeenCalled();
+      expect(mocks.mockPause).toHaveBeenCalled();
       expect(result.current.isPaused).toBe(true);
     });
     
@@ -305,8 +301,7 @@ describe('useGameParticles', () => {
         result.current.actions.resume();
       });
       
-      const { mockResume } = require('../GameParticleSystem').__mocks__;
-      expect(mockResume).toHaveBeenCalled();
+      expect(mocks.mockResume).toHaveBeenCalled();
       expect(result.current.isPaused).toBe(false);
     });
     
@@ -322,8 +317,7 @@ describe('useGameParticles', () => {
         result.current.actions.handleEvent(mockEvent, GameEventType.SPARKLE);
       });
       
-      const { mockTriggerEvent } = require('../GameParticleSystem').__mocks__;
-      expect(mockTriggerEvent).toHaveBeenCalledWith(
+      expect(mocks.mockTriggerEvent).toHaveBeenCalledWith(
         GameEventType.SPARKLE, 
         mockEvent
       );

@@ -12,7 +12,10 @@ import { useTheme } from '../../theme';
 import { useMagneticButton } from '../../animations/hooks';
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassGlow, GlowEffectProps } from '../../core/mixins/glowEffects';
+import { 
+  glassGlow, 
+  GlowEffectProps 
+} from '../../core/mixins/glowEffects';
 import { interactiveGlass } from '../../core/mixins/interactions/interactiveGlass';
 import { createThemeContext } from '../../core/themeUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';

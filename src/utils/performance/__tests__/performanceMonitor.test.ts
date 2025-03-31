@@ -112,12 +112,20 @@ jest.mock('../performanceMonitor', () => {
 });
 
 // After mock setup, import the module
-const {
+// const { // Remove require block
+//   PerformanceMonitor,
+//   MetricType,
+//   MetricSeverity: _MetricSeverity,
+//   createPerformanceMonitor,
+// } = require('../performanceMonitor');
+
+// Import using ES6 syntax after jest.mock
+import {
   PerformanceMonitor,
   MetricType,
-  MetricSeverity: _MetricSeverity,
+  MetricSeverity as _MetricSeverity, // Keep renaming
   createPerformanceMonitor,
-} = require('../performanceMonitor');
+} from '../performanceMonitor';
 
 // Mock browser APIs that might not be available in Jest environment
 // Mock window.performance

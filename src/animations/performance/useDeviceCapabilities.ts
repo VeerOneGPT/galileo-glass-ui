@@ -379,7 +379,7 @@ export function useDeviceCapabilities(): DeviceCapabilities {
     }
     
     // GPU detection (limited in browsers)
-    let hasGPU = webglSupport;
+    const hasGPU = webglSupport;
     let gpuInfo: string | undefined;
     
     // Try to get GPU info from WebGL context
@@ -399,7 +399,7 @@ export function useDeviceCapabilities(): DeviceCapabilities {
     
     // Check for battery saving mode (approximation)
     // Note: The Battery API is deprecated in some browsers
-    let batterySaving = false;
+    const batterySaving = false;
     
     if ('getBattery' in navigator) {
       (navigator as any).getBattery().then((battery: any) => {

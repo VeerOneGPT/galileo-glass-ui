@@ -9,9 +9,8 @@
 
 import { css, FlattenSimpleInterpolation, keyframes } from 'styled-components';
 import { useReducedMotion } from './useReducedMotion';
-import { useHighContrast } from './useHighContrast';
+import { useHighContrast , HighContrastAnimationType } from './useHighContrast';
 import { AnimationCategory } from './MotionSensitivity';
-import { HighContrastAnimationType } from './useHighContrast';
 import { useCallback, useMemo } from 'react';
 
 /**
@@ -610,8 +609,8 @@ export function useAccessibleFocusAnimation(options: AccessibleFocusAnimationOpt
  */
 export function createAccessibleFocusAnimation(
   options: AccessibleFocusAnimationOptions = {},
-  reducedMotion: boolean = false,
-  highContrast: boolean = false
+  reducedMotion = false,
+  highContrast = false
 ): FlattenSimpleInterpolation {
   const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
   const intensityModifier = intensityModifiers[mergedOptions.intensity || DEFAULT_OPTIONS.intensity];

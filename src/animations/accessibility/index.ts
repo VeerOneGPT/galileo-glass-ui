@@ -32,7 +32,7 @@ export * from './ReducedMotionAlternatives';
 export * from './IntelligentFallbacks';
 
 // Export accessibility hooks
-export { default as useReducedMotion } from './useReducedMotion';
+export { useReducedMotion } from './useReducedMotion';
 export { default as useHighContrast } from './useHighContrast';
 
 // Export focus animation utilities

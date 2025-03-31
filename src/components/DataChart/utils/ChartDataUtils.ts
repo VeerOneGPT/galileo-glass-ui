@@ -2,8 +2,7 @@
  * ChartDataUtils - Utilities for processing chart data
  */
 import { ChartType } from 'chart.js';
-import { ChartDataset } from '../types';
-import { ChartAnimationOptions } from '../types';
+import { ChartDataset , ChartAnimationOptions } from '../types';
 
 /**
  * Helper function to generate chart dataset colors

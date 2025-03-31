@@ -5,7 +5,7 @@ import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { renderHook, act as hookAct } from '@testing-library/react-hooks';
 import { useAnimationStateMachine } from '../useAnimationStateMachine';
-import { AnimationState, StateTransition } from '../AnimationStateMachine';
+import { AnimationState, StateTransition , createAnimationStateMachine } from '../AnimationStateMachine';
 
 // Mock useReducedMotion hook
 jest.mock('../../../hooks/useReducedMotion', () => ({
@@ -157,8 +157,7 @@ describe('useAnimationStateMachine', () => {
     rerender({ children: <></>, deps: [2] });
     
     // Machine should be recreated
-    const createStateMachine = require('../AnimationStateMachine').createAnimationStateMachine;
-    expect(createStateMachine).toHaveBeenCalledTimes(2);
+    expect(createAnimationStateMachine as jest.Mock).toHaveBeenCalledTimes(2);
   });
   
   it('should handle transitioning state', async () => {

@@ -3,6 +3,8 @@ import React from 'react';
 
 import { ThemeProvider } from '../../../theme/ThemeProvider';
 import { Card } from '../Card';
+import { glassSurface } from '../../../core/mixins/glassSurface';
+import { glassGlow } from '../../../core/mixins/effects/glowEffects';
 
 // Mock the glassSurface and glassGlow mixins
 jest.mock('../../../core/mixins/glassSurface', () => ({
@@ -30,7 +32,6 @@ describe('Card Component', () => {
     expect(screen.getByText('Card Content')).toBeInTheDocument();
 
     // Check that glassSurface is called with default props
-    const { glassSurface } = require('../../../core/mixins/glassSurface');
     expect(glassSurface).toHaveBeenCalledWith(
       expect.objectContaining({
         elevation: 1,
@@ -54,7 +55,6 @@ describe('Card Component', () => {
   });
 
   test('applies different elevation levels', () => {
-    const { glassSurface } = require('../../../core/mixins/glassSurface');
     renderWithTheme(<Card elevation={3}>Elevated Card</Card>);
 
     // Verify glassSurface is called with the right elevation
@@ -66,8 +66,6 @@ describe('Card Component', () => {
   });
 
   test('applies glow effect when specified', () => {
-    const { glassGlow } = require('../../../core/mixins/effects/glowEffects');
-
     renderWithTheme(
       <Card glow="medium" glowColor="secondary">
         Glowing Card

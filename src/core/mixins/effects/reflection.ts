@@ -4,8 +4,7 @@
  * Styled-components mixin for simulating reflection effects using gradients.
  */
 
-import { css, FlattenSimpleInterpolation } from 'styled-components';
-import { DefaultTheme } from 'styled-components';
+import { css, FlattenSimpleInterpolation , DefaultTheme } from 'styled-components';
 
 export interface ReflectionEffectOptions {
   /**

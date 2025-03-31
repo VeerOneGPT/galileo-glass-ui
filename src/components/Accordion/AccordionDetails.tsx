@@ -113,7 +113,7 @@ function AccordionDetailsComponent(
     if (contentWrapperRef.current) {
       // Use ResizeObserver for accurate height changes
       const resizeObserver = new ResizeObserver(entries => {
-        for (let entry of entries) {
+        for (const entry of entries) {
           setContentHeight(entry.contentRect.height);
         }
       });

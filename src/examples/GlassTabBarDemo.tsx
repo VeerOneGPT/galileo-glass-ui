@@ -386,7 +386,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
               scrollable={true}
@@ -410,7 +410,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs.slice(0, 5)}
               activeTab={0}
-              onChange={(e, index) => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="secondary"
               scrollable={true}
@@ -436,7 +436,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="success"
               scrollable={true}
@@ -470,7 +470,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
               scrollable={false}
@@ -495,7 +495,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="underlined"
               color="info"
               scrollable={false}
@@ -520,7 +520,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="success"
               scrollable={false}
@@ -554,7 +554,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
               orientation="vertical"
@@ -576,7 +576,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="secondary"
               orientation="vertical"
@@ -598,7 +598,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="success"
               orientation="vertical"
@@ -620,7 +620,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="info"
               responsiveOrientation={{
@@ -647,7 +647,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
             />
@@ -664,7 +664,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithBadges}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="error"
             />
@@ -681,7 +681,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="secondary"
               scrollable={true}
@@ -706,7 +706,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={() => {}}
+              onChange={(e, index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="info"
               orientation="vertical"
@@ -884,7 +884,7 @@ export const GlassTabBarDemo: React.FC = () => {
         
         <FlexibleExampleCard $flexDirection={orientation === 'horizontal' ? 'column' : 'row'}>
           <GlassTabBar
-            tabs={tabsWithIcons}
+            tabs={scrollable ? longTabs : simpleTabs}
             activeTab={customActiveTab}
             onChange={(e, index) => setCustomActiveTab(index)}
             variant={variant as any}
@@ -904,7 +904,7 @@ export const GlassTabBarDemo: React.FC = () => {
             height={orientation === 'vertical' ? 300 : undefined}
           />
           <FlexTabContent>
-            {getTabContent(tabsWithIcons[customActiveTab])}
+            {getTabContent(scrollable ? longTabs[customActiveTab] : simpleTabs[customActiveTab])}
           </FlexTabContent>
         </FlexibleExampleCard>
       </Section>

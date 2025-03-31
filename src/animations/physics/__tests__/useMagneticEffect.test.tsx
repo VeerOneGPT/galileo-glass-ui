@@ -2,9 +2,10 @@ import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { useMagneticEffect } from '../useMagneticEffect';
 import { DirectionalFieldConfig } from '../directionalField';
+import { useReducedMotion } from '../../accessibility/useReducedMotion';
 
 // Mock the useReducedMotion hook
-jest.mock('../accessibility/useReducedMotion', () => ({
+jest.mock('../../accessibility/useReducedMotion', () => ({
   useReducedMotion: jest.fn(() => false)
 }));
 
@@ -192,7 +193,7 @@ describe('useMagneticEffect', () => {
   
   test('respects reduced motion settings', () => {
     // Mock useReducedMotion to return true
-    require('../accessibility/useReducedMotion').useReducedMotion.mockReturnValue(true);
+    (useReducedMotion as jest.Mock).mockReturnValue(true);
     
     const TestComponent = createTestComponent({
       strength: 1,

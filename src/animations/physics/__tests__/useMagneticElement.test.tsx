@@ -2,6 +2,7 @@ import React from 'react';
 import { render, fireEvent, act, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useMagneticElement } from '../useMagneticElement';
+import { GalileoPhysicsSystem } from '../galileoPhysicsSystem';
 
 // Mock the physics system to avoid browser API dependencies
 jest.mock('../galileoPhysicsSystem', () => {
@@ -237,7 +238,7 @@ describe('useMagneticElement', () => {
   
   it('registers with physics system when registerWithPhysics is true', () => {
     // Import the mock directly to access its methods
-    const { GalileoPhysicsSystem } = require('../galileoPhysicsSystem');
+    // const { GalileoPhysicsSystem } = require('../galileoPhysicsSystem'); // Remove this line
     
     render(
       <TestComponent 
@@ -256,7 +257,7 @@ describe('useMagneticElement', () => {
     expect(GalileoPhysicsSystem).toHaveBeenCalled();
     
     // Get the mock instance
-    const mockInstance = GalileoPhysicsSystem.mock.results[0].value;
+    const mockInstance = (GalileoPhysicsSystem as jest.Mock).mock.results[0].value;
     
     // Verify start was called
     expect(mockInstance.start).toHaveBeenCalled();

@@ -191,7 +191,7 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
   /**
    * Apply an oscillation effect (like shaking or pulsing)
    */
-  const applyOscillation = (intensity: number = 1) => {
+  const applyOscillation = (intensity = 1) => {
     if (params.type === 'none') return;
     
     // Get current position and add a burst of velocity
@@ -208,7 +208,7 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
   /**
    * Apply a rebound animation (stretch and bounce back)
    */
-  const applyRebound = (intensity: number = 1) => {
+  const applyRebound = (intensity = 1) => {
     if (params.type === 'none') return;
     
     // Set position beyond target to create stretch effect

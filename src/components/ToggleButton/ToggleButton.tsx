@@ -11,8 +11,7 @@ import { createThemeContext } from '../../core/themeContext';
 import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useAnimationContext } from '../../contexts/AnimationContext';
-import { SpringPresets } from '../../animations/physics/springPhysics';
-import { SpringConfig } from '../../animations/physics/springPhysics';
+import { SpringPresets , SpringConfig } from '../../animations/physics/springPhysics';
 
 import { ToggleButtonProps } from './types';
 

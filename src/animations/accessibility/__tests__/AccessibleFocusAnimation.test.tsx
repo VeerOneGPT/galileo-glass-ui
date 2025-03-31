@@ -18,7 +18,7 @@ import {
   focusAnimation,
   mapFocusToHighContrastType
 } from '../AccessibleFocusAnimation';
-import { HighContrastAnimationType } from '../useHighContrast';
+import { HighContrastAnimationType , useHighContrast } from '../useHighContrast';
 
 // Mock the required hooks
 jest.mock('../useReducedMotion', () => ({
@@ -55,7 +55,6 @@ jest.mock('../useHighContrast', () => ({
 
 // Helper imports
 import { useReducedMotion } from '../useReducedMotion';
-import { useHighContrast } from '../useHighContrast';
 
 describe('AccessibleFocusAnimation', () => {
   

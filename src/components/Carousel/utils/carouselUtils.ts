@@ -173,7 +173,7 @@ export const calculateDimensions = (
   containerElement: HTMLElement | null
 ): { width: string; height: string } => {
   // Default dimensions
-  let calculatedWidth = width 
+  const calculatedWidth = width 
     ? (typeof width === 'number' ? `${width}px` : width) 
     : '100%';
   let calculatedHeight = height 

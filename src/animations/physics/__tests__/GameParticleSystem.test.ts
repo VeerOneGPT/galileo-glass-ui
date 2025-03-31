@@ -16,8 +16,8 @@ import {
 // Mock DOM elements
 class MockElement {
   style: any = {};
-  className: string = '';
-  id: string = '';
+  className = '';
+  id = '';
   children: MockElement[] = [];
   parentElement: MockElement | null = null;
   getBoundingClientRect = jest.fn().mockReturnValue({
@@ -63,8 +63,8 @@ const mockWindow = {
 // Mock canvas context
 class MockCanvasContext {
   canvas: MockCanvas;
-  fillStyle: string = '';
-  globalAlpha: number = 1;
+  fillStyle = '';
+  globalAlpha = 1;
   
   constructor(canvas: MockCanvas) {
     this.canvas = canvas;
@@ -86,8 +86,8 @@ class MockCanvasContext {
 
 // Mock canvas element
 class MockCanvas extends MockElement {
-  width: number = 100;
-  height: number = 100;
+  width = 100;
+  height = 100;
   getContext = jest.fn((type: string) => {
     return new MockCanvasContext(this);
   });

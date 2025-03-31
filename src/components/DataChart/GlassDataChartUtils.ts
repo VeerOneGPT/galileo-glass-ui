@@ -198,7 +198,7 @@ export const formatDate = (
   value: number | Date | string,
   format: 'short' | 'medium' | 'long' | 'custom' = 'medium',
   customFormat?: string,
-  locale: string = 'en-US'
+  locale = 'en-US'
 ): string => {
   if (value === null || value === undefined) {
     return 'N/A';

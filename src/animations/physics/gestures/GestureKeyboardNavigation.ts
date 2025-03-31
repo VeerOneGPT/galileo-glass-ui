@@ -494,7 +494,7 @@ const handlePanGestures: KeyboardHandlerFn = (
   state.modifierKeys = modifierKeys;
   
   // Detect arrow key presses for panning
-  let movement = { x: 0, y: 0 };
+  const movement = { x: 0, y: 0 };
   let direction = GestureDirection.NONE;
   
   if (event.type === 'keydown') {

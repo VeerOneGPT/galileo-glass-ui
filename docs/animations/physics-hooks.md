@@ -2,11 +2,141 @@
 
 This document provides detailed documentation for the core physics-based animation hooks available in the Galileo Glass UI library. These hooks provide the foundation for creating dynamic, interactive, and natural-feeling animations.
 
+## Import Options
+
+You can import the physics hooks in two ways:
+
+1. Through the main package (recommended):
+```typescript
+import { 
+  useGalileoPhysicsEngine,
+  usePhysicsInteraction,
+  useGalileoStateSpring,
+  useMultiSpring,
+  type PhysicsBodyOptions,
+  type Vector2D,
+  type CollisionEvent
+} from '@veerone/galileo-glass-ui';
+```
+
+2. Through the physics subpath (alternative):
+```typescript
+import { 
+  useGalileoPhysicsEngine,
+  usePhysicsInteraction,
+  useGalileoStateSpring,
+  useMultiSpring,
+  type PhysicsBodyOptions,
+  type Vector2D,
+  type CollisionEvent
+} from '@veerone/galileo-glass-ui/physics';
+```
+
 ## Table of Contents
 
+- [`useGalileoPhysicsEngine`](#usegalileophysicsengine) (v1.0.8+)
 - [`usePhysicsInteraction`](#usephysicsinteraction)
 - [`useGalileoStateSpring`](#usegalileostatespring)
 - [`useMultiSpring`](#usemultispring)
+
+---
+
+## `useGalileoPhysicsEngine`
+
+The `useGalileoPhysicsEngine` hook (introduced in v1.0.8) provides direct access to the Galileo physics engine for advanced use cases like custom game mechanics or complex physics visualizations.
+
+### Purpose
+
+- Create custom physics-based interactions and simulations
+- Implement game mechanics or physics-based visualizations
+- Build complex, multi-body physics systems
+
+### Signature
+
+```typescript
+import { 
+  useGalileoPhysicsEngine,
+  type PhysicsBodyOptions,
+  type Vector2D,
+  type CollisionEvent
+} from '@veerone/galileo-glass-ui';
+
+function useGalileoPhysicsEngine(config?: EngineConfiguration): GalileoPhysicsEngineAPI;
+
+interface EngineConfiguration {
+  gravity?: Vector2D;           // Default: { x: 0, y: 9.81 }
+  defaultDamping?: number;      // Default: 0.01
+  timeScale?: number;           // Default: 1.0
+  fixedTimeStep?: number;       // Default: 1/60
+  maxSubSteps?: number;         // Default: 10
+  velocitySleepThreshold?: number;  // Default: 0.05
+  angularSleepThreshold?: number;   // Default: 0.05
+  sleepTimeThreshold?: number;      // Default: 1000 (ms)
+  enableSleeping?: boolean;         // Default: true
+  integrationMethod?: 'euler' | 'verlet' | 'rk4';  // Default: 'verlet'
+  boundsCheckEnabled?: boolean;     // Default: false
+  bounds?: {
+    min: Vector2D;
+    max: Vector2D;
+  };
+}
+```
+
+### Example Usage
+
+```tsx
+import React, { useEffect } from 'react';
+import { useGalileoPhysicsEngine } from '@veerone/galileo-glass-ui';
+
+function PhysicsSimulation() {
+  const engine = useGalileoPhysicsEngine({
+    gravity: { x: 0, y: 9.81 },
+    defaultDamping: 0.01
+  });
+
+  useEffect(() => {
+    if (!engine) return;
+
+    // Add a bouncing ball
+    const ballId = engine.addBody({
+      shape: { type: 'circle', radius: 20 },
+      position: { x: 100, y: 0 },
+      restitution: 0.7,
+      friction: 0.1
+    });
+
+    // Add a static floor
+    const floorId = engine.addBody({
+      shape: { type: 'rectangle', width: 500, height: 20 },
+      position: { x: 250, y: 400 },
+      isStatic: true
+    });
+
+    // Listen for collisions
+    const unsubscribe = engine.onCollisionStart((event) => {
+      if (event.bodyAId === ballId || event.bodyBId === ballId) {
+        console.log('Ball collision!');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [engine]);
+
+  return <div>Physics simulation container</div>;
+}
+```
+
+### Best Practices
+
+- Use for advanced physics simulations where higher-level hooks like `usePhysicsInteraction` aren't sufficient
+- Clean up collision subscriptions and bodies in useEffect cleanup functions
+- Consider performance implications when adding many bodies or complex shapes
+- Use `isStatic: true` for immovable objects like walls or floors
+- Leverage the object sleeping system for better performance
+
+For detailed API documentation, see the [Physics Engine API Guide](../physics/engine-api.md).
 
 ---
 
@@ -83,7 +213,7 @@ An object containing:
 
 ```tsx
 import React from 'react';
-import { usePhysicsInteraction } from 'galileo-glass-ui';
+import { usePhysicsInteraction } from '@veerone/galileo-glass-ui';
 import { Button } from '../components/Button'; // Example component
 
 const PhysicsButton = () => {
@@ -98,10 +228,10 @@ const PhysicsButton = () => {
   return (
     <Button 
       ref={ref} 
-      style={style} 
+      style={style}
       {...eventHandlers}
     >
-      Physics Button
+      Click me!
     </Button>
   );
 };

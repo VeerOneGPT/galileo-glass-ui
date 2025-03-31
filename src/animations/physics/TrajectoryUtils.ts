@@ -998,7 +998,7 @@ export function createTrajectoryClipPath(
   points: Vector[],
   width: number,
   height: number,
-  thickness: number = 2
+  thickness = 2
 ): string {
   if (points.length < 2) return '';
   

@@ -14,11 +14,9 @@ import {
   createCollisionSystem,
   createBoundaryWalls,
   SpatialGrid
-} from '../collisionSystem';
+, CollisionCategories , CollisionEvent, CollisionEventType } from '../collisionSystem';
 import { CollisionShape } from '../types';
 import { createVector, vectorDistance, vectorMagnitude } from '../physicsCalculations';
-import { CollisionCategories } from '../collisionSystem';
-import { CollisionEvent, CollisionEventType } from '../collisionSystem';
 
 describe('Collision Detection', () => {
   // Test Circle-Circle collision detection

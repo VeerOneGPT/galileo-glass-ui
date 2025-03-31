@@ -12,6 +12,8 @@ import { glassSurface } from '../core/mixins/glassSurface';
 import { createThemeContext } from '../core/themeContext';
 
 import { useReducedMotion } from './useReducedMotion';
+import { Theme } from '../core/types';
+import { rgba } from 'polished';
 
 /**
  * Options for glass effects

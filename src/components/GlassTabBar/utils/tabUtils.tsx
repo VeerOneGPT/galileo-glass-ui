@@ -49,7 +49,7 @@ export function calculateVisibleTabs({
   }
   
   // Collect tab widths and determine if we need to collapse tabs
-  let accumulatedWidth = 0;
+  const accumulatedWidth = 0;
   const moreMenuWidth = 60; // Approximate width of "More" menu tab
   let visibleCount = tabs.length;
   

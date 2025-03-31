@@ -158,9 +158,6 @@ export { VisualFeedback, RippleButton, FocusIndicator, StateIndicator } from './
 // Background Components
 export { AtmosphericBackground, ParticleBackground } from './backgrounds';
 
-// Enhanced GlassTooltip component
-export * from './GlassTooltip';
-
 // Data visualization components
 export * from './ImageViewer';
 
@@ -187,19 +184,6 @@ export {
 
 // Local version
 export const componentsVersion = '1.0.0';
-
-// Core components
-export * from './Card/Card';
-export * from './Button/Button';
-export * from './TextField/TextField';
-export * from './Typography/Typography';
-export * from './Select/Select';
-export * from './Checkbox/Checkbox';
-export * from './Avatar/Avatar';
-export * from './Menu/Menu';
-export * from './Switch/Switch';
-export * from './Tooltip/Tooltip';
-export * from './Slider/Slider';
 
 // New glass components
 export * from './GlassCardLink/GlassCardLink';

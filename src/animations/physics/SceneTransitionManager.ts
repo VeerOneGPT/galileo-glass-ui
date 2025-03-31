@@ -414,7 +414,7 @@ export class SceneTransitionManager {
   private animationFrameId: number | null = null;
   
   /** Is system initialized */
-  private initialized: boolean = false;
+  private initialized = false;
   
   /** Scene elements cache */
   private sceneElements: Map<string, HTMLElement> = new Map();
@@ -426,7 +426,7 @@ export class SceneTransitionManager {
   private history: string[] = [];
   
   /** Current history index */
-  private historyIndex: number = -1;
+  private historyIndex = -1;
 
   /**
    * Create a new scene transition manager
@@ -659,7 +659,7 @@ export class SceneTransitionManager {
   async changeScene(
     toId: string,
     transitionOverride?: Partial<SceneTransition> | null,
-    immediate: boolean = false
+    immediate = false
   ): Promise<boolean> {
     // Check if scene exists
     const toScene = this.scenes.get(toId);

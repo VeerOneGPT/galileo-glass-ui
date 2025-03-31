@@ -34,7 +34,8 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 - 📦 **Comprehensive Component Library**: 90+ components including specialized Glass versions (e.g., `GlassButton`, `GlassCard`, `GlassTabs`, `GlassDataChart`). See list below.
 - 🚀 **Advanced Physics-Based Animation System**:
     - Integrated Physics Engine: Springs, collisions, forces, object sleeping.
-    - Intuitive Hooks: `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`.
+    - Intuitive Hooks: `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement` for common UI interactions.
+    - **New (v1.0.8):** Lower-level `useGalileoPhysicsEngine` hook for direct engine access and custom simulations.
     - Orchestration: `useAnimationSequence` for complex sequences & staggering.
     - Specialized Effects: Z-space, 3D transforms, parallax, particles.
     - Performance: GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
@@ -240,6 +241,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <th>📚 Core Docs</th>
       <th>🎨 Styling</th>
       <th>🔄 Animation System</th>
+      <th>⚙️ Physics Engine</th>
       <th>📊 Advanced Features</th>
       <th>🏗️ Development</th>
     </tr>
@@ -247,6 +249,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/core/framework-guide.md">Framework Guide</a></td>
       <td><a href="./docs/core/framework-guide.md#glass-surface-system">Glass Surfaces</a></td>
       <td><a href="./docs/animations/physics-hooks.md">Core Physics Hooks</a></td>
+      <td></td>
       <td><a href="./docs/components/glass-charts.md">Chart Components</a></td>
       <td><a href="./docs/core/project-structure.md">Package Architecture</a></td>
     </tr>
@@ -254,6 +257,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/core/theme-system.md">Theme System</a></td>
       <td><a href="./docs/core/framework-guide.md#z-space-layering">Z-Space Layering</a></td>
       <td><a href="./docs/animations/orchestration.md">Sequence Orchestration</a></td>
+      <td></td>
       <td><a href="./docs/components/specialized-surfaces.md">Specialized Surfaces</a></td>
       <td><a href="./docs/performance/optimization/optimization-techniques.md">Optimization Techniques</a></td>
     </tr>
@@ -261,6 +265,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/components/advanced-components.md">Advanced Components</a></td>
       <td><a href="./docs/core/framework-guide.md#common-patterns">Common Patterns</a></td>
       <td><a href="./docs/animations/context-config.md">Context & Configuration</a></td>
+      <td><a href="./docs/physics/engine-api.md">Engine API (WIP)</a></td> 
       <td>{/* Removed Legacy Physics Link */}</td> 
       <td><a href="./docs/development/component-patterns.md">Component Patterns</a></td>
     </tr>
@@ -268,6 +273,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./INSTALLATION.md">Installation Guide</a></td>
       <td><a href="./docs/components/TROUBLESHOOTING.md">Troubleshooting</a></td>
       <td><a href="./docs/animations/accessibility.md">Accessibility</a></td> 
+      <td></td>
       <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
@@ -675,6 +681,61 @@ function StaggeredList() {
 
 > **Orchestration** using `useAnimationSequence` allows complex, timed animations across multiple elements, like this staggered entrance effect.
 
+</details>
+
+<details>
+<summary><b>🎮 Physics Engine (v1.0.9)</b></summary>
+<br>
+
+```jsx
+import { useRef, useEffect } from 'react';
+import { 
+  useGalileoPhysicsEngine,
+  type PhysicsBodyOptions
+} from '@veerone/galileo-glass-ui';
+
+function PhysicsSimulation() {
+  const engine = useGalileoPhysicsEngine({
+    gravity: { x: 0, y: 9.81 },
+    defaultDamping: 0.01
+  });
+
+  useEffect(() => {
+    if (!engine) return;
+
+    // Add a bouncing ball
+    const ballOptions: PhysicsBodyOptions = {
+      shape: { type: 'circle', radius: 20 },
+      position: { x: 100, y: 0 },
+      restitution: 0.7, // Bounciness
+      friction: 0.1
+    };
+    const ballId = engine.addBody(ballOptions);
+
+    // Add a static floor
+    const floorId = engine.addBody({
+      shape: { type: 'rectangle', width: 500, height: 20 },
+      position: { x: 250, y: 400 },
+      isStatic: true // Infinite mass
+    });
+
+    // Listen for collisions
+    const unsubscribe = engine.onCollisionStart((event) => {
+      if (event.bodyAId === ballId || event.bodyBId === ballId) {
+        console.log('Ball collision!');
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [engine]);
+
+  return <div>Physics simulation container</div>;
+}
+```
+
+> **Physics Engine**: The new `useGalileoPhysicsEngine` hook (v1.0.9) provides direct access to the physics simulation system for advanced use cases.
 </details>
 
 ---

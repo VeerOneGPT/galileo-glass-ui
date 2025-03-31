@@ -6,9 +6,14 @@
  */
 
 import { ForceVector } from './magneticEffect';
-import { GalileoPhysicsSystem, physicsSystem, PhysicsObject, PhysicsEvent } from './galileoPhysicsSystem';
-import { DirectionalFieldConfig } from './directionalField';
-import { calculateDirectionalForce } from './directionalFieldImpl';
+import { GalileoPhysicsSystem, physicsSystem, PhysicsObject, PhysicsEvent, Vector } from './galileoPhysicsSystem';
+import { DirectionalFieldConfig, PointerData } from './directionalField';
+import { 
+  calculateDirectionalForce, 
+  normalizeVector, 
+  scaleVector, 
+  vectorMagnitude 
+} from './directionalFieldImpl';
 
 /**
  * Configuration options for a magnetic system
@@ -226,7 +231,7 @@ export interface MagneticElement {
   /**
    * Physics object ID (if registered with physics system)
    */
-  physicsObjectId: string | null;
+  physicsObjectId: string | number | null;
   
   /**
    * Directional field configuration
@@ -316,7 +321,7 @@ export class MagneticSystemManager {
   /**
    * Whether the system is currently running
    */
-  private isRunning: boolean = false;
+  private isRunning = false;
   
   /**
    * Event listeners for the system
@@ -331,12 +336,12 @@ export class MagneticSystemManager {
   /**
    * Whether the mouse is currently over any system element
    */
-  private isMouseOver: boolean = false;
+  private isMouseOver = false;
   
   /**
    * Last timestamp for frame rate calculation
    */
-  private lastUpdateTime: number = 0;
+  private lastUpdateTime = 0;
   
   /**
    * Create a new magnetic system
@@ -385,7 +390,7 @@ export class MagneticSystemManager {
     this.mousePosition.y = e.clientY;
     
     // Check if mouse is over any system element
-    let wasMouseOver = this.isMouseOver;
+    const wasMouseOver = this.isMouseOver;
     this.isMouseOver = false;
     
     for (const element of this.elements.values()) {
@@ -424,10 +429,12 @@ export class MagneticSystemManager {
    * Handle physics system collisions
    */
   private handlePhysicsCollision = (event: PhysicsEvent) => {
-    if (!event.objectA || !event.objectB) return;
+    // Guard against missing objects or userData
+    if (!event.objectA?.userData || !event.objectB?.userData) return;
     
-    const elementAId = (event.objectA.userData?.magneticElementId as string);
-    const elementBId = (event.objectB.userData?.magneticElementId as string);
+    // Safely access potential magneticElementId
+    const elementAId = event.objectA.userData.magneticElementId as string | undefined;
+    const elementBId = event.objectB.userData.magneticElementId as string | undefined;
     
     if (!elementAId || !elementBId) return;
     
@@ -440,8 +447,9 @@ export class MagneticSystemManager {
     this.dispatchEvent('interaction', {
       elementA,
       elementB,
-      contactPoint: event.contactPoint,
-      contactNormal: event.contactNormal,
+      // Ensure contactPoint and normal exist before accessing properties
+      contactPoint: event.contactPoint ? { ...event.contactPoint } : undefined,
+      contactNormal: event.contactNormal ? { ...event.contactNormal } : undefined,
       penetration: event.penetration
     });
   };
@@ -458,23 +466,38 @@ export class MagneticSystemManager {
       throw new Error(`Element with ID ${id} already exists in the system`);
     }
     
-    // Get element position from DOM if not provided
     let position = options.position;
-    if (!position) {
-      const rect = options.element.getBoundingClientRect();
+    let elementRect: DOMRect | null = null;
+    try {
+        elementRect = options.element.getBoundingClientRect();
+    } catch (e) {
+        console.error(`Error getting bounding rect for element ID ${options.id}:`, e);
+        // Handle error: maybe skip registration or use a default position?
+        throw new Error(`Failed to get bounding client rect for element in registerElement`);
+    }
+
+    if (!position && elementRect) {
       position = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
+        x: elementRect.left + elementRect.width / 2,
+        y: elementRect.top + elementRect.height / 2
       };
+    } else if (!position) {
+        // Fallback if position is needed but rect failed
+        console.warn(`Using default position {0, 0} for element ID ${options.id}`);
+        position = { x: 0, y: 0 };
     }
     
     // Default transform function if not provided
     const applyTransform = options.applyTransform || ((transform: MagneticTransform) => {
-      options.element.style.transform = `
-        translate(${transform.x}px, ${transform.y}px)
-        ${transform.rotation !== 0 ? `rotate(${transform.rotation}deg)` : ''}
-        ${transform.scale !== 1 ? `scale(${transform.scale})` : ''}
-      `;
+      try {
+        options.element.style.transform = `
+          translate(${transform.x}px, ${transform.y}px)
+          ${transform.rotation !== 0 ? `rotate(${transform.rotation}deg)` : ''}
+          ${transform.scale !== 1 ? `scale(${transform.scale})` : ''}
+        `;
+      } catch (e) {
+        console.error(`Error applying transform to element ID ${id}:`, e);
+      }
     });
     
     // Create the magnetic element
@@ -483,14 +506,12 @@ export class MagneticSystemManager {
       element: options.element,
       position,
       velocity: { x: 0, y: 0 },
-      mass: options.mass || 1,
-      radius: options.radius || (
-        Math.max(options.element.offsetWidth, options.element.offsetHeight) / 2
-      ),
-      isStatic: options.isStatic || false,
-      isAttractor: options.isAttractor || false,
-      isRepeller: options.isRepeller || false,
-      strength: options.strength || 1,
+      mass: options.mass ?? 1,
+      radius: options.radius ?? (elementRect ? Math.max(elementRect.width, elementRect.height) / 2 : 50),
+      isStatic: options.isStatic ?? false,
+      isAttractor: options.isAttractor ?? false,
+      isRepeller: options.isRepeller ?? false,
+      strength: options.strength ?? 1,
       transform: {
         x: 0,
         y: 0,
@@ -501,30 +522,34 @@ export class MagneticSystemManager {
       },
       applyTransform,
       physicsObjectId: null,
-      directionalField: options.directionalField || null,
-      userData: options.userData || {},
-      role: options.role || 'independent',
+      directionalField: options.directionalField ?? null,
+      userData: options.userData ?? {},
+      role: options.role ?? 'independent',
       isActive: false
     };
     
     // Register with physics system if enabled
-    if (this.config.usePhysicsSystem) {
-      const physicsObjectId = this.physicsSystem.addObject({
-        position: {
-          x: position.x,
-          y: position.y
-        },
-        mass: element.mass,
-        radius: element.radius,
-        isStatic: element.isStatic,
-        shape: 'circle',
-        userData: {
-          magneticElementId: id,
-          magneticSystemId: this.id
-        }
-      });
-      
-      element.physicsObjectId = physicsObjectId;
+    if (this.config.usePhysicsSystem && this.physicsSystem) {
+      try {
+        const physicsObjectId = this.physicsSystem.addObject({
+          position: {
+            x: element.position.x,
+            y: element.position.y,
+          },
+          mass: element.mass,
+          shape: 'circle',
+          radius: element.radius,
+          isStatic: element.isStatic,
+          velocity: { x: 0, y: 0 },
+          userData: {
+            magneticElementId: id,
+            magneticSystemId: this.id
+          }
+        });
+        element.physicsObjectId = physicsObjectId;
+      } catch (e) {
+        console.error(`Error registering element ${id} with physics system:`, e);
+      }
     }
     
     // Add element to the system
@@ -552,8 +577,13 @@ export class MagneticSystemManager {
     }
     
     // Remove from physics system if registered
-    if (element.physicsObjectId && this.config.usePhysicsSystem) {
-      this.physicsSystem.removeObject(element.physicsObjectId);
+    if (element.physicsObjectId !== null && this.config.usePhysicsSystem) {
+        try {
+           // Ensure ID is a string for physics system methods
+           this.physicsSystem.removeObject(String(element.physicsObjectId));
+        } catch (e) {
+           console.error(`Error removing physics object ${element.physicsObjectId} for element ${id}:`, e);
+        }
     }
     
     // Remove from elements map
@@ -587,45 +617,57 @@ export class MagneticSystemManager {
     
     if (updates.position) {
       element.position = updates.position;
-      
-      // Update physics object if registered
-      if (element.physicsObjectId && this.config.usePhysicsSystem) {
-        this.physicsSystem.updateObject(element.physicsObjectId, {
-          position: updates.position
-        });
+      if (element.physicsObjectId !== null && this.config.usePhysicsSystem) {
+         try {
+            // Ensure ID is a string
+            this.physicsSystem.updateObject(String(element.physicsObjectId), {
+              position: updates.position
+            });
+         } catch (e) {
+            console.error(`Error updating position for physics object ${element.physicsObjectId}:`, e);
+         }
       }
     }
     
     if (updates.mass !== undefined) {
       element.mass = updates.mass;
-      
-      // Update physics object if registered
-      if (element.physicsObjectId && this.config.usePhysicsSystem) {
-        this.physicsSystem.updateObject(element.physicsObjectId, {
-          mass: updates.mass
-        });
+      if (element.physicsObjectId !== null && this.config.usePhysicsSystem) {
+          try {
+             // Ensure ID is a string
+             this.physicsSystem.updateObject(String(element.physicsObjectId), {
+               mass: updates.mass
+             });
+          } catch (e) {
+             console.error(`Error updating mass for physics object ${element.physicsObjectId}:`, e);
+          }
       }
     }
     
     if (updates.radius !== undefined) {
       element.radius = updates.radius;
-      
-      // Update physics object if registered
-      if (element.physicsObjectId && this.config.usePhysicsSystem) {
-        this.physicsSystem.updateObject(element.physicsObjectId, {
-          radius: updates.radius
-        });
+      if (element.physicsObjectId !== null && this.config.usePhysicsSystem) {
+          try {
+             // Ensure ID is a string
+             this.physicsSystem.updateObject(String(element.physicsObjectId), {
+               radius: updates.radius // Pass radius directly
+             });
+          } catch (e) {
+              console.error(`Error updating radius for physics object ${element.physicsObjectId}:`, e);
+          }
       }
     }
     
     if (updates.isStatic !== undefined) {
       element.isStatic = updates.isStatic;
-      
-      // Update physics object if registered
-      if (element.physicsObjectId && this.config.usePhysicsSystem) {
-        this.physicsSystem.updateObject(element.physicsObjectId, {
-          isStatic: updates.isStatic
-        });
+      if (element.physicsObjectId !== null && this.config.usePhysicsSystem) {
+          try {
+             // Ensure ID is a string
+             this.physicsSystem.updateObject(String(element.physicsObjectId), {
+               isStatic: updates.isStatic
+             });
+          } catch (e) {
+             console.error(`Error updating isStatic for physics object ${element.physicsObjectId}:`, e);
+          }
       }
     }
     
@@ -687,9 +729,13 @@ export class MagneticSystemManager {
       return false;
     }
     
-    // Apply force to physics object if registered
-    if (element.physicsObjectId && this.config.usePhysicsSystem) {
-      this.physicsSystem.applyForce(element.physicsObjectId, force);
+    if (element.physicsObjectId !== null && this.config.usePhysicsSystem) {
+        try {
+           // Ensure ID is a string
+           this.physicsSystem.applyForce(String(element.physicsObjectId), force);
+        } catch (e) {
+           console.error(`Error applying force to physics object ${element.physicsObjectId}:`, e);
+        }
     } else {
       // Otherwise, manually apply force to velocity
       const accelerationX = force.x / element.mass;
@@ -708,51 +754,108 @@ export class MagneticSystemManager {
   private update = (timestamp: number) => {
     if (!this.isRunning) return;
     
-    // Calculate delta time
-    const deltaTime = this.lastUpdateTime === 0 ? 0 : (timestamp - this.lastUpdateTime) / 1000;
-    this.lastUpdateTime = timestamp;
+    // Calculate delta time, handle first frame and large gaps
+    const now = performance.now(); // Use performance.now() for higher precision
+    const deltaTime = this.lastUpdateTime === 0 ? 1 / 60 : (now - this.lastUpdateTime) / 1000;
+    this.lastUpdateTime = now;
     
-    // Skip first frame and frames with large time gaps
-    if (deltaTime === 0 || deltaTime > 0.1) {
-      this.animationFrameId = requestAnimationFrame(this.update);
-      return;
+    // Clamp deltaTime to prevent physics instability
+    const clampedDeltaTime = Math.max(0, Math.min(deltaTime, 0.1)); 
+
+    // If clamped time is effectively zero, skip update to avoid NaN issues
+    if (clampedDeltaTime <= 1e-6) {
+        this.animationFrameId = requestAnimationFrame(this.update);
+        return;
     }
     
-    // Update element positions from DOM
-    for (const element of this.elements.values()) {
-      const rect = element.element.getBoundingClientRect();
-      element.position = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      };
-      
-      // Update physics object position if registered
-      if (element.physicsObjectId && this.config.usePhysicsSystem) {
-        this.physicsSystem.updateObject(element.physicsObjectId, {
-          position: element.position
-        });
-      }
+    // Update element positions from DOM (only if not using physics system for position)
+    // If using physics, position should ideally come FROM the physics system
+    if (!this.config.usePhysicsSystem) {
+        for (const element of this.elements.values()) {
+            if (element.isStatic) continue; // Don't update static elements from DOM
+            try {
+                const rect = element.element.getBoundingClientRect();
+                element.position = {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2
+                };
+            } catch (e) {
+                 console.warn(`Could not get bounding rect for element ${element.id} in update loop`);
+                 // Decide how to handle - maybe deactivate element?
+                 element.isActive = false; 
+            }
+        }
+    } else {
+        // If using physics, update element positions FROM physics system
+        for (const element of this.elements.values()) {
+             if (element.physicsObjectId !== null) {
+                 try {
+                    // Ensure ID is a string
+                    const physicsObject = this.physicsSystem.getObject(String(element.physicsObjectId));
+                    if (physicsObject && physicsObject.position) {
+                         element.position.x = physicsObject.position.x;
+                         element.position.y = physicsObject.position.y;
+                         if (physicsObject.velocity) {
+                              element.velocity.x = physicsObject.velocity.x;
+                              element.velocity.y = physicsObject.velocity.y;
+                         }
+                    } else {
+                        console.warn(`Could not find or get position for physics object ${element.physicsObjectId}`);
+                        element.isActive = false;
+                    }
+                 } catch (e) {
+                    console.error(`Error getting physics object ${element.physicsObjectId}:`, e);
+                    element.isActive = false;
+                 }
+             }
+        }
     }
-    
+
+    // Reset forces or accelerations before calculating new ones
+    // (This depends on whether you accumulate forces or set them each frame)
+    // Example: If NOT using physics system directly for integration:
+    if (!this.config.usePhysicsSystem) {
+        for (const element of this.elements.values()) {
+            // Reset acceleration implicitly by recalculating velocity changes
+        }
+    }
+
     // Process element interactions
     if (this.config.enableElementInteraction) {
-      this.processElementInteractions(deltaTime);
+      this.processElementInteractions(clampedDeltaTime);
     }
     
     // Apply group field if configured
     if (this.config.groupField) {
-      this.applyGroupField(deltaTime);
+      this.applyGroupField(clampedDeltaTime);
+    }
+
+    // Integrate velocity and position IF NOT using physics system for integration
+    if (!this.config.usePhysicsSystem) {
+        for (const element of this.elements.values()) {
+            if (element.isStatic || !element.isActive) continue;
+
+            // Simple Euler integration (can replace with Verlet, RK4 etc.)
+            element.position.x += element.velocity.x * clampedDeltaTime;
+            element.position.y += element.velocity.y * clampedDeltaTime;
+
+            // Apply damping/friction
+            element.velocity.x *= Math.pow(0.95, clampedDeltaTime * 60); // Example damping
+            element.velocity.y *= Math.pow(0.95, clampedDeltaTime * 60);
+        }
     }
     
-    // Apply transforms to elements
-    this.applyTransforms();
+    // Apply transforms to elements based on their current state
+    this.applyTransforms(); // This function likely calculates transform based on position/velocity/forces
     
-    // Check if any elements are still active
-    const anyActive = Array.from(this.elements.values()).some(el => el.transform.active);
-    
-    // Continue animation loop
-    if (this.isRunning) {
+    // Check if any elements are still active (moving or being affected)
+    const anyActive = Array.from(this.elements.values()).some(el => el.isActive); // Refine isActive logic
+
+    // Continue or stop the loop
+    if (anyActive || this.isMouseOver) { // Keep running if mouse is over or elements are active
       this.animationFrameId = requestAnimationFrame(this.update);
+    } else {
+      this.stop(); // Stop if mouse is not over AND no elements are active
     }
   };
   
@@ -760,87 +863,118 @@ export class MagneticSystemManager {
    * Process interactions between elements
    */
   private processElementInteractions(deltaTime: number): void {
-    const elements = Array.from(this.elements.values());
-    
-    // Skip if fewer than 2 elements
-    if (elements.length < 2) return;
-    
-    for (let i = 0; i < elements.length; i++) {
-      const elementA = elements[i];
-      
-      // Skip static elements for force application (they still affect others)
-      if (elementA.isStatic) continue;
-      
-      for (let j = i + 1; j < elements.length; j++) {
-        const elementB = elements[j];
-        
-        // Apply interaction filter if provided
-        if (this.config.interactionFilter && 
-            !this.config.interactionFilter(elementA, elementB)) {
+    const elementsArray = Array.from(this.elements.values());
+    const numElements = elementsArray.length;
+
+    for (let i = 0; i < numElements; i++) {
+      const elementA = elementsArray[i];
+      if (elementA.isStatic || !elementA.isActive) continue; 
+
+      // Reset net force for this element for this frame
+      let netForceA: ForceVector = { x: 0, y: 0 };
+
+      for (let j = i + 1; j < numElements; j++) {
+        const elementB = elementsArray[j];
+        if (!elementB.isActive) continue;
+
+        // Check interaction filter
+        if (this.config.interactionFilter && !this.config.interactionFilter(elementA, elementB)) {
           continue;
         }
-        
-        // Calculate distance between elements
+
         const dx = elementB.position.x - elementA.position.x;
         const dy = elementB.position.y - elementA.position.y;
-        const distanceSquared = dx * dx + dy * dy;
-        const distance = Math.sqrt(distanceSquared);
-        
-        // Skip if outside interaction radius
-        const interactionRadius = this.config.interactionRadius || 200;
-        if (distance > interactionRadius) continue;
-        
-        // Calculate normalized direction vector
-        const nx = dx / distance;
-        const ny = dy / distance;
-        
-        // Calculate base force magnitude based on distance
-        const normalizedDistance = distance / interactionRadius;
-        const forceMagnitude = (1 - normalizedDistance) * this.config.interactionStrength!;
-        
-        // Determine if attraction or repulsion
-        let forceMultiplier = 0;
-        
-        if (this.config.enableAttraction && 
-            ((elementA.isAttractor && !elementB.isRepeller) || 
-             (elementB.isAttractor && !elementA.isRepeller))) {
-          // Attraction
-          forceMultiplier = -forceMagnitude;
-        } else if (this.config.enableRepulsion && 
-                  ((elementA.isRepeller && !elementB.isAttractor) || 
-                   (elementB.isRepeller && !elementA.isAttractor))) {
-          // Repulsion
-          forceMultiplier = forceMagnitude;
-        } else if (this.config.enableCollisionAvoidance && 
-                   distance < this.config.minElementDistance!) {
-          // Collision avoidance - repel when too close
-          const avoidanceFactor = 1 - (distance / this.config.minElementDistance!);
-          forceMultiplier = avoidanceFactor * forceMagnitude * 2; // Stronger repulsion
-        }
-        
-        // Skip if no force
-        if (forceMultiplier === 0) continue;
-        
-        // Calculate base force
-        let force = {
-          x: nx * forceMultiplier * elementA.strength * elementB.strength,
-          y: ny * forceMultiplier * elementA.strength * elementB.strength
-        };
-        
-        // Apply force modifier if provided
-        if (this.config.forceModifier) {
-          force = this.config.forceModifier(force, elementA, elementB);
-        }
-        
-        // Apply force to both elements in opposite directions
-        if (!elementA.isStatic) {
-          this.applyForce(elementA.id, { x: force.x, y: force.y });
-        }
-        
-        if (!elementB.isStatic) {
-          this.applyForce(elementB.id, { x: -force.x, y: -force.y });
+        const distanceSq = dx * dx + dy * dy;
+        const interactionRadiusSq = (this.config.interactionRadius ?? 200) ** 2;
+
+        if (distanceSq > 0 && distanceSq < interactionRadiusSq) {
+          const distance = Math.sqrt(distanceSq);
+          const normalizedDx = dx / distance;
+          const normalizedDy = dy / distance;
+
+          let forceMagnitude = 0;
+          let interactionType: 'attraction' | 'repulsion' | 'none' = 'none';
+
+          // Calculate base attraction/repulsion
+          if (this.config.enableAttraction && elementA.isAttractor && elementB.isAttractor) {
+              // Attraction: force pulls elements together (inverse square law is common)
+              forceMagnitude += (elementA.strength * elementB.strength * (this.config.interactionStrength ?? 0.5)) / distanceSq;
+              interactionType = 'attraction';
+          } else if (this.config.enableRepulsion && elementA.isRepeller && elementB.isRepeller) {
+               // Repulsion: force pushes elements apart
+               forceMagnitude -= (elementA.strength * elementB.strength * (this.config.interactionStrength ?? 0.5)) / distanceSq;
+               interactionType = 'repulsion';
+          } // Add logic for attractor-repeller interaction if needed
+
+          // Apply collision avoidance force
+          if (this.config.enableCollisionAvoidance && distance < (this.config.minElementDistance ?? 20)) {
+              const avoidanceStrength = 100; // Adjust as needed
+              const penetration = (this.config.minElementDistance ?? 20) - distance;
+              forceMagnitude -= avoidanceStrength * penetration; // Repulsive force
+              if (interactionType === 'attraction') interactionType = 'repulsion'; // Override attraction if too close
+              else interactionType = 'repulsion';
+          }
+
+          if (forceMagnitude !== 0) {
+              let forceVector: ForceVector = {
+                  x: normalizedDx * forceMagnitude,
+                  y: normalizedDy * forceMagnitude
+              };
+
+              // Apply force modifier if provided
+              if (this.config.forceModifier) {
+                   try {
+                      forceVector = this.config.forceModifier(forceVector, elementA, elementB);
+                   } catch (e) {
+                       console.error(`Error in forceModifier for elements ${elementA.id} and ${elementB.id}:`, e);
+                   }
+              }
+
+              // Accumulate force for element A
+              netForceA.x += forceVector.x;
+              netForceA.y += forceVector.y;
+
+              // Apply equal and opposite force to element B (if not static)
+              if (!elementB.isStatic) {
+                    // Need to track net force for B separately if not using physics system
+                    // For simplicity here, applying directly if not using physics
+                    if (!this.config.usePhysicsSystem) {
+                         const accelerationBx = -forceVector.x / elementB.mass;
+                         const accelerationBy = -forceVector.y / elementB.mass;
+                         elementB.velocity.x += accelerationBx * deltaTime;
+                         elementB.velocity.y += accelerationBy * deltaTime;
+                    } else if (elementB.physicsObjectId !== null) {
+                         try {
+                            // Ensure ID is a string
+                            this.physicsSystem.applyForce(String(elementB.physicsObjectId), { x: -forceVector.x, y: -forceVector.y });
+                         } catch (e) {
+                             console.error(`Error applying interaction force to physics object ${elementB.physicsObjectId}:`, e);
+                         }
+                    }
+              }
+
+              // Dispatch interaction event (consider performance impact)
+              // this.dispatchEvent('interaction', { elementA, elementB, force: forceVector });
+          }
         }
       }
+
+      // Apply the accumulated net force to element A
+       if (!elementA.isStatic) {
+           if (!this.config.usePhysicsSystem) {
+               const accelerationAx = netForceA.x / elementA.mass;
+               const accelerationAy = netForceA.y / elementA.mass;
+               elementA.velocity.x += accelerationAx * deltaTime;
+               elementA.velocity.y += accelerationAy * deltaTime;
+           } else if (elementA.physicsObjectId !== null) {
+               try {
+                  // Ensure ID is a string
+                  this.physicsSystem.applyForce(String(elementA.physicsObjectId), netForceA);
+               } catch (e) {
+                  console.error(`Error applying net interaction force to physics object ${elementA.physicsObjectId}:`, e);
+               }
+           }
+       }
     }
   }
   
@@ -849,65 +983,72 @@ export class MagneticSystemManager {
    */
   private applyGroupField(deltaTime: number): void {
     if (!this.config.groupField) return;
-    
-    const elements = Array.from(this.elements.values());
-    
-    // Find a leader element if any
-    const leader = elements.find(el => el.role === 'leader');
-    
-    // Calculate center of mass if no leader
-    let centerX = 0;
-    let centerY = 0;
-    
-    if (!leader) {
-      let totalMass = 0;
-      
-      for (const element of elements) {
-        centerX += element.position.x * element.mass;
-        centerY += element.position.y * element.mass;
-        totalMass += element.mass;
-      }
-      
-      if (totalMass > 0) {
-        centerX /= totalMass;
-        centerY /= totalMass;
-      }
-    } else {
-      centerX = leader.position.x;
-      centerY = leader.position.y;
-    }
-    
-    // Apply group field forces to each element
-    for (const element of elements) {
-      // Skip leader or static elements
-      if (element.role === 'leader' || element.isStatic) continue;
-      
-      // Calculate distance from center or leader
-      const dx = element.position.x - centerX;
-      const dy = element.position.y - centerY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      // Skip if at the center
-      if (distance < 0.001) continue;
-      
-      // Create pointer data for directional field
-      const pointerData = {
-        position: { x: dx / distance, y: dy / distance },
-        distance,
-        normalizedDistance: distance / (this.config.interactionRadius || 200),
-        angle: Math.atan2(dy, dx),
-        elapsedTime: Date.now()
-      };
-      
-      // Calculate directional force
-      const result = calculateDirectionalForce(this.config.groupField, pointerData);
-      
-      // Apply the force
-      const forceMagnitude = result.magnitude * element.strength;
-      const forceX = result.force.x * forceMagnitude;
-      const forceY = result.force.y * forceMagnitude;
-      
-      this.applyForce(element.id, { x: forceX, y: forceY });
+    const fieldConfig = this.config.groupField;
+
+    for (const element of this.elements.values()) {
+        if (element.isStatic || !element.isActive) continue;
+
+        try {
+            let forceToApply: ForceVector = { x: 0, y: 0 };
+
+            // Check if the field behavior is constant, as we lack PointerData
+            if (fieldConfig.behavior === 'constant') {
+                 // For constant behavior, we *might* be able to derive the force directly
+                 // This assumes a 'constant' field applies uniformly based on its type/direction
+                 // NOTE: This is an assumption based on the available info. The exact intended
+                 //       logic for applying a non-pointer groupField might differ.
+
+                 switch (fieldConfig.type) {
+                    case 'unidirectional':
+                        forceToApply = normalizeVector(fieldConfig.direction || { x: 1, y: 0 });
+                        // Assuming constant unidirectional applies max force (magnitude 1)
+                        break;
+                    case 'bidirectional':
+                        // Constant bidirectional without pointer reference is ambiguous.
+                        // Defaulting to zero force. Needs clarification on intended behavior.
+                        forceToApply = { x: 0, y: 0 }; 
+                        break;
+                    // Other types like radial, tangential, vortex inherently depend on a reference point (like pointer)
+                    // Constant behavior for these without PointerData is unclear. Defaulting to zero.
+                    case 'radial':
+                    case 'tangential':
+                    case 'vortex':
+                    case 'flow': // Flow fields also need a position reference
+                    case 'custom':
+                    default:
+                        forceToApply = { x: 0, y: 0 };
+                        break;
+                 }
+                 // Apply configured severity/strength if available (assuming a generic strength property might exist)
+                 const strength = (fieldConfig as any).strength || 1.0; // Check if strength exists
+                 forceToApply = scaleVector(forceToApply, strength);
+
+            } else {
+                 // Cannot calculate non-constant field force without PointerData
+                 // console.warn(`Cannot apply non-constant groupField (${fieldConfig.type}/${fieldConfig.behavior}) without PointerData.`);
+                 // Skipping force application for this element
+                 continue; // Go to the next element
+            }
+
+            // Apply the derived force
+            if (vectorMagnitude(forceToApply) > 0) { // Only apply if force is non-zero
+                if (!this.config.usePhysicsSystem) {
+                    const accelerationX = forceToApply.x / element.mass;
+                    const accelerationY = forceToApply.y / element.mass;
+                    element.velocity.x += accelerationX * deltaTime;
+                    element.velocity.y += accelerationY * deltaTime;
+                } else if (element.physicsObjectId !== null) {
+                    try {
+                        // Ensure ID is a string
+                        this.physicsSystem.applyForce(String(element.physicsObjectId), forceToApply);
+                    } catch(e) {
+                        console.error(`Error applying group field force to physics object ${element.physicsObjectId}:`, e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error(`Error calculating or applying group field to element ${element.id}:`, e);
+        }
     }
   }
   
@@ -915,59 +1056,77 @@ export class MagneticSystemManager {
    * Apply all transforms to elements
    */
   private applyTransforms(): void {
-    for (const element of this.elements.values()) {
-      // Skip if element is static or has no physics object
-      if (!this.config.usePhysicsSystem || !element.physicsObjectId) continue;
-      
-      // Get current physics object state
-      const physicsObject = this.physicsSystem.getObject(element.physicsObjectId);
-      
-      if (!physicsObject) continue;
-      
-      // Get transform from physics state
-      const targetX = physicsObject.position.x - element.position.x;
-      const targetY = physicsObject.position.y - element.position.y;
-      
-      // Calculate transform
-      const transform: MagneticTransform = {
-        x: targetX,
-        y: targetY,
-        rotation: Math.atan2(physicsObject.velocity.y, physicsObject.velocity.x) * (180 / Math.PI),
-        scale: 1,
-        active: Math.abs(targetX) > 0.1 || Math.abs(targetY) > 0.1,
-        force: Math.min(1, Math.sqrt(targetX * targetX + targetY * targetY) / 50)
-      };
-      
-      // Apply scale based on velocity
-      const velocityMagnitude = Math.sqrt(
-        physicsObject.velocity.x * physicsObject.velocity.x + 
-        physicsObject.velocity.y * physicsObject.velocity.y
-      );
-      
-      transform.scale = 1 + Math.min(0.2, velocityMagnitude * 0.02);
-      
-      // Set element transform state
-      element.transform = transform;
-      element.isActive = transform.active;
-      
-      // Apply the transform to the DOM element
-      element.applyTransform(transform);
-    }
+      for (const element of this.elements.values()) {
+          if (!element.isActive && element.transform.x === 0 && element.transform.y === 0 && element.transform.rotation === 0 && element.transform.scale === 1) {
+              // Skip applying transform if element is inactive and already at base state
+              continue; 
+          }
+
+          let targetX = 0;
+          let targetY = 0;
+          let targetRotation = 0;
+          let targetScale = 1;
+          let forceMagnitude = 0;
+
+          // Determine target transform based on velocity, forces, or other logic
+          // This part is highly dependent on the desired magnetic effect.
+          // Example: Simple transform based on velocity (needs smoothing/interpolation)
+          if (Math.abs(element.velocity.x) > 0.1 || Math.abs(element.velocity.y) > 0.1) {
+              targetX = element.velocity.x * 0.1; // Scale velocity effect
+              targetY = element.velocity.y * 0.1;
+              forceMagnitude = Math.sqrt(targetX*targetX + targetY*targetY) / (element.radius * 0.5); // Example force calculation
+              element.isActive = true; // Mark active if moving
+          } else {
+              // If velocity is near zero, target the base state
+              targetX = 0;
+              targetY = 0;
+              element.isActive = false; // Mark inactive if stopped
+          }
+
+          // Interpolate towards target transform (simple lerp example)
+          const lerpFactor = 0.1; // Adjust for desired smoothness
+          element.transform.x += (targetX - element.transform.x) * lerpFactor;
+          element.transform.y += (targetY - element.transform.y) * lerpFactor;
+          element.transform.rotation += (targetRotation - element.transform.rotation) * lerpFactor;
+          element.transform.scale += (targetScale - element.transform.scale) * lerpFactor;
+          element.transform.force = forceMagnitude; // Update force magnitude
+
+          // Check if transform is close enough to zero to be considered inactive
+          if (!element.isActive && 
+              Math.abs(element.transform.x) < 0.01 &&
+              Math.abs(element.transform.y) < 0.01 &&
+              Math.abs(element.transform.rotation) < 0.1 &&
+              Math.abs(element.transform.scale - 1) < 0.01) {
+              // Snap to base state and ensure inactive
+              element.transform.x = 0;
+              element.transform.y = 0;
+              element.transform.rotation = 0;
+              element.transform.scale = 1;
+              element.transform.active = false;
+              element.transform.force = 0;
+          } else {
+              element.transform.active = true; // Mark active if transform is applied
+          }
+
+          // Apply the calculated transform to the DOM element
+          try {
+             element.applyTransform(element.transform);
+          } catch (e) {
+             console.error(`Error in custom applyTransform for element ${element.id}:`, e);
+             // Handle error, maybe remove element or use default transform
+          }
+      }
   }
   
   /**
    * Start the magnetic system
    */
   public start(): void {
-    if (this.isRunning) return;
-    
-    this.isRunning = true;
-    this.lastUpdateTime = 0;
-    this.animationFrameId = requestAnimationFrame(this.update);
-    
-    // Start physics system if using it
-    if (this.config.usePhysicsSystem && !this.physicsSystem.getIsRunning()) {
-      this.physicsSystem.start();
+    if (!this.isRunning && this.elements.size > 0) {
+      this.isRunning = true;
+      this.lastUpdateTime = 0; // Reset last update time on start
+      this.animationFrameId = requestAnimationFrame(this.update);
+      console.log(`MagneticSystem ${this.id} started.`);
     }
   }
   
@@ -975,64 +1134,64 @@ export class MagneticSystemManager {
    * Stop the magnetic system
    */
   public stop(): void {
-    if (!this.isRunning) return;
-    
-    this.isRunning = false;
-    
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
+    if (this.isRunning) {
+      this.isRunning = false;
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+       // Reset elements to base state when stopping
+       /*
+       for (const element of this.elements.values()) {
+            if (element.transform.active) {
+                 element.transform = { x: 0, y: 0, rotation: 0, scale: 1, active: false, force: 0 };
+                 try {
+                     element.applyTransform(element.transform);
+                 } catch(e) { console.error(...); }
+            }
+       }
+       */
+      console.log(`MagneticSystem ${this.id} stopped.`);
     }
-    
-    // Don't stop the physics system as other components might be using it
   }
   
   /**
    * Add an event listener
    */
   public addEventListener(event: string, callback: Function): void {
-    const listeners = this.eventListeners.get(event);
-    
-    if (listeners) {
-      listeners.add(callback);
-    } else {
-      this.eventListeners.set(event, new Set([callback]));
+    if (!this.eventListeners.has(event)) {
+      console.warn(`Event type "${event}" not supported by MagneticSystem.`);
+      return;
     }
+    this.eventListeners.get(event)?.add(callback);
   }
   
   /**
    * Remove an event listener
    */
   public removeEventListener(event: string, callback: Function): void {
-    const listeners = this.eventListeners.get(event);
-    
-    if (listeners) {
-      listeners.delete(callback);
-    }
+    this.eventListeners.get(event)?.delete(callback);
   }
   
   /**
    * Dispatch an event to all listeners
    */
   private dispatchEvent(event: string, data: any): void {
-    const listeners = this.eventListeners.get(event);
-    
-    if (listeners) {
-      listeners.forEach(callback => {
-        try {
+    this.eventListeners.get(event)?.forEach(callback => {
+      try {
           callback(data);
-        } catch (error) {
-          console.error(`Error in magnetic system event listener for ${event}:`, error);
-        }
-      });
-    }
+      } catch (e) {
+          console.error(`Error in event listener for "${event}":`, e);
+      }
+    });
   }
   
   /**
    * Update system configuration
    */
-  public updateConfig(config: Partial<MagneticSystemConfig>): void {
-    this.config = { ...this.config, ...config };
+  public updateConfig(newConfig: Partial<MagneticSystemConfig>): void {
+    this.config = { ...this.config, ...newConfig };
+    // Potentially update physics system settings if needed
   }
   
   /**
@@ -1046,56 +1205,68 @@ export class MagneticSystemManager {
    * Clean up and destroy the system
    */
   public destroy(): void {
-    // Stop the system
     this.stop();
     
-    // Remove mouse move listener
-    document.removeEventListener('mousemove', this.handleMouseMove);
+    // Remove all elements
+    const elementIds = Array.from(this.elements.keys());
+    elementIds.forEach(id => this.unregisterElement(id));
     
-    // Remove collision listener from physics system
-    if (this.config.usePhysicsSystem) {
+    // Remove physics system listener
+    if (this.config.usePhysicsSystem && this.physicsSystem) {
       this.physicsSystem.removeEventListener('collision', this.handlePhysicsCollision);
     }
     
-    // Remove all elements
-    for (const id of Array.from(this.elements.keys())) {
-      this.unregisterElement(id);
-    }
+    // Remove mouse listener
+    document.removeEventListener('mousemove', this.handleMouseMove);
     
     // Clear event listeners
+    this.eventListeners.forEach(listeners => listeners.clear());
     this.eventListeners.clear();
+    
+    // Clear elements map
+    this.elements.clear();
+    
+    console.log(`MagneticSystem ${this.id} destroyed.`);
+    
+    // Remove from global registry if applicable (if using getMagneticSystem)
+    if (magneticSystemRegistry.has(this.id)) {
+        magneticSystemRegistry.delete(this.id);
+    }
   }
 }
 
+// Global registry for magnetic systems (optional, allows retrieval by ID)
+const magneticSystemRegistry: Map<string, MagneticSystemManager> = new Map();
+
 /**
- * Create a magnetic system with the specified configuration
- * @param config System configuration
- * @returns A new magnetic system manager
+ * Creates a new magnetic system instance
  */
 export function createMagneticSystem(config: MagneticSystemConfig = {}): MagneticSystemManager {
-  return new MagneticSystemManager(config);
+  const system = new MagneticSystemManager(config);
+  if (system.getConfig().id) { // Use the ID from config if provided
+      magneticSystemRegistry.set(system.getConfig().id!, system);
+  }
+  return system;
 }
 
 /**
- * Global registry of magnetic systems for cross-component access
- */
-const magneticSystems: Map<string, MagneticSystemManager> = new Map();
-
-/**
- * Get or create a magnetic system with the specified ID
- * @param id System ID
- * @param config System configuration (only used if system doesn't exist)
- * @returns The magnetic system manager
+ * Retrieves or creates a magnetic system instance by ID
  */
 export function getMagneticSystem(id: string, config: MagneticSystemConfig = {}): MagneticSystemManager {
-  let system = magneticSystems.get(id);
-  
-  if (!system) {
-    system = new MagneticSystemManager({ id, ...config });
-    magneticSystems.set(id, system);
+  if (magneticSystemRegistry.has(id)) {
+    const system = magneticSystemRegistry.get(id)!;
+    // Optionally update config if provided
+    if (Object.keys(config).length > 0) {
+        system.updateConfig(config);
+    }
+    return system;
+  } else {
+    // Ensure the provided config includes the ID
+    const systemConfig = { ...config, id };
+    const newSystem = new MagneticSystemManager(systemConfig);
+    magneticSystemRegistry.set(id, newSystem);
+    return newSystem;
   }
-  
-  return system;
 }
 
 export default MagneticSystemManager;

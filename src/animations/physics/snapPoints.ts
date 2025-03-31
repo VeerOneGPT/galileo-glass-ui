@@ -350,7 +350,7 @@ export function composeSnapForces(forces: Vector2D[]): Vector2D {
 export function calculateSnapPosition(
   position: Vector2D,
   force: Vector2D,
-  strength: number = 1.0
+  strength = 1.0
 ): Vector2D {
   return {
     x: position.x + force.x * strength,

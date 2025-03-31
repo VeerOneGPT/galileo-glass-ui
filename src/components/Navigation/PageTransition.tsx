@@ -247,7 +247,7 @@ const getTargetProps = (mode: PageTransitionProps['mode'], direction: PageTransi
   const enterOpacity = 1;
   
   // Numeric properties for spring
-  let target = {
+  const target = {
     opacity: isEnter ? enterOpacity : exitOpacity,
     translateX: 0,
     translateY: 0,

@@ -78,6 +78,19 @@ export {
   type FallbackOptions
 } from './useFallbackStrategies';
 
+// Re-export the new Physics Engine hook and types (v1.0.8)
+export {
+  useGalileoPhysicsEngine
+} from '../animations/physics/useGalileoPhysicsEngine';
+export type {
+  PhysicsBodyOptions,
+  PhysicsBodyState,
+  CollisionEvent,
+  Vector2D,
+  UnsubscribeFunction,
+  GalileoPhysicsEngineAPI
+} from '../animations/physics/engineTypes';
+
 // Re-export the animation orchestration hooks
 export { useSequence, type UseSequenceParams, type UseSequenceResult } from '../animations/orchestration/useSequence';
 export { useAnimationStateMachine, type UseAnimationStateMachineParams, type UseAnimationStateMachineResult } from '../animations/orchestration/useAnimationStateMachine';

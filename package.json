@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
   "repository": {
@@ -73,6 +73,11 @@
       "import": "./dist/hooks.esm.js",
       "require": "./dist/hooks.js",
       "types": "./dist/hooks.d.ts"
+    },
+    "./physics": {
+      "import": "./dist/animations/physics/index.esm.js",
+      "require": "./dist/animations/physics/index.js",
+      "types": "./dist/animations/physics/index.d.ts"
     }
   },
   "sideEffects": false,

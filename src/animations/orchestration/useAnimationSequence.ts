@@ -654,7 +654,7 @@ function resolveDependencies(stages: AnimationStage[]): DependencyResolution {
   Object.entries(graph).forEach(([id, deps]) => {
     deps.forEach(dep => {
       if (!allIds.has(dep)) {
-        console.warn(`Animation stage ${id} depends on non-existent stage ${dep}`);
+        // Removed console.warn about non-existent stage dependency
       }
     });
   });
@@ -872,7 +872,7 @@ function createStaggerDelays(
   staggerDelay: number,
   pattern: StaggerPattern = StaggerPattern.SEQUENTIAL,
   patternFn?: (index: number, total: number, target: HTMLElement) => number,
-  overlap: number = 0
+  overlap = 0
 ): number[] {
   const count = targets.length;
   const delays: number[] = [];
@@ -1150,31 +1150,35 @@ type EasingDefinition = keyof typeof Easings | InterpolationFunction | Function 
  * @returns The raw entry (EasingFunction object, InterpolationFunction, factory Function, or config object)
  */
 function getEasingEntry(
-  easing: any // Remove specific EasingDefinition type hint, let TS infer
+  easing: EasingDefinition | undefined // Use the specific type definition instead of any
 ): EasingFunction | InterpolationFunction | Function | object | undefined { // Keep comprehensive return type
+  // Return undefined if easing input is falsy (null, undefined, etc.)
   if (!easing) {
     return undefined;
   }
 
-  // Case 1: Easing is already a function
-  if (typeof easing === 'function') {
-    return easing; // Return the function directly
-  }
-
-  // Case 2: Easing is a key into the Easings object
+  // Check if easing is a string key for standard Easings
   if (typeof easing === 'string' && easing in Easings) {
-    const easingEntry = Easings[easing];
-    // Return the raw entry (could be EasingFunction object, factory Function, etc.)
-    return easingEntry;
+    // @ts-ignore - This might be necessary if Easings structure is complex or index signature is missing
+    return Easings[easing];
   }
 
-  // Case 3: Easing is an object config (e.g., { type: 'spring', mass: ... })
-  if (typeof easing === 'object') {
-    return easing; // Return the config object directly
+  // Check if easing is a function (custom easing or interpolator)
+  if (typeof easing === 'function') {
+    // Type assertion might be needed depending on EasingFunction/InterpolationFunction definitions
+    return easing as EasingFunction | InterpolationFunction;
   }
 
-  // Fallback if definition was invalid
-  console.warn(`Easing definition '${JSON.stringify(easing)}' not found or invalid.`);
+  // Check if easing is a custom easing object configuration
+  if (typeof easing === 'object' && easing !== null && 'type' in easing) {
+    // TODO: Implement lookup or handling for custom easing objects if required
+    // For now, returning the object itself or undefined based on specific logic needed
+    console.warn('Custom easing object handling not fully implemented in getEasingEntry:', easing);
+    return undefined; // Placeholder: Adjust based on requirements
+  }
+
+  // Warn if the easing definition is unrecognized
+  console.warn(`Invalid or unsupported easing definition provided:`, easing);
   return undefined;
 }
 

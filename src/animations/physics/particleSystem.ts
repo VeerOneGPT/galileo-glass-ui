@@ -3,9 +3,31 @@
  *
  * Physics-based particle animation system for sophisticated effects
  */
-import { css } from 'styled-components';
+// import { css } from 'styled-components'; // Removed unused import
 
 import { cssWithKebabProps } from '../../core/cssUtils';
+
+// Constants for magic numbers
+const DEFAULT_PARTICLE_DURATION = 1000;
+const DEFAULT_PARTICLE_SIZE = 5;
+const DEFAULT_COLORS = ['#ffffff', '#f0f0f0', '#e0e0e0'];
+const DEFAULT_SPREAD = 100;
+const DEFAULT_GRAVITY = 0.3;
+const DEFAULT_FADEOUT = true;
+const DEFAULT_TURBULENCE = 0.2;
+const SIZE_RANDOM_FACTOR_MIN = 0.5;
+const SIZE_RANDOM_FACTOR_MAX = 1.5;
+const SPREAD_RANDOM_FACTOR_MIN = 0.3;
+const SPREAD_RANDOM_FACTOR_MAX = 1.0;
+const VELOCITY_RANDOM_FACTOR_MIN = 0.5;
+const VELOCITY_RANDOM_FACTOR_MAX = 1.5;
+const STAGGER_DELAY_MAX_MS = 200;
+const DURATION_RANDOM_RANGE_MS = 100; // +/- range
+const DUST_DURATION_RANDOM_RANGE_MS = 200;
+const SPARKLE_DURATION_FACTOR = 0.7;
+const BUBBLE_DURATION_RANDOM_RANGE_MS = 100; // Example, adjust as needed
+const SMOKE_DURATION_RANDOM_MIN_MS = 500;
+const SMOKE_DURATION_RANDOM_MAX_MS = 1000;
 
 /**
  * Particle system options
@@ -108,31 +130,31 @@ const generateParticleAnimation = (
   options: ParticleSystemOptions
 ): string => {
   const {
-    duration = 1000,
-    size = 5,
-    colors = ['#ffffff', '#f0f0f0', '#e0e0e0'],
-    spread = 100,
-    gravity = 0.3,
-    fadeOut = true,
-    turbulence = 0.2,
+    duration = DEFAULT_PARTICLE_DURATION,
+    size = DEFAULT_PARTICLE_SIZE,
+    colors = DEFAULT_COLORS,
+    spread = DEFAULT_SPREAD,
+    gravity = DEFAULT_GRAVITY,
+    fadeOut = DEFAULT_FADEOUT,
+    turbulence = DEFAULT_TURBULENCE,
   } = options;
 
   // Calculate particle size
-  const particleSize = Array.isArray(size) ? random(size[0], size[1]) : size * random(0.5, 1.5);
+  const particleSize = Array.isArray(size) ? random(size[0], size[1]) : size * random(SIZE_RANDOM_FACTOR_MIN, SIZE_RANDOM_FACTOR_MAX);
 
   // Select random color from the array
   const color = colors[Math.floor(Math.random() * colors.length)];
 
   // Calculate random delay for staggered animation
-  const staggerDelay = Math.random() * 200;
+  const staggerDelay = Math.random() * STAGGER_DELAY_MAX_MS;
 
   // Calculate random position and movement
   const startX = 0;
   const startY = 0;
   const angle = random(0, Math.PI * 2);
-  const velocity = random(0.5, 1.5);
-  const endX = Math.cos(angle) * spread * random(0.3, 1);
-  const endY = Math.sin(angle) * spread * random(0.3, 1) + gravity * spread;
+  const velocity = random(VELOCITY_RANDOM_FACTOR_MIN, VELOCITY_RANDOM_FACTOR_MAX);
+  const endX = Math.cos(angle) * spread * random(SPREAD_RANDOM_FACTOR_MIN, SPREAD_RANDOM_FACTOR_MAX);
+  const endY = Math.sin(angle) * spread * random(SPREAD_RANDOM_FACTOR_MIN, SPREAD_RANDOM_FACTOR_MAX) + gravity * spread;
 
   // Add turbulence as midpoint displacement
   const midX1 = startX + endX * 0.33 + random(-spread * turbulence, spread * turbulence);
@@ -173,15 +195,15 @@ const generateParticleAnimation = (
       particleStyles = `
         position: absolute;
         width: ${particleSize}px;
-        height: ${particleSize * random(0.8, 3)}px;
+        height: ${particleSize * random(0.8, 3.0)}px;
         background-color: ${color};
         border-radius: ${Math.random() > 0.5 ? '0' : '50%'};
         top: 50%;
         left: 50%;
         pointer-events: none;
         animation: ${animationName} ${
-        duration + random(-100, 100)
-      }ms cubic-bezier(0.215, 0.61, 0.355, 1) ${staggerDelay}ms forwards;
+        duration + random(-DURATION_RANDOM_RANGE_MS, DURATION_RANDOM_RANGE_MS)
+      }ms cubic-bezier(0.215, 0.61, 0.355, 1.0) ${staggerDelay}ms forwards;
       `;
       break;
 
@@ -218,7 +240,7 @@ const generateParticleAnimation = (
         pointer-events: none;
         filter: blur(${particleSize * 0.5}px);
         animation: ${animationName} ${
-        duration + random(-200, 200)
+        duration + random(-DUST_DURATION_RANDOM_RANGE_MS, DUST_DURATION_RANDOM_RANGE_MS)
       }ms ease-out ${staggerDelay}ms forwards;
       `;
       break;
@@ -268,7 +290,7 @@ const generateParticleAnimation = (
         pointer-events: none;
         animation: ${animationName} ${Math.max(
         300,
-        duration * 0.7 + random(-100, 100)
+        duration * SPARKLE_DURATION_FACTOR + random(-DURATION_RANDOM_RANGE_MS, DURATION_RANDOM_RANGE_MS)
       )}ms ease-out ${staggerDelay}ms forwards;
       `;
       break;
@@ -316,7 +338,7 @@ const generateParticleAnimation = (
         left: 50%;
         pointer-events: none;
         animation: ${animationName} ${
-        duration + random(-100, 300)
+        duration + random(-BUBBLE_DURATION_RANDOM_RANGE_MS, BUBBLE_DURATION_RANDOM_RANGE_MS * 3)
       }ms cubic-bezier(0.175, 0.885, 0.32, 1.275) ${staggerDelay}ms forwards;
       `;
       break;
@@ -366,7 +388,7 @@ const generateParticleAnimation = (
         pointer-events: none;
         mix-blend-mode: screen;
         animation: ${animationName} ${
-        duration + random(500, 1000)
+        duration + random(SMOKE_DURATION_RANDOM_MIN_MS, SMOKE_DURATION_RANDOM_MAX_MS)
       }ms ease-out ${staggerDelay}ms forwards;
       `;
       break;

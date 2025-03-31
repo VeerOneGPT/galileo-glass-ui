@@ -165,8 +165,8 @@ export function useParallax<T extends HTMLElement = HTMLElement>(
       lastPositionRef.current = { x: currentX, y: currentY };
 
       // Calculate target parallax translation based on current state + delta
-      let currentTranslateX = (trigger === ParallaxTrigger.POINTER) ? currentSmoothPositionRef.current.x : translate.x;
-      let currentTranslateY = (trigger === ParallaxTrigger.POINTER) ? currentSmoothPositionRef.current.y : translate.y;
+      const currentTranslateX = (trigger === ParallaxTrigger.POINTER) ? currentSmoothPositionRef.current.x : translate.x;
+      const currentTranslateY = (trigger === ParallaxTrigger.POINTER) ? currentSmoothPositionRef.current.y : translate.y;
 
       let targetTranslateX = currentTranslateX + (axis === ParallaxAxis.X || axis === ParallaxAxis.BOTH ? deltaX * factor : 0);
       let targetTranslateY = currentTranslateY + (axis === ParallaxAxis.Y || axis === ParallaxAxis.BOTH ? deltaY * factor : 0);

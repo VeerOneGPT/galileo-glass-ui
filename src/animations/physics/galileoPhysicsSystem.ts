@@ -119,11 +119,11 @@ export class GalileoPhysicsSystem {
   private objects: Map<string, PhysicsObject> = new Map();
   private config: PhysicsConfig;
   private eventListeners: Map<PhysicsEventType, Set<PhysicsEventListener>> = new Map();
-  private accumulator: number = 0;
+  private accumulator = 0;
   private lastTime: number | null = null;
-  private isRunning: boolean = false;
+  private isRunning = false;
   private rafId: number | null = null;
-  private nextObjectId: number = 1;
+  private nextObjectId = 1;
 
   /**
    * Get the current running state of the physics system

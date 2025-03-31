@@ -386,6 +386,13 @@ const dtsConfigs = [
     plugins: [createDtsPlugin(), patchDeclarationFiles],
     external: dtsExternal
   },
+  // Physics engine types
+  {
+    input: 'dist/dts/animations/physics/index.d.ts',
+    output: [{ file: 'dist/animations/physics/index.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    external: dtsExternal
+  },
   {
     input: 'dist/dts/mixins.d.ts',
     output: [{ file: 'dist/mixins.d.ts', format: 'es' }],
@@ -487,7 +494,23 @@ if (mainConfigs.length > 0) {
 }
 
 // Final export (combine modified mainConfigs and dtsConfigs)
-export default [
+const configs = [
+  // Main bundle
+  createConfig('src/index.ts', {
+    cjs: packageJson.main,
+    esm: packageJson.module,
+    dts: 'dist/index.d.ts'
+  }),
+  
+  // Physics engine bundle
+  createConfig('src/animations/physics/index.ts', {
+    cjs: 'dist/animations/physics/index.js',
+    esm: 'dist/animations/physics/index.esm.js',
+    dts: 'dist/animations/physics/index.d.ts'
+  }),
+
   ...mainConfigs,
   ...dtsConfigs
 ];
+
+export default configs;

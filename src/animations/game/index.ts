@@ -5,7 +5,6 @@
  * and state-based animation systems.
  */
 
-export * from './useGameAnimation';
 export { default as useGameAnimation } from './useGameAnimation';
 
 // Export the game physics hook from the physics directory

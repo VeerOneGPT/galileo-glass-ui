@@ -10,6 +10,7 @@ import { SpringConfig, SpringPresets } from '../../animations/physics/springPhys
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { MotionSensitivityLevel } from '../../animations/core/types';
 import { useAnimationContext } from '../../contexts/AnimationContext';
+import { FlexibleElementRef } from '../../utils/elementTypes';
 
 // Define valid preset names as a type
 type SpringPresetName = keyof typeof SpringPresets;

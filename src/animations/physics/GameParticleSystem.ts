@@ -5,9 +5,8 @@
  * Provides dynamic particle effects for feedback and emphasis on user interactions.
  */
 
-import { Vector, VectorUtils } from './galileoPhysicsSystem';
+import { Vector } from './galileoPhysicsSystem';
 import { AnimationCategory } from '../accessibility/MotionSensitivity';
-import { ParticleSystemOptions } from './particleSystem';
 
 /**
  * Game event types for particle effects
@@ -322,13 +321,13 @@ export class ParticleEmitter {
   duration: number;
   
   /** Time the emitter has been active */
-  activeTime: number = 0;
+  activeTime = 0;
   
   /** Time since last emission */
-  timeSinceLastEmission: number = 0;
+  timeSinceLastEmission = 0;
   
   /** Particles emitted so far */
-  particlesEmitted: number = 0;
+  particlesEmitted = 0;
   
   /** DOM element for positioning */
   element: HTMLElement | null = null;
@@ -450,7 +449,7 @@ export class ParticleEmitter {
     }
     
     // Check if we should emit new particles
-    let newParticles: Particle[] = [];
+    const newParticles: Particle[] = [];
     
     // Burst emission (one-time)
     if (this.burstCount > 0 && this.particlesEmitted === 0) {
@@ -1048,10 +1047,10 @@ export class GameParticleSystem {
   particles: Particle[] = [];
   
   /** Is the system active */
-  isActive: boolean = false;
+  isActive = false;
   
   /** Is the system paused */
-  isPaused: boolean = false;
+  isPaused = false;
   
   /** DOM container for particles */
   container: HTMLElement | null = null;
@@ -1811,7 +1810,7 @@ export class GameParticleSystem {
     let rot = Math.PI / 2 * 3;
     let x = cx;
     let y = cy;
-    let step = Math.PI / spikes;
+    const step = Math.PI / spikes;
 
     ctx.beginPath();
     ctx.moveTo(cx, cy - outerRadius);

@@ -726,7 +726,7 @@ export function useGesturePhysics(options: GesturePhysicsOptions) {
     const resistance = config.resistance || 0;
     
     // Calculate resistance factor (0-1, where 1 is no resistance)
-    let resistanceFactor = 1 - resistance;
+    const resistanceFactor = 1 - resistance;
     
     // Apply scale with resistance
     let newScale = initialTransform.scale * Math.pow(event.scale, multiplier * resistanceFactor);
@@ -814,8 +814,8 @@ export function useGesturePhysics(options: GesturePhysicsOptions) {
     if (!config.snapPoints || config.snapPoints.length === 0) return;
     
     const snapThreshold = config.snapThreshold || 20;
-    let property: keyof GestureTransform = 'x';
-    let physicsController = physicsControllers.current.x;
+    const property: keyof GestureTransform = 'x';
+    const physicsController = physicsControllers.current.x;
     
     // Determine which property to snap based on gesture type
     if (type === GestureType.PAN) {

@@ -27,7 +27,7 @@ global.performance = {
 // Mock HTMLElement and DOM methods
 class MockElement {
   style: Record<string, any> = {};
-  className: string = '';
+  className = '';
   children: MockElement[] = [];
   
   appendChild = jest.fn((child: MockElement) => {
@@ -53,7 +53,7 @@ global.document = {
 
 // Mock Image
 class MockImage {
-  src: string = '';
+  src = '';
   onload: (() => void) | null = null;
   onerror: (() => void) | null = null;
   

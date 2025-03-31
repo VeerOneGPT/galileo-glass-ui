@@ -799,54 +799,33 @@ const generateChainKeyframes = (
 export const advancedPhysicsAnimation = (
   options: AdvancedPhysicsOptions
 ): ReturnType<typeof css> => {
-  // Apply motion sensitivity
-  const sensitivityConfig = getMotionSensitivity(options.sensitivity);
-
-  // Check if animation complexity is allowed
+  // Get motion sensitivity configuration
+  const motionSensitivity = getMotionSensitivity(options.sensitivity || MotionSensitivityLevel.NONE);
+  
+  // Check if animation complexity exceeds user's preference
   if (
-    !sensitivityConfig.maxAllowedComplexity ||
+    motionSensitivity.maxAllowedComplexity &&
     (Object.values(AnimationComplexity).indexOf(options.complexity || AnimationComplexity.STANDARD) >
-      Object.values(AnimationComplexity).indexOf(sensitivityConfig.maxAllowedComplexity))
+    Object.values(AnimationComplexity).indexOf(motionSensitivity.maxAllowedComplexity))
   ) {
     // Return empty animation for reduced motion
-    return css``;
-  }
-
-  // For minimal motion, use simpler animations
-  if (sensitivityConfig.maxAllowedComplexity === AnimationComplexity.MINIMAL) {
     return css`
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      animation: none;
+      transition: none;
+      transform: none;
     `;
   }
 
-  // For basic motion, use standard spring instead of advanced physics
-  if (sensitivityConfig.maxAllowedComplexity === AnimationComplexity.BASIC) {
-    return springAnimation({
-      mass: options.spring?.mass || 1,
-      stiffness: options.spring?.stiffness || 100,
-      dampingRatio: options.spring?.dampingRatio || 0.8,
-      duration: options.duration || 300,
-    });
-  }
+  // Generate keyframes based on physics simulation
+  const { keyframes: animationKeyframes, css: animationCss } = generatePhysicsKeyframes(options);
 
-  // Generate full physics animation for standard+ complexity
-  const { css: animationCSS } = generatePhysicsKeyframes(options);
+  // Apply GPU acceleration if enabled
+  const gpuAcceleration = options.gpuAccelerated ? getOptimizedGPUAcceleration(4) : 'none';
 
-  // Add GPU acceleration if needed
-  if (options.gpuAccelerated) {
-    // Get acceleration properties
-    const gpuProps = getOptimizedGPUAcceleration(4);
-
-    // Convert to CSS string format
-    const gpuCssString = Object.entries(gpuProps)
-      .map(([key, value]) => `${key}: ${value};`)
-      .join('\n');
-
-    return css`
-      ${animationCSS}
-      ${gpuCssString}
-    `;
-  }
-
-  return animationCSS;
+  // Return the final animation CSS
+  return css`
+    ${animationKeyframes}
+    ${animationCss}
+    ${gpuAcceleration ? `transform: ${gpuAcceleration};` : ''}
+  `;
 };

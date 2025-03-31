@@ -397,7 +397,7 @@ export class SpriteAnimationManager {
   private onAnimationCompleteCallback: ((animation: SpriteAnimation) => void) | null = null;
   private onAnimationLoopCallback: ((animation: SpriteAnimation) => void) | null = null;
   
-  private reduceMotion: boolean = false;
+  private reduceMotion = false;
   
   /**
    * Create a new sprite animation manager
@@ -455,7 +455,7 @@ export class SpriteAnimationManager {
   /**
    * Start playing an animation
    */
-  public play(animationId: string, resetPosition: boolean = true): boolean {
+  public play(animationId: string, resetPosition = true): boolean {
     const animation = this.animations.get(animationId);
     if (!animation || animation.frames.length === 0) {
       console.warn(`Animation not found or has no frames: ${animationId}`);
@@ -794,7 +794,7 @@ export class SpriteAnimationManager {
     const frame = animation.frames[this.state.currentFrameIndex];
     
     // Determine which element to use for this frame
-    let frameElement = this.getOrCreateFrameElement(frame);
+    const frameElement = this.getOrCreateFrameElement(frame);
     
     // Set all other frames to hidden
     this.frameElements.forEach((el, id) => {

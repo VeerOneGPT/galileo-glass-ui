@@ -108,6 +108,9 @@ export interface CollisionBody {
   
   /** Rotation in radians */
   rotation?: number;
+  
+  /** Optional arbitrary data attached by the user */
+  userData?: any;
 }
 
 /**
@@ -295,6 +298,25 @@ export function createPointBody(
 }
 
 /**
+ * Type Guards for Shape Data
+ */
+function isCircleData(data: any): data is CircleData {
+    return typeof data === 'object' && data !== null && typeof data.radius === 'number';
+}
+
+function isRectangleData(data: any): data is RectangleData {
+    return typeof data === 'object' && data !== null && typeof data.width === 'number' && typeof data.height === 'number';
+}
+
+function isPolygonData(data: any): data is PolygonData {
+    return typeof data === 'object' && data !== null && Array.isArray(data.vertices);
+}
+
+function isPointData(data: any): data is PointData {
+    return typeof data === 'object' && data !== null; // tolerance is optional
+}
+
+/**
  * Implements the Separating Axis Theorem (SAT) for polygon collision detection
  */
 
@@ -359,7 +381,7 @@ function projectionsOverlap(projA: { min: number; max: number }, projB: { min: n
 /**
  * Transforms polygon vertices accounting for position and rotation
  */
-function transformPolygonVertices(vertices: Vector2D[], position: Vector2D, rotation: number = 0): Vector2D[] {
+function transformPolygonVertices(vertices: Vector2D[], position: Vector2D, rotation = 0): Vector2D[] {
   const transformedVertices: Vector2D[] = [];
   
   for (const vertex of vertices) {
@@ -387,8 +409,13 @@ function transformPolygonVertices(vertices: Vector2D[], position: Vector2D, rota
  * Detects collision between two polygons using SAT
  */
 function detectPolygonPolygonCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
-  const polygonA = bodyA.shapeData as PolygonData;
-  const polygonB = bodyB.shapeData as PolygonData;
+  // Use type guards
+  if (!isPolygonData(bodyA.shapeData) || !isPolygonData(bodyB.shapeData)) {
+     console.error('Invalid shape data for Polygon-Polygon collision');
+     return { collision: false, bodyA, bodyB };
+  }
+  const polygonA = bodyA.shapeData;
+  const polygonB = bodyB.shapeData;
   
   // Transform vertices to account for position and rotation
   const verticesA = transformPolygonVertices(
@@ -523,7 +550,12 @@ function detectPolygonPolygonCollision(bodyA: CollisionBody, bodyB: CollisionBod
  * Converts a rectangle to a polygon for collision detection
  */
 function rectangleToPolygon(body: CollisionBody): CollisionBody {
-  const rect = body.shapeData as RectangleData;
+  if (!isRectangleData(body.shapeData)) {
+    console.error('Invalid shape data for rectangleToPolygon');
+    // Return original body or throw error?
+    return body; // Returning original for now
+  }
+  const rect = body.shapeData;
   const halfWidth = rect.width / 2;
   const halfHeight = rect.height / 2;
   
@@ -599,12 +631,18 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
     };
   }
   
+  const shapeA = bodyA.shape;
+  const shapeB = bodyB.shape;
+  const rotationA = bodyA.rotation ?? 0;
+  const rotationB = bodyB.rotation ?? 0;
+
   // Dispatch to appropriate collision detection function based on shape types
-  if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.CIRCLE) {
+  if (shapeA === CollisionShape.CIRCLE && shapeB === CollisionShape.CIRCLE) {
     return detectCircleCircleCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.RECTANGLE) {
+
+  } else if (shapeA === CollisionShape.RECTANGLE && shapeB === CollisionShape.RECTANGLE) {
     // For rotated rectangles, convert to polygons and use SAT
-    if ((bodyA.rotation && bodyA.rotation !== 0) || (bodyB.rotation && bodyB.rotation !== 0)) {
+    if (rotationA !== 0 || rotationB !== 0) {
       const polyA = rectangleToPolygon(bodyA);
       const polyB = rectangleToPolygon(bodyB);
       return detectPolygonPolygonCollision(polyA, polyB);
@@ -612,85 +650,114 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
       // For non-rotated rectangles, use faster AABB check
       return detectRectangleRectangleCollision(bodyA, bodyB);
     }
-  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.POLYGON) {
+
+  } else if (shapeA === CollisionShape.POLYGON && shapeB === CollisionShape.POLYGON) {
     return detectPolygonPolygonCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.POLYGON) {
-    const polyA = rectangleToPolygon(bodyA);
+
+  } else if (shapeA === CollisionShape.RECTANGLE && shapeB === CollisionShape.POLYGON) {
+    const polyA = rectangleToPolygon(bodyA); // Convert rect A to polygon
     return detectPolygonPolygonCollision(polyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.RECTANGLE) {
-    const polyB = rectangleToPolygon(bodyB);
+
+  } else if (shapeA === CollisionShape.POLYGON && shapeB === CollisionShape.RECTANGLE) {
+    const polyB = rectangleToPolygon(bodyB); // Convert rect B to polygon
     return detectPolygonPolygonCollision(bodyA, polyB);
-  } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.POLYGON) {
+
+  } else if (shapeA === CollisionShape.CIRCLE && shapeB === CollisionShape.POLYGON) {
     return detectCirclePolygonCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.CIRCLE) {
+
+  } else if (shapeA === CollisionShape.POLYGON && shapeB === CollisionShape.CIRCLE) {
     // Swap the order and flip the normal
-    const result = detectCirclePolygonCollision(bodyB, bodyA);
-    if (result.collision && result.normal) {
-      result.normal = { x: -result.normal.x, y: -result.normal.y };
-      result.bodyA = bodyA;
-      result.bodyB = bodyB;
+    const result = detectCirclePolygonCollision(bodyB, bodyA); // Note: bodyB is circle, bodyA is polygon
+    if (result.collision) {
+        // Ensure the result reflects the original body order
+        result.bodyA = bodyA; // Polygon
+        result.bodyB = bodyB; // Circle
+        if (result.normal) {
+             result.normal = { x: -result.normal.x, y: -result.normal.y }; // Flip normal
+        }
     }
     return result;
-  } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.RECTANGLE) {
+
+  } else if (shapeA === CollisionShape.CIRCLE && shapeB === CollisionShape.RECTANGLE) {
     // For rotated rectangles, convert to polygon and use circle-polygon collision
-    if (bodyB.rotation && bodyB.rotation !== 0) {
+    if (rotationB !== 0) {
       const polyB = rectangleToPolygon(bodyB);
       return detectCirclePolygonCollision(bodyA, polyB);
     } else {
+      // Non-rotated rectangle
       return detectCircleRectangleCollision(bodyA, bodyB);
     }
-  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.CIRCLE) {
+
+  } else if (shapeA === CollisionShape.RECTANGLE && shapeB === CollisionShape.CIRCLE) {
     // For rotated rectangles, convert to polygon and use circle-polygon collision
-    if (bodyA.rotation && bodyA.rotation !== 0) {
+    if (rotationA !== 0) {
       const polyA = rectangleToPolygon(bodyA);
-      const result = detectCirclePolygonCollision(bodyB, polyA);
-      if (result.collision && result.normal) {
-        result.normal = { x: -result.normal.x, y: -result.normal.y };
-        result.bodyA = bodyA;
-        result.bodyB = bodyB;
+      // Use detectCirclePolygonCollision with Circle (bodyB) first
+      const result = detectCirclePolygonCollision(bodyB, polyA); 
+      if (result.collision) {
+          // Ensure the result reflects the original body order
+          result.bodyA = bodyA; // Rectangle (as Polygon)
+          result.bodyB = bodyB; // Circle
+          if (result.normal) {
+              result.normal = { x: -result.normal.x, y: -result.normal.y }; // Flip normal
+          }
       }
       return result;
     } else {
-      // Swap the order and flip the normal
-      const result = detectCircleRectangleCollision(bodyB, bodyA);
-      if (result.collision && result.normal) {
-        result.normal = { x: -result.normal.x, y: -result.normal.y };
-        result.bodyA = bodyA;
-        result.bodyB = bodyB;
+      // Non-rotated rectangle
+      // Swap the order for detectCircleRectangleCollision and flip the normal
+      const result = detectCircleRectangleCollision(bodyB, bodyA); // Note: bodyB is circle, bodyA is rectangle
+      if (result.collision) {
+          // Ensure the result reflects the original body order
+          result.bodyA = bodyA; // Rectangle
+          result.bodyB = bodyB; // Circle
+          if (result.normal) {
+              result.normal = { x: -result.normal.x, y: -result.normal.y }; // Flip normal
+          }
       }
       return result;
     }
-  } else if (bodyA.shape === CollisionShape.POINT && bodyB.shape === CollisionShape.CIRCLE) {
+
+  } else if (shapeA === CollisionShape.POINT && shapeB === CollisionShape.CIRCLE) {
     return detectPointCircleCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.CIRCLE && bodyB.shape === CollisionShape.POINT) {
+
+  } else if (shapeA === CollisionShape.CIRCLE && shapeB === CollisionShape.POINT) {
     // Swap the order and flip the normal
-    const result = detectPointCircleCollision(bodyB, bodyA);
-    if (result.collision && result.normal) {
-      result.normal = { x: -result.normal.x, y: -result.normal.y };
-      result.bodyA = bodyA;
-      result.bodyB = bodyB;
+    const result = detectPointCircleCollision(bodyB, bodyA); // Note: bodyB is point, bodyA is circle
+    if (result.collision) {
+        result.bodyA = bodyA; // Circle
+        result.bodyB = bodyB; // Point
+        if (result.normal) {
+             result.normal = { x: -result.normal.x, y: -result.normal.y }; // Flip normal
+        }
     }
     return result;
-  } else if (bodyA.shape === CollisionShape.POINT && bodyB.shape === CollisionShape.RECTANGLE) {
+
+  } else if (shapeA === CollisionShape.POINT && shapeB === CollisionShape.RECTANGLE) {
     return detectPointRectangleCollision(bodyA, bodyB);
-  } else if (bodyA.shape === CollisionShape.RECTANGLE && bodyB.shape === CollisionShape.POINT) {
+
+  } else if (shapeA === CollisionShape.RECTANGLE && shapeB === CollisionShape.POINT) {
     // Swap the order and flip the normal
-    const result = detectPointRectangleCollision(bodyB, bodyA);
-    if (result.collision && result.normal) {
-      result.normal = { x: -result.normal.x, y: -result.normal.y };
-      result.bodyA = bodyA;
-      result.bodyB = bodyB;
+    const result = detectPointRectangleCollision(bodyB, bodyA); // Note: bodyB is point, bodyA is rectangle
+    if (result.collision) {
+        result.bodyA = bodyA; // Rectangle
+        result.bodyB = bodyB; // Point
+        if (result.normal) {
+            result.normal = { x: -result.normal.x, y: -result.normal.y }; // Flip normal
+        }
     }
     return result;
-  } else if (bodyA.shape === CollisionShape.POINT && bodyB.shape === CollisionShape.POLYGON) {
-    // Implementation will be added in future updates
+
+  } else if (shapeA === CollisionShape.POINT && shapeB === CollisionShape.POLYGON) {
+    // Implementation to be added
     return {
       collision: false,
       bodyA,
       bodyB
     };
-  } else if (bodyA.shape === CollisionShape.POLYGON && bodyB.shape === CollisionShape.POINT) {
-    // Implementation will be added in future updates
+
+  } else if (shapeA === CollisionShape.POLYGON && shapeB === CollisionShape.POINT) {
+    // Implementation to be added
     return {
       collision: false,
       bodyA,
@@ -698,7 +765,7 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
     };
   }
   
-  // Default: no collision
+  // Default: no collision for unhandled pairs
   return {
     collision: false,
     bodyA,
@@ -710,24 +777,29 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
  * Detects collision between two circles
  */
 function detectCircleCircleCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
+  // Ensure shapeData exists and is of the correct type
+  if (bodyA.shape !== CollisionShape.CIRCLE || bodyB.shape !== CollisionShape.CIRCLE || 
+      !bodyA.shapeData || !bodyB.shapeData) {
+    console.error('Invalid shape data for circle-circle collision');
+    return { collision: false, bodyA, bodyB };
+  }
+
   const circleA = bodyA.shapeData as CircleData;
   const circleB = bodyB.shapeData as CircleData;
   
-  const distance = vectorDistance(bodyA.position, bodyB.position);
+  const distanceVector = subtractVectors(bodyB.position, bodyA.position);
+  const distance = vectorMagnitude(distanceVector); // Use magnitude for distance
   const minDistance = circleA.radius + circleB.radius;
   
-  if (distance < minDistance) {
+  if (distance < minDistance && distance > 1e-6) { // Add small tolerance to avoid division by zero
     // Calculate collision normal (direction from A to B)
-    const normal = normalizeVector(subtractVectors(bodyB.position, bodyA.position));
+    const normal = normalizeVector(distanceVector); // Already calculated distanceVector
     
     // Calculate penetration depth
     const penetration = minDistance - distance;
     
-    // Calculate contact point
-    const contactPoint = {
-      x: bodyA.position.x + normal.x * circleA.radius,
-      y: bodyA.position.y + normal.y * circleA.radius
-    };
+    // Calculate contact point (on the surface of bodyA towards bodyB)
+    const contactPoint = addVectors(bodyA.position, multiplyVector(normal, circleA.radius));
     
     // Calculate relative velocity
     const relativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
@@ -741,6 +813,18 @@ function detectCircleCircleCollision(bodyA: CollisionBody, bodyB: CollisionBody)
       penetration,
       relativeVelocity
     };
+  } else if (distance <= 1e-6 && minDistance > 0) {
+      // Handle exact overlap or very close centers
+      // Assume penetration is full radii sum, choose arbitrary normal (e.g., x-axis)
+      return {
+          collision: true,
+          bodyA,
+          bodyB,
+          normal: { x: 1, y: 0 }, // Arbitrary normal
+          contactPoint: bodyA.position, // Contact at center
+          penetration: minDistance,
+          relativeVelocity: subtractVectors(bodyB.velocity, bodyA.velocity)
+      };
   }
   
   return {
@@ -1278,7 +1362,7 @@ export class SpatialGrid {
    * Creates a new spatial grid
    * @param cellSize Size of each grid cell (larger = fewer cells but more objects per cell)
    */
-  constructor(cellSize: number = 50) {
+  constructor(cellSize = 50) {
     this.cellSize = cellSize;
   }
 
@@ -1518,7 +1602,7 @@ export class CollisionSystem {
   private bodies: CollisionBody[] = [];
   private collisionPairs: { bodyA: CollisionBody; bodyB: CollisionBody }[] = [];
   private spatialGrid: SpatialGrid;
-  private useSpatialGrid: boolean = true; // Enable by default for better performance
+  private useSpatialGrid = true; // Enable by default for better performance
   
   // Collision event system
   private eventSubscriptions: CollisionEventSubscription[] = [];
@@ -1529,7 +1613,7 @@ export class CollisionSystem {
    * @param cellSize Size of spatial grid cells for broad-phase collision detection
    * @param useSpatialGrid Whether to use spatial partitioning for broad-phase
    */
-  constructor(cellSize: number = 50, useSpatialGrid: boolean = true) {
+  constructor(cellSize = 50, useSpatialGrid = true) {
     this.spatialGrid = new SpatialGrid(cellSize);
     this.useSpatialGrid = useSpatialGrid;
   }
@@ -1858,7 +1942,7 @@ export class CollisionSystem {
   /**
    * Create a collision filter with the specified properties
    */
-  public createCollisionFilter(category: number, mask: number, group: number = 0): CollisionFilter {
+  public createCollisionFilter(category: number, mask: number, group = 0): CollisionFilter {
     return { category, mask, group };
   }
 }
@@ -1869,7 +1953,7 @@ export class CollisionSystem {
  * @param useSpatialGrid Whether to use spatial partitioning for broad-phase
  * @returns A new collision system instance
  */
-export function createCollisionSystem(cellSize: number = 50, useSpatialGrid: boolean = true): CollisionSystem {
+export function createCollisionSystem(cellSize = 50, useSpatialGrid = true): CollisionSystem {
   return new CollisionSystem(cellSize, useSpatialGrid);
 }
 
@@ -1949,3 +2033,7 @@ export function createBoundaryWalls(
   
   return walls;
 }
+
+// Re-export types that were causing issues
+export { CollisionShape };
+export type { PhysicsMaterial };

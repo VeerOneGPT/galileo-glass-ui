@@ -57,7 +57,7 @@ export function vectorAngle(vector: ForceVector): number {
 /**
  * Create a vector from angle and magnitude
  */
-export function vectorFromAngle(angle: number, magnitude: number = 1): ForceVector {
+export function vectorFromAngle(angle: number, magnitude = 1): ForceVector {
   return {
     x: Math.cos(angle) * magnitude,
     y: Math.sin(angle) * magnitude
@@ -160,7 +160,7 @@ function calculateBidirectionalForce(
   
   // Calculate magnitude based on behavior
   let magnitude = 0;
-  let sign = Math.sign(dotProduct) || 1; // Default to positive if zero
+  const sign = Math.sign(dotProduct) || 1; // Default to positive if zero
   
   switch (config.behavior) {
     case 'distance-based':

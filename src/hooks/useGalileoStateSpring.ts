@@ -235,7 +235,7 @@ export const useGalileoStateSpring = (
   }, [animate, stop, currentValue, immediate]); // Add currentValue, immediate
 
   // Reset function
-  const reset = useCallback((resetValue?: number, resetVelocity: number = 0) => {
+  const reset = useCallback((resetValue?: number, resetVelocity = 0) => {
     const finalResetValue = resetValue ?? targetValue; // Reset to initial targetValue by default
     stop();
     initializeSpring(finalResetValue, resetVelocity);

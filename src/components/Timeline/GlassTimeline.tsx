@@ -1315,7 +1315,7 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
     const content = eventsContainerRef.current;
 
     let minBound = 0;
-    let maxBound = 0; // Max is always 0 (top/left edge)
+    const maxBound = 0; // Max is always 0 (top/left edge)
 
     if (orientation === 'vertical') {
         const contentHeight = content.scrollHeight;

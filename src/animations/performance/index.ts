@@ -5,7 +5,24 @@
  */
 
 // Export GPU acceleration utilities
-export * from './GPUAcceleration';
+export {
+  detectGPUFeatures,
+  getGPUFeatures,
+  type ElementAccelerationState,
+  AnimationComplexity,
+  type GPUAccelerationProperties,
+  type GPUAccelerationOptions,
+  isGPUAccelerationAvailable,
+  analyzeElementComplexity,
+  getGPUAccelerationCSS,
+  getOptimizedGPUAcceleration,
+  GPUAccelerationManager,
+  createGPUOptimizedTransform,
+  optimizeKeyframes,
+  isGPUAcceleratedProperty,
+  createGPUAcceleratedClass,
+  useGPUAcceleration
+} from './GPUAcceleration';
 
 // Export DOM batcher for batching DOM operations
 export { 
@@ -79,7 +96,8 @@ export {
 } from './performanceMonitor';
 
 // Export shared types
-export * from './types';
+// Remove redundant wildcard export, as QualityTier and QualityFeatureFlags are already exported above
+// export * from './types';
 
 // User animation preferences
 export {

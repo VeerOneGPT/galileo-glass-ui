@@ -8,7 +8,7 @@ import { render, screen, act as _act } from '@testing-library/react';
 import React from 'react';
 import { keyframes as _keyframes } from 'styled-components';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
-import { accessibleAnimation , accessibleAnimation as __accessibleAnimation } from '../../accessibility/accessibleAnimation';
+import { accessibleAnimation } from '../../accessibility/accessibleAnimation';
 import { getMotionSensitivity , MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
 import { AnimationPreset } from '../../utils/types';
 import { createAnimationSequence } from '../../orchestration/GestaltPatterns';
@@ -18,7 +18,7 @@ import { ZSpaceProvider } from '../../../core/zspace/ZSpaceContext';
 import { ThemeProvider } from '../../../theme/ThemeProvider';
 import { ZSpaceAnimator } from '../../dimensional/ZSpaceAnimation';
 import { AnimationOrchestrator } from '../../orchestration/Orchestrator';
-import { springAnimation } from '../../physics/springAnimation'; // Used but underscore not needed as it's properly referenced
+import { springAnimation } from '../../physics/springAnimation';
 import { AnimationIntensity } from '../../presets/accessibleAnimations';
 
 // Mock styled-components

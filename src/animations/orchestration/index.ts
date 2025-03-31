@@ -4,37 +4,41 @@
  * System for coordinating complex animations across components.
  */
 
-// Export Gestalt patterns for animation - selective export to avoid ambiguity
-export { 
+// Export Gestalt patterns for animation
+export {
   GestaltPatterns,
   coordinatedAnimations,
-  createStaggeredSequence
+  createStaggeredSequence,
+  createStaggeredAnimation,
+  createAnimationSequence,
+  type StaggeredSequenceOptions,
+  type AnimationSequenceItem
 } from './GestaltPatterns';
-export type { 
-  StaggerOptions, 
-  StaggeredSequenceOptions, 
-  AnimationSequenceItem
-} from './GestaltPatterns';
-// Explicit exports to resolve ambiguity
-export { createStaggeredAnimation } from './GestaltPatterns';
-export { createAnimationSequence } from './GestaltPatterns';
 
-// Export Animation Orchestrator - selective export to avoid ambiguity
+// Export Animation Orchestrator
 export {
   AnimationOrchestrator,
   animationOrchestrator,
   withOrchestration
 } from './Orchestrator';
-export type { 
+export type {
   AnimationTarget,
   AnimationSequence
 } from './Orchestrator';
-// Explicit exports to resolve ambiguity
-export type { AnimationEventListener } from './Orchestrator';
-export type { AnimationEventType } from './Orchestrator';
 
 // Export Declarative Animation Sequencer
-export * from './DeclarativeSequencer';
+export {
+  CommandType,
+  type AnimationCommand,
+  type SequenceContext,
+  type SequenceOptions,
+  type AnimationTargetSelector,
+  type AnimationDeclaration,
+  type StaggerOptions,
+  type GroupOptions,
+  DeclarativeSequencer,
+  SequenceBuilder
+} from './DeclarativeSequencer';
 
 // Export useSequence hook
 export * from './useSequence';
@@ -47,22 +51,36 @@ export * from './useAnimationStateMachine';
 
 // Export Animation Interpolator
 export * from './AnimationInterpolator';
-export { default as AnimationInterpolator } from './AnimationInterpolator';
 
 // Export Animation Synchronizer
 export * from './AnimationSynchronizer';
-export { animationSynchronizer } from './AnimationSynchronizer';
 
 // Export Animation Event System
-export * from './AnimationEventSystem';
-export { animationEventBus, animationEventManager } from './AnimationEventSystem';
+export {
+  AnimationEventType,
+  AnimationInteractionType,
+  type AnimationEvent,
+  type AnimationEventListener,
+  type AnimationEventFilter,
+  type AnimationEventMiddleware,
+  type AnimationEventOptions,
+  type AnimationEventTarget,
+  type AnimationEventSubscription,
+  AnimationEventBus,
+  AnimationEventEmitter,
+  AnimationEventManager
+} from './AnimationEventSystem';
 
-// Export Animation Sequence hook
-export * from './useAnimationSequence';
-export { default as useAnimationSequence } from './useAnimationSequence';
-
-// Export Staggered Animation Utilities - explicit exports to resolve ambiguity
-export { 
-  staggeredAnimator 
+// Export Staggered Animation Utilities
+export {
+  DistributionPattern,
+  StaggerDirection,
+  GroupingStrategy,
+  DistributionEasing,
+  type ElementCategory,
+  type ElementPosition,
+  type StaggerTarget,
+  type StaggeredAnimationConfig,
+  type StaggerResult,
+  StaggeredAnimator
 } from './StaggeredAnimations';
-export * from './StaggeredAnimations';

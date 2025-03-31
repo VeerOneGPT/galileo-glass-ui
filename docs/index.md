@@ -52,13 +52,13 @@ The Galileo Glass UI features a powerful, integrated physics-based animation sys
 
 | Documentation | Description |
 |---------------|-------------|
-| [**Core Physics Hooks**](./animations/physics-hooks.md) | Documentation for `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring` |
+| [**Animation System**](./animations/index.md) | Core concepts, physics hooks, orchestration, accessibility. |
+| [**Physics Engine API**](./physics/engine-api.md) | Direct access to the physics engine (v1.0.8+) |
+| [**Core Physics Hooks**](./animations/physics-hooks.md) | Documentation for physics interaction hooks (`useGalileoPhysicsEngine`, `usePhysicsInteraction`, etc.) |
 | [**Sequence Orchestration**](./animations/orchestration.md) | Guide to `useAnimationSequence` for complex, timed animations |
 | [**Context & Configuration**](./animations/context-config.md) | Using `AnimationProvider` and presets for global configuration |
 | [**Accessibility**](./animations/accessibility.md) | Details on `useReducedMotion` and accessibility features |
 | [**(WIP) Transition Hooks**](./animations/transition-hooks.md) | Documentation for state/transition hooks (e.g., `useTransitioningState`) |
-| [**Physics System (Legacy)**](./animations/physics-animations.md) | Previous documentation on the underlying physics engine |
-| [**Animation System (Legacy)**](./animations/animation-system.md) | Older overview of the animation framework |
 
 ## Performance & Optimization
 
@@ -161,3 +161,14 @@ To ensure proper functionality, be sure to follow these critical implementation 
 3. **Follow the recommended import patterns**
 
 For details on these requirements, refer to the [Framework Guide Implementation Requirements](./core/framework-guide.md#implementation-requirements) section.
+
+### Key Documentation Areas
+
+*   [Installation Guide](../INSTALLATION.md) - Start here for setup instructions.
+*   [Framework Guide](./core/framework-guide.md) - Overview of core concepts, styling, Z-space.
+*   [Theme System](./core/theme-system.md) - Customizing appearance with `ThemeProvider`.
+*   [Animation System](./animations/index.md) - Core concepts, physics hooks, orchestration, accessibility.
+*   [Physics Engine API](./physics/engine-api.md) - (WIP) Lower-level access to the physics engine for custom simulations.
+*   [Advanced Components](./components/advanced-components.md) - Guides for complex components like `GlassDataChart`, `GlassTimeline`, etc.
+*   [Performance](./performance/optimization/optimization-techniques.md) - Optimization techniques and bundle size reduction.
+*   [Development](./development/component-patterns.md) - Guidelines for contributing and developing components.

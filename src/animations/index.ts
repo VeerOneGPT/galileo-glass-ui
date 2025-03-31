@@ -133,12 +133,11 @@ export {
 // Animation orchestration
 export {
   GestaltPatterns,
-  StaggeredAnimator,
-  coordinatedAnimations,
+  createStaggeredAnimation,
+  createAnimationSequence,
   animationOrchestrator,
   withOrchestration,
 } from './orchestration';
-export type { AnimationSequence } from './orchestration';
 
 // Z-Space animations
 export { ZSpaceAnimator, useZSpaceAnimation, type ZSpaceAnimationOptions } from './dimensional';

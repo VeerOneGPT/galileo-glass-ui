@@ -4,6 +4,7 @@
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { useSequence } from '../useSequence';
+import { DeclarativeSequencer } from '../DeclarativeSequencer';
 
 // Mock DeclarativeSequencer
 jest.mock('../DeclarativeSequencer', () => {
@@ -127,7 +128,7 @@ describe('useSequence', () => {
     });
     
     // Get mockSequencer.start from DeclarativeSequencer mock
-    const mockSequencer = require('../DeclarativeSequencer').DeclarativeSequencer.create();
+    const mockSequencer = (DeclarativeSequencer.create as jest.Mock)();
     expect(mockSequencer.start).toHaveBeenCalledTimes(1);
   });
   
@@ -136,19 +137,19 @@ describe('useSequence', () => {
     const { rerender } = render(<TestComponent onRender={onRender} autoPlay={false} loop={false} />);
     
     // First render creates the sequence
-    expect(require('../DeclarativeSequencer').DeclarativeSequencer.create).toHaveBeenCalledTimes(1);
+    expect(DeclarativeSequencer.create as jest.Mock).toHaveBeenCalledTimes(1);
     
     // Rerender with same props doesn't recreate
     rerender(<TestComponent onRender={onRender} autoPlay={false} loop={false} />);
-    expect(require('../DeclarativeSequencer').DeclarativeSequencer.create).toHaveBeenCalledTimes(1);
+    expect(DeclarativeSequencer.create as jest.Mock).toHaveBeenCalledTimes(1);
     
     // Rerender with different props recreates
     rerender(<TestComponent onRender={onRender} autoPlay={true} loop={false} />);
-    expect(require('../DeclarativeSequencer').DeclarativeSequencer.create).toHaveBeenCalledTimes(2);
+    expect(DeclarativeSequencer.create as jest.Mock).toHaveBeenCalledTimes(2);
     
     // Rerender with different props again recreates
     rerender(<TestComponent onRender={onRender} autoPlay={true} loop={true} />);
-    expect(require('../DeclarativeSequencer').DeclarativeSequencer.create).toHaveBeenCalledTimes(3);
+    expect(DeclarativeSequencer.create as jest.Mock).toHaveBeenCalledTimes(3);
   });
   
   it('should provide utility methods for direct animation', () => {

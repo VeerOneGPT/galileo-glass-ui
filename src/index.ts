@@ -59,7 +59,22 @@ export {
 } from './animations';
 
 // Explicitly re-export hooks
-export { useGlassTheme, usePhysicsInteraction, useOrchestration } from './hooks';
+export { 
+  useGlassTheme, 
+  usePhysicsInteraction, 
+  useOrchestration,
+  useGalileoPhysicsEngine
+} from './hooks';
+
+// Re-export physics engine types
+export type {
+  PhysicsBodyOptions,
+  PhysicsBodyState,
+  CollisionEvent,
+  Vector2D,
+  UnsubscribeFunction,
+  GalileoPhysicsEngineAPI
+} from './animations/physics/engineTypes';
 
 // Main version (consolidated)
 export const version = '1.0.4'; // Updated package version

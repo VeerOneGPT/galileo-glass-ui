@@ -606,5 +606,3 @@ export function useReducedMotion(
     getDistanceScale
   };
 }
-
-export default useReducedMotion;

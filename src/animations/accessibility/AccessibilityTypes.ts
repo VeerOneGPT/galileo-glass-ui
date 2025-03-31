@@ -7,9 +7,6 @@ import { AnimationPreset } from '../types';
 
 import { AnimationComplexity, MotionSensitivityLevel } from './MotionSensitivity';
 
-// Re-export enums from MotionSensitivity.ts
-export { AnimationComplexity, MotionSensitivityLevel } from './MotionSensitivity';
-
 /**
  * Animation mapping interface
  */
