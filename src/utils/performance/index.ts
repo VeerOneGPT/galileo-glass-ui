@@ -12,7 +12,3 @@ export * from './styleOptimization';
 
 // Export performance monitoring system
 export * from './monitoring';
-
-// Re-export monitor instance
-import { performanceMonitor } from './monitoring';
-export { performanceMonitor };

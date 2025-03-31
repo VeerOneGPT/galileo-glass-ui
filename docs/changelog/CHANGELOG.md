@@ -1,6 +1,54 @@
 # Galileo Glass UI Changelog
 
-## [1.0.6] - 03-31-2025
+## [1.0.11] - 2025-03-31
+
+This release focuses on improving component composability and resolving build/type errors related to component exports.
+
+### Added
+- **`forwardRef` Implementation:** Added `React.forwardRef` to numerous components:
+  - `ParticleBackground`
+  - `AtmosphericBackground`
+  - `SpeedDialAction`
+  - `DimensionalGlass`
+  - `HeatGlass`
+  - `FrostedGlass`
+  - `PageGlassContainer`
+  - `WidgetGlass`
+  - `GlassMultiSelectInternal`
+
+### Fixed
+- **Export Fixes:** Added numerous missing exports to the main `src/index.ts` entry point, including:
+  - Glass containers and effects components
+  - Navigation and layout components
+  - Data visualization components
+  - Interactive components
+  - Utility components
+- Fixed typo in `examples/AdvancedComponentsDemo.tsx`
+- Build process now completes successfully
+
+## [1.0.8] - 2025-03-31
+
+This release focuses on exposing the underlying Galileo physics engine to developers.
+
+### Added
+- **Physics Engine API (`useGalileoPhysicsEngine`):**
+  - Direct access to core physics simulation engine
+  - API methods for managing physics bodies
+  - Methods for applying forces and impulses
+  - Collision event subscription system
+  - Comprehensive documentation and examples
+  
+### Fixed
+- Various type errors and import issues
+- Collision system integration improvements
+
+### Known Issues
+- Comprehensive testing pending
+- Performance profiling under heavy load pending
+- Some limitations in force/impulse application points
+- Build warnings in TypeScript declaration generation
+
+## [1.0.6] - 2025-03-31
 
 ### Fixed
 
@@ -8,7 +56,7 @@
 *   Updated build process dependencies (`rollup-plugin-terser` replaced with `@rollup/plugin-terser`) and configuration (`rollup.config.js`) to ensure compatibility with Rollup 3.
 *   Corrected component exports (`BottomNavigation`) that were preventing successful builds.
 
-## [1.0.5] - YYYY-MM-DD
+## [1.0.5] - 2025-03-30
 
 This major release introduces a comprehensive overhaul of the animation system, replacing previous methods (CSS transitions, Framer Motion) with a unified, physics-based system powered by React Spring and custom Galileo hooks. It also includes significant documentation updates and component integrations.
 
@@ -28,6 +76,18 @@ This major release introduces a comprehensive overhaul of the animation system, 
     *   Refactored numerous components (Buttons, Inputs, Modals, Menus, Cards, Navigation, etc.) to use the new animation system (see integration checklist in `animate2.md` for full list).
     *   Removed Framer Motion dependency from components like `TreeView`.
     *   Standardized animations across the library using context presets.
+*   **New Glass Components:**
+    *   GlassCardLink: Enhanced 3D perspective transforms with physics-based hover effects
+    *   GlassTabs: Glass-morphism styled tabs with animated active indicator
+    *   ChartWrapper: Lightweight container for chart components
+*   **ModularGlassDataChart Architecture:**
+    *   Refactored into smaller, modular components
+    *   Implemented quality tier system
+    *   Created specialized components for different chart elements
+*   **Full React 19 Compatibility:**
+    *   Implemented proper forwardRef with TypeScript-friendly typing
+    *   Created well-defined interfaces for exposed methods
+    *   Added proper default values and null-safety
 
 ### Changed
 
@@ -45,15 +105,27 @@ This major release introduces a comprehensive overhaul of the animation system, 
 
 *   Addressed various import errors, type errors, and linter warnings encountered during the animation system integration (see checklist in `animate2.md` for specifics).
 
-## [1.0.4] - 2024-08-23
+## [1.0.4] - 2025-03-29
 
 This maintenance release focuses on chart visualizations and data presentation capabilities, adding several improvements to the GlassDataChart component.
 
 ### Added
-- Enhanced legend interactivity with glass morphism styling
-- Advanced data formatting utilities for numbers, currency, and percentages
-- Improved chart export capabilities with better resolution and format options
-- Comprehensive documentation for new formatting features
+- **Enhanced Visual Styling:**
+  - Atmospheric background gradients
+  - Enhanced glass styling for legend items
+  - Improved visual hierarchy with glow effects
+- **Advanced Data Formatting:**
+  - Comprehensive value formatting utilities
+  - Intelligent number formatting with unit selection
+  - Currency and percentage formatting with locale support
+- **Enhanced Export & Sharing:**
+  - Higher quality output options
+  - Configurable export settings
+  - Styled export button with glass morphism
+- **Improved Tooltip Experience:**
+  - Enhanced formatting with intelligent value display
+  - Improved positioning and animation
+  - Context-aware value formatting
 
 ### Fixed
 - Resolved animation keyframe integration with styled-components
@@ -61,16 +133,27 @@ This maintenance release focuses on chart visualizations and data presentation c
 - Improved overflow handling to prevent content clipping
 - Enhanced accessibility for screen readers and keyboard navigation
 
-## [1.0.3] - 2024-07-15
+## [1.0.3] - 2025-03-28
 
 Major feature release with significant enhancements to the animation system and component library.
 
 ### Added
-- Custom physics engine with spring physics and inertial movement
-- 10 new Glass-prefixed components including GlassTooltip and GlassDataChart
-- Enhanced theming capabilities with dynamic atmosphere effects
-- Comprehensive accessibility improvements
-- Expanded documentation and examples
+- **Enhanced Animation System:**
+  - Collision detection and response system
+  - Unified physics API with interpolation functions
+  - Web Animations API renderer with fallback
+  - Performance optimizations with DOM operation batching
+- **New Glass Components:**
+  - GlassTooltip: Physics-based glass tooltip
+  - GlassDataChart: Chart components with physics interactions
+  - GlassTabBar: Advanced tab navigation
+  - GlassBreadcrumbs: Z-space depth navigation
+  - GlassCarousel: Physics-based carousel
+  - GlassImageViewer: Interactive image viewer
+  - GlassMultiSelect: Token-based multi-select
+  - GlassDateRangePicker: Date range picker
+  - GlassMasonry: Physics-based masonry layout
+  - GlassTimeline: Chronological data visualization
 
 ### Fixed
 - Performance optimizations for glass effects on larger surfaces
@@ -78,7 +161,7 @@ Major feature release with significant enhancements to the animation system and 
 - Better cross-browser compatibility
 - Z-index management for complex component layouts
 
-## [1.0.2] - 2024-05-10
+## [1.0.2] - 2025-03-28
 
 Stability release with performance enhancements and bug fixes.
 
@@ -92,7 +175,7 @@ Stability release with performance enhancements and bug fixes.
 - Glass effect rendering on certain mobile browsers
 - Type definitions for better TypeScript support
 
-## [1.0.1] - 2025-03-27
+## [1.0.1] - 2025-03-28
 
 ### Added
 - Initial public release with core Glass UI components

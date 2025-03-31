@@ -871,7 +871,7 @@ export class MagneticSystemManager {
       if (elementA.isStatic || !elementA.isActive) continue; 
 
       // Reset net force for this element for this frame
-      let netForceA: ForceVector = { x: 0, y: 0 };
+      const netForceA: ForceVector = { x: 0, y: 0 };
 
       for (let j = i + 1; j < numElements; j++) {
         const elementB = elementsArray[j];
@@ -1064,8 +1064,8 @@ export class MagneticSystemManager {
 
           let targetX = 0;
           let targetY = 0;
-          let targetRotation = 0;
-          let targetScale = 1;
+          const targetRotation = 0;
+          const targetScale = 1;
           let forceMagnitude = 0;
 
           // Determine target transform based on velocity, forces, or other logic

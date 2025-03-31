@@ -22,8 +22,3 @@ export * from './hooks';
 // Export examples
 import PerformanceMonitorDemo from './examples/PerformanceMonitorDemo';
 export { PerformanceMonitorDemo };
-
-// Export singleton instance for convenience
-import { performanceMonitor } from './monitor';
-export { performanceMonitor };
-export default performanceMonitor;

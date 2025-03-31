@@ -52,9 +52,6 @@ export {
   withTheme
 } from './core/themeUtils';
 
-// Re-export zSpaceLayer 
-export { zSpaceLayer, ZSpaceLayerType, ZSpacePosition } from './core/mixins/depth/zSpaceLayer';
-
 // Re-export glassGlow for backward compatibility
 export { glassGlow } from './animations/keyframes/glass';
 

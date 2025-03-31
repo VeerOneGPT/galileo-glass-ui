@@ -9,7 +9,7 @@ export * from './AccessibilityProvider';
 export * from './AccessibilitySettings';
 
 // Basic components
-export { Button, GlassButton } from './Button';
+export { Button, GlassButton, MagneticButton } from './Button';
 export { Card } from './Card';
 export { TextField, GlassTextField } from './TextField';
 export { Typography, GlassTypography } from './Typography';
@@ -57,6 +57,7 @@ export { Skeleton, GlassSkeleton } from './Skeleton';
 
 // Navigation components
 export { Tabs, TabPanel, GlassTabs } from './Tabs';
+export { GlassTabBar } from './GlassTabBar';
 export { Pagination, GlassPagination } from './Pagination';
 export { Menu, GlassMenu } from './Menu';
 export { MenuItem, GlassMenuItem } from './MenuItem';
@@ -187,8 +188,7 @@ export const componentsVersion = '1.0.0';
 
 // New glass components
 export * from './GlassCardLink/GlassCardLink';
-export * from './GlassTabs/GlassTabs';
-export * from './Chart/ChartWrapper';
+export { default as ChartWrapper } from './Chart/ChartWrapper';
 
 // Export Carousel components
 export { 

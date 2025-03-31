@@ -202,7 +202,10 @@ const FrostSparkles = styled.div<{
 /**
  * FrostedGlass Component Implementation
  */
-function FrostedGlassComponent(props: FrostedGlassProps, ref: React.ForwardedRef<HTMLDivElement>) {
+const FrostedGlassComponent = (
+  props: FrostedGlassProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) => {
   const {
     children,
     className,
@@ -275,7 +278,7 @@ function FrostedGlassComponent(props: FrostedGlassProps, ref: React.ForwardedRef
       <FrostContent>{children}</FrostContent>
     </FrostContainer>
   );
-}
+};
 
 /**
  * FrostedGlass Component
@@ -283,5 +286,6 @@ function FrostedGlassComponent(props: FrostedGlassProps, ref: React.ForwardedRef
  * A glass surface with frosted ice effects.
  */
 const FrostedGlass = forwardRef(FrostedGlassComponent);
+FrostedGlass.displayName = 'FrostedGlass';
 
 export default FrostedGlass;

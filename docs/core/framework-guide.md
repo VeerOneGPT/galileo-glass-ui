@@ -687,6 +687,8 @@ const CustomComponent: React.FC = () => {
 
 ## Component Library
 
+*Note: Many components listed with a `Glass*` prefix achieve their appearance via props (e.g., `glass={true}`) on the standard component export (like `Card`, `Grid`, `Stack`). Other components have distinct `Glass*` exports.* 
+
 ### Layout Components
 
 - **GlassBox**: Fundamental layout component  
@@ -704,8 +706,9 @@ const CustomComponent: React.FC = () => {
 
 ### Input Components
 
-- **GlassButton**: Button with variants  
-- **GlassTextField**: Text input field  
+- **GlassButton**: Button with variants
+- **MagneticButton**: Button with physics-based magnetic hover effect
+- **GlassTextField**: Text input field
 - **GlassSelect**: Dropdown select  
 - **GlassCheckbox**: Checkbox input  
 - **GlassRadio**: Radio button input  
@@ -724,6 +727,7 @@ const CustomComponent: React.FC = () => {
 
 - **GlassTabs**: Tab navigation  
 - **GlassTabBar**: Physics-based animated tab bar
+- **GlassCardLink**: Interactive card for navigation
 - **GlassPagination**: Pagination controls  
 - **GlassBottomNavigation**: Mobile navigation  
 - **GlassBreadcrumbs**: Breadcrumb navigation  
@@ -753,30 +757,32 @@ const CustomComponent: React.FC = () => {
 
 ### Data Display Components
 
-- **GlassCard**: Card container  
+- **GlassCard**: Card container (use `<Card glass>`) 
 - **GlassTable**: Data tables  
 - **GlassChip**: Tags/pills  
 - **GlassList**: List containers  
 - **GlassAvatar**: User avatars  
 - **GlassBadge**: Badge indicators  
 - **GlassImageList**: Grid of images with optional captions
-- **GlassKpiCard**: Key performance indicator cards
+- **GlassKpiCard**: Key performance indicator cards (use `<KpiCard glass>`) 
 - **GlassDataChart**: Data visualization with physics animations
 - **GlassPerformanceMetricCard**: Performance metric visualization
 - **GlassInteractiveKpiCard**: Interactive data visualization card
 
 ### Utility Components
 
-- **GlassBackdrop**: Modal backdrop  
+- **GlassBackdrop**: Modal backdrop (use `<Backdrop>`) 
 - **GlassFab**: Floating action button  
 - **GlassDrawer**: Side drawer  
 - **GlassModal**: Modal dialog  
 - **GlassTooltip**: Contextual tooltips  
 - **GlassImageViewer**: Interactive image viewer with zoom and pan
+- **Icon**: Component for displaying icons (use props like `glass` and `glowEffect` for styling)
 - **GlassThemeComponents**: Theme management (GlassThemeSwitcher, GlassThemeDemo)
 - **GlassPerformanceMonitor**: Performance monitoring utilities
 - **GlassOptimizedContainer**: Performance-optimized container
 - **GlassDynamicAtmosphere**: Dynamic background effects
+- **ChartWrapper**: Wrapper for chart components
 
 ### Specialized Surface Components
 
@@ -805,27 +811,7 @@ const CustomComponent: React.FC = () => {
 
 ### GlassIcon Component
 
-```tsx
-import { GlassIcon } from '../../components/Glass';
-import HomeIcon from '@mui/icons-material/Home';
-
-<GlassIcon component={HomeIcon} />
-
-<GlassIcon 
-  component={HomeIcon} 
-  fontSize="medium" 
-  color="primary" 
-  glow="subtle" 
-  glowColor="primary"
-/>
-```
-
-| Prop       | Options                                                           |
-|------------|-------------------------------------------------------------------|
-| `fontSize` | 'inherit', 'small', 'medium', 'large'                             |
-| `color`    | 'inherit', 'primary', 'secondary', 'action', 'error', 'disabled' |
-| `glow`     | 'none', 'subtle', 'medium', 'strong'                              |
-| `glowColor`| 'primary', 'success', 'warning', 'error', 'info', 'frost', 'celestial' |
+*(Previous content of Section 9 removed or merged into notes for the standard Icon component)*
 
 ---
 

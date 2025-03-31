@@ -379,6 +379,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
       <td>
         <ul>
           <li>Button / GlassButton</li>
+          <li>MagneticButton</li>
           <li>TextField</li>
           <li>Checkbox</li>
           <li>Radio</li>

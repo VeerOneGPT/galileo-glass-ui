@@ -40,7 +40,10 @@ const pulseHighlight = keyframes`
 /**
  * WidgetGlass Component Implementation
  */
-function WidgetGlassComponent(props: WidgetGlassProps, ref: React.ForwardedRef<HTMLDivElement>) {
+const WidgetGlassComponent = (
+  props: WidgetGlassProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) => {
   const {
     children,
     className,
@@ -88,7 +91,7 @@ function WidgetGlassComponent(props: WidgetGlassProps, ref: React.ForwardedRef<H
       {children}
     </DimensionalGlass>
   );
-}
+};
 
 /**
  * WidgetGlass Component
@@ -96,5 +99,6 @@ function WidgetGlassComponent(props: WidgetGlassProps, ref: React.ForwardedRef<H
  * A specialized glass component for UI widgets with enhanced effects.
  */
 const WidgetGlass = forwardRef(WidgetGlassComponent);
+WidgetGlass.displayName = 'WidgetGlass';
 
 export default WidgetGlass;

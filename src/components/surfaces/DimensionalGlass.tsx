@@ -114,12 +114,14 @@ const DimensionalContainer = styled.div<{
 `;
 
 /**
- * DimensionalGlass Component Implementation
+ * DimensionalGlass Component
+ *
+ * A glass surface with enhanced depth and dimensional effects.
  */
-function DimensionalGlassComponent(
+const DimensionalGlassComponent = (
   props: DimensionalGlassProps,
   ref: React.ForwardedRef<HTMLDivElement>
-) {
+) => {
   const {
     children,
     className,
@@ -265,13 +267,10 @@ function DimensionalGlassComponent(
       </DimensionalContent>
     </DimensionalContainer>
   );
-}
+};
 
-/**
- * DimensionalGlass Component
- *
- * A glass surface with enhanced depth and dimensional effects.
- */
+// Wrap the component function with forwardRef
 const DimensionalGlass = forwardRef(DimensionalGlassComponent);
+DimensionalGlass.displayName = 'DimensionalGlass';
 
 export default DimensionalGlass;

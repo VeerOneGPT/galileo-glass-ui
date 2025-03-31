@@ -566,10 +566,11 @@ const usePositionInertia = (
   return { position, setPosition };
 };
 
-// Component implementation
-function GlassMultiSelectInternal<T = string>(
-  props: MultiSelectProps<T> & AnimationProps & { ref?: React.Ref<HTMLInputElement> }
-) {
+// Define the actual component function that accepts props and ref
+const GlassMultiSelectInternal = <T = string>(
+  props: MultiSelectProps<T> & AnimationProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) => {
   const {
     options = [],
     value: controlledValue,
@@ -625,11 +626,25 @@ function GlassMultiSelectInternal<T = string>(
   const itemHeight = virtualization?.itemHeight ?? 40;
   const defaultNoOptionsMessage = 'No options';
 
-  // Refs
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
+
+  // Combine external ref with internal rootRef
+  const combinedRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      rootRef.current = node;
+      if (ref) {
+        if (typeof ref === 'function') {
+          ref(node);
+        } else {
+          ref.current = node;
+        }
+      }
+    },
+    [ref]
+  );
 
   // State
   const [internalValue, setInternalValue] = useState<MultiSelectOption<T>[]>(() => {
@@ -768,7 +783,6 @@ function GlassMultiSelectInternal<T = string>(
   const handleClickOutside = useCallback(
     (event: MouseEvent) => {
       if (
-        dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
         rootRef.current && !rootRef.current.contains(event.target as Node)
       ) {
         setIsDropdownOpen(false);
@@ -920,9 +934,9 @@ function GlassMultiSelectInternal<T = string>(
   useEffect(() => {
       if (isDropdownOpen && focusedOptionIndex >= 0 && listRef.current) {
           const optionElement = listRef.current.querySelector(`[data-option-index="${focusedOptionIndex}"]`) as HTMLLIElement;
-          if (optionElement) optionElement.scrollIntoView({ block: 'nearest' });
+           if (optionElement) optionElement.scrollIntoView({ block: 'nearest' });
       }
-  }, [focusedOptionIndex, isDropdownOpen]);
+  }, [isDropdownOpen, focusedOptionIndex]);
 
   // --- Token Entrance Animation Implementation ---
 
@@ -1023,7 +1037,7 @@ function GlassMultiSelectInternal<T = string>(
 
     return createPortal(
       <DropdownContainer
-        ref={dropdownRef}
+        ref={dropdownContainerRef}
         $width={rootRef.current?.offsetWidth || 300}
         $maxHeight={maxHeight}
         $openUp={openUp}
@@ -1044,7 +1058,7 @@ function GlassMultiSelectInternal<T = string>(
   // Component Return
   return (
     <MultiSelectRoot
-      ref={rootRef}
+      ref={combinedRef}
       $fullWidth={fullWidth}
       $width={width}
       $animate={propAnimate && !dropdownImmediate}
@@ -1124,7 +1138,7 @@ function GlassMultiSelectInternal<T = string>(
 
 // Forward Ref and Export
 export const GlassMultiSelect = forwardRef(GlassMultiSelectInternal) as <T = string>(
-  props: MultiSelectProps<T> & AnimationProps & { ref?: React.Ref<HTMLInputElement> }
+  props: MultiSelectProps<T> & AnimationProps & { ref?: React.ForwardedRef<HTMLDivElement> }
 ) => React.ReactElement;
 
 (GlassMultiSelect as any).displayName = 'GlassMultiSelect';

@@ -8,7 +8,6 @@
 export * from './ui';
 
 // Export animation preset categories
-export * from './accessibleAnimations';
 export * from './physicsAnimations';
 export * from './orchestrationAnimations';
 export * from './gestureAnimations';

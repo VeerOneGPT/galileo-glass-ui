@@ -14,8 +14,7 @@ import {
   calculateSpringParameters,
   designSpring,
   PhysicsAnimationMode
-} from 'galileo-glass-ui/animations';
-import {
+,
   createVector,
   applyNoise,
   calculateMagneticForce

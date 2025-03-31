@@ -140,10 +140,10 @@ const ContentLayer = styled.div`
 /**
  * AtmosphericBackground Component Implementation
  */
-function AtmosphericBackgroundComponent(
+const AtmosphericBackgroundComponent = (
   props: AtmosphericBackgroundProps,
   ref: React.ForwardedRef<HTMLDivElement>
-) {
+) => {
   const {
     children,
     className,
@@ -224,7 +224,7 @@ function AtmosphericBackgroundComponent(
       <ContentLayer>{children}</ContentLayer>
     </BackgroundContainer>
   );
-}
+};
 
 /**
  * AtmosphericBackground Component
@@ -232,5 +232,6 @@ function AtmosphericBackgroundComponent(
  * A dynamic background component with atmospheric effects.
  */
 const AtmosphericBackground = forwardRef(AtmosphericBackgroundComponent);
+AtmosphericBackground.displayName = 'AtmosphericBackground';
 
 export default AtmosphericBackground;

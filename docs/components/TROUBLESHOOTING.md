@@ -158,17 +158,28 @@ npm error dest /Users/username/project/node_modules/.chart.js-XXXX
   `;
   ```
 
-### Animations Not Working
+## Animation & Interaction Problems
 
-**Problem**: The animations aren't displaying properly.
+### Problem: Animations are not smooth or are causing performance issues.
+
+**Cause**: This could be due to complex animations, too many animated elements, or lower-end device capabilities.
 
 **Solution**:
-1. Check browser compatibility - make sure you're using a supported browser
-2. Verify the ThemeProvider is properly set up
-3. For physics animations, ensure the dependencies are installed:
-   ```bash
-   npm install framer-motion popmotion
-   ```
+1. **Check Reduced Motion**: Ensure animations respect the user's `prefers-reduced-motion` setting (handled automatically by most core hooks).
+2. **Simplify**: Reduce the complexity or number of simultaneous animations.
+3. **Use Presets**: Rely on standard animation presets provided via `AnimationProvider` where possible.
+4. **Performance Monitor**: Use the `<PerformanceMonitor>` component to identify specific bottlenecks.
+5. **Optimize Components**: Ensure components are properly memoized if re-rendering frequently.
+
+### Problem: Physics-based interactions feel wrong or are not working.
+
+**Cause**: Incorrect configuration of physics hooks (`usePhysicsInteraction`, `useGesturePhysics`, etc.) or issues within the internal physics engine.
+
+**Solution**:
+1. **Verify Hook Config**: Double-check the `animationConfig` (presets or specific tension/friction/mass values) passed to the physics hooks.
+2. **Check Context**: Ensure an `AnimationProvider` is wrapping the application to provide default presets if needed.
+3. **Isolate**: Try the interaction in a minimal example to rule out conflicts.
+4. **Consult Hook Docs**: Review the documentation for the specific physics hook being used.
 
 ## Performance Issues
 

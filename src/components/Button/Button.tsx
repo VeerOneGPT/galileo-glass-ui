@@ -276,7 +276,7 @@ const StyledButton = styled.button<{
  *
  * A flexible button component with multiple variants and colors.
  */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(props, ref) {
   const {
     children,
     variant = 'contained',
@@ -396,7 +396,7 @@ Button.displayName = 'Button';
  *
  * A button component with glass morphism styling.
  */
-export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
+export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>(function GlassButton(props, ref) {
   const {
     children,
     variant = 'contained',

@@ -161,10 +161,10 @@ const ContentWrapper = styled.div<{
 /**
  * PageGlassContainer Component Implementation
  */
-function PageGlassContainerComponent(
+const PageGlassContainerComponent = (
   props: PageGlassContainerProps,
   ref: React.ForwardedRef<HTMLDivElement>
-) {
+) => {
   const {
     children,
     className,
@@ -242,7 +242,7 @@ function PageGlassContainerComponent(
       </ContentWrapper>
     </Container>
   );
-}
+};
 
 /**
  * PageGlassContainer Component
@@ -250,5 +250,6 @@ function PageGlassContainerComponent(
  * A glass container for full page layouts with enhanced glass effects.
  */
 const PageGlassContainer = forwardRef(PageGlassContainerComponent);
+PageGlassContainer.displayName = 'PageGlassContainer';
 
 export default PageGlassContainer;

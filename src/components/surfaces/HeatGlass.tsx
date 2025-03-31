@@ -202,9 +202,14 @@ const HeatDistortionFilters = () => (
 );
 
 /**
- * HeatGlass Component Implementation
+ * HeatGlass Component
+ *
+ * A glass surface with heat distortion effects.
  */
-function HeatGlassComponent(props: HeatGlassProps, ref: React.ForwardedRef<HTMLDivElement>) {
+const HeatGlassComponent = (
+  props: HeatGlassProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) => {
   const {
     children,
     className,
@@ -285,13 +290,10 @@ function HeatGlassComponent(props: HeatGlassProps, ref: React.ForwardedRef<HTMLD
       </HeatGlassContainer>
     </>
   );
-}
+};
 
-/**
- * HeatGlass Component
- *
- * A glass surface with heat distortion effects.
- */
+// Wrap the component function with forwardRef
 const HeatGlass = forwardRef(HeatGlassComponent);
+HeatGlass.displayName = 'HeatGlass';
 
 export default HeatGlass;

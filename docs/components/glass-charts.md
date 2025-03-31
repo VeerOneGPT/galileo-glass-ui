@@ -959,7 +959,7 @@ const GlassBar = styled.rect<{
 
 ### 8. Implementing Glass Icons in Charts
 ```tsx
-import { GlassIcon } from '../../components/Glass';
+import { Icon } from '../../components/Icon';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const ChartLegendItem = ({ label, color, showInfo = false }) => {
@@ -970,12 +970,12 @@ const ChartLegendItem = ({ label, color, showInfo = false }) => {
 
       {showInfo && (
         <InfoIconWrapper>
-          <GlassIcon
+          <Icon
             component={InfoOutlinedIcon}
-            fontSize="small"
+            size="small"
             color="action"
-            glow="subtle"
-            glowColor="primary"
+            glass
+            glowEffect
           />
         </InfoIconWrapper>
       )}

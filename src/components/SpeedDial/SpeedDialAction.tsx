@@ -231,10 +231,10 @@ const TooltipWrapper = styled.div<{
 /**
  * SpeedDialAction Component Implementation
  */
-function SpeedDialActionComponent(
+const SpeedDialActionComponent = (
   props: SpeedDialActionProps,
   ref: React.ForwardedRef<HTMLDivElement>
-) {
+) => {
   const {
     className,
     style,
@@ -384,7 +384,7 @@ function SpeedDialActionComponent(
       )}
     </ActionRoot>
   );
-}
+};
 
 /**
  * SpeedDialAction Component
@@ -392,5 +392,6 @@ function SpeedDialActionComponent(
  * An action button for the SpeedDial component.
  */
 const SpeedDialAction = forwardRef(SpeedDialActionComponent);
+SpeedDialAction.displayName = 'SpeedDialAction';
 
 export default SpeedDialAction;

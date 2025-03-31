@@ -3,7 +3,7 @@
  *
  * A dynamic background with animated particles.
  */
-import React, { forwardRef, useRef, useEffect, useState, useMemo } from 'react';
+import React, { forwardRef, useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -75,10 +75,10 @@ const ContentLayer = styled.div`
 /**
  * ParticleBackground Component Implementation
  */
-function ParticleBackgroundComponent(
+const ParticleBackgroundComponent = (
   props: ParticleBackgroundProps,
   ref: React.ForwardedRef<HTMLDivElement>
-) {
+) => {
   const {
     children,
     className,
@@ -254,17 +254,20 @@ function ParticleBackgroundComponent(
     };
   }, [interactive, prefersReducedMotion]);
 
-  // Handle forwarded ref
-  const setRefs = (element: HTMLDivElement) => {
-    containerRef.current = element;
-
-    // Handle the forwarded ref
-    if (typeof ref === 'function') {
-      ref(element);
-    } else if (ref) {
-      (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
-    }
-  };
+  // Combine external ref with internal containerRef
+  const setRefs = useCallback(
+    (node: HTMLDivElement | null) => {
+      containerRef.current = node;
+      if (ref) {
+        if (typeof ref === 'function') {
+          ref(node);
+        } else {
+          ref.current = node;
+        }
+      }
+    },
+    [ref]
+  );
 
   return (
     <CanvasContainer ref={setRefs} className={className} style={style} {...rest}>
@@ -277,13 +280,10 @@ function ParticleBackgroundComponent(
       <ContentLayer>{children}</ContentLayer>
     </CanvasContainer>
   );
-}
+};
 
-/**
- * ParticleBackground Component
- *
- * A dynamic background with animated particles.
- */
+// Wrap the component function with forwardRef
 const ParticleBackground = forwardRef(ParticleBackgroundComponent);
+ParticleBackground.displayName = 'ParticleBackground';
 
 export default ParticleBackground;

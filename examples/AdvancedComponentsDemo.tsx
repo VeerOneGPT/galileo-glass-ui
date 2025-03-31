@@ -27,14 +27,12 @@ import {
   PageTransition,
   ZSpaceAppLayout,
   GlassThemeSwitcher,
-  OptimizedGlassContainer,
   AtmosphericBackground,
   ParticleBackground,
   VisualFeedback,
   RippleButton
 } from 'galileo-glass-ui';
-import { zSpaceLayer } from 'galileo-glass-ui/core';
-import { createThemeContext } from 'galileo-glass-ui/core';
+import { zSpaceLayer , createThemeContext } from 'galileo-glass-ui/core';
 import { type ThemeVariant } from '../src/hooks/useGlassTheme';
 
 // Custom ZSpaceLayerComponent using the zSpaceLayer utility
@@ -418,12 +416,12 @@ export const AdvancedComponentsDemo: React.FC = () => {
             />
           </FrostedGlass>
 
-          <OptimizedGlassContainer
+          <PageGlassContainer
             style={{ padding: '20px', minWidth: '300px' }}
           >
-            <h3>Optimized Glass Container</h3>
+            <h3>Page Glass Container</h3>
             <p>This container uses performance optimization techniques.</p>
-          </OptimizedGlassContainer>
+          </PageGlassContainer>
         </div>
       </section>
 
