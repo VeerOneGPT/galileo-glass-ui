@@ -55,7 +55,7 @@
     "./hooks": {
       "import": "./dist/hooks.esm.js",
       "require": "./dist/hooks.js",
-      "types": "./dist/hooks.d.ts"
+      "types": "./dist/hooks/index.d.ts"
     },
     "./physics": {
       "import": "./dist/animations/physics/index.esm.js",
