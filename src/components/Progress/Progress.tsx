@@ -145,7 +145,7 @@ const bufferAnimation = keyframes`
   }
 `;
 
-const circularRotateAnimation = keyframes`
+const _circularRotateAnimation = keyframes`
   0% {
     transform: rotate(0deg);
   }
@@ -386,10 +386,10 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) =
     if (circleRef.current && shape === 'circular' && variant === 'determinate') {
       const circle = circleRef.current;
       const radius = circle.r.baseVal.value;
-      const circumference = 2 * Math.PI * radius;
+      const _circumference = 2 * Math.PI * radius;
 
       // Calculate stroke dasharray for determinate mode
-      const strokeDasharray = `${(normalizedValue / 100) * circumference}, ${circumference}`;
+      const strokeDasharray = `${(normalizedValue / 100) * _circumference}, ${_circumference}`;
       circle.style.strokeDasharray = strokeDasharray;
     }
   }, [normalizedValue, shape, variant]);
@@ -413,7 +413,7 @@ export const Progress = forwardRef<HTMLDivElement, ProgressProps>((props, ref) =
   const renderCircularProgress = () => {
     const svgSize = sizeValue;
     const radius = (svgSize - thickness) / 2;
-    const circumference = 2 * Math.PI * radius;
+    const _circumference = 2 * Math.PI * radius;
 
     return (
       <CircularProgressRoot $size={svgSize}>

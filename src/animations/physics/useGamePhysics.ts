@@ -6,7 +6,7 @@
  * projectile motion, bouncing, collisions, and dynamic forces.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useReducedMotion } from '../accessibility/useReducedMotion';
 import { AnimationCategory } from '../accessibility/MotionSensitivity';
 import GalileoPhysicsSystem, {
@@ -21,6 +21,9 @@ import {
   PhysicsAnimationMode, 
   PhysicsQuality 
 } from './types';
+import { SpringPresets } from './springPhysics';
+import { InertialMovement, InertialPresets } from './inertialMovement';
+import { CollisionSystem } from './collisionSystem';
 
 /**
  * Types of game physics behaviors
@@ -187,7 +190,7 @@ export interface GamePhysicsConfig {
   environment?: GamePhysicsEnvironment;
   
   /** Initial physics objects */
-  objects?: GamePhysicsObjectConfig[];
+  objects?: Record<string, PhysicsObjectConfig>;
   
   /** Auto-start physics simulation */
   autoStart?: boolean;
@@ -372,15 +375,13 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
   // Extract config values with defaults
   const {
     environment,
-    objects = [],
+    objects = {},
     autoStart = true,
     useRAF = true,
     timestep = 1000 / 60, // 60 fps by default
     maxStepsPerFrame = 5,
-    animationMode = PhysicsAnimationMode.NATURAL,
-    category = AnimationCategory.BACKGROUND,
-    onStart,
-    onStop,
+    onStart = () => undefined,
+    onStop = () => undefined,
     onStep,
     onCollision
   } = config;
@@ -447,9 +448,32 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
     // Create physics system
     physicsSystemRef.current = new GalileoPhysicsSystem(physicsConfig);
     
-    // Add initial objects
-    objects.forEach(objConfig => {
-      addObjectToSystem(objConfig);
+    // Add initial objects (Construct full config carefully)
+    Object.values(objects).forEach(objConfig => {
+      // Construct GamePhysicsObjectConfig ensuring all Vector types are complete
+      const fullConfig: GamePhysicsObjectConfig = {
+        // Spread other properties from objConfig first
+        ...objConfig,
+        // Explicitly define required Vector properties with defaults
+        position: {
+          x: objConfig.position?.x ?? 0,
+          y: objConfig.position?.y ?? 0,
+          z: objConfig.position?.z ?? 0,
+        },
+        velocity: {
+          x: objConfig.velocity?.x ?? 0,
+          y: objConfig.velocity?.y ?? 0,
+          z: objConfig.velocity?.z ?? 0,
+        },
+        acceleration: {
+          x: objConfig.acceleration?.x ?? 0,
+          y: objConfig.acceleration?.y ?? 0,
+          z: objConfig.acceleration?.z ?? 0,
+        },
+        // Ensure other specific GamePhysicsObjectConfig props exist if needed
+        // behavior: objConfig.behavior ?? GamePhysicsBehavior.PROJECTILE, // Example default
+      };
+      addObjectToSystem(fullConfig);
     });
     
     // Add collision handler
@@ -620,7 +644,25 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
   }, []);
   
   /**
-   * Start RAF animation loop
+   * Update DOM elements associated with physics objects
+   */
+  const updateDOMElements = useCallback(() => {
+    if (!physicsSystemRef.current) return;
+    
+    elementRefsRef.current.forEach((element, id) => {
+      const obj = physicsSystemRef.current?.getObject(id);
+      if (obj && element) {
+        const { x, y } = obj.position; 
+        // Removed rotation logic as obj.angle doesn't exist
+        // Rotation might need to be handled via obj.userData if stored there
+        element.style.transform = `translate(${x}px, ${y}px)`;
+        element.style.opacity = obj.isSleeping ? '0.7' : '1'; 
+      }
+    });
+  }, []);
+  
+  /**
+   * Start RAF animation loop (Moved updateDOMElements above this)
    */
   const startRAFLoop = useCallback(() => {
     if (rafIdRef.current !== null) {
@@ -672,7 +714,7 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
         }
       }
       
-      // Update DOM elements
+      // Update DOM elements (Now defined above)
       updateDOMElements();
       
       // Schedule next frame
@@ -680,7 +722,7 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
     };
     
     rafIdRef.current = requestAnimationFrame(animate);
-  }, [timestep, maxStepsPerFrame, isPaused, onStep]);
+  }, [timestep, maxStepsPerFrame, isPaused, onStep, updateDOMElements]);
   
   /**
    * Update custom behaviors for objects
@@ -785,26 +827,6 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
   }, []);
   
   /**
-   * Update DOM elements with physics state
-   */
-  const updateDOMElements = useCallback(() => {
-    if (!physicsSystemRef.current) return;
-    
-    elementRefsRef.current.forEach((element, id) => {
-      const obj = physicsSystemRef.current?.getObject(id);
-      if (!obj) return;
-      
-      // Apply position to DOM element
-      element.style.transform = `translate(${obj.position.x}px, ${obj.position.y}px)`;
-      
-      // If the object has rotation, apply it
-      if (obj.userData && obj.userData.rotation !== undefined) {
-        element.style.transform += ` rotate(${obj.userData.rotation}deg)`;
-      }
-    });
-  }, []);
-  
-  /**
    * Start the physics simulation
    */
   const start = useCallback(() => {
@@ -891,14 +913,57 @@ export function useGamePhysics(config: GamePhysicsConfig = {}): GamePhysicsResul
    */
   const reset = useCallback(() => {
     if (physicsSystemRef.current) {
-      physicsSystemRef.current.reset();
+      // Stop simulation if running via RAF
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      physicsSystemRef.current.stop(); // Stop the internal engine
+      setIsRunning(false);
+      setIsPaused(false);
+      lastTimeRef.current = null;
+      accumulatorRef.current = 0;
       
-      // Re-add initial objects
-      objects.forEach(objConfig => {
-        addObjectToSystem(objConfig);
+      // Manually remove all existing objects
+      const allObjectIds = physicsSystemRef.current.getAllObjects().map(obj => obj.id);
+      allObjectIds.forEach(id => {
+          physicsSystemRef.current?.removeObject(id); // Use removeObject
       });
+      elementRefsRef.current.clear();
+      
+      // Re-add initial objects (Construct full config carefully)
+      Object.values(objects).forEach(objConfig => {
+        const fullConfig: GamePhysicsObjectConfig = {
+          // Spread other properties from objConfig first
+          ...objConfig,
+          // Explicitly define required Vector properties with defaults
+          position: {
+            x: objConfig.position?.x ?? 0,
+            y: objConfig.position?.y ?? 0,
+            z: objConfig.position?.z ?? 0,
+          },
+          velocity: {
+            x: objConfig.velocity?.x ?? 0,
+            y: objConfig.velocity?.y ?? 0,
+            z: objConfig.velocity?.z ?? 0,
+          },
+          acceleration: {
+            x: objConfig.acceleration?.x ?? 0,
+            y: objConfig.acceleration?.y ?? 0,
+            z: objConfig.acceleration?.z ?? 0,
+          },
+           // Ensure other specific GamePhysicsObjectConfig props exist if needed
+          // behavior: objConfig.behavior ?? GamePhysicsBehavior.PROJECTILE, // Example default
+        };
+        addObjectToSystem(fullConfig);
+      });
+      
+      // Restart if autoStart was true
+      if (autoStart) {
+        start();
+      }
     }
-  }, [objects, addObjectToSystem]);
+  }, [autoStart, objects, addObjectToSystem, start]); // Added dependencies
   
   /**
    * Perform a single simulation step

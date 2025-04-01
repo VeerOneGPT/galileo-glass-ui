@@ -106,7 +106,7 @@ export interface InterpolationConfig {
     type: InterpolationType;
     
     /** Custom interpolation function */
-    interpolator?: (from: any, to: any, progress: number) => any;
+    interpolator?: (from: unknown, to: unknown, progress: number) => unknown;
     
     /** Value snap points */
     snapPoints?: number[];
@@ -131,7 +131,7 @@ export interface InterpolationConfig {
   blendMode?: BlendMode;
   
   /** Custom blending function if using CUSTOM blend mode */
-  blendFunction?: (a: any, b: any, progress: number) => any;
+  blendFunction?: (a: unknown, b: unknown, progress: number) => unknown;
   
   /** Duration of the interpolation in milliseconds */
   duration?: number;
@@ -358,10 +358,10 @@ export class ValueInterpolator {
    * @param progress Progress from 0 to 1
    * @returns Interpolated array
    */
-  static array(from: any[], to: any[], progress: number): any[] {
+  static array(from: unknown[], to: unknown[], progress: number): unknown[] {
     // Handle different array lengths by padding the shorter one
     const maxLength = Math.max(from.length, to.length);
-    const result: any[] = [];
+    const result: unknown[] = [];
     
     for (let i = 0; i < maxLength; i++) {
       // If index exists in both arrays, interpolate values
@@ -371,25 +371,29 @@ export class ValueInterpolator {
         
         // Determine the type of values and use appropriate interpolator
         if (typeof fromVal === 'number' && typeof toVal === 'number') {
-          result.push(this.number(fromVal, toVal, progress));
+          result.push(this.number(fromVal as number, toVal as number, progress));
         } else if (typeof fromVal === 'string' && typeof toVal === 'string') {
           // Handle color values
           if (fromVal.startsWith('#') || fromVal.startsWith('rgb') ||
               toVal.startsWith('#') || toVal.startsWith('rgb')) {
-            result.push(this.color(fromVal, toVal, progress));
+            result.push(this.color(fromVal as string, toVal as string, progress));
           } else {
             // For non-interpolatable strings, crossfade based on progress
             result.push(progress < 0.5 ? fromVal : toVal);
           }
         } else if (Array.isArray(fromVal) && Array.isArray(toVal)) {
           // Recursive handling for nested arrays
-          result.push(this.array(fromVal, toVal, progress));
+          result.push(this.array(fromVal as unknown[], toVal as unknown[], progress));
         } else if (
           typeof fromVal === 'object' && fromVal !== null &&
           typeof toVal === 'object' && toVal !== null
         ) {
           // Recursive handling for objects
-          result.push(this.object(fromVal, toVal, progress));
+          result.push(this.object(
+            fromVal as Record<string, unknown>,
+            toVal as Record<string, unknown>,
+            progress
+          ));
         } else {
           // For incompatible types, crossfade based on progress
           result.push(progress < 0.5 ? fromVal : toVal);
@@ -413,13 +417,10 @@ export class ValueInterpolator {
    * @param progress Progress from 0 to 1
    * @returns Interpolated object
    */
-  static object(from: Record<string, any>, to: Record<string, any>, progress: number): Record<string, any> {
-    const result: Record<string, any> = {};
+  static object(from: Record<string, unknown>, to: Record<string, unknown>, progress: number): Record<string, unknown> {
+    const result: Record<string, unknown> = { ...from }; // Start with the 'from' object
     
-    // Process all keys from both objects
-    const allKeys = new Set([...Object.keys(from), ...Object.keys(to)]);
-    
-    allKeys.forEach(key => {
+    for (const key in to) {
       // Determine if key exists in both objects
       const hasFromKey = key in from;
       const hasToKey = key in to;
@@ -430,25 +431,29 @@ export class ValueInterpolator {
         
         // Determine value types and use appropriate interpolator
         if (typeof fromVal === 'number' && typeof toVal === 'number') {
-          result[key] = this.number(fromVal, toVal, progress);
+          result[key] = this.number(fromVal as number, toVal as number, progress);
         } else if (typeof fromVal === 'string' && typeof toVal === 'string') {
           // Handle color values
           if (fromVal.startsWith('#') || fromVal.startsWith('rgb') ||
               toVal.startsWith('#') || toVal.startsWith('rgb')) {
-            result[key] = this.color(fromVal, toVal, progress);
+            result[key] = this.color(fromVal as string, toVal as string, progress);
           } else if (fromVal.includes('transform') || toVal.includes('transform')) {
-            result[key] = this.transform(fromVal, toVal, progress);
+            result[key] = this.transform(fromVal as string, toVal as string, progress);
           } else {
             // For non-interpolatable strings, crossfade based on progress
             result[key] = progress < 0.5 ? fromVal : toVal;
           }
         } else if (Array.isArray(fromVal) && Array.isArray(toVal)) {
-          result[key] = this.array(fromVal, toVal, progress);
+          result[key] = this.array(fromVal as unknown[], toVal as unknown[], progress);
         } else if (
           typeof fromVal === 'object' && fromVal !== null &&
           typeof toVal === 'object' && toVal !== null
         ) {
-          result[key] = this.object(fromVal, toVal, progress);
+          result[key] = this.object(
+            fromVal as Record<string, unknown>,
+            toVal as Record<string, unknown>,
+            progress
+          );
         } else {
           // For incompatible types, crossfade based on progress
           result[key] = progress < 0.5 ? fromVal : toVal;
@@ -460,7 +465,7 @@ export class ValueInterpolator {
         // Key only exists in "to" object, fade in based on progress
         result[key] = progress >= 0.5 ? to[key] : undefined;
       }
-    });
+    }
     
     return result;
   }
@@ -507,10 +512,10 @@ export class ValueInterpolator {
    * @param type Interpolation type
    * @returns Interpolator function
    */
-  static getInterpolator(type: InterpolationType): (from: any, to: any, progress: number, options?: any) => any {
+  static getInterpolator(type: InterpolationType): (from: unknown, to: unknown, progress: number, options?: Record<string, unknown>) => unknown {
     switch (type) {
       case InterpolationType.NUMBER:
-        return this.number;
+        return (f, t, p, o) => this.number(f as number, t as number, p, o);
       case InterpolationType.COLOR:
         return this.color;
       case InterpolationType.TRANSFORM:
@@ -647,12 +652,12 @@ export class AnimationInterpolator {
    * @returns Blended value
    */
   static blend(
-    a: any,
-    b: any,
+    a: unknown,
+    b: unknown,
     progress: number,
     mode: BlendMode = BlendMode.OVERRIDE,
-    customFn?: (a: any, b: any, progress: number) => any
-  ): any {
+    customFn?: (a: unknown, b: unknown, progress: number) => unknown
+  ): unknown {
     switch (mode) {
       case BlendMode.OVERRIDE:
         return progress < 1 ? a : b;
@@ -669,32 +674,39 @@ export class AnimationInterpolator {
         }
         return progress < 0.5 ? a : b;
         
-      case BlendMode.AVERAGE:
+      case BlendMode.AVERAGE: {
+        // Average requires numeric values, return 'a' if not applicable
         if (typeof a === 'number' && typeof b === 'number') {
           return a * (1 - progress) + b * progress;
         }
         return progress < 0.5 ? a : b;
+      }
         
-      case BlendMode.MIN:
+      case BlendMode.MIN: {
+        // Min requires numeric values, return 'a' if not applicable
         if (typeof a === 'number' && typeof b === 'number') {
           return Math.min(a, b);
         }
         return progress < 0.5 ? a : b;
+      }
         
-      case BlendMode.MAX:
+      case BlendMode.MAX: {
+        // Max requires numeric values, return 'a' if not applicable
         if (typeof a === 'number' && typeof b === 'number') {
           return Math.max(a, b);
         }
         return progress < 0.5 ? a : b;
+      }
         
-      case BlendMode.CUSTOM:
+      case BlendMode.CUSTOM: {
         if (customFn) {
           return customFn(a, b, progress);
         }
+        // Fallback to OVERRIDE if no custom function provided
         return progress < 0.5 ? a : b;
-        
+      }
       default:
-        return progress < 0.5 ? a : b;
+        return progress < 0.5 ? a : b; // Default to OVERRIDE
     }
   }
   

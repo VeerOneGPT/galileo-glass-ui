@@ -495,10 +495,10 @@ function RatingComponent(props: RatingProps, ref: React.ForwardedRef<HTMLDivElem
       }, [defaultSpring, animationConfig, motionSensitivity]);
 
       // Apply Physics Hook with merged config
-      const { style: physicsStyle, eventHandlers } = usePhysicsInteraction({
-          ...finalInteractionConfig,
-          reducedMotion: finalDisableAnimation || readOnly, // Pass resolved disable flag + readOnly state
-      });
+      const {
+        ref: physicsRef,
+        style: physicsStyle,
+      } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
 
       return (
         <IconContainer
@@ -508,17 +508,14 @@ function RatingComponent(props: RatingProps, ref: React.ForwardedRef<HTMLDivElem
           $active={itemIsActive}
           $readOnly={readOnly}
           $reducedMotion={finalDisableAnimation}
-          style={physicsStyle} // Apply style from hook
-          {...( !readOnly && !disabled ? eventHandlers : {} )} // Apply handlers conditionally
-          // Add mouse move/leave handlers if not readOnly/disabled
+          ref={physicsRef}
+          style={physicsStyle}
           onMouseMove={!readOnly && !disabled ? handleMouseMove : undefined}
           onMouseLeave={!readOnly && !disabled ? handleMouseLeave : undefined}
           onClick={!readOnly && !disabled ? handleClick : undefined}
-          // Add focus handlers for keyboard interaction (might need adjustments)
           onFocus={() => setActive(itemValue)}
           onBlur={() => setActive(-1)}
         >
-          {/* Hidden radio input for accessibility/forms */}
           {!readOnly && (
             <HiddenInputs>
                 <RadioInput

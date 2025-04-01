@@ -170,8 +170,8 @@ export const measureLayoutOperations = async (duration = 1000): Promise<LayoutMe
       // Create observer for layout shifts
       const layoutObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if ('value' in entry) {
-            layoutShiftScore += (entry as any).value;
+          if ('value' in entry && entry.entryType === 'layout-shift') {
+            layoutShiftScore += (entry as PerformanceEntry & { value: number }).value;
             layoutCount++;
           }
         }
@@ -328,7 +328,7 @@ export const measureMemory = async (): Promise<MemoryMetrics> => {
   let gcOccurred: boolean | undefined;
   
   // Chrome memory API
-  if ('memory' in performance) {
+  if ('memory' in performance && (performance as any).memory) {
     const memoryInfo = (performance as any).memory;
     totalJSHeapSize = memoryInfo.totalJSHeapSize;
     usedJSHeapSize = memoryInfo.usedJSHeapSize;
@@ -337,7 +337,7 @@ export const measureMemory = async (): Promise<MemoryMetrics> => {
   
   // Try to use newer performance.measureUserAgentSpecificMemory() if available
   try {
-    if ('measureUserAgentSpecificMemory' in performance) {
+    if ('measureUserAgentSpecificMemory' in performance && typeof (performance as any).measureUserAgentSpecificMemory === 'function') {
       const memoryMeasurement = await (performance as any).measureUserAgentSpecificMemory();
       
       // Check if GC occurred by seeing if bytes is significantly less than Chrome's usedJSHeapSize
@@ -485,8 +485,8 @@ export const measureInteraction = async (
         const layoutShiftObserver = new PerformanceObserver((list) => {
           let shiftScore = 0;
           for (const entry of list.getEntries()) {
-            if ('value' in entry) {
-              shiftScore += (entry as any).value;
+            if ('value' in entry && entry.entryType === 'layout-shift') {
+              shiftScore += (entry as PerformanceEntry & { value: number }).value;
             }
           }
           cumulativeLayoutShift = shiftScore;
@@ -507,8 +507,9 @@ export const measureInteraction = async (
         
         const firstInputObserver = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
-            if ('processingStart' in entry && 'startTime' in entry) {
-              firstInputDelay = (entry as any).processingStart - (entry as any).startTime;
+            // Check entry type before accessing properties specific to PerformanceEventTiming
+            if (entry.entryType === 'first-input' && 'processingStart' in entry && 'startTime' in entry) {
+              firstInputDelay = (entry as PerformanceEventTiming).processingStart - (entry as PerformanceEventTiming).startTime;
             }
           }
         });

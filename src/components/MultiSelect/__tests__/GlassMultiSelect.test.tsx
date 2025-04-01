@@ -49,7 +49,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         placeholder="Select options"
       />
     );
@@ -69,7 +69,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={selectedValues}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -83,7 +83,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -149,7 +149,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -162,7 +162,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -190,7 +190,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={groupedOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         withGroups={true} // Use withGroups instead of groupBy
         groups={[
           { id: 'frontend', label: 'Frontend' },
@@ -212,7 +212,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -244,7 +244,7 @@ describe('GlassMultiSelect Component', () => {
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         disabled={true}
       />
     );

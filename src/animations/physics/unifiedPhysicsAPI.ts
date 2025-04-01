@@ -120,19 +120,17 @@ import {
 } from './collisionAPI';
 
 import { useInertialMovement } from './useInertialMovement';
-// Just declare the types needed for now, we'll fix the source files later
-interface InertialMovementOptions {}
-interface InertialMovementResult {}
+// Use slightly more descriptive placeholder types
+interface InertialMovementOptions { [key: string]: any; }
+interface InertialMovementResult { [key: string]: any; }
 
 import { useMomentum } from './useMomentum';
-// Just declare the types needed for now, we'll fix the source files later
-interface MomentumOptions {}
-interface MomentumResult {}
+interface MomentumOptions { [key: string]: any; }
+interface MomentumResult { [key: string]: any; }
 
 import { useMultiSpring } from './useMultiSpring';
-// Just declare the types needed for now, we'll fix the source files later
-interface MultiSpringOptions {}
-interface MultiSpringResult {}
+interface MultiSpringOptions { [key: string]: any; }
+interface MultiSpringResult { [key: string]: any; }
 
 import {
   PhysicsAnimationMode,
@@ -146,7 +144,8 @@ import {
   generatePhysicsKeyframes,
   calculateSpringParameters,
   AdvancedPhysicsOptions,
-  PhysicsState
+  PhysicsState,
+  SimulationType
 } from './advancedPhysicsAnimations';
 
 import {
@@ -442,7 +441,7 @@ export class GalileoPhysics {
   /**
    * Gets the WAAPI renderer, creating it if needed
    */
-  public static getWaapiRenderer(options?: any): WaapiRenderer {
+  public static getWaapiRenderer(options?: Record<string, any>): WaapiRenderer {
     if (!this._waapiRenderer) {
       this._waapiRenderer = new WaapiRenderer(options);
     }
@@ -452,7 +451,7 @@ export class GalileoPhysics {
   /**
    * Gets the RAF renderer, creating it if needed
    */
-  public static getRafRenderer(options?: any): RafRenderer {
+  public static getRafRenderer(options?: Record<string, any>): RafRenderer {
     if (!this._rafRenderer) {
       this._rafRenderer = new RafRenderer(options);
     }
@@ -469,7 +468,7 @@ export class GalileoPhysics {
   /**
    * Creates the optimal renderer based on device capabilities and options
    */
-  public static createRenderer(options?: any): AnimationRenderer {
+  public static createRenderer(options?: Record<string, any>): AnimationRenderer {
     return this._rendererFactory.createRenderer(options);
   }
   
@@ -487,15 +486,19 @@ export class GalileoPhysics {
     target: T,
     keyframes: KeyframeEffect,
     options: AnimationOptions = {}
-  ): { id: string; animation: any } {
+  ): { id: string; animation: Animation | null } {
     // Use the factory to get the optimal renderer
     const renderer = this.createRenderer({
-      // Use any type to avoid the preferredRenderer error temporarily
-      // as we can't modify the AnimationOptions interface directly
+      // Pass options correctly
       ...options
     });
     
-    return renderer.animate(target, keyframes, options);
+    // Cast the result animation type
+    const result = renderer.animate(target, keyframes, options);
+    return {
+        id: result.id,
+        animation: result.animation as Animation | null
+    };
   }
   
   /**
@@ -551,22 +554,51 @@ export class GalileoPhysics {
     property: string,
     from: number | string,
     to: number | string,
-    options: Partial<AdvancedPhysicsOptions & AnimationOptions> = {}
+    physicsConfig: Partial<AdvancedPhysicsOptions> = {}, 
+    animationConfig: AnimationOptions = {} 
   ): { id: string; animation: Animation | null } {
-    // Set default mode if not provided
-    const physicsOptions: AdvancedPhysicsOptions = {
-      mode: PhysicsAnimationMode.NATURAL,
-      ...options as any, // Use type assertion to avoid property error
-      // Add the necessary properties for the advancedPhysics function
-      initialState: { x: 0, y: 0, opacity: 1, scale: 1, rotation: 0, vx: 0, vy: 0, vRotation: 0, vScale: 0, vOpacity: 0 },
-      targetState: { x: 0, y: 0, opacity: 1, scale: 1, rotation: 0, vx: 0, vy: 0, vRotation: 0, vScale: 0, vOpacity: 0 },
+    // Construct full physics options needed by generatePhysicsKeyframes
+    const fullPhysicsOptions: AdvancedPhysicsOptions = {
+      // Use simulationType from physicsConfig or default to SPRING
+      simulationType: physicsConfig.simulationType ?? SimulationType.SPRING,
+      property: property,
+      from: typeof from === 'string' ? parseFloat(from) : from,
+      to: typeof to === 'string' ? parseFloat(to) : to,
+      // Pass other physics properties directly
+      mass: physicsConfig.mass !== undefined ? physicsConfig.mass : undefined,
+      stiffness: physicsConfig.stiffness !== undefined ? physicsConfig.stiffness : undefined,
+      damping: physicsConfig.damping !== undefined ? physicsConfig.damping : undefined,
+      initialVelocity: physicsConfig.initialVelocity !== undefined ? physicsConfig.initialVelocity : undefined,
+      boundaries: physicsConfig.boundaries !== undefined ? physicsConfig.boundaries : undefined,
+      friction: physicsConfig.friction !== undefined ? physicsConfig.friction : undefined,
+      gravity: physicsConfig.gravity !== undefined ? physicsConfig.gravity : undefined,
+      collisionElasticity: physicsConfig.collisionElasticity !== undefined ? physicsConfig.collisionElasticity : undefined,
+      quality: physicsConfig.quality !== undefined ? physicsConfig.quality : undefined,
+      // Include other relevant options from AdvancedPhysicsOptions if needed
+      magnetic: physicsConfig.magnetic,
+      particles: physicsConfig.particles,
+      bounciness: physicsConfig.bounciness,
+      elasticity: physicsConfig.elasticity,
+      viscosity: physicsConfig.viscosity,
+      complexity: physicsConfig.complexity,
+      // etc.
     };
     
-    // Generate physics keyframes with the proper options structure
-    const keyframes = generatePhysicsKeyframes(physicsOptions);
+    // Generate physics keyframes and get calculated duration
+    const keyframesResult = generatePhysicsKeyframes(fullPhysicsOptions);
     
-    // Animate using WAAPI
-    return this.animate(target, keyframes.keyframes, options);
+    // Construct final AnimationOptions using the separate animationConfig
+    const finalAnimationOptions: AnimationOptions = {
+        // Prioritize user-specified duration, otherwise use physics duration
+        duration: animationConfig.duration ?? keyframesResult.duration,
+        easing: 'linear', // Use linear easing as physics is in keyframes
+        delay: animationConfig.delay,
+        endDelay: animationConfig.endDelay,
+        iterations: animationConfig.iterations,
+    };
+    
+    // Call animate with the generated keyframes and final animation options
+    return this.animate(target, keyframesResult.keyframes, finalAnimationOptions);
   }
   
   /**

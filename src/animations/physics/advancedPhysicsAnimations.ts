@@ -17,6 +17,25 @@ import { MagneticEffectOptions, magneticEffect } from './magneticEffect';
 import { ParticleSystemOptions, particleSystem } from './particleSystem';
 import { SpringAnimationOptions, springAnimation } from './springAnimation';
 
+// Re-introduce import for ONLY PhysicsQuality and Vector2D
+import { PhysicsQuality, Vector2D } from './types';
+
+// Comment out potentially conflicting import to diagnose linter issue
+// import { PhysicsAnimationMode, PhysicsQuality, Vector2D } from './types';
+
+// --- Define Local Enum for Simulation Type --- //
+export enum SimulationType {
+  SPRING = 'spring',
+  BOUNCE = 'bounce',
+  MAGNETIC = 'magnetic',
+  ELASTIC = 'elastic',
+  LIQUID = 'liquid',
+  INERTIA = 'inertia',
+  CHAIN = 'chain',
+  // Add NATURAL if it's meant to be a simulation type handled here (e.g., mapping to magnetic?)
+  // NATURAL = 'natural' // Example if needed
+}
+
 /**
  * Advanced animation modes
  */
@@ -44,7 +63,9 @@ export enum PhysicsAnimationMode {
 }
 
 /**
- * Animation state model
+ * Animation state model (Restore Vector2D)
+ * Note: Ensure PhysicsState interface is correctly defined in this file or imported elsewhere if needed.
+ * Assuming it might be defined locally for now based on previous context.
  */
 export interface PhysicsState {
   /** Position X */
@@ -80,54 +101,34 @@ export interface PhysicsState {
 
 /**
  * Advanced physics animation options
+ * Restore specific types, keep PhysicsAnimationMode out
  */
 export interface AdvancedPhysicsOptions {
-  /** Animation mode */
-  mode: PhysicsAnimationMode;
-
-  /** Spring configuration (for spring-based modes) */
-  spring?: SpringAnimationOptions;
-
-  /** Magnetic configuration (for magnetic mode) */
+  simulationType: SimulationType;
+  // qualityMode?: PhysicsAnimationMode; // Commented out import
   magnetic?: MagneticEffectOptions;
-
-  /** Particles configuration (for particle effects) */
   particles?: ParticleSystemOptions;
-
-  /** Gravity strength (pixels/ms²) */
-  gravity?: number;
-
-  /** Air resistance/friction (0-1) */
+  property?: string;
+  from?: number;
+  to?: number;
+  mass?: number;
+  stiffness?: number;
+  damping?: number;
+  initialVelocity?: number | Vector2D; // Restore Vector2D
+  boundaries?: { min?: number; max?: number };
   friction?: number;
-
-  /** Bounciness coefficient (0-1) */
+  gravity?: Vector2D | number; // Restore Vector2D
+  collisionElasticity?: number;
+  quality?: PhysicsQuality; // Restore PhysicsQuality
   bounciness?: number;
-
-  /** Elasticity coefficient (0-1) */
   elasticity?: number;
-
-  /** Fluid viscosity (for liquid mode) */
   viscosity?: number;
-
-  /** Whether to enable collision detection */
   collisions?: boolean;
-
-  /** Initial state */
-  initialState?: Partial<PhysicsState>;
-
-  /** Target state */
-  targetState?: Partial<PhysicsState>;
-
-  /** Animation duration in ms (0 for physics-controlled) */
+  initialState?: Partial<PhysicsState>; // Restore PhysicsState
+  targetState?: Partial<PhysicsState>; // Restore PhysicsState
   duration?: number;
-
-  /** Animation complexity level */
   complexity?: AnimationComplexity;
-
-  /** Motion sensitivity level */
   sensitivity?: MotionSensitivityLevel;
-
-  /** Whether to optimize for GPU */
   gpuAccelerated?: boolean;
 }
 
@@ -177,19 +178,26 @@ export const calculateSpringParameters = (
 
 /**
  * Generate a keyframe animation based on physics simulation
- * @param options Physics animation options
- * @returns Keyframes and CSS properties
+ * @param options Physics animation options (using updated AdvancedPhysicsOptions)
+ * @returns Keyframes, CSS properties, and calculated duration
  */
 export const generatePhysicsKeyframes = (
   options: AdvancedPhysicsOptions
 ): {
   keyframes: ReturnType<typeof keyframes>;
   css: ReturnType<typeof css>;
+  duration: number;
 } => {
   const {
-    mode,
-    spring = { mass: 1, stiffness: 100, dampingRatio: 0.8 },
-    gravity = 0,
+    // Destructure simulationType instead of mode
+    simulationType,
+    property = 'transform',
+    from = 0,
+    to = 1,
+    mass = 1,
+    stiffness = 170,
+    damping = 26,
+    initialVelocity = 0,
     friction = 0.2,
     bounciness = 0.5,
     elasticity = 0.3,
@@ -200,121 +208,147 @@ export const generatePhysicsKeyframes = (
     gpuAccelerated = true,
   } = options;
 
-  // Merge initial and target states with defaults
-  const initial = { ...DEFAULT_PHYSICS_STATE, ...initialState };
-  const target = { ...DEFAULT_PHYSICS_STATE, ...targetState };
+  let calculatedDuration = duration;
 
-  // Initialize keyframes data
+  // Merge initial and target states with defaults
+  // Map 'from'/'to' to relevant axis based on property if simple transform
+  let derivedInitialState = { ...DEFAULT_PHYSICS_STATE, ...initialState };
+  let derivedTargetState = { ...DEFAULT_PHYSICS_STATE, ...targetState };
+
+  if (property === 'translateX' || property === 'x') {
+      derivedInitialState.x = from;
+      derivedTargetState.x = to;
+  } else if (property === 'translateY' || property === 'y') {
+      derivedInitialState.y = from;
+      derivedTargetState.y = to;
+  } else if (property === 'scale') {
+      derivedInitialState.scale = from;
+      derivedTargetState.scale = to;
+  } else if (property === 'rotate' || property === 'rotation') {
+      derivedInitialState.rotation = from;
+      derivedTargetState.rotation = to;
+  } else if (property === 'opacity') {
+      derivedInitialState.opacity = from;
+      derivedTargetState.opacity = to;
+  }
+
+  const initial = derivedInitialState;
+  const target = derivedTargetState;
+
   const keyframePoints: { [key: string]: Record<string, string> } = {};
 
-  // Generate different physics animations based on mode
-  switch (mode) {
-    case PhysicsAnimationMode.SPRING: {
-      // Use existing spring animation with enhanced options
-      const springKeyframes = generateSpringKeyframes(initial, target, {
-        mass: spring.mass || 1,
-        stiffness: spring.stiffness || 100,
-        dampingRatio: spring.dampingRatio || 0.8,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 20 : 10,
+  // Use local SimulationType in switch statement
+  switch (simulationType) {
+    case SimulationType.SPRING: { // Use local enum
+      const dampingRatio = damping / (2 * Math.sqrt(mass * stiffness));
+      const result = generateSpringKeyframes(initial, target, {
+        mass: mass,
+        stiffness: stiffness,
+        dampingRatio: dampingRatio,
+        initialVelocity: typeof initialVelocity === 'number' ? initialVelocity : initialVelocity.x,
+        property: property,
+        steps: complexity >= AnimationComplexity.ENHANCED ? 100 : 50,
       });
-
-      Object.assign(keyframePoints, springKeyframes);
+      Object.assign(keyframePoints, result.keyframes);
+      if (calculatedDuration <= 0) calculatedDuration = result.duration;
       break;
     }
-
-    case PhysicsAnimationMode.BOUNCE: {
-      // Generate bounce animation with gravity
-      const bounceKeyframes = generateBounceKeyframes(initial, target, {
-        gravity,
-        bounciness,
-        friction,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 15 : 8,
-      });
-
-      Object.assign(keyframePoints, bounceKeyframes);
-      break;
+    case SimulationType.BOUNCE: { // Use local enum
+        const gravityValue = typeof options.gravity === 'object' && options.gravity !== null ? options.gravity.y : (typeof options.gravity === 'number' ? options.gravity : 0);
+        const result = generateBounceKeyframes(initial, target, {
+            gravity: gravityValue,
+            bounciness,
+            friction,
+            property: property,
+            steps: complexity >= AnimationComplexity.ENHANCED ? 60 : 30,
+        });
+        Object.assign(keyframePoints, result.keyframes);
+        if (calculatedDuration <= 0) calculatedDuration = result.duration;
+        break;
     }
-
-    case PhysicsAnimationMode.ELASTIC: {
-      // Generate elastic/stretchy animation
-      const elasticKeyframes = generateElasticKeyframes(initial, target, {
-        elasticity,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 20 : 10,
-      });
-
-      Object.assign(keyframePoints, elasticKeyframes);
-      break;
+    case SimulationType.ELASTIC: { // Use local enum
+        const result = generateElasticKeyframes(initial, target, {
+            elasticity,
+            property: property,
+            stiffness: stiffness,
+            damping: damping,
+            steps: complexity >= AnimationComplexity.ENHANCED ? 80 : 40,
+        });
+        Object.assign(keyframePoints, result.keyframes);
+        if (calculatedDuration <= 0) calculatedDuration = result.duration;
+        break;
     }
-
-    case PhysicsAnimationMode.LIQUID: {
-      // Generate liquid/squishy animation
-      const liquidKeyframes = generateLiquidKeyframes(initial, target, {
-        viscosity: options.viscosity || 0.3,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 25 : 12,
-      });
-
-      Object.assign(keyframePoints, liquidKeyframes);
-      break;
+    case SimulationType.LIQUID: { // Use local enum
+        const result = generateLiquidKeyframes(initial, target, {
+            viscosity: options.viscosity || 0.3,
+            property: property,
+            steps: complexity >= AnimationComplexity.ENHANCED ? 100 : 50,
+        });
+        Object.assign(keyframePoints, result.keyframes);
+        if (calculatedDuration <= 0) calculatedDuration = result.duration;
+        break;
     }
-
-    case PhysicsAnimationMode.INERTIA: {
-      // Generate inertia animation
-      const inertiaKeyframes = generateInertiaKeyframes(initial, target, {
-        friction,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 15 : 8,
-      });
-
-      Object.assign(keyframePoints, inertiaKeyframes);
-      break;
+    case SimulationType.INERTIA: { // Use local enum
+       const inertiaVelocity = typeof initialVelocity === 'number' ? initialVelocity : initialVelocity[propertyToStateKey(property)] ?? 0;
+       const result = generateInertiaKeyframes(initial, target, {
+            friction,
+            initialVelocity: inertiaVelocity,
+            property: property,
+            steps: complexity >= AnimationComplexity.ENHANCED ? 60 : 30,
+       });
+        Object.assign(keyframePoints, result.keyframes);
+        if (calculatedDuration <= 0) calculatedDuration = result.duration;
+        break;
     }
-
-    case PhysicsAnimationMode.CHAIN: {
-      // Generate chain reaction animation
-      const chainKeyframes = generateChainKeyframes(initial, target, {
-        springTension: spring.stiffness || 100,
-        friction,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 25 : 12,
-      });
-
-      Object.assign(keyframePoints, chainKeyframes);
-      break;
+    case SimulationType.CHAIN: { // Use local enum
+        const result = generateChainKeyframes(initial, target, {
+            springTension: stiffness,
+            friction,
+            property: property,
+            steps: complexity >= AnimationComplexity.ENHANCED ? 100 : 50,
+        });
+        Object.assign(keyframePoints, result.keyframes);
+        if (calculatedDuration <= 0) calculatedDuration = result.duration;
+        break;
     }
-
-    case PhysicsAnimationMode.MAGNETIC:
-    default: {
-      // Use magnetic effect for default or magnetic mode
-      const magneticKeyframes = generateMagneticKeyframes(initial, target, {
-        strength: options.magnetic?.strength || 0.3,
-        radius: options.magnetic?.radius || 100,
-        steps: complexity >= AnimationComplexity.ENHANCED ? 15 : 8,
-      });
-
-      Object.assign(keyframePoints, magneticKeyframes);
-      break;
+    case SimulationType.MAGNETIC: // Use local enum
+    default: { // Default case, perhaps MAGNETIC is the default?
+        const result = generateMagneticKeyframes(initial, target, {
+            strength: options.magnetic?.strength || 0.3,
+            radius: options.magnetic?.radius || 100,
+            initialVelocity: typeof initialVelocity === 'number' ? initialVelocity : initialVelocity[propertyToStateKey(property)] ?? 0,
+            property: property,
+            steps: complexity >= AnimationComplexity.ENHANCED ? 60 : 30,
+        });
+        Object.assign(keyframePoints, result.keyframes);
+        if (calculatedDuration <= 0) calculatedDuration = result.duration;
+        break;
     }
   }
 
-  // Create keyframes
+  if (calculatedDuration <= 0) {
+      calculatedDuration = 1000;
+  }
+
   const keyframesAnimation = keyframes`
     ${Object.entries(keyframePoints)
+      .sort(([a], [b]) => parseFloat(a.replace('%', '')) - parseFloat(b.replace('%', '')))
       .map(
         ([percent, props]) => `
       ${percent} {
         ${Object.entries(props)
-          .map(([prop, value]) => `${prop}: ${value};`)
-          .join('\n        ')}
-      }
-    `
+          .map(([prop, value]) => `  ${prop.replace(/[A-Z]/g, '-$&').toLowerCase()}: ${value};`)
+          .join('\n')}
+      }`
       )
       .join('\n')}
   `;
 
-  // Create CSS
   const animationCSS = css`
-    animation: ${keyframesAnimation} ${duration > 0 ? `${duration}ms` : '1000ms'} forwards;
+    animation: ${keyframesAnimation} ${calculatedDuration}ms linear forwards;
     ${gpuAccelerated
       ? css`
-          will-change: transform, opacity;
+          will-change: ${property === 'opacity' ? 'opacity' : 'transform, opacity'};
           transform: translateZ(0);
           backface-visibility: hidden;
         `
@@ -324,6 +358,7 @@ export const generatePhysicsKeyframes = (
   return {
     keyframes: keyframesAnimation,
     css: animationCSS,
+    duration: calculatedDuration,
   };
 };
 
@@ -337,83 +372,54 @@ const generateSpringKeyframes = (
     mass: number;
     stiffness: number;
     dampingRatio: number;
+    initialVelocity: number;
+    property: string;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { mass, stiffness, dampingRatio, steps } = options;
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+  const { mass, stiffness, dampingRatio, initialVelocity, property, steps } = options;
   const keyframePoints: { [key: string]: Record<string, string> } = {};
+  const precision = 0.01;
+  let calculatedDuration = 0; // Duration calculated *within this helper*
 
-  // Calculate spring parameters
-  const { damping, period } = calculateSpringParameters(mass, stiffness, dampingRatio);
+  const initialValue = (initial as any)[propertyToStateKey(property)] ?? 0;
+  const targetValue = (target as any)[propertyToStateKey(property)] ?? 0;
+  let currentValue = initialValue;
+  let currentVelocity = initialVelocity;
+  const dt = 10;
 
-  // Critical damping factor
-  const criticalDamping = 2 * Math.sqrt(mass * stiffness);
-  const actualDamping = dampingRatio * criticalDamping;
+  keyframePoints['0%'] = { [property]: `${currentValue}${getPropertyUnit(property)}` };
 
-  // Generate steps
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const percent = `${Math.round(t * 100)}%`;
+  for (let time = 0; ; time += dt) {
+      const displacement = currentValue - targetValue;
+      const springForce = -stiffness * displacement;
+      const dampingForce = -dampingRatio * 2 * Math.sqrt(mass * stiffness) * currentVelocity;
+      const totalForce = springForce + dampingForce;
+      const acceleration = totalForce / mass;
 
-    // Spring equation
-    // For underdamped system (dampingRatio < 1)
-    let x, y, scale, rotation, opacity;
+      currentVelocity += acceleration * (dt / 1000);
+      currentValue += currentVelocity * (dt / 1000);
 
-    if (dampingRatio < 1) {
-      // Underdamped (bouncy)
-      const omega = Math.sqrt(stiffness / mass);
-      const omegaD = omega * Math.sqrt(1 - dampingRatio * dampingRatio);
+      if (Math.abs(currentValue - targetValue) < precision && Math.abs(currentVelocity) < precision && time > 0) {
+          calculatedDuration = time;
+          keyframePoints['100%'] = { [property]: `${targetValue}${getPropertyUnit(property)}` };
+          break;
+      }
 
-      const A = 1;
-      const decay = Math.exp(-dampingRatio * omega * t);
+      const percent = `${Math.min(100, Math.round((time / (calculatedDuration || 1000)) * 100))}%`;
+      if (!keyframePoints[percent] || percent === '0%') {
+            keyframePoints[percent] = { [property]: `${currentValue.toFixed(3)}${getPropertyUnit(property)}` };
+      }
 
-      const cosine = Math.cos(omegaD * t);
-      const sine = Math.sin(omegaD * t);
-
-      const progress = 1 - decay * (cosine + ((dampingRatio * omega) / omegaD) * sine);
-
-      x = initial.x + (target.x - initial.x) * progress;
-      y = initial.y + (target.y - initial.y) * progress;
-      scale = initial.scale + (target.scale - initial.scale) * progress;
-      rotation = initial.rotation + (target.rotation - initial.rotation) * progress;
-      opacity = initial.opacity + (target.opacity - initial.opacity) * progress;
-    } else if (dampingRatio === 1) {
-      // Critically damped (smooth)
-      const omega = Math.sqrt(stiffness / mass);
-      const decay = Math.exp(-omega * t);
-
-      const progress = 1 - decay * (1 + omega * t);
-
-      x = initial.x + (target.x - initial.x) * progress;
-      y = initial.y + (target.y - initial.y) * progress;
-      scale = initial.scale + (target.scale - initial.scale) * progress;
-      rotation = initial.rotation + (target.rotation - initial.rotation) * progress;
-      opacity = initial.opacity + (target.opacity - initial.opacity) * progress;
-    } else {
-      // Overdamped (no bounce, slow approach)
-      const omega = Math.sqrt(stiffness / mass);
-      const alpha = dampingRatio * omega;
-      const beta = Math.sqrt(alpha * alpha - omega * omega);
-
-      const decay1 = Math.exp((-alpha + beta) * t);
-      const decay2 = Math.exp((-alpha - beta) * t);
-
-      const progress = 1 - (decay1 + decay2) / 2;
-
-      x = initial.x + (target.x - initial.x) * progress;
-      y = initial.y + (target.y - initial.y) * progress;
-      scale = initial.scale + (target.scale - initial.scale) * progress;
-      rotation = initial.rotation + (target.rotation - initial.rotation) * progress;
-      opacity = initial.opacity + (target.opacity - initial.opacity) * progress;
-    }
-
-    keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`,
-      opacity: `${opacity}`,
-    };
+      if (time > 10000) {
+          calculatedDuration = 10000;
+          keyframePoints['100%'] = { [property]: `${targetValue}${getPropertyUnit(property)}` };
+          console.warn('Spring animation exceeded max duration');
+          break;
+      }
   }
-
-  return keyframePoints;
+  // Correct return for helper
+  return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -426,66 +432,58 @@ const generateBounceKeyframes = (
     gravity: number;
     bounciness: number;
     friction: number;
+    property: string;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { gravity, bounciness, friction, steps } = options;
-  const keyframePoints: { [key: string]: Record<string, string> } = {};
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+   const { gravity, bounciness, friction, property, steps } = options;
+   const keyframePoints: { [key: string]: Record<string, string> } = {};
+   const precision = 0.1;
+   const velocityPrecision = 0.1;
+   let calculatedDuration = 0; // Duration calculated *within this helper*
+   const dt = 10;
 
-  // Initial velocity
-  let vx = initial.vx;
-  let vy = initial.vy;
+    const initialValue = (initial as any)[propertyToStateKey(property)] ?? 0;
+    const targetValue = (target as any)[propertyToStateKey(property)] ?? 0;
+    const initialVelocity = (initial as any)[`v${propertyToStateKey(property).charAt(0).toUpperCase() + propertyToStateKey(property).slice(1)}`] ?? 0;
 
-  // Current position
-  let x = initial.x;
-  let y = initial.y;
-  let scale = initial.scale;
-  let rotation = initial.rotation;
-  let opacity = initial.opacity;
+    let currentValue = initialValue;
+    let currentVelocity = initialVelocity;
 
-  // Ground position (y coordinate where bouncing occurs)
-  const ground = Math.max(initial.y, target.y) + 50;
+    keyframePoints['0%'] = { [property]: `${currentValue}${getPropertyUnit(property)}` };
 
-  // Generate steps
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const percent = `${Math.round(t * 100)}%`;
+    for (let time = 0; ; time += dt) {
+         currentVelocity += gravity * (dt / 1000);
+         currentValue += currentVelocity * (dt / 1000);
 
-    // Apply gravity
-    vy += gravity * (1 / steps);
+        if (currentValue >= targetValue && currentVelocity > 0) {
+             currentValue = targetValue;
+             currentVelocity = -currentVelocity * bounciness;
+             if (Math.abs(currentVelocity) < velocityPrecision) {
+                 currentVelocity = 0;
+             }
+        }
 
-    // Apply friction
-    vx *= 1 - friction * (1 / steps);
+         if (Math.abs(currentValue - targetValue) < precision && Math.abs(currentVelocity) < velocityPrecision && time > 100) {
+              calculatedDuration = time;
+              keyframePoints['100%'] = { [property]: `${targetValue}${getPropertyUnit(property)}` };
+              break;
+         }
 
-    // Update position
-    x += vx;
-    y += vy;
+        const percent = `${Math.min(100, Math.round((time / (calculatedDuration || 1000)) * 100))}%`;
+        if (!keyframePoints[percent] || percent === '0%') {
+            keyframePoints[percent] = { [property]: `${currentValue.toFixed(3)}${getPropertyUnit(property)}` };
+        }
 
-    // Check for ground collision (bounce)
-    if (y >= ground) {
-      y = ground;
-      vy = -vy * bounciness;
-
-      // Squash effect on bounce
-      scale = initial.scale * 1.2;
-    } else {
-      // Restore or progress scale
-      scale = scale + (target.scale - scale) * 0.1;
+         if (time > 15000) {
+             calculatedDuration = 15000;
+             keyframePoints['100%'] = { [property]: `${targetValue}${getPropertyUnit(property)}` };
+             console.warn('Bounce animation exceeded max duration');
+             break;
+         }
     }
-
-    // Progress rotation toward target
-    rotation = rotation + (target.rotation - rotation) * 0.05;
-
-    // Progress opacity toward target
-    opacity = opacity + (target.opacity - opacity) * 0.1;
-
-    keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`,
-      opacity: `${opacity}`,
-    };
-  }
-
-  return keyframePoints;
+   // Correct return for helper
+   return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -496,11 +494,15 @@ const generateElasticKeyframes = (
   target: PhysicsState,
   options: {
     elasticity: number;
+    property: string;
+    stiffness: number;
+    damping: number;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { elasticity, steps } = options;
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+  const { elasticity, property, stiffness, damping, steps } = options;
   const keyframePoints: { [key: string]: Record<string, string> } = {};
+  let calculatedDuration = 0;
 
   // Elastic effect parameters
   const frequency = 3; // Oscillation frequency
@@ -535,12 +537,13 @@ const generateElasticKeyframes = (
     const opacity = initial.opacity + (target.opacity - initial.opacity) * elapsedTimeRate;
 
     keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`,
+      [property]: `${x}px, ${y}px, ${rotation}deg, ${scale}`,
       opacity: `${opacity}`,
     };
   }
 
-  return keyframePoints;
+  calculatedDuration = 1000;
+  return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -551,11 +554,13 @@ const generateLiquidKeyframes = (
   target: PhysicsState,
   options: {
     viscosity: number;
+    property: string;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { viscosity, steps } = options;
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+  const { viscosity, property, steps } = options;
   const keyframePoints: { [key: string]: Record<string, string> } = {};
+  let calculatedDuration = 0;
 
   // Liquid effect parameters
   const frequency = 2.5;
@@ -589,14 +594,13 @@ const generateLiquidKeyframes = (
     const opacity = initial.opacity + (target.opacity - initial.opacity) * warpedTime;
 
     keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${baseScale * xScale}, ${
-        baseScale * yScale
-      })`,
+      [property]: `${x}px, ${y}px, ${rotation}deg, ${baseScale * xScale}, ${baseScale * yScale}`,
       opacity: `${opacity}`,
     };
   }
 
-  return keyframePoints;
+  calculatedDuration = 1000;
+  return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -607,21 +611,24 @@ const generateInertiaKeyframes = (
   target: PhysicsState,
   options: {
     friction: number;
+    initialVelocity: number;
+    property: string;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { friction, steps } = options;
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+  const { friction, initialVelocity, property, steps } = options;
   const keyframePoints: { [key: string]: Record<string, string> } = {};
+  let calculatedDuration = 0;
 
-  // Initial velocity
+  // Current position
+  let x = initial.x;
+  let y = initial.y;
   let vx = initial.vx || (target.x - initial.x) * 0.05;
   let vy = initial.vy || (target.y - initial.y) * 0.05;
   let vRotation = initial.vRotation || (target.rotation - initial.rotation) * 0.05;
   let vScale = initial.vScale || (target.scale - initial.scale) * 0.05;
 
   // Current position
-  let x = initial.x;
-  let y = initial.y;
   let rotation = initial.rotation;
   let scale = initial.scale;
   let opacity = initial.opacity;
@@ -657,12 +664,13 @@ const generateInertiaKeyframes = (
     opacity = initial.opacity + (target.opacity - initial.opacity) * t;
 
     keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`,
+      [property]: `${x}px, ${y}px, ${rotation}deg, ${scale}`,
       opacity: `${opacity}`,
     };
   }
 
-  return keyframePoints;
+  calculatedDuration = 1000;
+  return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -674,11 +682,14 @@ const generateMagneticKeyframes = (
   options: {
     strength: number;
     radius: number;
+    initialVelocity: number;
+    property: string;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { strength, radius, steps } = options;
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+  const { strength, radius, initialVelocity, property, steps } = options;
   const keyframePoints: { [key: string]: Record<string, string> } = {};
+  let calculatedDuration = 0;
 
   // Current position
   let x = initial.x;
@@ -723,12 +734,13 @@ const generateMagneticKeyframes = (
     opacity = opacity + (target.opacity - opacity) * 0.1;
 
     keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`,
+      [property]: `${x}px, ${y}px, ${rotation}deg, ${scale}`,
       opacity: `${opacity}`,
     };
   }
 
-  return keyframePoints;
+  calculatedDuration = 1000;
+  return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -740,11 +752,13 @@ const generateChainKeyframes = (
   options: {
     springTension: number;
     friction: number;
+    property: string;
     steps: number;
   }
-): { [key: string]: Record<string, string> } => {
-  const { springTension, friction, steps } = options;
+): { keyframes: { [key: string]: Record<string, string> }; duration: number } => {
+  const { springTension, friction, property, steps } = options;
   const keyframePoints: { [key: string]: Record<string, string> } = {};
+  let calculatedDuration = 0;
 
   // Time delay between chain links
   const chainDelay = 0.15;
@@ -783,12 +797,13 @@ const generateChainKeyframes = (
     const opacity = initial.opacity + (target.opacity - initial.opacity) * xDelay;
 
     keyframePoints[percent] = {
-      transform: `translate(${x}px, ${y}px) rotate(${rotation}deg) scale(${scale})`,
+      [property]: `${x}px, ${y}px, ${rotation}deg, ${scale}`,
       opacity: `${opacity}`,
     };
   }
 
-  return keyframePoints;
+  calculatedDuration = 1000;
+  return { keyframes: keyframePoints, duration: calculatedDuration };
 };
 
 /**
@@ -817,7 +832,7 @@ export const advancedPhysicsAnimation = (
   }
 
   // Generate keyframes based on physics simulation
-  const { keyframes: animationKeyframes, css: animationCss } = generatePhysicsKeyframes(options);
+  const { keyframes: animationKeyframes, css: animationCss, duration } = generatePhysicsKeyframes(options);
 
   // Apply GPU acceleration if enabled
   const gpuAcceleration = options.gpuAccelerated ? getOptimizedGPUAcceleration(4) : 'none';
@@ -829,3 +844,39 @@ export const advancedPhysicsAnimation = (
     ${gpuAcceleration ? `transform: ${gpuAcceleration};` : ''}
   `;
 };
+
+// Helper to map CSS property to PhysicsState key
+const propertyToStateKey = (prop: string): keyof PhysicsState => {
+    switch(prop.toLowerCase()) {
+        case 'x':
+        case 'translatex': return 'x';
+        case 'y':
+        case 'translatey': return 'y';
+        case 'scale':
+        case 'scaleX':
+        case 'scaleY': return 'scale';
+        case 'rotate':
+        case 'rotation': return 'rotation';
+        case 'opacity': return 'opacity';
+        default:
+            console.warn(`Unsupported property mapping: ${prop}, defaulting to x`);
+            return 'x'; // Default or throw error?
+    }
+}
+
+// Helper to get units for CSS property
+const getPropertyUnit = (prop: string): string => {
+     switch(prop.toLowerCase()) {
+        case 'x':
+        case 'translatex':
+        case 'y':
+        case 'translatey': return 'px'; // Assuming pixels for translation
+        case 'rotate':
+        case 'rotation': return 'deg';
+        case 'scale':
+        case 'scaleX':
+        case 'scaleY':
+        case 'opacity': return ''; // No unit for scale/opacity
+        default: return '';
+    }
+}

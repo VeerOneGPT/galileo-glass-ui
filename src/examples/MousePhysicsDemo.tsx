@@ -324,7 +324,6 @@ const MousePhysicsDemo: React.FC = () => {
         <ControlsContainer>
           <MagneticButtonElement
             ref={magneticButton1.ref}
-            {...magneticButton1.eventHandlers}
             theme={defaultTheme}
           >
             Basic Magnetic Button
@@ -332,7 +331,6 @@ const MousePhysicsDemo: React.FC = () => {
 
           <MagneticButtonElement
             ref={magneticButton2.ref}
-            {...magneticButton2.eventHandlers}
             theme={defaultTheme}
           >
             Tilt Magnetic Button

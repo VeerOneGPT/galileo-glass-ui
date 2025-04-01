@@ -551,11 +551,11 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
       isEssential = false,
       duration,
       element = null,
-      onPause = () => {},
-      onResume = () => {},
-      onStop = () => {},
-      onRestart = () => {},
-      onSpeedChange = () => {}
+      onPause = () => { /* No-op */ },
+      onResume = () => { /* No-op */ },
+      onStop = () => { /* No-op */ },
+      onRestart = () => { /* No-op */ },
+      onSpeedChange = () => { /* No-op */ }
     } = options;
     
     // Check if animation already exists
@@ -1597,7 +1597,7 @@ export function removeAnimationPauseButton(): void {
  * Auto-install the pause control based on user preferences
  * This should be called at the application entry point
  */
-export function autoInstallAnimationControls(options = {
+export function autoInstallAnimationControls(options: AutoInstallOptions = {
   installType: 'button', // 'button', 'control', or 'none'
   respectReducedMotion: true,
   position: 'bottom-right',
@@ -1618,11 +1618,11 @@ export function autoInstallAnimationControls(options = {
     
     // Auto-install controls if reduced motion is preferred
     if (prefersReducedMotion) {
-      if (installType === 'button' || installType === 'auto') {
+      if (installType === 'button') { 
         window.addEventListener('DOMContentLoaded', () => {
           installAnimationPauseButton({
-            position: position as any,
-            theme: theme as any,
+            position: position, 
+            theme: theme,
             showLabel
           });
         });
@@ -1659,12 +1659,11 @@ export function autoInstallAnimationControls(options = {
   try {
     const savedPaused = localStorage.getItem('galileo-glass-animations-paused');
     if (savedPaused === 'true') {
-      // Auto-install controls if animations were previously paused
-      if (installType === 'button' || installType === 'auto') {
+      if (installType === 'button') { 
         window.addEventListener('DOMContentLoaded', () => {
           installAnimationPauseButton({
-            position: position as any,
-            theme: theme as any,
+            position: position, 
+            theme: theme,
             showLabel
           });
         });
@@ -1677,4 +1676,18 @@ export function autoInstallAnimationControls(options = {
   } catch (e) {
     // Ignore storage errors
   }
+}
+
+interface AutoInstallOptions {
+  installType?: 'button' | 'control' | 'none';
+  respectReducedMotion?: boolean;
+  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+  theme?: 'light' | 'dark';
+  showLabel?: boolean;
+}
+
+// Helper function to apply styles safely
+function applyStyles(element: HTMLElement, style: Partial<CSSStyleDeclaration>) {
+  if (!element) return;
+  Object.assign(element.style, style);
 }

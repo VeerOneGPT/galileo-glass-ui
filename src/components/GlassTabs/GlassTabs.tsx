@@ -178,19 +178,10 @@ export const GlassTabs: React.FC<GlassTabsProps> = ({
   className = ''
 }) => {
   const [activeTab, setActiveTab] = useState(defaultTab || (tabs.length > 0 ? tabs[0].id : ''));
-  const theme = useGlassTheme();
   const { isReducedMotion } = useAccessibilitySettings();
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const listRef = useRef<HTMLDivElement>(null);
-  
-  // Set CSS variables for colors based on theme
-  useEffect(() => {
-    const root = document.documentElement;
-    // Default primary color in RGB format
-    const primaryColor = '75, 102, 234';
-    root.style.setProperty('--glass-primary-rgb', primaryColor);
-  }, [theme]);
   
   // Update indicator position when active tab changes
   useEffect(() => {

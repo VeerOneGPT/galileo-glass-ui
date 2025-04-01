@@ -30,7 +30,8 @@ const HighContrastDemo = styled.div<{ theme: any; type: string }>`
   ${props =>
     highContrast({
       enabled: true,
-      type: props.type as any,
+      // @ts-expect-error - props.type is string, mixin expects specific literal type
+      type: props.type as string,
       borderWidth: 2,
       removeBackgroundImages: true,
       removeShadows: true,
@@ -50,7 +51,8 @@ const ReducedTransparencyDemo = styled.div<{ theme: any; type: string }>`
   ${props =>
     reducedTransparency({
       enabled: true,
-      backgroundAdjustment: props.type as any,
+      // @ts-expect-error - props.type is string, mixin expects specific literal type
+      backgroundAdjustment: props.type as string,
       removeBackdropFilters: true,
       respectSystemPreference: false, // For demo purposes, we don't respect system preference
       themeContext: createThemeContext(props.theme),
@@ -72,7 +74,8 @@ type FocusStyleType = 'outline' | 'ring' | 'border' | 'highlight';
 const StyledFocusButton = styled.button<{ theme: any; focusType: FocusStyleType }>`
   ${props =>
     focusStyles({
-      type: props.focusType as any,
+      // @ts-expect-error - props.focusType is string union, mixin expects specific literal type
+      type: props.focusType as string,
       width: 3,
       color: '#3b82f6',
       opacity: 0.8,
@@ -107,7 +110,8 @@ const FocusStylesDemo: React.FC<{
 const VisualFeedbackDemo = styled.div<{ theme: any; type: string }>`
   ${props =>
     visualFeedback({
-      type: props.type as any,
+      // @ts-expect-error - props.type is string, mixin expects specific literal type
+      type: props.type as string,
       intensity: 'medium',
       color: '#3b82f6',
       animated: true,
@@ -130,7 +134,8 @@ const VisualFeedbackDemo = styled.div<{ theme: any; type: string }>`
 const TextStylesDemo = styled.div<{ theme: any; variant: string }>`
   ${props =>
     textStyles({
-      variant: props.variant as any,
+      // @ts-expect-error - props.variant is string, mixin expects specific literal type
+      variant: props.variant as string,
       color: '#3b82f6',
       shadow: props.variant.includes('glass'),
       glass: props.variant.includes('glass'),

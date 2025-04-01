@@ -4,7 +4,7 @@ test('should create particles based on configuration', () => {
   // Create a mock container element
   const container = document.createElement('div');
 
-  const system = new GameParticleSystem({
+  const _system = new GameParticleSystem({
     container: container,
     emitters: [
       {

@@ -1,7 +1,15 @@
 /**
- * Timeline component exports
+ * GlassTimeline Component and utilities
+ * 
+ * Exports the main GlassTimeline component along with types, hooks, 
+ * and subcomponents for the modularized timeline implementation.
  */
+
+// Export the main component
 import { GlassTimeline } from './GlassTimeline';
+export { GlassTimeline };
+
+// Export types
 import { 
   TimelineItem, 
   TimelineOrientation, 
@@ -16,24 +24,7 @@ import {
   TimelinePhysicsConfig,
   TimelineProps
 } from './types';
-import {
-  parseDate,
-  formatDate,
-  getWeekNumber,
-  groupItemsByDate,
-  generateTimeMarkers,
-  filterItems,
-  getDateRangeForView,
-  isToday,
-  calculateTimelinePosition,
-  parseDuration,
-  calculateAppropriateZoomLevel
-} from './TimelineUtils';
 
-// Export main component
-export { GlassTimeline };
-
-// Export types
 export type {
   TimelineItem,
   TimelineOrientation,
@@ -50,6 +41,20 @@ export type {
 };
 
 // Export utility functions
+import {
+  parseDate,
+  formatDate,
+  getWeekNumber,
+  groupItemsByDate,
+  generateTimeMarkers,
+  filterItems,
+  getDateRangeForView,
+  isToday,
+  calculateTimelinePosition,
+  parseDuration,
+  calculateAppropriateZoomLevel
+} from './TimelineUtils';
+
 export {
   parseDate,
   formatDate,
@@ -63,6 +68,24 @@ export {
   parseDuration,
   calculateAppropriateZoomLevel
 };
+
+// Export hooks
+export { 
+  usePositionInertia, 
+  clamp, 
+  type Position2D, 
+  type UsePositionInertiaResult 
+} from './hooks';
+
+// Export subcomponents
+export { 
+  TimelineEvent, 
+  TimelineMarkers, 
+  TimelineControls 
+} from './components';
+
+// Export style constants and styled components
+export type { GlassVariant, BlurStrength } from './styles';
 
 // Default export
 export default GlassTimeline;

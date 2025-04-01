@@ -508,7 +508,7 @@ export const List = forwardRef<any, ListProps>(function List(props, ref) {
             disableAnimation: child.props.disableAnimation ?? finalDisableAnimation,
         };
 
-        let physicsProps: { style?: React.CSSProperties, handlers?: object, usePhysics: boolean } = { usePhysics: false };
+        let physicsProps: { style?: React.CSSProperties, usePhysics: boolean } = { usePhysics: false };
         if (child.props.button && !child.props.disabled) {
             physicsProps = useListItemPhysics(childProps, propAnimationConfig ?? defaultSpring); 
         }
@@ -520,7 +520,6 @@ export const List = forwardRef<any, ListProps>(function List(props, ref) {
                 ...physicsProps.style,
                 opacity: (animateEntrance && !finalDisableAnimation) ? 0 : child.props.style?.opacity ?? 1,
             },
-            ...(physicsProps.handlers),
             ref: (node: HTMLLIElement | null) => {
                 listItemsRef.current[index] = node;
                 const { ref: childRef } = child as any;
@@ -580,7 +579,7 @@ export const List = forwardRef<any, ListProps>(function List(props, ref) {
 /**
  * Internal hook to manage physics for a ListItem
  */
-const useListItemPhysics = (itemProps: ListItemProps, contextDefaultSpringConfig: Partial<SpringConfig> | keyof typeof SpringPresets | undefined): { style?: React.CSSProperties, handlers?: object, usePhysics: boolean } => {
+const useListItemPhysics = (itemProps: ListItemProps, contextDefaultSpringConfig: Partial<SpringConfig> | keyof typeof SpringPresets | undefined): { style?: React.CSSProperties, usePhysics: boolean } => {
     const { 
         animationConfig: itemAnimConfig, 
         disableAnimation: itemDisableAnim, 
@@ -625,9 +624,11 @@ const useListItemPhysics = (itemProps: ListItemProps, contextDefaultSpringConfig
         };
     }, [itemAnimConfig, contextDefaultSpringConfig, finalDisable]);
 
-    const { style, eventHandlers } = usePhysicsInteraction(finalPhysicsOptions);
+    // Destructure only style, not eventHandlers
+    const { style } = usePhysicsInteraction(finalPhysicsOptions);
     
-    return { style, handlers: eventHandlers, usePhysics: !finalDisable };
+    // Return style and usePhysics flag
+    return { style, usePhysics: !finalDisable };
 };
 
 List.displayName = 'List';

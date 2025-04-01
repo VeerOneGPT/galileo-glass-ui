@@ -6,8 +6,6 @@
 import React, { forwardRef, useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { Button } from '../Button'; // Import base Button
 import { ButtonProps } from '../Button/Button'; // Import ButtonProps from correct file

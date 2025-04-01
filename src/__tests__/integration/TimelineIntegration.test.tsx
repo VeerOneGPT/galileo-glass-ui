@@ -18,7 +18,7 @@ interface TooltipProps {
   children: ReactNode;
   title?: string;
   'data-testid'?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Mock GlassTooltip to avoid errors
@@ -63,7 +63,7 @@ const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
   
   // Filter items if a filter is provided
   const displayItems = filter?.categories 
-    ? items.filter(item => filter.categories.includes(item.category || ''))
+    ? items.filter(item => filter.categories?.includes(item.category || ''))
     : items;
     
   return (
@@ -192,8 +192,8 @@ const TimelineDashboard = () => {
       <GlassTimeline
         items={mockTimelineItems}
         onItemClick={handleItemClick}
-        zoomLevel={zoomLevel as any}
-        onZoomChange={setZoomLevel as any}
+        zoomLevel={zoomLevel as string}
+        onZoomChange={setZoomLevel as (level: string) => void}
         filter={filter}
         orientation="vertical"
         markerPosition="alternate"
@@ -276,7 +276,11 @@ describe('Timeline Integration', () => {
     
     // Click on an event
     const event1 = screen.getByText('Event 1').closest('[data-testid="timeline-item"]');
-    fireEvent.click(event1);
+    if (event1) {
+      fireEvent.click(event1);
+    } else {
+      throw new Error("Could not find timeline item for Event 1");
+    }
     
     // Event details should be visible
     expect(screen.getByTestId('event-details')).toBeInTheDocument();

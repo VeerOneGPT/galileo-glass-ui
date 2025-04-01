@@ -25,22 +25,22 @@ class AnimationMock implements Animation {
   effect: AnimationEffect | null = null;
   finished: Promise<Animation> = Promise.resolve(this);
   id = '';
-  oncancel: ((this: Animation, ev: AnimationPlaybackEvent) => any) | null = null;
-  onfinish: ((this: Animation, ev: AnimationPlaybackEvent) => any) | null = null;
-  onremove: ((this: Animation, ev: Event) => any) | null = null;
+  oncancel: ((this: Animation, ev: AnimationPlaybackEvent) => void) | null = null;
+  onfinish: ((this: Animation, ev: AnimationPlaybackEvent) => void) | null = null;
+  onremove: ((this: Animation, ev: Event) => void) | null = null;
   pending = false;
   ready: Promise<Animation> = Promise.resolve(this);
   replaceState: AnimationReplaceState = 'active';
   startTime: number | null = 0;
   timeline: AnimationTimeline | null = null;
-  commitStyles = () => {};
-  finish = () => {};
-  persist = () => {};
-  reverse = () => {};
-  updatePlaybackRate = (playbackRate: number) => {};
-  addEventListener = <K extends keyof AnimationEventMap>(type: K, listener: (this: Animation, ev: AnimationEventMap[K]) => any, options?: boolean | AddEventListenerOptions) => {};
-  removeEventListener = <K extends keyof AnimationEventMap>(type: K, listener: (this: Animation, ev: AnimationEventMap[K]) => any, options?: boolean | EventListenerOptions) => {};
-  dispatchEvent = (event: Event) => true;
+  commitStyles = () => { /* No-op */ };
+  finish = () => { /* No-op */ };
+  persist = () => { /* No-op */ };
+  reverse = () => { /* No-op */ };
+  updatePlaybackRate = (_playbackRate: number) => { /* No-op */ };
+  addEventListener = <K extends keyof AnimationEventMap>(_type: K, _listener: (this: Animation, ev: AnimationEventMap[K]) => void, _options?: boolean | AddEventListenerOptions) => { /* No-op */ };
+  removeEventListener = <K extends keyof AnimationEventMap>(_type: K, _listener: (this: Animation, ev: AnimationEventMap[K]) => void, _options?: boolean | EventListenerOptions) => { /* No-op */ };
+  dispatchEvent = (_event: Event) => true;
   
   pause() {
     this.playState = 'paused';
@@ -93,8 +93,11 @@ const TestComponent: React.FC = () => {
   const { 
     globalPaused, 
     toggleGlobalPause,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     globalSpeed,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     setGlobalSpeed,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     createAnimationController 
   } = useAnimationPauseController();
   

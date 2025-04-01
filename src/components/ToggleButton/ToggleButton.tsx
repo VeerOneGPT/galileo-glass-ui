@@ -365,22 +365,19 @@ function ToggleButtonComponent(
     };
   }, [defaultSpring, animationConfig, motionSensitivity]);
 
-  const { style: physicsHoverPressStyle, eventHandlers } = usePhysicsInteraction({
-    ...finalInteractionConfig,
-    reducedMotion: !usePhysics,
-  });
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+  } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!disabled && onChange) {
       onChange(event, value);
     }
-    if (eventHandlers.onClick) {
-      eventHandlers.onClick(event);
-    }
   };
 
   // Combine styles
-  const combinedStyle = { ...style, ...physicsHoverPressStyle };
+  const combinedStyle = { ...style, ...physicsStyle };
 
   return (
     <ButtonRoot
@@ -390,7 +387,6 @@ function ToggleButtonComponent(
       aria-pressed={selected}
       disabled={disabled}
       onClick={handleClick}
-      {...eventHandlers}
       className={className}
       $selected={selected}
       $disabled={disabled}

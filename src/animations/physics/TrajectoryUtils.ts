@@ -494,7 +494,7 @@ export function calculateBezierTrajectory(options: BezierTrajectoryOptions): Tra
   
   // Points on the curve
   const points: TrajectoryPoint[] = [];
-  const timeStep = 1 / numPoints;
+  const _timeStep = 1 / numPoints;
   let totalDistance = 0;
   let maxHeight = startPosition.y;
   let lastPosition: Vector | null = null;
@@ -659,7 +659,7 @@ export function calculateSpiralTrajectory(options: SpiralTrajectoryOptions): Tra
   
   const points: TrajectoryPoint[] = [];
   const totalAngle = startAngle + turns * 2 * Math.PI;
-  const angleStep = (totalAngle - startAngle) / numPoints;
+  const _angleStep = (totalAngle - startAngle) / numPoints;
   let totalDistance = 0;
   let maxHeight = center.y - startRadius; // Initial guess
   let lastPosition: Vector | null = null;

@@ -13,7 +13,7 @@ import { SpringConfig, SpringPresets } from '../../animations/physics/springPhys
 import { useGalileoSprings, SpringsAnimationResult } from '../../hooks/useGalileoSprings'; // Import Galileo hook
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
-import { createThemeContext } from '../../core/themeContext';
+import { createThemeContext } from '../../core/themeContext'; // Re-import createThemeContext
 // import { getPopoverPosition } from '../../utils/positionUtils'; // Remove dependency
 
 // --- Copied and adapted positioning logic from Tooltip --- 
@@ -215,30 +215,31 @@ const MenuContent = styled.div<{
   // transform-origin is set dynamically via style prop
 
   /* Variant styles */
-  ${props => {
-    const themeContext = createThemeContext({}); // Base context for mixins
-    if (props.$variant === 'glass') {
+  ${({ theme, $variant }) => { // Access theme from props provided by styled-components
+    // Generate the full theme context based on the theme from styled-components
+    const themeContext = createThemeContext(theme || {});
+    if ($variant === 'glass') {
       return css`
-        color: #ffffff; // Default white text for glass
+        color: ${theme?.colors?.text?.primary || '#ffffff'}; // Use theme color or default
         ${glassSurface({
           elevation: 4,
           blurStrength: 'standard',
           backgroundOpacity: 'medium',
           borderOpacity: 'subtle',
-          themeContext,
+          themeContext, // Pass reconstructed context
         })}
         ${glassGlow({
           intensity: 'subtle',
-          color: 'primary', 
-          themeContext,
+          color: 'primary',
+          themeContext, // Pass reconstructed context
         })}
       `;
     }
     // standard
     return css`
-      background-color: #2a2a2e; // Default dark surface
-      color: #ffffff; // Default white text
-      border: 1px solid rgba(255, 255, 255, 0.12); // Default divider
+      background-color: ${theme?.colors?.surface?.default || '#2a2a2e'};
+      color: ${theme?.colors?.text?.primary || '#ffffff'};
+      border: 1px solid ${theme?.colors?.border?.default || 'rgba(255, 255, 255, 0.12)'};
     `;
   }}
 `;

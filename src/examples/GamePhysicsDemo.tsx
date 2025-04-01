@@ -192,10 +192,8 @@ export const GamePhysicsDemo: React.FC = () => {
     category: AnimationCategory.BACKGROUND
   });
   
-  // Setup initial objects
-  const initialObjects: GamePhysicsObjectConfig[] = [
-    // Floor and walls created after scene dimensions are known
-  ];
+  // Setup initial objects - use an empty object instead of an array
+  const initialObjects: Record<string, GamePhysicsObjectConfig> = {};
   
   // Initialize the game physics hook
   const gamePhysics = useGamePhysics({

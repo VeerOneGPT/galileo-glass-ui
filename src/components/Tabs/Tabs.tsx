@@ -452,10 +452,10 @@ const PhysicsTab = forwardRef<HTMLButtonElement, PhysicsTabProps>((props, ref) =
     };
   }, [defaultSpring, animationConfig, motionSensitivity]);
 
-  const { style: physicsStyle, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
-    ...finalInteractionConfig,
-    reducedMotion: !usePhysics,
-  });
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+  } = usePhysicsInteraction<HTMLButtonElement>(finalInteractionConfig);
 
   // Combine event handlers
   const combinedClickHandler = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -464,8 +464,6 @@ const PhysicsTab = forwardRef<HTMLButtonElement, PhysicsTabProps>((props, ref) =
       if (onClick) {
         onClick(event); // Call original child onClick
       }
-      // Trigger physics click handler if needed (might be redundant with mouse down/up)
-      // eventHandlers.onClick?.(event);
     }
   };
 
@@ -490,10 +488,7 @@ const PhysicsTab = forwardRef<HTMLButtonElement, PhysicsTabProps>((props, ref) =
       $size={size}
       $appearance={appearance}
       className={className}
-      style={usePhysics ? physicsStyle : {}} // Apply physics style only if enabled
-      // Spread physics handlers if enabled
-      {...(usePhysics ? eventHandlers : {})}
-      {...rest} // Spread any remaining standard HTML attributes
+      style={usePhysics ? physicsStyle : {}}
     >
       {icon && <TabIcon>{icon}</TabIcon>}
       <TabLabel>{label}</TabLabel>

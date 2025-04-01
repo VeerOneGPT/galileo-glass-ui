@@ -218,7 +218,10 @@ const DimensionalGlassComponent = (
   }, [defaultSpring, animationConfig, motionSensitivity, hoverScale, maxTilt]);
 
   // Initialize the physics interaction hook
-  const { style: physicsStyle, eventHandlers } = usePhysicsInteraction<HTMLDivElement>({
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+  } = usePhysicsInteraction<HTMLDivElement>({
     ...finalInteractionConfig,
     reducedMotion: !usePhysics, // Pass the final disable flag
   });
@@ -259,8 +262,6 @@ const DimensionalGlassComponent = (
       $backgroundColor={backgroundColor}
       $isHovered={false}
       $reducedMotion={prefersReducedMotion}
-      {...(usePhysics ? eventHandlers : {})}
-      {...rest}
     >
       <DimensionalContent style={combinedStyle}>
         {children}

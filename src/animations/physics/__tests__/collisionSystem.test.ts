@@ -3,7 +3,7 @@
  */
 
 import {
-  CollisionBody,
+  // CollisionBody, // Removed unused import
   createCircleBody,
   createRectangleBody,
   createPointBody,
@@ -13,10 +13,13 @@ import {
   CollisionSystem,
   createCollisionSystem,
   createBoundaryWalls,
-  SpatialGrid
-, CollisionCategories , CollisionEvent, CollisionEventType } from '../collisionSystem';
-import { CollisionShape } from '../types';
-import { createVector, vectorDistance, vectorMagnitude } from '../physicsCalculations';
+  SpatialGrid,
+  CollisionCategories, 
+  CollisionEvent, 
+  CollisionEventType
+} from '../collisionSystem';
+// import { CollisionShape } from '../types'; // Removed unused import
+import { /* createVector, vectorDistance, */ vectorMagnitude } from '../physicsCalculations'; // Removed unused imports
 
 describe('Collision Detection', () => {
   // Test Circle-Circle collision detection
@@ -48,8 +51,8 @@ describe('Collision Detection', () => {
       const result = detectBodyCollision(circleA, circleB);
       
       expect(result.normal).toBeDefined();
-      expect(result.normal!.x).toBeCloseTo(1);
-      expect(result.normal!.y).toBeCloseTo(0);
+      expect(result.normal?.x).toBeCloseTo(1);
+      expect(result.normal?.y).toBeCloseTo(0);
     });
   });
   
@@ -82,8 +85,8 @@ describe('Collision Detection', () => {
       const result = detectBodyCollision(rectA, rectB);
       
       expect(result.normal).toBeDefined();
-      expect(result.normal!.x).not.toBeCloseTo(0);
-      expect(result.normal!.y).toBeCloseTo(0);
+      expect(result.normal?.x).not.toBeCloseTo(0);
+      expect(result.normal?.y).toBeCloseTo(0);
     });
     
     test('should calculate correct normal for vertical overlap', () => {
@@ -93,8 +96,8 @@ describe('Collision Detection', () => {
       const result = detectBodyCollision(rectA, rectB);
       
       expect(result.normal).toBeDefined();
-      expect(result.normal!.x).toBeCloseTo(0);
-      expect(result.normal!.y).not.toBeCloseTo(0);
+      expect(result.normal?.x).toBeCloseTo(0);
+      expect(result.normal?.y).not.toBeCloseTo(0);
     });
   });
   
@@ -207,7 +210,7 @@ describe('Collision Response', () => {
     expect(result.collision).toBeTruthy();
     
     // Save original positions and velocities
-    const posA = { ...circleA.position };
+    // const posA = { ...circleA.position }; // Removed unused variable
     const velA = { ...circleA.velocity };
     const posB = { ...circleB.position };
     const velB = { ...circleB.velocity };
@@ -331,10 +334,10 @@ describe('Collision System', () => {
     const bottom = walls.find(w => w.id === 'boundary_bottom');
     const left = walls.find(w => w.id === 'boundary_left');
     
-    expect(top?.position.y).toBeLessThan(right?.position.y!);
-    expect(bottom?.position.y).toBeGreaterThan(right?.position.y!);
-    expect(left?.position.x).toBeLessThan(top?.position.x!);
-    expect(right?.position.x).toBeGreaterThan(top?.position.x!);
+    expect(top?.position.y).toBeLessThan(right?.position?.y ?? Infinity);
+    expect(bottom?.position.y).toBeGreaterThan(right?.position?.y ?? -Infinity);
+    expect(left?.position.x).toBeLessThan(top?.position?.x ?? Infinity);
+    expect(right?.position.x).toBeGreaterThan(top?.position?.x ?? -Infinity);
   });
 });
 

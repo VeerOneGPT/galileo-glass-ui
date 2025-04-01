@@ -1,5 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect, forwardRef, CSSProperties } from 'react';
 import { GlassButton, ButtonProps as GlassButtonProps } from './Button';
+import { Slot } from '@radix-ui/react-slot';
 
 export interface MagneticButtonProps extends GlassButtonProps {
   /**
@@ -21,32 +22,41 @@ export interface MagneticButtonProps extends GlassButtonProps {
    * Custom styles to apply to the button, merged with magnetic transform.
    */
   style?: CSSProperties;
+  /**
+   * If true, the component will render its child element and pass relevant props
+   * (styles, event handlers) down to it, instead of rendering its own button element.
+   * @default false
+   */
+  asChild?: boolean;
 }
 
 /**
  * A GlassButton with a magnetic effect that attracts the button towards the cursor on hover.
  */
-export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>(function MagneticButton(
+export const MagneticButton = forwardRef<HTMLElement, MagneticButtonProps>(function MagneticButton(
   {
     magneticStrength = 0.5,
     magneticRadius = 150,
-    magneticDampingFactor = 0.8, // Keep prop for potential future use or different logic
-    style: propStyle, // Rename to avoid conflict
+    magneticDampingFactor = 0.8,
+    style: propStyle,
     onPointerEnter,
     onPointerLeave,
-    ...restProps // Pass remaining GlassButtonProps
+    asChild = false,
+    children,
+    ...restProps
   },
-  ref // Forwarded ref
+  ref
 ) {
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const Comp = asChild ? Slot : GlassButton;
+
+  const elementRef = useRef<HTMLElement>(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const animationFrame = useRef<number | null>(null);
 
-  // Combine forwarded ref and local ref
   const combinedRef = useCallback(
-    (node: HTMLButtonElement | null) => {
-      buttonRef.current = node;
+    (node: HTMLElement | null) => {
+      elementRef.current = node;
       if (ref) {
         if (typeof ref === 'function') {
           ref(node);
@@ -58,7 +68,6 @@ export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>
     [ref]
   );
 
-  // Function to calculate magnetic attraction
   const calculateMagneticAttraction = useCallback((distanceX: number, distanceY: number, rect: DOMRect) => {
       const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2);
 
@@ -84,12 +93,10 @@ export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>
       };
   }, [magneticRadius, magneticStrength]);
 
-
-  // Handle pointer move event
   const handlePointerMove = useCallback((e: PointerEvent) => {
-      if (!buttonRef.current || !isHovered) return;
+      if (!elementRef.current || !isHovered) return;
 
-      const rect = buttonRef.current.getBoundingClientRect();
+      const rect = elementRef.current.getBoundingClientRect();
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
       const distanceX = e.clientX - centerX;
@@ -105,10 +112,8 @@ export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>
 
   }, [isHovered, calculateMagneticAttraction]);
 
-
-  // Return to center animation loop
   const returnToCenter = useCallback(() => {
-      if (!isHovered && buttonRef.current && (Math.abs(position.x) > 0.01 || Math.abs(position.y) > 0.01)) {
+      if (!isHovered && elementRef.current && (Math.abs(position.x) > 0.01 || Math.abs(position.y) > 0.01)) {
           // Smoother damping towards center
           const dampFactor = 0.15; // Controls speed of return (higher is faster damping)
           const nextX = position.x * (1 - dampFactor);
@@ -132,8 +137,6 @@ export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>
       }
   }, [isHovered, position.x, position.y]);
 
-
-  // Set up global event listener for pointermove
   useEffect(() => {
       if (typeof window !== 'undefined') {
           // Use capture phase to potentially get events slightly earlier if needed
@@ -147,9 +150,7 @@ export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>
       }
   }, [handlePointerMove]);
 
-
-  // Trigger returnToCenter when hover state changes
-   useEffect(() => {
+  useEffect(() => {
       // Stop any ongoing return animation if we start hovering
       if (isHovered && animationFrame.current !== null) {
           cancelAnimationFrame(animationFrame.current);
@@ -172,39 +173,37 @@ export const MagneticButton = forwardRef<HTMLButtonElement, MagneticButtonProps>
       };
   }, [isHovered, returnToCenter]);
 
-
-  const handlePointerEnter = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerEnter = (e: React.PointerEvent<HTMLElement>) => {
     setIsHovered(true);
     if (onPointerEnter) {
-      onPointerEnter(e);
+      onPointerEnter(e as any);
     }
   };
 
-  const handlePointerLeave = (e: React.PointerEvent<HTMLButtonElement>) => {
+  const handlePointerLeave = (e: React.PointerEvent<HTMLElement>) => {
     setIsHovered(false);
-     // Let returnToCenter handle the smooth return.
     if (onPointerLeave) {
-      onPointerLeave(e);
+      onPointerLeave(e as any);
     }
   };
 
-  // Combine prop style with dynamic transform style
   const combinedStyle: CSSProperties = {
     ...propStyle,
-    transform: `translate3d(${position.x}px, ${position.y}px, 0)`, // Use translate3d for potential GPU acceleration
-    transition: isHovered ? 'transform 0.05s linear' : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)', // Faster follow, slower return
-    willChange: 'transform', // Performance hint
+    transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+    transition: isHovered ? 'transform 0.05s linear' : 'transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1)',
+    willChange: 'transform',
   };
 
-
   return (
-    <GlassButton
+    <Comp
       ref={combinedRef}
       style={combinedStyle}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
-      {...restProps} // Pass all other GlassButton props
-    />
+      {...restProps}
+    >
+      {children}
+    </Comp>
   );
 }
 );

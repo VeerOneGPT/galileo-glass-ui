@@ -13,6 +13,19 @@ import { accessibleAnimation } from '../../animations/accessibility/accessibleAn
 import { slideUp } from '../../animations/keyframes/basic';
 import { AnimationProps } from '../../animations/types'; // Import AnimationProps
 
+// Basic composeRefs utility
+function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
+  return (node) => {
+    refs.forEach(ref => {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref != null) {
+        (ref as React.MutableRefObject<T | null>).current = node;
+      }
+    });
+  };
+}
+
 export interface BottomNavigationProps extends AnimationProps {
   /**
    * The content of the bottom navigation
@@ -510,15 +523,14 @@ export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNaviga
     }, [defaultSpring, animationConfig, motionSensitivity]);
 
     // Apply physics interaction hook with calculated config
-    const { style: animatedStyle, eventHandlers } = usePhysicsInteraction({
-        ...finalInteractionConfig, // Use the calculated config
-        reducedMotion: !usePhysics, // Correctly pass disable flag
-        // scaleAmplitude removed - now part of finalInteractionConfig
-    });
+    const {
+      ref: physicsRef,
+      style: physicsStyle,
+    } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
 
     return (
       <ActionButton
-        ref={ref}
+        ref={composeRefs(physicsRef, ref)}
         $selected={selected}
         $size={size}
         $showLabel={showLabel || selected}
@@ -526,8 +538,7 @@ export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNaviga
         $disabled={disabled}
         onClick={onClick}
         className={className}
-        style={usePhysics ? animatedStyle : {}} // Apply physics style conditionally
-        {...(usePhysics ? eventHandlers : {})} // Apply handlers conditionally
+        style={physicsStyle}
         {...rest}
       >
         {icon && <span className="action-icon">{icon}</span>}

@@ -568,8 +568,8 @@ export function useHighContrast(options: HighContrastOptions = {}): HighContrast
       contrastQuery.addEventListener('change', handleContrastChange);
     } else {
       // For older browsers
-      (highContrastQuery as any).addListener(handleHighContrastChange);
-      (contrastQuery as any).addListener(handleContrastChange);
+      (highContrastQuery as MediaQueryList).addListener(handleHighContrastChange);
+      (contrastQuery as MediaQueryList).addListener(handleContrastChange);
     }
     
     // Initial settings
@@ -582,8 +582,8 @@ export function useHighContrast(options: HighContrastOptions = {}): HighContrast
         contrastQuery.removeEventListener('change', handleContrastChange);
       } else {
         // For older browsers
-        (highContrastQuery as any).removeListener(handleHighContrastChange);
-        (contrastQuery as any).removeListener(handleContrastChange);
+        (highContrastQuery as MediaQueryList).removeListener(handleHighContrastChange);
+        (contrastQuery as MediaQueryList).removeListener(handleContrastChange);
       }
     };
   }, [respectSystemPreference]);
@@ -600,8 +600,8 @@ export function useHighContrast(options: HighContrastOptions = {}): HighContrast
     setAppHighContrastState(value);
     
     // If we have access to the global setter, use it
-    if (accessibilitySettings && 'setHighContrast' in accessibilitySettings) {
-      (accessibilitySettings as any).setHighContrast(value);
+    if (accessibilitySettings && 'setHighContrast' in accessibilitySettings && typeof accessibilitySettings.setHighContrast === 'function') {
+      accessibilitySettings.setHighContrast(value);
     }
     
     // Also store in localStorage for persistence

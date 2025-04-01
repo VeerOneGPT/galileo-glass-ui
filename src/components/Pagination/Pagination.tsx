@@ -317,7 +317,10 @@ const InteractablePaginationButton: React.FC<InteractableButtonProps> = ({
   ariaLabel,
   ...rest // Pass rest to PaginationButton
 }) => {
-  const { style: physicsStyle, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+  } = usePhysicsInteraction<HTMLButtonElement>({
     ...animationConfig,
     reducedMotion: reducedMotion || disabled || current || isEllipsis, // Disable physics for disabled/current/ellipsis
   });
@@ -334,9 +337,9 @@ const InteractablePaginationButton: React.FC<InteractableButtonProps> = ({
       $color={color}
       $isEllipsis={isEllipsis}
       aria-label={ariaLabel}
-      style={physicsStyle} // Apply physics style
-      {...eventHandlers} // Apply physics handlers
-      {...rest} // Spread other props
+      ref={physicsRef}
+      style={physicsStyle}
+      {...rest}
     >
       {children}
     </PaginationButton>

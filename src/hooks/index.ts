@@ -99,3 +99,15 @@ export { useAnimationSynchronization, type UseAnimationSynchronizationOptions, t
 export { useAnimationEvent, type UseAnimationEventOptions, type UseAnimationEventReturn } from './useAnimationEvent';
 export { useStaggeredAnimation, type UseStaggeredAnimationOptions, type UseStaggeredAnimationReturn } from './useStaggeredAnimation';
 export { useGestureAnimation, GestureAnimationPresets, GestureTypes } from './useGestureAnimation';
+
+// Add missing exports for useAnimationSequence and useGesturePhysics
+export {
+  useAnimationSequence,
+  type AnimationSequenceConfig,
+  type SequenceControls
+} from '../animations/orchestration/useAnimationSequence';
+export {
+  useGesturePhysics,
+  type GesturePhysicsOptions,
+  type GesturePhysicsPreset
+} from '../animations/physics/gestures/useGesturePhysics';

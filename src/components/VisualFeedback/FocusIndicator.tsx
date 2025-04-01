@@ -107,7 +107,7 @@ function FocusIndicatorComponent(
   // --- Define Animation Targets --- 
   const getTargets = () => {
     const rgbColor = colorToRgb(finalColor);
-    const hcColor = finalHighContrast ? '255, 255, 0' : rgbColor; // Yellow or original
+    const _hcColor = finalHighContrast ? '255, 255, 0' : rgbColor; // Yellow or original
     const hcOpacity = finalHighContrast ? 1 : 0.8;
     const shadowOpacity = finalHighContrast ? 1 : 0.5;
 

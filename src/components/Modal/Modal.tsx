@@ -1,6 +1,6 @@
 import React, { forwardRef, useState, useEffect, useCallback, CSSProperties, useRef, useMemo } from 'react';
 import ReactDOM from 'react-dom';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { fadeIn, fadeOut } from '../../animations/keyframes/basic';
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
@@ -167,8 +167,10 @@ const ModalContent = styled.div<{
   $fullWidth: boolean;
 }>`
   position: relative;
-  background-color: ${props => (props.$variant === 'glass' ? 'rgba(255, 255, 255, 0.1)' : 'white')};
-  color: ${props => (props.$variant === 'glass' ? 'white' : 'inherit')};
+  background-color: ${({ theme, $variant }) =>
+    $variant === 'glass' ? 'rgba(255, 255, 255, 0.1)' : (theme?.colors?.surface?.default || 'white')};
+  color: ${({ theme, $variant }) =>
+    $variant === 'glass' ? (theme?.colors?.text?.primary || 'white') : 'inherit'};
   border-radius: 8px;
   padding: 24px;
   max-width: ${props => (props.$maxWidth !== false ? props.$maxWidth : '100%')};
@@ -179,32 +181,30 @@ const ModalContent = styled.div<{
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 
   /* Glass effects for glass variant */
-  ${props =>
-    props.$variant === 'glass' &&
-    glassSurface({
-      elevation: 3,
-      blurStrength: 'enhanced',
-      backgroundOpacity: 'medium',
-      borderOpacity: 'subtle',
-      themeContext: createThemeContext({}),
-    })}
-
-  ${props =>
-    props.$variant === 'glass' &&
-    glassGlow({
-      intensity: 'subtle',
-      color: 'primary',
-      themeContext: createThemeContext({}),
-    })}
-  
-  ${props =>
-    props.$variant === 'glass' &&
-    edgeHighlight({
-      thickness: 1,
-      opacity: 0.6,
-      position: 'all',
-      themeContext: createThemeContext({}),
-    })}
+  ${({ theme, $variant }) => {
+    if ($variant !== 'glass') return null;
+    const themeContext = createThemeContext(theme || {}); // Create context once for glass variant
+    return css`
+      ${glassSurface({
+        elevation: 3,
+        blurStrength: 'enhanced',
+        backgroundOpacity: 'medium',
+        borderOpacity: 'subtle',
+        themeContext,
+      })}
+      ${glassGlow({
+        intensity: 'subtle',
+        color: 'primary',
+        themeContext,
+      })}
+      ${edgeHighlight({
+        thickness: 1,
+        opacity: 0.6,
+        position: 'all',
+        themeContext,
+      })}
+    `;
+  }}
   
   /* Transform origin for animations */
   transform-origin: center center;

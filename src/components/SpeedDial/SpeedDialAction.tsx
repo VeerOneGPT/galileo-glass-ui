@@ -321,12 +321,7 @@ const SpeedDialActionComponent = (
   const {
     ref: physicsRef,
     style: physicsStyle,
-    eventHandlers
-  } = usePhysicsInteraction<HTMLDivElement>({
-    ...finalInteractionConfig, // Use the calculated config
-    reducedMotion: !usePhysics, // Correctly pass disable flag
-    // scaleAmplitude removed - now part of finalInteractionConfig
-  });
+  } = usePhysicsInteraction<HTMLDivElement>(finalInteractionConfig);
 
   const position = getPosition(direction, index, totalActions, size);
 
@@ -354,7 +349,6 @@ const SpeedDialActionComponent = (
       className={className}
       style={{ ...style, ...physicsStyle }}
       onClick={handleClick}
-      {...eventHandlers}
       $position={position}
       $visible={visible}
       $glass={glass}

@@ -6,11 +6,10 @@
  */
 
 import { 
-  AnimationPreset, 
-  TimingFunction 
+  AnimationPreset
 } from '../core/types';
 import { animationEventBus } from './AnimationEventSystem';
-import { animationOrchestrator } from './Orchestrator';
+import { animationOrchestrator, AnimationEventType } from './Orchestrator';
 
 /**
  * Distribution pattern for staggered animations
@@ -148,7 +147,7 @@ export interface ElementCategory {
   order?: number;
   
   /** Custom category data */
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -200,7 +199,7 @@ export interface StaggerTarget {
   include?: boolean;
   
   /** Custom element data */
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -478,35 +477,35 @@ function calculateElementOrder(
     switch (direction) {
       case StaggerDirection.TOP_DOWN:
         withPositions.sort((a, b) => 
-          (a.position!.y) - (b.position!.y)
+          (a.position?.y ?? 0) - (b.position?.y ?? 0)
         );
         break;
         
       case StaggerDirection.BOTTOM_UP:
         withPositions.sort((a, b) => 
-          (b.position!.y) - (a.position!.y)
+          (b.position?.y ?? 0) - (a.position?.y ?? 0)
         );
         break;
         
       case StaggerDirection.LEFT_RIGHT:
         withPositions.sort((a, b) => 
-          (a.position!.x) - (b.position!.x)
+          (a.position?.x ?? 0) - (b.position?.x ?? 0)
         );
         break;
         
       case StaggerDirection.RIGHT_LEFT:
         withPositions.sort((a, b) => 
-          (b.position!.x) - (a.position!.x)
+          (b.position?.x ?? 0) - (a.position?.x ?? 0)
         );
         break;
         
       case StaggerDirection.CLOCKWISE: {
         // Sort clockwise based on angle around reference point
         withPositions.sort((a, b) => {
-          const aX = a.position!.x - refPoint.x;
-          const aY = a.position!.y - refPoint.y;
-          const bX = b.position!.x - refPoint.x;
-          const bY = b.position!.y - refPoint.y;
+          const aX = (a.position?.x ?? 0) - refPoint.x;
+          const aY = (a.position?.y ?? 0) - refPoint.y;
+          const bX = (b.position?.x ?? 0) - refPoint.x;
+          const bY = (b.position?.y ?? 0) - refPoint.y;
           
           const angleA = Math.atan2(aY, aX);
           const angleB = Math.atan2(bY, bX);
@@ -519,10 +518,10 @@ function calculateElementOrder(
       case StaggerDirection.COUNTER_CLOCKWISE: {
         // Sort counter-clockwise based on angle around reference point
         withPositions.sort((a, b) => {
-          const aX = a.position!.x - refPoint.x;
-          const aY = a.position!.y - refPoint.y;
-          const bX = b.position!.x - refPoint.x;
-          const bY = b.position!.y - refPoint.y;
+          const aX = (a.position?.x ?? 0) - refPoint.x;
+          const aY = (a.position?.y ?? 0) - refPoint.y;
+          const bX = (b.position?.x ?? 0) - refPoint.x;
+          const bY = (b.position?.y ?? 0) - refPoint.y;
           
           const angleA = Math.atan2(aY, aX);
           const angleB = Math.atan2(bY, bX);
@@ -535,13 +534,13 @@ function calculateElementOrder(
       case StaggerDirection.INWARD: {
         // Sort by distance from reference point (furthest first)
         withPositions.sort((a, b) => {
-          const aX = a.position!.x - refPoint.x;
-          const aY = a.position!.y - refPoint.y;
-          const aZ = (a.position!.z || 0) - (refPoint.z || 0);
+          const aX = (a.position?.x ?? 0) - refPoint.x;
+          const aY = (a.position?.y ?? 0) - refPoint.y;
+          const aZ = (a.position?.z ?? 0) - (refPoint.z || 0);
           
-          const bX = b.position!.x - refPoint.x;
-          const bY = b.position!.y - refPoint.y;
-          const bZ = (b.position!.z || 0) - (refPoint.z || 0);
+          const bX = (b.position?.x ?? 0) - refPoint.x;
+          const bY = (b.position?.y ?? 0) - refPoint.y;
+          const bZ = (b.position?.z || 0) - (refPoint.z || 0);
           
           const distA = Math.sqrt(aX * aX + aY * aY + aZ * aZ);
           const distB = Math.sqrt(bX * bX + bY * bY + bZ * bZ);
@@ -554,13 +553,13 @@ function calculateElementOrder(
       case StaggerDirection.OUTWARD: {
         // Sort by distance from reference point (closest first)
         withPositions.sort((a, b) => {
-          const aX = a.position!.x - refPoint.x;
-          const aY = a.position!.y - refPoint.y;
-          const aZ = (a.position!.z || 0) - (refPoint.z || 0);
+          const aX = (a.position?.x ?? 0) - refPoint.x;
+          const aY = (a.position?.y ?? 0) - refPoint.y;
+          const aZ = (a.position?.z ?? 0) - (refPoint.z || 0);
           
-          const bX = b.position!.x - refPoint.x;
-          const bY = b.position!.y - refPoint.y;
-          const bZ = (b.position!.z || 0) - (refPoint.z || 0);
+          const bX = (b.position?.x ?? 0) - refPoint.x;
+          const bY = (b.position?.y ?? 0) - refPoint.y;
+          const bZ = (b.position?.z || 0) - (refPoint.z || 0);
           
           const distA = Math.sqrt(aX * aX + aY * aY + aZ * aZ);
           const distB = Math.sqrt(bX * bX + bY * bY + bZ * bZ);
@@ -608,13 +607,13 @@ function applyGrouping(
           if (!rows.has(row)) {
             rows.set(row, []);
           }
-          rows.get(row)!.push(target);
+          rows.get(row)?.push(target);
         } else {
           // Add items without row position at the end
           if (!rows.has(-1)) {
             rows.set(-1, []);
           }
-          rows.get(-1)!.push(target);
+          rows.get(-1)?.push(target);
         }
       });
       
@@ -637,13 +636,13 @@ function applyGrouping(
           if (!columns.has(col)) {
             columns.set(col, []);
           }
-          columns.get(col)!.push(target);
+          columns.get(col)?.push(target);
         } else {
           // Add items without column position at the end
           if (!columns.has(-1)) {
             columns.set(-1, []);
           }
-          columns.get(-1)!.push(target);
+          columns.get(-1)?.push(target);
         }
       });
       
@@ -675,14 +674,14 @@ function applyGrouping(
             categoryGroups.set(target.category, []);
             categoryOrders.set(target.category, 999); // High number for undefined categories
           }
-          categoryGroups.get(target.category)!.push(target);
+          categoryGroups.get(target.category)?.push(target);
         } else {
           // Add items without category at the end
           if (!categoryGroups.has('__uncategorized')) {
             categoryGroups.set('__uncategorized', []);
             categoryOrders.set('__uncategorized', 1000);
           }
-          categoryGroups.get('__uncategorized')!.push(target);
+          categoryGroups.get('__uncategorized')?.push(target);
         }
       });
       
@@ -713,13 +712,13 @@ function applyGrouping(
           if (!distanceGroups.has(group)) {
             distanceGroups.set(group, []);
           }
-          distanceGroups.get(group)!.push(target);
+          distanceGroups.get(group)?.push(target);
         } else {
           // Add items without position in a separate group
           if (!distanceGroups.has(-1)) {
             distanceGroups.set(-1, []);
           }
-          distanceGroups.get(-1)!.push(target);
+          distanceGroups.get(-1)?.push(target);
         }
       });
       
@@ -941,7 +940,7 @@ export function createStaggeredAnimation(config: StaggeredAnimationConfig): Stag
           animationOrchestrator.createSequence(animationId, {
             targets: [
               {
-                target: element!,
+                target: element,
                 animation,
                 delay,
                 duration,
@@ -952,8 +951,12 @@ export function createStaggeredAnimation(config: StaggeredAnimationConfig): Stag
           });
           
           // Listen for completion
-          const completeListener = (event: any) => {
-            if (event.animation === animationId) {
+          const completeListener = (event: { type: AnimationEventType; target: string; animation: string; timestamp: number; }) => {
+            // Check if the event target matches the element string selector or the generic 'element' identifier
+            const targetMatches = (typeof target.element === 'string' && event.target === target.element) || 
+                                (target.element instanceof HTMLElement && event.target === 'element');
+
+            if (targetMatches && event.animation === animationId) {
               animationEventBus.off('complete', completeListener);
               resolve();
             }

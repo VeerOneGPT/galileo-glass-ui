@@ -58,7 +58,8 @@ const GlassBorderDemo = styled.div<{ theme: any }>`
 const BackgroundEffectsDemo = styled.div<{ theme: any; type: string }>`
   ${props =>
     backgroundEffects({
-      type: props.type as any,
+      // @ts-expect-error - props.type is string, mixin expects specific literal type
+      type: props.type as string,
       baseColor: '#3b82f6',
       secondaryColor: '#8b5cf6',
       tertiaryColor: '#ec4899',
@@ -91,7 +92,8 @@ const AmbientEffectsDemo = styled.div<{ theme: any; type: string }>`
 
   ${props =>
     ambientEffects({
-      type: props.type as any,
+      // @ts-expect-error - props.type is string, mixin expects specific literal type
+      type: props.type as string,
       color: '#3b82f6',
       secondaryColor: '#8b5cf6',
       intensity: 'medium',
@@ -114,8 +116,10 @@ const AmbientEffectsDemo = styled.div<{ theme: any; type: string }>`
 const InteractiveGlassDemo = styled.div<{ theme: any; hoverEffect: string; activeEffect: string }>`
   ${props =>
     interactiveGlass({
-      hoverEffect: props.hoverEffect as any,
-      activeEffect: props.activeEffect as any,
+      // @ts-expect-error - props.hoverEffect is string, mixin expects specific literal type
+      hoverEffect: props.hoverEffect as string,
+      // @ts-expect-error - props.activeEffect is string, mixin expects specific literal type
+      activeEffect: props.activeEffect as string,
       focusEffect: 'outline',
       disabledEffect: 'fade',
       blurStrength: 'standard',
@@ -151,7 +155,8 @@ const StyledFocusButton = styled.button<{ theme: any; focusType: FocusEffectType
 
   ${props =>
     focusEffects({
-      type: props.focusType as any,
+      // @ts-expect-error - props.focusType is string union, mixin expects specific literal type
+      type: props.focusType as string,
       color: '#3b82f6',
       thickness: 3,
       opacity: 0.6,
@@ -190,7 +195,8 @@ const HoverEffectsDemo = styled.div<{ theme: any; type: string }>`
 
   ${props =>
     hoverEffects({
-      type: props.type as any,
+      // @ts-expect-error - props.type is string, mixin expects specific literal type
+      type: props.type as string,
       color: '#3b82f6',
       intensity: 'medium',
       animated: true,

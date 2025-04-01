@@ -503,7 +503,7 @@ export const setupDeviceCapabilityMonitoring = (
   callback: (capabilities: Partial<DeviceCapabilityProfile>) => void
 ): (() => void) => {
   if (typeof window === 'undefined') {
-    return () => {}; // No-op for SSR
+    return () => { /* No-op for SSR */ }; // No-op for SSR
   }
   
   // Track which parts of the profile have changed

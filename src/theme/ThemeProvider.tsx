@@ -1,14 +1,9 @@
-import React, {
-  createContext,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-  useContext,
-} from 'react';
-import { css, ThemeProvider as StyledThemeProvider, createGlobalStyle } from 'styled-components';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode, useRef, useCallback } from 'react';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+// import { css, createGlobalStyle } from 'styled-components'; // Unused imports
+import { deepmerge } from '@mui/utils';
 
+import { GlassTheme } from '../core/theme';
 import { createThemeContext as ___createThemeContext } from '../core/themeUtils';
 import type { ThemeContext as _ThemeContextType} from '../core/themeUtils';
 import type { ColorMode, ThemeVariant as _ThemeVariant, Theme as _Theme, GlassSurfaceProps } from '../core/types';

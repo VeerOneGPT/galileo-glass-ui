@@ -9,7 +9,13 @@ import styled from 'styled-components';
 import { GlassTabBar, TabItem } from '../components/GlassTabBar';
 import { Typography } from '../components/Typography';
 import { Card } from '../components/Card';
-import { Button } from '../components/Button';
+
+// Define local types for props based on GlassTabBarProps definition
+type GlassTabBarVariant = 'default' | 'pills' | 'buttons' | 'underlined' | 'enclosed';
+type GlassTabOrientation = 'horizontal' | 'vertical';
+type GlassVariant = 'clear' | 'frosted' | 'tinted';
+type AnimationStyle = 'spring' | 'magnetic' | 'inertial' | 'none';
+type TabBarColor = 'primary' | 'secondary' | 'success' | 'error' | 'warning' | 'info' | 'default';
 
 // Demo container
 const DemoContainer = styled.div`
@@ -32,18 +38,12 @@ const SectionTitle = styled(Typography)`
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const TabContentContainer = styled.div`
-  padding: 1.5rem;
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 0 0 8px 8px;
-  min-height: 150px;
-`;
-
 const ExampleGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 2rem;
   margin-bottom: 2rem;
+  margin-right: 0.5rem;
 `;
 
 const ExampleCard = styled(Card)`
@@ -115,12 +115,6 @@ const Select = styled.select`
 
 const Checkbox = styled.input`
   margin-right: 0.5rem;
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
 `;
 
 // Create sample tabs
@@ -205,20 +199,20 @@ export const GlassTabBarDemo: React.FC = () => {
   const [activeTab1, setActiveTab1] = useState(0);
   const [activeTab2, setActiveTab2] = useState(0);
   const [activeTab3, setActiveTab3] = useState(0);
-  const [activeTab4, setActiveTab4] = useState(0);
-  const [activeTab5, setActiveTab5] = useState(0);
+  const [_activeTab4, setActiveTab4] = useState(0);
+  const [_activeTab5, setActiveTab5] = useState(0);
   
   // State for customizable example
   const [customActiveTab, setCustomActiveTab] = useState(0);
-  const [variant, setVariant] = useState('pills');
-  const [orientation, setOrientation] = useState('horizontal');
-  const [glassVariant, setGlassVariant] = useState('frosted');
-  const [color, setColor] = useState('primary');
-  const [animation, setAnimation] = useState('spring');
+  const [variant, setVariant] = useState<GlassTabBarVariant>('pills');
+  const [orientation, setOrientation] = useState<GlassTabOrientation>('horizontal');
+  const [glassVariant, setGlassVariant] = useState<GlassVariant>('frosted');
+  const [color, setColor] = useState<TabBarColor>('primary');
+  const [animation, setAnimation] = useState<AnimationStyle>('spring');
   const [fullWidth, setFullWidth] = useState(false);
   const [scrollable, setScrollable] = useState(true);
   const [elevated, setElevated] = useState(true);
-  const [physicsSettings, setPhysicsSettings] = useState({
+  const [_physicsSettings, setPhysicsSettings] = useState({
     tension: 280,
     friction: 26,
     mass: 1.0
@@ -305,7 +299,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={activeTab1}
-              onChange={(e, index) => setActiveTab1(index)}
+              onChange={(_e, _index) => setActiveTab1(_index)}
               variant="default"
             />
             <TabContent>
@@ -318,7 +312,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={activeTab2}
-              onChange={(e, index) => setActiveTab2(index)}
+              onChange={(_e, _index) => setActiveTab2(_index)}
               variant="pills"
               color="secondary"
             />
@@ -332,7 +326,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={activeTab3}
-              onChange={(e, index) => setActiveTab3(index)}
+              onChange={(_e, _index) => setActiveTab3(_index)}
               variant="buttons"
               color="success"
             />
@@ -345,13 +339,13 @@ export const GlassTabBarDemo: React.FC = () => {
           <ExampleCard>
             <GlassTabBar
               tabs={simpleTabs}
-              activeTab={activeTab4}
-              onChange={(e, index) => setActiveTab4(index)}
+              activeTab={_activeTab4}
+              onChange={(_e, _index) => setActiveTab4(_index)}
               variant="underlined"
               color="info"
             />
             <TabContent>
-              {getTabContent(simpleTabs[activeTab4])}
+              {getTabContent(simpleTabs[_activeTab4])}
             </TabContent>
           </ExampleCard>
           
@@ -359,13 +353,13 @@ export const GlassTabBarDemo: React.FC = () => {
           <ExampleCard>
             <GlassTabBar
               tabs={simpleTabs}
-              activeTab={activeTab5}
-              onChange={(e, index) => setActiveTab5(index)}
+              activeTab={_activeTab5}
+              onChange={(_e, _index) => setActiveTab5(_index)}
               variant="enclosed"
               color="warning"
             />
             <TabContent>
-              {getTabContent(simpleTabs[activeTab5])}
+              {getTabContent(simpleTabs[_activeTab5])}
             </TabContent>
           </ExampleCard>
         </ExampleGrid>
@@ -386,7 +380,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
               scrollable={true}
@@ -410,7 +404,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs.slice(0, 5)}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="secondary"
               scrollable={true}
@@ -436,7 +430,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="success"
               scrollable={true}
@@ -470,7 +464,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
               scrollable={false}
@@ -495,7 +489,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="underlined"
               color="info"
               scrollable={false}
@@ -520,7 +514,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={simpleTabs}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="success"
               scrollable={false}
@@ -554,7 +548,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
               orientation="vertical"
@@ -576,7 +570,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="secondary"
               orientation="vertical"
@@ -598,7 +592,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="success"
               orientation="vertical"
@@ -620,7 +614,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="info"
               responsiveOrientation={{
@@ -647,7 +641,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="primary"
             />
@@ -664,7 +658,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithBadges}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="buttons"
               color="error"
             />
@@ -681,7 +675,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={longTabs}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="secondary"
               scrollable={true}
@@ -706,7 +700,7 @@ export const GlassTabBarDemo: React.FC = () => {
             <GlassTabBar
               tabs={tabsWithIcons}
               activeTab={0}
-              onChange={(e, index) => { /* Placeholder for demo */ }}
+              onChange={(_e, _index) => { /* Placeholder for demo */ }}
               variant="pills"
               color="info"
               orientation="vertical"
@@ -733,7 +727,7 @@ export const GlassTabBarDemo: React.FC = () => {
               <ControlLabel>Variant</ControlLabel>
               <Select
                 value={variant}
-                onChange={e => setVariant(e.target.value)}
+                onChange={e => setVariant(e.target.value as GlassTabBarVariant)}
               >
                 <option value="default">Default</option>
                 <option value="pills">Pills</option>
@@ -747,7 +741,7 @@ export const GlassTabBarDemo: React.FC = () => {
               <ControlLabel>Orientation</ControlLabel>
               <Select
                 value={orientation}
-                onChange={e => setOrientation(e.target.value)}
+                onChange={e => setOrientation(e.target.value as GlassTabOrientation)}
               >
                 <option value="horizontal">Horizontal</option>
                 <option value="vertical">Vertical</option>
@@ -758,7 +752,7 @@ export const GlassTabBarDemo: React.FC = () => {
               <ControlLabel>Glass Style</ControlLabel>
               <Select
                 value={glassVariant}
-                onChange={e => setGlassVariant(e.target.value)}
+                onChange={e => setGlassVariant(e.target.value as GlassVariant)}
               >
                 <option value="clear">Clear</option>
                 <option value="frosted">Frosted</option>
@@ -770,7 +764,7 @@ export const GlassTabBarDemo: React.FC = () => {
               <ControlLabel>Color</ControlLabel>
               <Select
                 value={color}
-                onChange={e => setColor(e.target.value)}
+                onChange={e => setColor(e.target.value as TabBarColor)}
               >
                 <option value="primary">Primary</option>
                 <option value="secondary">Secondary</option>
@@ -786,7 +780,7 @@ export const GlassTabBarDemo: React.FC = () => {
               <ControlLabel>Animation</ControlLabel>
               <Select
                 value={animation}
-                onChange={e => setAnimation(e.target.value)}
+                onChange={e => setAnimation(e.target.value as AnimationStyle)}
               >
                 <option value="spring">Spring</option>
                 <option value="magnetic">Magnetic</option>
@@ -809,41 +803,41 @@ export const GlassTabBarDemo: React.FC = () => {
               </ControlLabel>
               <div style={{ display: 'grid', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <small style={{ marginBottom: '0.25rem' }}>Tension: {physicsSettings.tension}</small>
+                  <small style={{ marginBottom: '0.25rem' }}>Tension: {_physicsSettings.tension}</small>
                   <input 
                     type="range" 
                     min="50" 
                     max="500" 
-                    value={physicsSettings.tension} 
+                    value={_physicsSettings.tension} 
                     onChange={e => setPhysicsSettings({
-                      ...physicsSettings,
+                      ..._physicsSettings,
                       tension: parseInt(e.target.value)
                     })}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <small style={{ marginBottom: '0.25rem' }}>Friction: {physicsSettings.friction}</small>
+                  <small style={{ marginBottom: '0.25rem' }}>Friction: {_physicsSettings.friction}</small>
                   <input 
                     type="range" 
                     min="5" 
                     max="40" 
-                    value={physicsSettings.friction} 
+                    value={_physicsSettings.friction} 
                     onChange={e => setPhysicsSettings({
-                      ...physicsSettings,
+                      ..._physicsSettings,
                       friction: parseInt(e.target.value)
                     })}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <small style={{ marginBottom: '0.25rem' }}>Mass: {physicsSettings.mass.toFixed(1)}</small>
+                  <small style={{ marginBottom: '0.25rem' }}>Mass: {_physicsSettings.mass.toFixed(1)}</small>
                   <input 
                     type="range" 
                     min="0.5" 
                     max="3" 
                     step="0.1"
-                    value={physicsSettings.mass} 
+                    value={_physicsSettings.mass} 
                     onChange={e => setPhysicsSettings({
-                      ...physicsSettings,
+                      ..._physicsSettings,
                       mass: parseFloat(e.target.value)
                     })}
                   />
@@ -886,16 +880,16 @@ export const GlassTabBarDemo: React.FC = () => {
           <GlassTabBar
             tabs={scrollable ? longTabs : simpleTabs}
             activeTab={customActiveTab}
-            onChange={(e, index) => setCustomActiveTab(index)}
-            variant={variant as any}
-            orientation={orientation as any}
-            glassVariant={glassVariant as any}
-            color={color as any}
-            animationStyle={animation as any}
+            onChange={(_e, _index) => setCustomActiveTab(_index)}
+            variant={variant}
+            orientation={orientation}
+            glassVariant={glassVariant}
+            color={color}
+            animationStyle={animation}
             physics={{
-              tension: physicsSettings.tension,
-              friction: physicsSettings.friction,
-              mass: physicsSettings.mass
+              tension: _physicsSettings.tension,
+              friction: _physicsSettings.friction,
+              mass: _physicsSettings.mass
             }}
             fullWidth={fullWidth}
             scrollable={scrollable}
@@ -904,7 +898,7 @@ export const GlassTabBarDemo: React.FC = () => {
             height={orientation === 'vertical' ? 300 : undefined}
           />
           <FlexTabContent>
-            {getTabContent(scrollable ? longTabs[customActiveTab] : simpleTabs[customActiveTab])}
+            {getTabContent(scrollable ? longTabs[_activeTab4] : simpleTabs[customActiveTab])}
           </FlexTabContent>
         </FlexibleExampleCard>
       </Section>

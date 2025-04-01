@@ -39,9 +39,9 @@ const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
   // Call requestAnimationFrame for test several times to simulate animation
   React.useEffect(() => {
     if (animation === 'spring' || animateOnMount) {
-      rafMock(() => {});
-      rafMock(() => {});
-      rafMock(() => {});
+      rafMock(() => { /* Simulate animation work */ });
+      rafMock(() => { /* Simulate animation work */ });
+      rafMock(() => { /* Simulate animation work */ });
     }
   }, [animation, animateOnMount]);
 

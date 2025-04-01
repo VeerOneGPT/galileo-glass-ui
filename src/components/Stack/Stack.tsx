@@ -119,9 +119,8 @@ const StackContainer = styled.div<StackProps>`
     ${props.spacing ? `gap: ${getSpacing(props.spacing)};` : ''}
     
     ${
-      props.glass
-        ? props.theme &&
-          glassSurface({
+      props.glass && props.theme
+        ? glassSurface({
             ...props.glassOptions,
             themeContext: createThemeContext(props.theme),
           })

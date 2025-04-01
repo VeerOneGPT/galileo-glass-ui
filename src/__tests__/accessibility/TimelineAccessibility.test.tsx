@@ -19,12 +19,12 @@ interface MockTimelineProps {
   animation?: string;
   ariaLabel?: string;
   color?: string;
-  [key: string]: any; // Allow other props
+  [key: string]: unknown; // Allow other props
 }
 
 // Mock GlassTimeline component with accessibility features
 const MockGlassTimeline = (props: MockTimelineProps): JSX.Element => {
-  const { items, onItemSelect, animation, ariaLabel, color } = props;
+  const { items, onItemSelect, _animation, ariaLabel, color } = props;
   
   return (
     <div 

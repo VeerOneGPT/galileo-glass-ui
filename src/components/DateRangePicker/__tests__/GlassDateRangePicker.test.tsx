@@ -43,7 +43,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -62,7 +62,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
       />
     );
     
@@ -109,7 +109,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         glassVariant="frosted"
       />
     );
@@ -160,7 +160,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         presets={testPresets}
       />
     );
@@ -181,7 +181,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         comparisonMode={true}
       />
     );
@@ -206,7 +206,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         dateFormat="yyyy-MM-dd"
       />
     );
@@ -223,7 +223,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         disabled={true}
       />
     );
@@ -245,7 +245,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         animate={true}
         physics={{ animationPreset: 'bouncy' }}
       />
@@ -266,7 +266,7 @@ describe('GlassDateRangePicker Component', () => {
           startDate: new Date(2023, 0, 1),
           endDate: new Date(2023, 0, 7)
         }}
-        onChange={() => {}}
+        onChange={() => { /* No-op */ }}
         enableTimeSelection={true}
       />
     );

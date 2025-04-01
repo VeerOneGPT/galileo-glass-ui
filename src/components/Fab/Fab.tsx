@@ -484,10 +484,10 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
 
   }, [defaultSpring, animationConfig, motionSensitivity]);
 
-  const { style: physicsHoverPressStyle, eventHandlers } = usePhysicsInteraction({
-      ...finalInteractionConfig,
-      reducedMotion: finalDisableAnimation || disabled, 
-  });
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+  } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
 
   // State to track if the element should be rendered (for exit animation)
   const [shouldRender, setShouldRender] = useState(isVisible);
@@ -530,10 +530,10 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
 
     return {
       ...entranceStyle,
-      ...(isVisible || isVisibilityAnimating ? physicsHoverPressStyle : {}), // Apply hover only when visible or animating
+      ...(isVisible || isVisibilityAnimating ? physicsStyle : {}), // Apply hover only when visible or animating
     };
   // Include isVisible and isVisibilityAnimating as dependencies
-  }, [visibilityProgress, physicsHoverPressStyle, isVisible, isVisibilityAnimating]);
+  }, [visibilityProgress, physicsStyle, isVisible, isVisibilityAnimating]);
 
   const Component = href ? 'a' : 'button';
 
@@ -554,8 +554,6 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
       $enhanced={enhanced}
       $zIndex={zIndex}
       style={combinedStyle}
-      {...eventHandlers}
-      {...rest}
     >
       {children}
     </FabContainer>

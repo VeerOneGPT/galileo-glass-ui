@@ -9,7 +9,7 @@ import {
 import {
   advancedPhysicsAnimation,
   generatePhysicsKeyframes,
-  PhysicsAnimationMode,
+  SimulationType,
 } from '../advancedPhysicsAnimations';
 import { getOptimizedGPUAcceleration } from '../../performance/GPUAcceleration';
 
@@ -113,7 +113,7 @@ describe('advancedPhysicsAnimation', () => {
 
   test('should create animation with default options', () => {
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.NONE,
     });
 
@@ -122,17 +122,19 @@ describe('advancedPhysicsAnimation', () => {
   });
 
   test('should handle different animation modes', () => {
-    const modes = [
-      PhysicsAnimationMode.SPRING,
-      PhysicsAnimationMode.BOUNCE,
-      PhysicsAnimationMode.ELASTIC,
-      PhysicsAnimationMode.INERTIA,
-      PhysicsAnimationMode.MAGNETIC,
+    const simulationTypes = [
+      SimulationType.SPRING,
+      SimulationType.BOUNCE,
+      SimulationType.ELASTIC,
+      SimulationType.INERTIA,
+      SimulationType.MAGNETIC,
+      SimulationType.LIQUID,
+      SimulationType.CHAIN,
     ];
 
-    modes.forEach(mode => {
+    simulationTypes.forEach(type => {
       const result = advancedPhysicsAnimation({
-        mode: mode,
+        simulationType: type,
         sensitivity: MotionSensitivityLevel.NONE,
       });
 
@@ -154,7 +156,7 @@ describe('advancedPhysicsAnimation', () => {
     });
 
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.HIGH,
       complexity: AnimationComplexity.COMPLEX, // Too complex for HIGH sensitivity
     });
@@ -178,7 +180,7 @@ describe('advancedPhysicsAnimation', () => {
     });
 
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.MEDIUM,
       complexity: AnimationComplexity.STANDARD, // Just right for MEDIUM sensitivity
     });
@@ -202,13 +204,10 @@ describe('advancedPhysicsAnimation', () => {
 
     // Use spring parameters with high sensitivity
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.HIGH,
-      spring: {
-        mass: 2,
-        stiffness: 170,
-        dampingRatio: 0.7,
-      },
+      mass: 2,
+      stiffness: 170,
     });
 
     expect(typeof result).toBe('string');
@@ -228,7 +227,7 @@ describe('advancedPhysicsAnimation', () => {
     });
 
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.MAXIMUM,
     });
 
@@ -249,7 +248,7 @@ describe('advancedPhysicsAnimation', () => {
     });
 
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.ELASTIC,
+      simulationType: SimulationType.ELASTIC,
       sensitivity: MotionSensitivityLevel.LOW,
       complexity: AnimationComplexity.ENHANCED,
     });
@@ -259,7 +258,7 @@ describe('advancedPhysicsAnimation', () => {
 
   test('should handle animation parameters', () => {
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.NONE,
       initialState: { opacity: 0 },
       targetState: { opacity: 1 },
@@ -270,7 +269,7 @@ describe('advancedPhysicsAnimation', () => {
 
   test('should apply GPU acceleration when specified', () => {
     const result = advancedPhysicsAnimation({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       sensitivity: MotionSensitivityLevel.NONE,
       gpuAccelerated: true,
     });
@@ -283,7 +282,7 @@ describe('advancedPhysicsAnimation', () => {
 describe('generatePhysicsKeyframes', () => {
   test('should generate spring keyframes', () => {
     const result = generatePhysicsKeyframes({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
     });
 
     expect(result).toHaveProperty('keyframes');
@@ -291,19 +290,19 @@ describe('generatePhysicsKeyframes', () => {
   });
 
   test('should generate keyframes for different physics modes', () => {
-    const modes = [
-      PhysicsAnimationMode.SPRING,
-      PhysicsAnimationMode.BOUNCE,
-      PhysicsAnimationMode.ELASTIC,
-      PhysicsAnimationMode.LIQUID,
-      PhysicsAnimationMode.INERTIA,
-      PhysicsAnimationMode.CHAIN,
-      PhysicsAnimationMode.MAGNETIC,
+    const simulationTypes = [
+      SimulationType.SPRING,
+      SimulationType.BOUNCE,
+      SimulationType.ELASTIC,
+      SimulationType.LIQUID,
+      SimulationType.INERTIA,
+      SimulationType.CHAIN,
+      SimulationType.MAGNETIC,
     ];
 
-    modes.forEach(mode => {
+    simulationTypes.forEach(type => {
       const result = generatePhysicsKeyframes({
-        mode: mode,
+        simulationType: type,
       });
 
       expect(result).toHaveProperty('keyframes');
@@ -313,7 +312,7 @@ describe('generatePhysicsKeyframes', () => {
 
   test('should generate keyframes with custom properties', () => {
     const result = generatePhysicsKeyframes({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       initialState: { opacity: 0, scale: 0.8 },
       targetState: { opacity: 1, scale: 1 },
     });
@@ -324,7 +323,7 @@ describe('generatePhysicsKeyframes', () => {
 
   test('should include duration in animation CSS', () => {
     const result = generatePhysicsKeyframes({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       duration: 750,
     });
 
@@ -334,7 +333,7 @@ describe('generatePhysicsKeyframes', () => {
 
   test('should include GPU acceleration when specified', () => {
     const result = generatePhysicsKeyframes({
-      mode: PhysicsAnimationMode.SPRING,
+      simulationType: SimulationType.SPRING,
       gpuAccelerated: true,
     });
 

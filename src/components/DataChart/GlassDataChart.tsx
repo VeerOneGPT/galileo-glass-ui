@@ -4,8 +4,8 @@
  * An advanced glass-styled chart component with physics-based interactions,
  * smooth animations, and rich customization options.
  */
-import React, { useState, useRef, useEffect, useCallback, useImperativeHandle } from 'react';
-import styled from 'styled-components';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+// import styled from 'styled-components'; // unused
 import { 
   Chart as ChartJS, 
   CategoryScale, 
@@ -18,7 +18,6 @@ import {
   Tooltip,
   Legend,
   ChartOptions,
-  ChartData,
   ChartType,
   Filler,
   defaults,
@@ -26,24 +25,24 @@ import {
 } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
-import { glassSurface } from '../../core/mixins/glassSurface';
-import { glassGlow } from '../../core/mixins/glowEffects';
-import { createThemeContext } from '../../core/themeContext';
+// import { glassSurface } from '../../core/mixins/glassSurface'; // unused
+// import { glassGlow } from '../../core/mixins/glowEffects'; // unused
+// import { createThemeContext } from '../../core/themeContext'; // unused
 import { useGlassTheme } from '../../hooks/useGlassTheme';
-import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring';
+// import { useGalileoStateSpring, GalileoStateSpringOptions } from '../../hooks/useGalileoStateSpring'; // unused
 import { GlassTooltip, GlassTooltipContent } from '../GlassTooltip';
-import { formatValue, formatWithUnits, formatCurrency, formatPercentage } from './GlassDataChartUtils';
+import { formatValue, /* formatWithUnits, formatCurrency, formatPercentage */ } from './GlassDataChartUtils'; // unused imports removed
 // Import keyframes from the new file
 import {
-  drawLine,
-  fadeIn,
-  popIn,
-  fadeSlideUp,
-  glowPulse,
-  shimmer,
-  activePoint,
-  tooltipFade,
-  atmosphericMovement
+  // drawLine, // unused
+  // fadeIn, // unused
+  // popIn, // unused
+  // fadeSlideUp, // unused
+  // glowPulse, // unused
+  // shimmer, // unused
+  // activePoint, // unused
+  // tooltipFade, // unused
+  // atmosphericMovement // unused
 } from '../../animations/keyframes/chartAnimations';
 
 // Import our modularized components
@@ -60,22 +59,19 @@ import {
   ChartToolbar,
   ChartTypeSelector,
   TypeButton,
-  ToolbarButton,
   EnhancedExportButton,
   ChartLegend,
   LegendItem,
   LegendColor,
   LegendLabel,
-  KpiContainer,
-  KpiTitle,
-  KpiValue,
-  KpiSubtitle,
-  KpiTrend
+  // KpiContainer, // unused
+  // KpiTitle, // unused
+  // KpiValue, // unused
+  // KpiSubtitle, // unused
+  // KpiTrend // unused
 } from './styles/ChartElementStyles';
 
 import {
-  TooltipContainer,
-  TooltipContent,
   TooltipHeader,
   TooltipRow,
   TooltipLabel,
@@ -84,27 +80,27 @@ import {
 } from './styles/TooltipStyles';
 
 // Import types from the types directory
-import { 
-  ChartVariant, 
-  DataPoint, 
-  ChartDataset
+import {
+  ChartVariant,
+  // DataPoint, // unused
+  // ChartDataset // unused
 } from './types/ChartTypes';
 
 import {
   GlassDataChartProps,
   GlassDataChartRef,
-  ChartAnimationOptions,
-  ChartInteractionOptions,
-  ChartLegendOptions,
-  ChartAxisOptions
+  // ChartAnimationOptions, // unused
+  // ChartInteractionOptions, // unused
+  // ChartLegendOptions, // unused
+  // ChartAxisOptions // unused
 } from './types/ChartProps';
 
 // Import hooks
-import { 
-  useQualityTier, 
-  QualityTier, 
-  PhysicsParams,
-  GlassParams,
+import {
+  useQualityTier,
+  // QualityTier, // unused
+  // PhysicsParams, // unused
+  // GlassParams, // unused
   getQualityBasedPhysicsParams,
   getQualityBasedGlassParams
 } from './hooks/useQualityTier';
@@ -113,10 +109,10 @@ import { usePhysicsAnimation } from './hooks/usePhysicsAnimation';
 
 // Import utilities
 import {
-  convertToChartJsDataset,
+  // convertToChartJsDataset, // unused
   convertToChartJsDatasetWithEffects,
-  hexToRgb,
-  generateColors
+  // hexToRgb, // unused
+  // generateColors // unused
 } from './utils/ChartDataUtils';
 
 // Register required Chart.js components
@@ -137,11 +133,10 @@ ChartJS.register(
 const pathAnimationPlugin: Plugin<ChartType> = {
   id: 'pathAnimation',
   afterDraw: (chart) => {
-    const ctx = chart.ctx;
     chart.data.datasets.forEach((dataset, datasetIndex) => {
       const meta = chart.getDatasetMeta(datasetIndex);
       if (meta.type === 'line' && meta.dataset) {
-        const element = meta.dataset as any;
+        const element = meta.dataset as any; // Keep 'as any': _path is likely internal/non-standard for path animation
         if (element && element._path) {
           const path = element._path;
           
@@ -207,10 +202,19 @@ ChartJS.register(
   Filler // Required for area charts
 );
 
+// Define a type for the hovered point value structure
+interface HoveredPointValue {
+  dataset?: string | number | null;
+  label?: string | number | null;
+  value?: number | null;
+  color?: string | null;
+  extra?: Record<string, unknown> | null; // Use unknown for potentially varied extra data
+}
+
 /**
  * GlassDataChart Component
  */
-export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChartProps>((props, ref) => {
+export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChartProps>((props, /* ref */) => {
   const {
     title,
     subtitle,
@@ -268,7 +272,6 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       '#6B7280', // gray
     ],
     allowTypeSwitch = true,
-    backgroundColor,
     borderRadius = 12,
     borderColor,
     elevation = 3,
@@ -276,7 +279,6 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     style,
     onDataPointClick,
     onSelectionChange,
-    onZoomPan,
     onTypeChange,
     exportOptions = {
       filename: 'chart',
@@ -292,8 +294,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   } = props;
   
   // Hooks
-  const theme = useGlassTheme();
-  const isDarkMode = theme ? theme.isDarkMode : false;
+  // const theme = useGlassTheme(); // unused
   const { isReducedMotion } = useAccessibilitySettings();
   const chartRef = useRef<ChartJS | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -312,7 +313,6 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   // Physics animation for main chart
   const { 
     value: springValue, 
-    isAnimating, 
     applyOscillation, 
     applyPopIn 
   } = usePhysicsAnimation({
@@ -338,11 +338,8 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     dataIndex: number;
     x: number;
     y: number;
-    value: any;
+    value: HoveredPointValue | null;
   } | null>(null);
-  
-  // Update the tooltip style to ensure it's a valid type
-  const safeTooltipStyle = interaction.tooltipStyle === 'glass' ? 'frosted' : interaction.tooltipStyle;
   
   // Determine if we're using physics-based animations
   const enablePhysicsAnimation = animation.physicsEnabled && !isReducedMotion;
@@ -463,7 +460,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
         }
       : {
           duration: isReducedMotion ? 0 : animation.duration,
-          easing: animation.easing as any || 'easeOutQuart',
+          easing: animation.easing || 'easeOutQuart',
           delay: (context) => {
             // Add staggered delay if specified
             if (animation.staggerDelay && context.datasetIndex !== undefined) {
@@ -693,7 +690,11 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       
       // We'll provide both raw and formatted value to the handler
       if (onDataPointClick) {
-        const formattedValue = formatValue(dataPoint.y, formatType as any, formatOptions);
+        const formattedValue = formatValue(
+          dataPoint.y,
+          formatType,
+          formatOptions
+        );
         onDataPointClick(datasetIndex, dataIndex, {
           ...dataPoint,
           formattedValue: formattedValue
@@ -720,11 +721,6 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       const dataIndex = firstPoint.index;
       const dataset = datasets[datasetIndex];
       const dataPoint = dataset.data[dataIndex];
-      
-      // Get position in canvas coordinates
-      const rect = chart.canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
       
       setHoveredPoint({
         datasetIndex,
@@ -898,7 +894,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     const value = hoveredPoint.value?.value ?? 0;
     const formattedValue = formatValue(
       value,
-      formatType as any, 
+      formatType,
       formatOptions
     );
 
@@ -933,24 +929,6 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       </DynamicTooltip>
     );
   }, [hoveredPoint, interaction.showTooltips, datasets, color, activeQuality]);
-  
-  // Render KPI display
-  const renderKPI = () => {
-    if (!kpi) return null;
-    
-    return (
-      <KpiContainer $compact={kpi.compact}>
-        <KpiTitle>{kpi.title}</KpiTitle>
-        <KpiValue $trend={kpi.trend}>{kpi.value}</KpiValue>
-        {kpi.subtitle && <KpiSubtitle>{kpi.subtitle}</KpiSubtitle>}
-        {kpi.trend && kpi.trend !== 'neutral' && (
-          <KpiTrend $trend={kpi.trend}>
-            {kpi.trend === 'positive' ? 'Increased' : 'Decreased'}
-          </KpiTrend>
-        )}
-      </KpiContainer>
-    );
-  };
   
   return (
     <ChartContainer
@@ -1118,20 +1096,21 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
           <GlassTooltip
             title={
               <GlassTooltipContent
-                title={hoveredPoint.value.dataset}
+                title={String(hoveredPoint.value.dataset ?? 'Dataset')}
                 titleColor={hoveredPoint.value.color}
                 items={[
                   { 
                     label: typeof hoveredPoint.value.label === 'string' 
                       ? hoveredPoint.value.label 
                       : 'Value', 
-                    value: hoveredPoint.value.value
+                    value: hoveredPoint.value.value ?? 'N/A'
                   },
-                  // Add extra data items if available
                   ...(hoveredPoint.value.extra 
                     ? Object.entries(hoveredPoint.value.extra).map(([key, value]) => ({
                         label: key,
-                        value: value as any
+                        value: (typeof value === 'string' || typeof value === 'number')
+                          ? value 
+                          : String(value) as (string | number)
                       }))
                     : [])
                 ]}
@@ -1163,5 +1142,5 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
 GlassDataChart.displayName = 'GlassDataChart';
 
 // ESLint disable for TypeScript forwardRef type issues in some configurations
-// @ts-ignore
+// @ts-ignore - ForwardRef render functions are difficult to type correctly with generics in all TypeScript versions.
 export default GlassDataChart;

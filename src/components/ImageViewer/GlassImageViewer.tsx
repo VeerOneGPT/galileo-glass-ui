@@ -640,6 +640,8 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [showControls, setShowControls] = useState<boolean>(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [containerDimensions, setContainerDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
@@ -742,21 +744,93 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
     return { ...baseConfig, ...contextConfig, ...propConfig };
   }, [defaultSpring, animationConfig]);
 
-  // Use Inertial Movement for Panning
-  // TODO: Implement dynamic bounds calculation based on zoom and container/image size
+  // Calculate movement bounds here, AFTER dimensions state but BEFORE inertial hook
+  const movementBounds = useMemo(() => {
+    if (!containerDimensions.width || !containerDimensions.height || !imageDimensions.width || !imageDimensions.height) {
+      return undefined;
+    }
+    const currentZoom = animatedZoom.value;
+    const scaledWidth = imageDimensions.width * currentZoom;
+    const scaledHeight = imageDimensions.height * currentZoom;
+    const maxX = Math.max(0, (scaledWidth - containerDimensions.width) / 2);
+    const maxY = Math.max(0, (scaledHeight - containerDimensions.height) / 2);
+    return { minX: -maxX, maxX: maxX, minY: -maxY, maxY: maxY };
+  }, [containerDimensions, imageDimensions, animatedZoom.value]);
+
+  // Use Inertial Movement for Panning - AFTER bounds calculation
   const { 
       position: inertialPosition,
       setPosition: setInertialPosition,
   } = useInertialMovement2D({
-      config: finalPanningConfig,
-      // TODO: Consider adding initialPosition if needed
-      // initialPosition: { x: 0, y: 0 }, 
+      config: finalPanningConfig, 
   });
 
-  // Sync internal position state with inertial movement
+  // --- Sync Position State & Apply Bounds ---
+  // This effect comes AFTER hook and bounds calculation
   useEffect(() => {
-      setPosition(inertialPosition);
-  }, [inertialPosition]);
+      let clampedX = inertialPosition.x;
+      let clampedY = inertialPosition.y;
+
+      if (movementBounds) {
+          clampedX = Math.max(movementBounds.minX, Math.min(movementBounds.maxX, inertialPosition.x));
+          clampedY = Math.max(movementBounds.minY, Math.min(movementBounds.maxY, inertialPosition.y));
+      }
+      
+      if (clampedX !== position.x || clampedY !== position.y) {
+        setPosition({ x: clampedX, y: clampedY }); // Use state setter
+      }
+  }, [inertialPosition, movementBounds, position.x, position.y]);
+
+  // --- Image Loading & Dimension Calculation ---
+  useEffect(() => {
+    // Update container dimensions
+    if (containerRef.current) {
+      setContainerDimensions({ width: containerRef.current.clientWidth, height: containerRef.current.clientHeight });
+    }
+    // Load image and update its dimensions
+    setIsLoading(true);
+    const img = new window.Image();
+    img.src = currentImage.src;
+    img.onload = () => {
+        setIsLoading(false);
+        setImageDimensions({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      console.error("Failed to load image:", currentImage.src);
+      setIsLoading(false);
+      setImageDimensions({ width: 0, height: 0 }); // Reset dimensions on error
+    };
+    // Add ResizeObserver here for container changes if needed
+  }, [currentImage.src]); // Re-run only when image src changes
+
+  // --- Fullscreen Handling ---
+  const handleFullscreenChange = useCallback(() => {
+      const isFs = document.fullscreenElement === containerRef.current;
+      setIsFullscreen(isFs);
+      if (onFullscreenChange) {
+          onFullscreenChange(isFs);
+      }
+  }, [onFullscreenChange]);
+
+  useEffect(() => {
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, [handleFullscreenChange]);
+
+  const toggleFullscreen = useCallback(() => {
+      if (!fullscreenEnabled || !containerRef.current) return;
+      if (!document.fullscreenElement) {
+          containerRef.current.requestFullscreen().catch(err => {
+              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+          });
+      } else {
+          if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      }
+  }, [fullscreenEnabled]);
 
   // --- Control Visibility Logic ---
   const hideControls = useCallback(() => {
@@ -789,47 +863,6 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
   useEffect(() => {
       revealControls();
   }, [currentImage, revealControls]);
-
-  // --- Image Loading --- 
-  useEffect(() => {
-    setIsLoading(true);
-    const img = new window.Image();
-    img.src = currentImage.src;
-    img.onload = () => setIsLoading(false);
-    img.onerror = () => {
-      console.error("Failed to load image:", currentImage.src);
-      setIsLoading(false); // Treat error as loaded to avoid infinite spinner
-    };
-  }, [currentImage.src]);
-
-  // --- Fullscreen Handling ---
-  const handleFullscreenChange = useCallback(() => {
-      const isFs = document.fullscreenElement === containerRef.current;
-      setIsFullscreen(isFs);
-      if (onFullscreenChange) {
-          onFullscreenChange(isFs);
-      }
-  }, [onFullscreenChange]);
-
-  useEffect(() => {
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, [handleFullscreenChange]);
-
-  const toggleFullscreen = useCallback(() => {
-      if (!fullscreenEnabled || !containerRef.current) return;
-      if (!document.fullscreenElement) {
-          containerRef.current.requestFullscreen().catch(err => {
-              console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-          });
-      } else {
-          if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
-      }
-  }, [fullscreenEnabled]);
 
   // --- Zoom Handling ---
   const handleZoom = useCallback((delta: number, origin?: Vector2D) => {

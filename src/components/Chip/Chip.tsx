@@ -18,6 +18,19 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
 import { AnimationProps } from '../../animations/types';
 
+// Basic composeRefs utility
+function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
+  return (node) => {
+    refs.forEach(ref => {
+      if (typeof ref === 'function') {
+        ref(node);
+      } else if (ref != null) {
+        (ref as React.MutableRefObject<T | null>).current = node;
+      }
+    });
+  };
+}
+
 export interface ChipProps extends AnimationProps {
   /**
    * The content of the chip
@@ -357,10 +370,10 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
 
   }, [defaultSpring, animationConfig, motionSensitivity]);
 
-  const { style: physicsHoverPressStyle, eventHandlers } = usePhysicsInteraction({
-      ...finalInteractionConfig,
-      reducedMotion: !usePhysics, 
-  });
+  const {
+    ref: physicsRef,
+    style: physicsStyle,
+  } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
 
   // --- Delete Animation Spring --- 
   const deleteSpringConfig = useMemo(() => {
@@ -385,42 +398,43 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
       },
   });
 
-  // Calculate combined animated styles
+  // Combine styles - remove physicsHoverPressStyle references
   const combinedStyle = useMemo(() => {
-    const base = { ...style };
     let transform = '';
 
-    if (usePhysics && isVisible && physicsHoverPressStyle.transform) {
-      transform += physicsHoverPressStyle.transform + ' ';
+    // Only apply physics transform if enabled and visible
+    if (usePhysics && isVisible && physicsStyle.transform) {
+      transform += physicsStyle.transform + ' ';
     }
-    
-    transform += `scale(${deleteAnimProgress})`;
+
+    // Apply delete animation transform
+    const deleteScale = 1 - (deleteAnimProgress * 0.2);
+    const deleteOpacity = 1 - deleteAnimProgress;
+    transform += `scale(${deleteScale})`;
 
     return {
-      ...base,
-      opacity: deleteAnimProgress,
+      ...style,
+      // Apply physicsStyle directly if usePhysics is true
+      ...(usePhysics && isVisible ? physicsStyle : {}),
+      opacity: deleteOpacity,
       transform: transform.trim(),
     };
-  }, [style, usePhysics, physicsHoverPressStyle, deleteAnimProgress, isVisible]);
-
-  // Determine event handlers
-  const finalEventHandlers = usePhysics ? eventHandlers : {};
+  // Correct dependencies: physicsStyle instead of physicsHoverPressStyle
+  }, [style, usePhysics, physicsStyle, deleteAnimProgress, isVisible]);
 
   // Handle delete button click
-  const handleDelete = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation();
-    if (disabled || !isVisible) return;
-
-    deleteEventRef.current = event;
+  const handleDeleteClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation(); // Prevent chip click
     setIsVisible(false);
+    if (onDelete) {
+      onDelete(event);
+    }
   };
 
-  // Handle click
+  // Handle main chip click
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (disabled || !isVisible) return;
-    if (finalEventHandlers.onClick) {
-      finalEventHandlers.onClick(event as any);
-    }
+    // Physics handlers are internal now, no need to call from here
     if (onClick) {
       onClick(event);
     }
@@ -432,7 +446,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
 
   return (
     <ChipRoot
-      ref={ref}
+      ref={composeRefs(physicsRef, ref)}
       className={className}
       style={combinedStyle}
       $variant={variant}
@@ -442,13 +456,8 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
       $interactive={isInteractive}
       $shape={shape}
       onClick={handleClick}
-      onMouseEnter={finalEventHandlers.onMouseEnter}
-      onMouseLeave={finalEventHandlers.onMouseLeave}
-      onMouseDown={finalEventHandlers.onMouseDown}
-      onMouseUp={finalEventHandlers.onMouseUp}
       role={isInteractive ? 'button' : 'presentation'}
       tabIndex={isInteractive ? 0 : undefined}
-      aria-hidden={!isVisible && deleteAnimProgress < 0.1}
       {...rest}
     >
       {icon && <ChipIcon>{icon}</ChipIcon>}
@@ -458,7 +467,7 @@ export const Chip = forwardRef<HTMLDivElement, ChipProps>((props, ref) => {
           $disabled={disabled}
           $color={color}
           $variant={variant}
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           aria-label="Remove"
           type="button"
           disabled={disabled || !isVisible}

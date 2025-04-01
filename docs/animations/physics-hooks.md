@@ -142,12 +142,12 @@ For detailed API documentation, see the [Physics Engine API Guide](../physics/en
 
 ## `usePhysicsInteraction`
 
-The `usePhysicsInteraction` hook applies realistic physics-based interactions to DOM elements, primarily responding to pointer events (hover, press). It allows elements to react with effects like springiness, magnetism, or subtle movements.
+The `usePhysicsInteraction` hook applies realistic physics-based interactions to DOM elements, primarily responding to pointer events (enter, move, leave). It allows elements to react with effects like spring-based translation, scaling, Z-axis rotation, and 3D tilt.
 
 ### Purpose
 
 - Create engaging micro-interactions on buttons, cards, and other interactive elements.
-- Provide physical feedback to user actions (e.g., a button compressing when pressed).
+- Provide physical feedback to user actions (e.g., a button compressing when pressed or tilting towards the pointer).
 - Add subtle hover effects that draw attention without being distracting.
 
 ### Signature
@@ -160,12 +160,12 @@ function usePhysicsInteraction<T extends HTMLElement = HTMLElement>(
 ): {
   ref: React.RefObject<T>;
   style: React.CSSProperties;
-  state: PhysicsState;
-  eventHandlers: Record<string, (e: any) => void>;
+  state: PhysicsState; // Contains spring values and relative pointer position
+  // eventHandlers removed - handled internally
   update: (newOptions: Partial<PhysicsInteractionOptions>) => void;
   reset: () => void;
-  applyForce: (force: PhysicsVector) => void;
-  applyImpulse: (impulse: PhysicsVector) => void;
+  applyForce: (force: PhysicsVector) => void; // Placeholder
+  applyImpulse: (impulse: PhysicsVector) => void; // Placeholder
   setPosition: (position: PhysicsVector) => void;
   isPaused: boolean;
   togglePause: () => void;
@@ -175,23 +175,25 @@ function usePhysicsInteraction<T extends HTMLElement = HTMLElement>(
 ### Parameters
 
 - **`options`** (`PhysicsInteractionOptions`, optional): An object to configure the physics behavior.
-    - `type`: (`PhysicsInteractionType`, default: `'spring'`) The type of interaction (e.g., `'spring'`, `'magnetic'`).
-    - `strength`: (`number`, 0-1) General strength multiplier.
-    - `radius`: (`number`) Interaction radius (primarily for magnetic effects).
-    - `mass`: (`number`) Affects inertia. Higher mass means slower reaction.
-    - `stiffness`: (`number`) Spring stiffness (tension). Higher means faster, tighter spring.
-    - `dampingRatio`: (`number`) Controls bounciness (1 = no bounce, <1 = bounce, >1 = slow return).
-    - `easeFactor`: (`number`, 0-1) Smoothing for certain interaction types.
-    - `maxDisplacement`: (`number`) Maximum distance the element can move.
-    - `affectsRotation`: (`boolean`, default: `false`) If true, interaction affects element rotation.
-    - `affectsScale`: (`boolean`, default: `true`) If true, interaction affects element scale.
-    - `rotationAmplitude`: (`number`) Max rotation degrees if `affectsRotation` is true.
-    - `scaleAmplitude`: (`number`) Max scale change (e.g., 0.1 for 10%) if `affectsScale` is true.
+    - `type`: (`PhysicsInteractionType`, default: `'spring'`) The type of interaction (e.g., `'spring'`, `'magnetic'`). Primarily affects the translation aspect.
+    - `strength`: (`number`, 0-1) General strength multiplier (mostly legacy, prefer tuning physics params).
+    - `radius`: (`number`) Interaction radius (primarily for magnetic/force effects, less relevant for basic spring/tilt).
+    - `mass`: (`number`, default: `1`) Affects inertia of the spring translation. Higher mass means slower reaction.
+    - `stiffness`: (`number`) Spring stiffness (tension) for translation. Higher means faster, tighter spring.
+    - `dampingRatio`: (`number`, default: `0.6`) Controls bounciness of the spring translation (1 = no bounce, <1 = bounce, >1 = slow return).
+    - `easeFactor`: (`number`, 0-1) Smoothing for certain interaction types (legacy).
+    - `maxDisplacement`: (`number`, default: `10`) Maximum distance the element's spring target can move based on pointer position. Affects `translate3d`.
+    - `affectsRotation`: (`boolean`, default: `false`) If true, interaction affects element **Z-axis rotation** based on the spring's X position.
+    - `affectsScale`: (`boolean`, default: `false`) If true, interaction affects element scale.
+    - `rotationAmplitude`: (`number`, default: `10`) Max Z-axis rotation degrees if `affectsRotation` is true.
+    - `scaleAmplitude`: (`number`, default: `0.05`) Max scale change (e.g., 0.05 for 5%) if `affectsScale` is true.
+    - `affectsTilt`: (`boolean`, default: `false`) **New:** If true, interaction affects element **3D tilt** (rotateX/rotateY) based on the relative pointer position. Requires `perspective` on a parent element.
+    - `tiltAmplitude`: (`number`, default: `15`) **New:** Max tilt degrees (for both X and Y rotation) if `affectsTilt` is true.
     - `gpuAccelerated`: (`boolean`, default: `true`) Uses `translate3d` and `will-change` for performance.
-    - `animationConfig`: (`string | SpringConfig`) Overrides default spring settings. Can be a preset name (e.g., `'gentle'`, `'quick'`) or a `SpringConfig` object (`{ tension, friction, mass }`). Takes priority over `stiffness`, `dampingRatio`, `mass` if provided as an object.
+    - `animationConfig`: (`string | SpringConfig`) Overrides default spring settings for the *translate* effect. Can be a preset name (e.g., `'gentle'`, `'quick'`) or a `SpringConfig` object (`{ tension, friction, mass }`). Takes priority over `stiffness`, `dampingRatio`, `mass` if provided as an object.
         - **Note on Presets:** While standard spring presets like `'gentle'` can be used, the system might also support physics-specific presets (e.g., `'responsiveInteraction'`, `'bouncyButton'`) defined elsewhere or via context, which might tune multiple parameters (`strength`, `stiffness`, `damping`, etc.) for common interaction feels. Check `AnimationContext` or component examples for available interaction-specific presets.
     - `reducedMotion`: (`boolean`) Force reduced motion behavior. Defaults to system preference.
-    - `motionSensitivityLevel`: (`MotionSensitivityLevel`, default: `MEDIUM`) Adjusts interaction intensity based on sensitivity ('LOW', 'MEDIUM', 'HIGH').
+    - `motionSensitivityLevel`: (`MotionSensitivityLevel`, default: `MEDIUM`) Adjusts interaction intensity (scale, rotation, tilt amplitudes) based on sensitivity ('LOW', 'MEDIUM', 'HIGH').
     - *(Other advanced options: see `PhysicsInteractionOptions` interface in source code)*
 
 ### Return Value
@@ -199,15 +201,22 @@ function usePhysicsInteraction<T extends HTMLElement = HTMLElement>(
 An object containing:
 - `ref`: A React ref object to attach to the target DOM element.
 - `style`: A style object containing calculated `transform` (and potentially other properties like `will-change`) to apply to the element.
-- `state`: (`PhysicsState`) An object containing the current physics state (position, velocity, active status, etc.).
-- `eventHandlers`: An object containing event handlers (`onPointerEnter`, `onPointerLeave`, `onPointerDown`, `onPointerUp`, etc.) to spread onto the target element.
+- `state`: (`PhysicsState`) An object containing the current physics state:
+    - `x`, `y`, `z`: Current spring position offsets for the `translate3d` part of the transform.
+    - `relativeX`, `relativeY`: **New:** The pointer's position relative to the element's center, normalized from -1 to 1. Updated only when the pointer is interacting. Drives the `affectsTilt` effect.
+    - `rotation`: Current Z-axis rotation degrees (if `affectsRotation`).
+    - `scale`: Current scale factor (if `affectsScale`).
+    - `active`: Boolean indicating if the pointer is currently interacting (over the element).
+    - `velocity`: Current velocity vector of the spring model (for translation).
+    - *(Other state properties are placeholders or internal)*
+- **`eventHandlers`**: *Removed*. Event listeners (`pointerenter`, `pointermove`, `pointerleave`) are now handled internally by the hook.
 - `update`: Function to update the hook's options dynamically.
-- `reset`: Function to reset the element's physics state to its origin.
-- `applyForce`: Function to apply a continuous force.
-- `applyImpulse`: Function to apply an instantaneous force (like a push).
-- `setPosition`: Function to directly set the physics position.
-- `isPaused`: Boolean indicating if the physics simulation is paused.
-- `togglePause`: Function to pause/resume the simulation.
+- `reset`: Function to reset the element's physics state (position, tilt, scale etc.) to its origin.
+- `applyForce`: Function to apply a continuous force (Placeholder - does not currently affect the internal spring).
+- `applyImpulse`: Function to apply an instantaneous force (Placeholder - does not currently affect the internal spring).
+- `setPosition`: Function to directly set the physics position (translation) and reset velocity/target.
+- `isPaused`: Boolean indicating if the physics simulation's animation loop is currently paused.
+- `togglePause`: Function to pause/resume the animation loop.
 
 ### Example Usage
 
@@ -216,23 +225,62 @@ import React from 'react';
 import { usePhysicsInteraction } from '@veerone/galileo-glass-ui';
 import { Button } from '../components/Button'; // Example component
 
+// Basic example (Scale effect on hover/press)
 const PhysicsButton = () => {
-  const { ref, style, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
-    // Use a gentle spring effect on hover/press
-    animationConfig: 'gentle', 
-    affectsScale: true,
+  const { ref, style } = usePhysicsInteraction<HTMLButtonElement>({
+    animationConfig: 'gentle',
+    affectsScale: true, // Enable scale effect
     scaleAmplitude: 0.05, // Slight scale down on press
-    affectsRotation: false,
   });
 
   return (
-    <Button 
-      ref={ref} 
+    <Button
+      ref={ref}
       style={style}
-      {...eventHandlers}
+      // No eventHandlers needed here
     >
       Click me!
     </Button>
+  );
+};
+
+// Example with 3D Tilt
+const TiltingCard = () => {
+  const { ref, style } = usePhysicsInteraction({
+    // Spring settings for the subtle translation effect
+    animationConfig: 'wobbly',
+    maxDisplacement: 5, // Move slightly as well
+
+    // Tilt settings
+    affectsTilt: true,       // Enable tilt
+    tiltAmplitude: 10,       // Tilt 10 degrees max
+  });
+
+  // IMPORTANT: Apply perspective to a parent element
+  return (
+    <div style={{ perspective: '800px', padding: '20px' }}>
+      <div
+        ref={ref}
+        style={{
+          ...style, // Apply the transform from the hook
+          width: 150,
+          height: 200,
+          background: 'linear-gradient(to bottom right, #4facfe, #00f2fe)',
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: '1.2rem',
+          fontWeight: 'bold',
+          boxShadow: '0 10px 20px rgba(0,0,0,0.1)',
+          // Ensure pointer events are captured by the element the ref is on
+          // touchAction: 'none', // Already applied internally by the hook
+        }}
+      >
+        Tilt Me
+      </div>
+    </div>
   );
 };
 ```
@@ -240,10 +288,12 @@ const PhysicsButton = () => {
 ### Best Practices
 
 - Apply to interactive elements like buttons, cards, list items for engaging feedback.
-- Use subtle effects for hover states (`scaleAmplitude`, `rotationAmplitude` should be small).
-- Combine with `useAnimationContext` to ensure consistency with theme defaults.
-- Test performance, especially if applying to many elements simultaneously. Consider disabling `gpuAccelerated` if causing issues, though it usually helps.
-- Respect `reducedMotion` preferences by default.
+- **For 3D Tilt (`affectsTilt: true`): Apply `perspective` CSS property to a parent container element.** This creates the necessary 3D space for the tilt effect to be visually apparent. A value between `500px` and `1000px` often works well.
+- Use subtle effects for hover states (`scaleAmplitude`, `rotationAmplitude`, `tiltAmplitude` should generally be small to avoid being jarring).
+- The hook now handles pointer events internally; you no longer need to spread `eventHandlers` onto your element. Make sure the element you attach the `ref` to can receive pointer events.
+- Combine with `useAnimationContext` to ensure consistency with theme defaults for `animationConfig`.
+- Test performance, especially if applying to many elements simultaneously. `gpuAccelerated: true` (default) is recommended.
+- Respect `reducedMotion` preferences by default. The hook checks this internally.
 
 ---
 

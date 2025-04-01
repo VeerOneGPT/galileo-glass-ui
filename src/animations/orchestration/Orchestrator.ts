@@ -481,9 +481,9 @@ export const withOrchestration = <P extends object>(
   Component: ComponentType<P>,
   sequenceConfig: AnimationSequence
 ): FC<P> => {
-  return (props: P) => {
+  const OrchestratedComponent: FC<P> = (props: P) => {
     // Create a unique ID for this sequence based on component name
-    const sequenceId = `${Component.displayName || 'Component'}-${Date.now()}`;
+    const sequenceId = `${Component.displayName || Component.name || 'Component'}-${Date.now()}`;
 
     // Create the sequence when component mounts
     useEffect(() => {
@@ -493,11 +493,14 @@ export const withOrchestration = <P extends object>(
         // Clean up when component unmounts
         animationOrchestrator.stop(sequenceId);
       };
-    }, []);
+    }, []); // sequenceConfig should likely be a dependency if it can change
 
     // Render the wrapped component
     return createElement(Component, props);
   };
+
+  OrchestratedComponent.displayName = `WithOrchestration(${Component.displayName || Component.name || 'Component'})`;
+  return OrchestratedComponent;
 };
 
 const OrchestrationComponent = () => {

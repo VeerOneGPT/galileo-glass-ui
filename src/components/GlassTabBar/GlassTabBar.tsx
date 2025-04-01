@@ -615,34 +615,45 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
     checkScrollVisibility();
     
     // Reset tab state when tabs change
+    // Initialize with all tabs visible temporarily
     setVisibleTabs(tabs);
     setCollapsedTabs([]);
     
-    // Re-calculate visible tabs after a short delay to ensure the DOM has updated
+    // Re-calculate visible tabs after a short delay to allow DOM updates
     if (collapseTabs) {
-      setTimeout(() => {
+      const timerId = setTimeout(() => {
         if (!tabsRef.current) return;
+        
+        // Ensure tabRefs array is aligned with tabs array
+        if (tabRefs.current.length !== tabs.length) {
+          console.warn('GlassTabBar: tabRefs length mismatch, delaying recalculation.');
+          // Optionally, could reschedule or handle this state
+          return;
+        }
     
-    // Update tab width measurements
-    tabWidthsRef.current = [];
-    tabRefs.current.forEach((tabRef, index) => {
-      if (tabRef) {
-        const tabWidth = tabRef.getBoundingClientRect().width;
-        tabWidthsRef.current[index] = tabWidth;
-          }
+        // Update tab width measurements more robustly
+        const currentTabWidths: number[] = [];
+        tabs.forEach((_, index) => {
+          const tabRef = tabRefs.current[index];
+          const width = tabRef ? tabRef.getBoundingClientRect().width : 50; // Use fallback if ref missing
+          currentTabWidths[index] = width > 0 ? width : 50; // Use fallback if width is 0
         });
+        tabWidthsRef.current = currentTabWidths;
         
         const { visibleTabs: newVisible, collapsedTabs: newCollapsed } = calculateVisibleTabs({
-    tabs, 
+          tabs, 
           containerWidth: tabsRef.current.clientWidth,
-          maxVisibleTabs,
+          maxVisibleTabs, // Added to calculation context
           tabWidths: tabWidthsRef.current,
         });
         
         setVisibleTabs(newVisible);
         setCollapsedTabs(newCollapsed);
-      }, 50);
+      }, 50); // Short delay for DOM updates
+      
+      return () => clearTimeout(timerId); // Cleanup timeout on effect re-run
     }
+    // Only include dependencies that trigger recalculation
   }, [tabs, checkScrollVisibility, collapseTabs, maxVisibleTabs]);
   
   // Create magnetic trail effect component
