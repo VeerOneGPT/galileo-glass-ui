@@ -704,7 +704,7 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
     animationSequence.play();
     
     // Listen to progress updates
-    animationSequence.addCallback('update', (progress) => {
+    animationSequence.addCallback('onUpdate', (progress) => {
       setTransitionProgress(progress);
     });
     

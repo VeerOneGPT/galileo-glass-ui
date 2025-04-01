@@ -504,7 +504,7 @@ const AnimationSynchronizerDemo: React.FC = () => {
           {positions.slice(0, 5).map((pos, index) => (
             <AnimationElement
               key={index}
-              ref={el => elementRefs.current[index] = el}
+              ref={(el) => { elementRefs.current[index] = el; }}
               style={pos}
               $color={colors[index]}
               $inactive={groupState === SyncGroupState.COMPLETED}

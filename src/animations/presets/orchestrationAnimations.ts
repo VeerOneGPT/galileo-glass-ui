@@ -5,14 +5,14 @@
  * and orchestration using the Galileo Glass UI animation orchestration systems.
  */
 import { keyframes } from 'styled-components';
-
 import {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  AnimationPreset,
   fadeAnimation,
+  slideUpAnimation,
 } from './accessibleAnimations';
+import type { AnimationPreset } from '../core/types';
 
 // Types for orchestration animation presets
 export interface OrchestrationPreset {

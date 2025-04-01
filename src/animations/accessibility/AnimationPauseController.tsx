@@ -6,7 +6,15 @@
  * sensitivity. This module allows both global and local control of animations.
  */
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  ReactNode
+} from 'react';
 import { useSyncExternalStore } from 'use-sync-external-store/shim';
 
 /**

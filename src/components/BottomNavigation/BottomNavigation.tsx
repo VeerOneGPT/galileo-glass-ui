@@ -1,4 +1,4 @@
-import React, { forwardRef, Children, cloneElement, useState, useEffect, useMemo, useRef } from 'react';
+import React, { forwardRef, Children, cloneElement, useState, useEffect, useMemo, useRef, isValidElement } from 'react';
 import styled, { css } from 'styled-components';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
@@ -368,44 +368,45 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
   }, [value, actionRefs, animateIndicator, initialIndicatorStyle]);
 
   // Clone children with additional props, including ref assignment
-  const childrenWithProps = React.Children.map(children, child => {
-    if (React.isValidElement(child)) {
-      const childValue = child.props.value;
-      const childAnimProps: AnimationProps = {
-        animationConfig: child.props.animationConfig ?? animationConfig,
-        disableAnimation: child.props.disableAnimation ?? finalDisableAnimation,
-        motionSensitivity: child.props.motionSensitivity ?? motionSensitivity,
-      };
-      return React.cloneElement(child, {
-        ...child.props,
-        ref: (node: HTMLElement | null) => {
-          if (node) {
-            setActionRefs(prev => new Map(prev).set(childValue, node));
-          } else {
-            // Clean up ref if node is unmounted
-            setActionRefs(prev => {
-              const newMap = new Map(prev);
-              newMap.delete(childValue);
-              return newMap;
-            });
-          }
-        },
-        selected: child.props.value === value,
-        showLabel: showLabels || child.props.value === value,
-        onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
-          if (onChange) {
-            onChange(event, child.props.value);
-          }
-          if (child.props.onClick) {
-            child.props.onClick(event);
-          }
-        },
-        variant,
-        color,
-        ...childAnimProps,
-      } as React.HTMLAttributes<HTMLElement>);
+  const childrenWithProps = Children.map(children, (child, childIndex) => {
+    if (!isValidElement<BottomNavigationActionProps>(child)) {
+      return null;
     }
-    return child;
+
+    const childValue = child.props.value;
+    const childAnimProps: AnimationProps = {
+      animationConfig: child.props.animationConfig ?? animationConfig,
+      disableAnimation: child.props.disableAnimation ?? finalDisableAnimation,
+      motionSensitivity: child.props.motionSensitivity ?? motionSensitivity,
+    };
+    return cloneElement(child, {
+      ...child.props,
+      ref: (node: HTMLElement | null) => {
+        if (node) {
+          setActionRefs(prev => new Map(prev).set(childValue, node));
+        } else {
+          // Clean up ref if node is unmounted
+          setActionRefs(prev => {
+            const newMap = new Map(prev);
+            newMap.delete(childValue);
+            return newMap;
+          });
+        }
+      },
+      selected: childValue === value,
+      showLabel: showLabels || childValue === value,
+      onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+        if (onChange) {
+          onChange(event, childValue);
+        }
+        if (child.props.onClick) {
+          child.props.onClick(event);
+        }
+      },
+      variant,
+      color,
+      ...childAnimProps,
+    } as React.HTMLAttributes<HTMLElement>);
   });
 
   return (

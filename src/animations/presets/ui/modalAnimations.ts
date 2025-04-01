@@ -9,30 +9,31 @@ import {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  AnimationPreset,
   fadeAnimation,
+  fadeScaleAnimation,
 } from '../accessibleAnimations';
+import type { AnimationPreset } from '..';
 
-// Modal/dialog entrance animation
+// Modal Entrance Animation (Scale and Fade)
 export const modalEnterAnimation: AnimationPreset = {
   keyframes: keyframes`
     from {
       opacity: 0;
-      transform: scale(0.95) translateY(10px);
+      transform: scale(0.9);
     }
     to {
       opacity: 1;
-      transform: scale(1) translateY(0);
+      transform: scale(1);
     }
   `,
   duration: animationTimings.normal,
-  easing: animationEasings.emphasized,
-  fillMode: 'forwards',
+  easing: animationEasings.enter,
+  fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
   intensity: AnimationIntensity.STANDARD,
 };
 
-// Modal/dialog exit animation
+// Modal Exit Animation (Scale and Fade)
 export const modalExitAnimation: AnimationPreset = {
   keyframes: keyframes`
     from {
@@ -44,19 +45,48 @@ export const modalExitAnimation: AnimationPreset = {
       transform: scale(0.95);
     }
   `,
-  duration: animationTimings.normal,
+  duration: animationTimings.fast,
   easing: animationEasings.exit,
-  fillMode: 'forwards',
-  reducedMotionAlternative: {
-    keyframes: keyframes`
-      from { opacity: 1; }
-      to { opacity: 0; }
-    `,
-    duration: animationTimings.fast,
-    easing: animationEasings.exit,
-    fillMode: 'forwards',
-    intensity: AnimationIntensity.SUBTLE,
-  },
+  fillMode: 'both',
+  reducedMotionAlternative: fadeAnimation,
+  intensity: AnimationIntensity.STANDARD,
+};
+
+// Dialog Entrance Animation (Slide Up and Fade)
+export const dialogEnterAnimation: AnimationPreset = {
+  keyframes: keyframes`
+    from {
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  `,
+  duration: animationTimings.normal,
+  easing: animationEasings.enter,
+  fillMode: 'both',
+  reducedMotionAlternative: fadeScaleAnimation,
+  intensity: AnimationIntensity.STANDARD,
+};
+
+// Dialog Exit Animation (Slide Down and Fade)
+export const dialogExitAnimation: AnimationPreset = {
+  keyframes: keyframes`
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+  `,
+  duration: animationTimings.fast,
+  easing: animationEasings.exit,
+  fillMode: 'both',
+  reducedMotionAlternative: fadeScaleAnimation,
   intensity: AnimationIntensity.STANDARD,
 };
 
@@ -189,6 +219,8 @@ export const slideInRightAnimation: AnimationPreset = {
 export const modalAnimations = {
   enter: modalEnterAnimation,
   exit: modalExitAnimation,
+  dialogEnter: dialogEnterAnimation,
+  dialogExit: dialogExitAnimation,
   backdropEnter: backdropEnterAnimation,
   backdropExit: backdropExitAnimation,
   glassReveal: glassModalRevealAnimation,

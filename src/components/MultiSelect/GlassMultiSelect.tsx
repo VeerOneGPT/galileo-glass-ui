@@ -1136,11 +1136,12 @@ const GlassMultiSelectInternal = <T = string>(
   );
 }
 
-// Forward Ref and Export
+// Forward Ref and Export with proper typing
 export const GlassMultiSelect = forwardRef(GlassMultiSelectInternal) as <T = string>(
   props: MultiSelectProps<T> & AnimationProps & { ref?: React.ForwardedRef<HTMLDivElement> }
 ) => React.ReactElement;
 
+// Add display name
 (GlassMultiSelect as any).displayName = 'GlassMultiSelect';
 
 export default GlassMultiSelect;

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2016",
+    "target": "es2020",
     "lib": ["dom", "dom.iterable", "esnext", "es2020.intl"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -13,9 +13,8 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "react",
     "declaration": true,
-    "outDir": "dist",
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "sourceMap": true,
@@ -26,7 +25,7 @@
     "noImplicitThis": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "typeRoots": ["./node_modules/@types", "./examples"],
+    "typeRoots": ["./node_modules/@types"],
     "baseUrl": ".",
     "paths": {
       "galileo-glass-ui": ["./src"],
@@ -36,6 +35,11 @@
       "galileo-glass-ui/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "examples/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/__mocks__",
+    "src/__tests__"
+  ]
 }

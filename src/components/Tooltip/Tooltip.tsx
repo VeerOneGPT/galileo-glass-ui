@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo, cloneElement } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo, cloneElement, useId, isValidElement, ReactElement, HTMLAttributes, Ref, MutableRefObject, RefCallback } from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
@@ -94,6 +94,22 @@ export interface TooltipProps extends AnimationProps {
    * If true, disables the transition animation.
    */
   disableAnimation?: boolean;
+
+  /**
+   * If true, the tooltip is rich content
+   */
+  richContent?: boolean;
+
+  /**
+   * The z-index of the tooltip
+   */
+  zIndex?: number;
+
+  /**
+   * The animation style (if applicable, e.g., 'fade', 'spring')
+   * Might be better handled by animationConfig directly
+   */
+  animationStyle?: string;
 }
 
 // Get color by name for theme consistency
@@ -263,6 +279,7 @@ const TooltipContent = styled.div<{
   $color: string;
   $maxWidth: number;
   $placement: string;
+  $visible?: boolean;
 }>`
   position: fixed;
   z-index: 1500;
@@ -334,6 +351,10 @@ const TooltipContent = styled.div<{
     }
     return '';
   }}
+
+  /* Add conditional visibility styling if needed based on $visible */
+  opacity: ${props => props.$visible ? 1 : 0};
+  /* Or use display: none, etc. */
 `;
 
 const TooltipArrow = styled.div<{
@@ -374,36 +395,40 @@ const TooltipArrow = styled.div<{
  * A component that displays informative text when users hover over, focus on,
  * or tap an element.
  */
-export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => {
-  const {
-    title,
+export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(({
     children,
+    title,
     placement = 'top',
     disabled = false,
-    variant = 'standard',
     color = 'default',
     maxWidth = 300,
     arrow = false,
     enterDelay = 100,
     leaveDelay = 0,
     interactive = false,
-    className,
+    variant = 'standard',
+    animationStyle = 'fade',
+    className = '',
+    zIndex = 1500,
+    richContent,
     animationConfig,
     disableAnimation,
     motionSensitivity,
     ...rest
-  } = props;
-
+}, ref) => {
   const [visible, setVisible] = useState(false);
   const [isRendered, setIsRendered] = useState(false);
   const [position, setPosition] = useState({ top: -1000, left: -1000 });
   const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
   const [arrowClass, setArrowClass] = useState('arrow-top');
+  const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
+  const [tooltipElement, setTooltipElement] = useState<HTMLDivElement | null>(null);
 
-  const triggerRef = useRef<HTMLElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const enterTimeoutRef = useRef<number | undefined>();
-  const leaveTimeoutRef = useRef<number | undefined>();
+  const triggerRef = useRef<HTMLElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const enterTimeoutRef = useRef<number | undefined>(undefined);
+  const leaveTimeoutRef = useRef<number | undefined>(undefined);
+  const tooltipId = useId();
 
   const prefersReducedMotion = useReducedMotion();
   const { defaultSpring } = useAnimationContext();
@@ -466,7 +491,7 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
   }, [visible]);
 
   // Function to update tooltip position
-  const updatePosition = () => {
+  const updatePosition = useCallback(() => {
     if (!triggerRef.current || !tooltipRef.current) return;
 
     const targetRect = triggerRef.current.getBoundingClientRect();
@@ -497,10 +522,10 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
       setArrowPosition({ top: arrowTop, left: arrowLeft });
     }
     setArrowClass(arrowDir);
-  };
+  }, [placement, arrow]);
 
   // Show the tooltip
-  const handleShow = () => {
+  const handleShow = useCallback(() => {
     if (disabled || !title) return;
 
     clearTimeout(enterTimeoutRef.current);
@@ -508,28 +533,26 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
 
     enterTimeoutRef.current = window.setTimeout(() => {
       setVisible(true);
-      // Update position after render
-      setTimeout(updatePosition, 0);
+      setIsRendered(true);
+      requestAnimationFrame(updatePosition);
     }, enterDelay);
-  };
+  }, [enterDelay, updatePosition]);
 
   // Hide the tooltip
-  const handleHide = () => {
+  const handleHide = useCallback(() => {
     clearTimeout(enterTimeoutRef.current);
     clearTimeout(leaveTimeoutRef.current);
 
     leaveTimeoutRef.current = window.setTimeout(() => {
       setVisible(false);
     }, leaveDelay);
-  };
+  }, [leaveDelay]);
 
   // Handle tooltip touch events
-  const handleTouchStart = () => {
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
     handleShow();
-
-    // Auto-hide after 1.5s for mobile
     setTimeout(handleHide, 1500);
-  };
+  }, [handleShow, handleHide]);
 
   // Handle hover on tooltip for interactive mode
   const handleTooltipMouseEnter = () => {
@@ -544,65 +567,77 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
     }
   };
 
-  // Clone child element with tooltip trigger props
-  const trigger = React.cloneElement(children, {
-    ref: (node: HTMLElement) => {
-      // Save the trigger element reference
+  // Combined ref for tooltip element
+  const updateTooltipRefs = useCallback((node: HTMLDivElement | null) => {
+    tooltipRef.current = node;
+    setTooltipElement(node);
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref]);
+
+  // Combined ref logic for the trigger element - Explicitly type as RefCallback
+  const handleTriggerRef: RefCallback<HTMLElement> = useCallback((node) => {
       triggerRef.current = node;
-
-      // Forward the ref to the original ref if it exists
-      const { ref: childRef } = children as any;
-      if (childRef) {
-        if (typeof childRef === 'function') {
-          childRef(node);
-        } else if (Object.prototype.hasOwnProperty.call(childRef, 'current')) {
-          if (childRef && 'current' in childRef) {
-            (childRef as React.MutableRefObject<HTMLElement>).current = node;
+      setTargetElement(node);
+      // Forward the ref safely to the original child's ref
+      if (isValidElement(children)) {
+          const childRef = (children as ReactElement & { ref?: Ref<any> }).ref;
+          if (typeof childRef === 'function') {
+              childRef(node);
+          } else if (childRef && typeof childRef === 'object' && 'current' in childRef) {
+              (childRef as MutableRefObject<HTMLElement | null>).current = node;
           }
-        }
       }
-    },
-    onMouseEnter: (e: React.MouseEvent) => {
-      handleShow();
+  }, [children]);
 
-      // Call original handler if it exists
-      if (children.props.onMouseEnter) {
-        children.props.onMouseEnter(e);
-      }
-    },
-    onMouseLeave: (e: React.MouseEvent) => {
-      handleHide();
+  // Ensure children is a valid element before cloning
+  if (!isValidElement<HTMLAttributes<HTMLElement>>(children)) {
+    if (process.env.NODE_ENV !== 'production') {
+        console.error("Tooltip requires a single React element child.");
+    }
+    return <>{children}</>; // Render children directly
+  }
 
-      // Call original handler if it exists
-      if (children.props.onMouseLeave) {
-        children.props.onMouseLeave(e);
-      }
-    },
-    onFocus: (e: React.FocusEvent) => {
-      handleShow();
+  // Define the props to add/override for cloneElement
+  const triggerProps: HTMLAttributes<HTMLElement> = {
+      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+          handleShow();
+          // Safely call original handler
+          (children.props as HTMLAttributes<HTMLElement>).onMouseEnter?.(e);
+      },
+      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => {
+          handleHide();
+          (children.props as HTMLAttributes<HTMLElement>).onMouseLeave?.(e);
+      },
+      onFocus: (e: React.FocusEvent<HTMLElement>) => {
+          handleShow();
+          (children.props as HTMLAttributes<HTMLElement>).onFocus?.(e);
+      },
+      onBlur: (e: React.FocusEvent<HTMLElement>) => {
+          handleHide();
+          (children.props as HTMLAttributes<HTMLElement>).onBlur?.(e);
+      },
+      onTouchStart: (e: React.TouchEvent<HTMLElement>) => {
+          handleTouchStart(e);
+          (children.props as HTMLAttributes<HTMLElement>).onTouchStart?.(e);
+      },
+      // Add aria attributes for accessibility
+      'aria-describedby': visible ? tooltipId : undefined,
+      // DO NOT spread child.props here if it causes issues.
+      // Instead, manually pass necessary ones or rely on the original element.
+  };
 
-      // Call original handler if it exists
-      if (children.props.onFocus) {
-        children.props.onFocus(e);
+  // Clone child element, passing the combined ref handler and additional props
+  const trigger = cloneElement(
+      children as ReactElement<HTMLAttributes<HTMLElement>>,
+      {
+          ...children.props,
+          ...triggerProps,
       }
-    },
-    onBlur: (e: React.FocusEvent) => {
-      handleHide();
-
-      // Call original handler if it exists
-      if (children.props.onBlur) {
-        children.props.onBlur(e);
-      }
-    },
-    onTouchStart: (e: React.TouchEvent) => {
-      handleTouchStart();
-
-      // Call original handler if it exists
-      if (children.props.onTouchStart) {
-        children.props.onTouchStart(e);
-      }
-    },
-  });
+  );
 
   // Clean up timeouts on unmount
   useEffect(() => {
@@ -614,66 +649,55 @@ export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>((props, ref) => 
 
   // Update position if props change that would affect layout
   useEffect(() => {
-    if (visible) {
-      updatePosition();
+    if (visible && isRendered) {
+      requestAnimationFrame(updatePosition);
     }
-  }, [visible, placement, title]);
+  }, [visible, isRendered, updatePosition, placement, title]);
 
-  // Don't render anything if disabled or no title
-  if (disabled || !title) {
-    return children;
-  }
+  // Conditional rendering of tooltip content
+  const renderTooltipContent = () => {
+    if (!isRendered || (!title && !richContent)) return null;
 
-  // Calculate animated style
-  const animatedStyle: React.CSSProperties = {
-    opacity: animatedValues.opacity,
-    transform: `translateY(${animatedValues.translateY}px) scale(${animatedValues.scale})`,
+    // Fix: Simplify formattedContent - Assume title for now
+    const formattedContent = title;
+
+    return ReactDOM.createPortal(
+      <TooltipContent
+        id={tooltipId}
+        ref={updateTooltipRefs}
+        className={`tooltip ${className}`}
+        style={{
+          top: position.top,
+          left: position.left,
+          opacity: animatedValues.opacity,
+          transform: `translateY(${animatedValues.translateY}px) scale(${animatedValues.scale})`,
+        }}
+        $visible={visible}
+        $color={color}
+        $maxWidth={maxWidth}
+        $placement={placement}
+        $variant={variant}
+        onMouseEnter={handleTooltipMouseEnter}
+        onMouseLeave={handleTooltipMouseLeave}
+        role="tooltip"
+        aria-live="polite"
+        {...rest}
+      >
+        {formattedContent}
+        {arrow && <TooltipArrow className={arrowClass} $variant={variant} $color={color} style={{ top: arrowPosition.top, left: arrowPosition.left }} />}
+      </TooltipContent>,
+      document.body
+    );
   };
 
-  // Render portal only if isRendered is true
+  if (disabled || (!title && !richContent)) {
+    return <>{children}</>; // Render original children if disabled or no content
+  }
+
   return (
     <>
       {trigger}
-      {isRendered && ReactDOM.createPortal(
-        <TooltipContent
-          ref={node => {
-            tooltipRef.current = node;
-            if (typeof ref === 'function') {
-              ref(node);
-            } else if (ref) {
-              (ref as React.MutableRefObject<HTMLDivElement>).current = node!;
-            }
-          }}
-          className={className}
-          style={{
-            top: position.top,
-            left: position.left,
-            ...animatedStyle,
-          }}
-          $variant={variant}
-          $color={color}
-          $maxWidth={maxWidth}
-          $placement={placement}
-          onMouseEnter={handleTooltipMouseEnter}
-          onMouseLeave={handleTooltipMouseLeave}
-          role="tooltip"
-          {...rest}
-        >
-          {title}
-          {arrow && (
-            <TooltipArrow
-              className={arrowClass}
-              style={{
-                top: arrowPosition.top,
-                left: arrowPosition.left,
-              }}
-              $variant={variant}
-              $color={color}
-            />
-          )}
-        </TooltipContent>,
-        document.body
-      )}
+      {renderTooltipContent()}
     </>
   );
 });

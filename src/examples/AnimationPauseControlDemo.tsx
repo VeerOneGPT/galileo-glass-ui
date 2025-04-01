@@ -255,7 +255,7 @@ const AnimationWithControls: React.FC<{
     name,
     isEssential: essential,
     canPause: true,
-    canAdjustSpeed: true
+    canAdjustSpeed: true,
   });
   
   return (
@@ -270,7 +270,7 @@ const AnimationWithControls: React.FC<{
       
       <div ref={animationRef}>
         {React.Children.map(children, child => {
-          if (React.isValidElement(child)) {
+          if (React.isValidElement<React.HTMLAttributes<HTMLElement> & { $paused?: boolean }>(child)) {
             return React.cloneElement(child, {
               ...child.props,
               $paused: animation.paused
@@ -281,24 +281,26 @@ const AnimationWithControls: React.FC<{
       </div>
       
       <CardControls>
-        <Button onClick={animation.togglePause}>
+        <Button onClick={animation.togglePause} disabled={!animation.canPause}>
           {animation.paused ? 'Play' : 'Pause'}
         </Button>
         <Button onClick={animation.restart}>
           Restart
         </Button>
         
-        <SpeedControl>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={animation.speed}
-            onChange={(e) => animation.setSpeed(parseFloat(e.target.value))}
-          />
-          <span>{Math.round(animation.speed * 100)}%</span>
-        </SpeedControl>
+        {animation.canAdjustSpeed && (
+          <SpeedControl>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={animation.speed}
+              onChange={(e) => animation.setSpeed(parseFloat(e.target.value))}
+            />
+            <span>{Math.round(animation.speed * 100)}%</span>
+          </SpeedControl>
+        )}
       </CardControls>
     </AnimationCard>
   );

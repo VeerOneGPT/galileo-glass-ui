@@ -812,7 +812,7 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
         return (
           <TabItemComponent
             key={tab.id || `tab-${index}`}
-            ref={el => tabRefs.current[index] = el}
+            ref={(el: HTMLButtonElement | null) => { if (el) tabRefs.current[index] = el; }}
             tab={{
               ...tab,
               // Add badge count to "More" tab if it doesn't already have one

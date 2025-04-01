@@ -352,12 +352,10 @@ const GridBase = forwardRef<HTMLDivElement, GridProps>(function Grid(props, ref)
       glass={glass}
       {...rest}
     >
-      {/* Recursively pass columns value down to Grid.Item children */}
       {React.Children.map(children, child => {
-        if (React.isValidElement(child) && child.type === (Grid as any).Item) {
-          return React.cloneElement(child as React.ReactElement<any>, {
+        if (React.isValidElement<GridItemProps & { parentColumns?: number }>(child) && child.type === (Grid as any).Item) {
+          return React.cloneElement(child, {
             parentColumns: columns,
-            ...child.props,
           });
         }
         return child;

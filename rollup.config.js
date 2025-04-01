@@ -1,6 +1,6 @@
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
-import typescript from '@rollup/plugin-typescript';
+import typescript from 'rollup-plugin-typescript2';
 import { babel } from '@rollup/plugin-babel';
 import terser from '@rollup/plugin-terser';
 import peerDepsExternal from 'rollup-plugin-peer-deps-external';
@@ -17,111 +17,17 @@ const packageJson = require('./package.json');
 
 const extensions = ['.js', '.jsx', '.ts', '.tsx'];
 
-// Shared plugins config for all bundles
-// Check if we should skip TypeScript checking 
-const skipTypeCheck = process.env.SKIP_TS_CHECK === 'true' || process.argv.includes('--environment') && process.argv.includes('SKIP_TYPECHECK:true');
+// TypeScript plugin configuration using rollup-plugin-typescript2
+const tsconfigDefaults = { compilerOptions: { declaration: true } };
+const tsconfigOverride = { compilerOptions: { declaration: false } }; // Don't emit declarations for non-entry files if needed, adjust as necessary
 
-// TypeScript plugin configuration
-const typescriptPlugin = skipTypeCheck 
-  ? typescript({ 
-      tsconfig: './tsconfig.json',
-      declaration: false, // Skip declaration files in emergency mode
-      rootDir: './src',
-      sourceMap: true,
-      noEmitOnError: false, // Continue even with errors
-      skipLibCheck: true  // Skip lib checks
-    })
-  : typescript({ 
-      tsconfig: './tsconfig.json',
-      declaration: true,
-      declarationDir: './dist/dts',
-      rootDir: './src',
-      sourceMap: true
-    });
-
-if (skipTypeCheck) {
-  console.log('🚨 Building with TypeScript checks disabled'); 
-}
-
-// Patch declaration files to fix path issues and invalid syntax
-const patchDeclarationFiles = {
-  name: 'patch-declaration-files',
-  writeBundle: async () => {
-    console.log('🚀 Running post-build declaration file patching...');
-
-    // --- Step 1: Fix internal imports in intermediate files (existing logic) ---
-    const presetsIndexDtsPath = path.join(__dirname, 'dist/dts/animations/presets/index.d.ts');
-    if (fs.existsSync(presetsIndexDtsPath)) {
-      console.log('  -> Patching imports in dist/dts/animations/presets/index.d.ts...');
-      let content = fs.readFileSync(presetsIndexDtsPath, 'utf8');
-      content = content.replace(
-        /import\s+{([^}]+)}\s+from\s+['"]\.\/(animationPresets)['"]/g, 
-        'import {$1} from "../animationPresets"'
-      );
-      content = content.replace(
-        /import\s+(\w+)\s+from\s+['"]\.\/(animationPresets)['"]/g, 
-        'import $1 from "../animationPresets"'
-      );
-      fs.writeFileSync(presetsIndexDtsPath, content);
-      console.log('     ✅ Fixed imports.');
-    }
-    
-    // --- Step 2: Fix final bundled declaration files --- 
-    const finalBundledDtsFiles = [
-      path.join(__dirname, 'dist/animations.d.ts'),
-      path.join(__dirname, 'dist/hooks.d.ts'),
-      path.join(__dirname, 'dist/index.d.ts')
-    ];
-
-    for (const dtsPath of finalBundledDtsFiles) {
-      if (fs.existsSync(dtsPath)) {
-        const relativePath = path.relative(__dirname, dtsPath);
-        console.log(`  -> Patching syntax in ${relativePath}...`);
-        let content = fs.readFileSync(dtsPath, 'utf8');
-
-        // Fix 1: Replace `= undefined<T>;` with `= any;` (or `= unknown;`)
-        // Using `any` for broader compatibility for now.
-        const fix1Regex = / = undefined<T>;/g;
-        const originalContentFix1 = content;
-        content = content.replace(fix1Regex, ' = any;');
-        if (content !== originalContentFix1) {
-          console.log('     ✅ Replaced invalid `= undefined<T>;` syntax.');
-        } else {
-          console.log('     ℹ️  No invalid `= undefined<T>;` syntax found.');
-        }
-        
-        // Fix 2: Remove `, undefined<T>` from MergePropTypes/Defaultize calls
-        // This attempts to fix patterns like `MergePropTypes<P, undefined<T>>`
-        const fix2Regex = /, undefined<T>/g;
-        const originalContentFix2 = content;
-        content = content.replace(fix2Regex, ''); 
-        if (content !== originalContentFix2) {
-          console.log('     ✅ Removed invalid `, undefined<T>` from complex types.');
-        } else {
-          console.log('     ℹ️  No invalid `, undefined<T>` patterns found.');
-        }
-
-        // Fix 3: Fix remaining problematic preset imports (if any slip through)
-        // This might be redundant now but kept as a safeguard
-        const originalContentFix3 = content;
-        content = content.replace(
-          /from\s+['"]\.\/(animationPresets)['"]/g, 
-          'from "./animationPresets"'
-        );
-         if (content !== originalContentFix3) {
-          console.log('     ✅ Fixed remaining preset imports.');
-        }
-
-        // Write the patched content back
-        fs.writeFileSync(dtsPath, content);
-        console.log(`     ✅ Patched ${relativePath}.`);
-      } else {
-        console.log(`  -> Skipping patch for non-existent file: ${path.relative(__dirname, dtsPath)}`);
-      }
-    }
-    console.log('✅ Declaration file patching complete.');
-  }
-};
+const typescriptPlugin = typescript({
+  typescript: require('typescript'), // Ensure it uses the installed TypeScript version
+  tsconfig: './tsconfig.json', 
+  // Use default tsconfig settings, including declaration: true
+  // rollup-plugin-typescript2 handles declaration file merging better
+  clean: true // Clean the cache before building
+});
 
 const basePlugins = [
   peerDepsExternal(),
@@ -150,7 +56,7 @@ const basePlugins = [
   babel({
     extensions,
     babelHelpers: 'bundled',
-    include: ['src/**/*', 'examples/**/*'],
+    include: ['src/**/*'],
     exclude: 'node_modules/**'
   }),
   terser({
@@ -163,7 +69,6 @@ const basePlugins = [
       comments: false
     }
   }),
-  patchDeclarationFiles
 ];
 
 // Common external packages that shouldn't be bundled
@@ -324,17 +229,19 @@ const entryPoints = [
       esm: 'dist/slim.esm.js'
     }
   },
-  // Add examples build
   {
-    input: 'examples/index.tsx',
+    input: 'src/animations/physics/index.ts',
     output: {
-      cjs: 'dist/examples.js',
-      esm: 'dist/examples.esm.js'
+      cjs: 'dist/animations/physics/index.js',
+      esm: 'dist/animations/physics/index.esm.js'
     }
   }
 ];
 
-// Common DTS plugin config with improved path resolution
+// Adjust final export: rollup-plugin-typescript2 typically doesn't require a separate dts bundling step
+const mainConfigs = entryPoints.map(entry => createConfig(entry.input, entry.output));
+
+// ADDED BACK: Common DTS plugin config
 const createDtsPlugin = () => dts({
   respectExternal: true, 
   compilerOptions: {
@@ -347,7 +254,7 @@ const createDtsPlugin = () => dts({
   }
 });
 
-// Common external dependencies for .d.ts files
+// ADDED BACK: Common external dependencies for .d.ts files
 const dtsExternal = [
   /\.css$/,
   'styled-components',
@@ -372,145 +279,112 @@ const dtsExternal = [
   'zustand'
 ];
 
-// Create TypeScript definition configs with improved path handling
+// ADDED BACK: Create TypeScript definition configs
 const dtsConfigs = [
   {
-    input: 'dist/dts/index.d.ts',
+    input: 'src/index.ts', // Pointing to SRC
     output: [{ file: 'dist/index.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()], // Use dts plugin
     external: dtsExternal
   },
   {
-    input: 'dist/dts/slim.d.ts',
+    input: 'src/slim.ts', // Pointing to SRC
     output: [{ file: 'dist/slim.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   // Physics engine types
   {
-    input: 'dist/dts/animations/physics/index.d.ts',
+    input: 'src/animations/physics/index.ts', // Pointing to SRC
     output: [{ file: 'dist/animations/physics/index.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/mixins.d.ts',
+    input: 'src/mixins.ts', // Pointing to SRC
     output: [{ file: 'dist/mixins.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/animations/index.d.ts',
+    input: 'src/animations/index.ts', // Pointing to SRC
     output: [{ file: 'dist/animations.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/core/index.d.ts',
+    input: 'src/core.ts', // Pointing to SRC
     output: [{ file: 'dist/core.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/index.d.ts',
+    input: 'src/components/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/Button/index.d.ts',
+    input: 'src/components/Button/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/Button.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/Card/index.d.ts',
+    input: 'src/components/Card/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/Card.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/Charts/index.d.ts',
+    input: 'src/components/Charts/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/Charts.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   // New 1.0.3 component types
   {
-    input: 'dist/dts/components/MultiSelect/index.d.ts',
+    input: 'src/components/MultiSelect/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/MultiSelect.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/DateRangePicker/index.d.ts',
+    input: 'src/components/DateRangePicker/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/DateRangePicker.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/Masonry/index.d.ts',
+    input: 'src/components/Masonry/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/Masonry.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/components/Timeline/index.d.ts',
+    input: 'src/components/Timeline/index.ts', // Pointing to SRC
     output: [{ file: 'dist/components/Timeline.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/hooks/index.d.ts',
+    input: 'src/hooks/index.ts', // Pointing to SRC
     output: [{ file: 'dist/hooks.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   },
   {
-    input: 'dist/dts/theme/index.d.ts',
+    input: 'src/theme/index.ts', // Pointing to SRC
     output: [{ file: 'dist/theme.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
-    external: dtsExternal
-  },
-  // Examples types (optional)
-  {
-    input: 'dist/dts/examples/index.d.ts',
-    output: [{ file: 'dist/examples.d.ts', format: 'es' }],
-    plugins: [createDtsPlugin(), patchDeclarationFiles],
+    plugins: [createDtsPlugin()],
     external: dtsExternal
   }
 ];
 
-// Add patchDeclarationFiles to the main configs if writeBundle doesn't run after dts bundling
-// Need to ensure patching happens at the very end.
-// Let's modify the main config generation slightly
-const mainConfigs = entryPoints.map(entry => createConfig(entry.input, entry.output));
-
-// Remove the patchDeclarationFiles plugin from the main configs as it's now handled in dtsConfigs
-if (mainConfigs.length > 0) {
-    mainConfigs.forEach(config => {
-      config.plugins = config.plugins.filter(plugin => plugin.name !== 'patch-declaration-files');
-    });
-}
-
-// Final export (combine modified mainConfigs and dtsConfigs)
+// Final export combining JS and DTS configs
 const configs = [
-  // Main bundle
-  createConfig('src/index.ts', {
-    cjs: packageJson.main,
-    esm: packageJson.module,
-    dts: 'dist/index.d.ts'
-  }),
-  
-  // Physics engine bundle
-  createConfig('src/animations/physics/index.ts', {
-    cjs: 'dist/animations/physics/index.js',
-    esm: 'dist/animations/physics/index.esm.js',
-    dts: 'dist/animations/physics/index.d.ts'
-  }),
-
   ...mainConfigs,
-  ...dtsConfigs
+  ...dtsConfigs // ADDED BACK
 ];
 
 export default configs;

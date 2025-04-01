@@ -12,8 +12,7 @@ import React, {
   useCallback,
 } from 'react';
 import styled from 'styled-components';
-
-import { ToggleButtonGroupProps } from './types';
+import { ToggleButtonGroupProps, ToggleButtonProps } from './types';
 
 // Styled components
 const GroupRoot = styled.div<{
@@ -48,7 +47,7 @@ function ToggleButtonGroupComponent(
     className,
     style,
     glass = false,
-    color = 'default',
+    color = 'primary',
     size = 'medium',
     fullWidth = false,
     variant = 'outlined',
@@ -107,7 +106,7 @@ function ToggleButtonGroupComponent(
   // Prepare children with additional props
   const childrenCount = Children.count(children);
   const childrenWithProps = Children.map(children, (child, index) => {
-    if (!isValidElement(child)) {
+    if (!isValidElement<ToggleButtonProps>(child)) {
       return child;
     }
 

@@ -9,7 +9,8 @@ import styled, { keyframes, css } from 'styled-components';
 import { useReducedMotion } from '../animations/accessibility/useReducedMotion';
 import { AnimationCategory, MotionSensitivityLevel, AnimationComplexity } from '../animations/accessibility/MotionSensitivity';
 import { AlternativeType } from '../animations/accessibility/ReducedMotionAlternatives';
-import { animationPresets } from '../animations/presets';
+import { AnimationPreset } from '../animations/presets';
+import { Card as UiCard } from '../components';
 
 // Styled components for the demo
 const Container = styled.div`

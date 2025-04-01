@@ -77,43 +77,10 @@ export {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  useAccessibleAnimation,
-  getAccessibleAnimation,
 } from './presets';
 
-// Export the AnimationPreset type - inline definition to avoid build issues
-export interface AnimationPreset {
-  /** The animation keyframes or direct reference to a keyframe animation */
-  keyframes?: any;
-  animation?: any;
-
-  /** Default animation duration */
-  duration: string | number;
-
-  /** Default animation easing */
-  easing: string;
-
-  /** Default animation delay */
-  delay?: string | number;
-
-  /** Default animation fill mode */
-  fillMode?: 'none' | 'forwards' | 'backwards' | 'both';
-
-  /** Reduced motion alternative */
-  reducedMotionAlternative?: AnimationPreset | null;
-
-  /** Animation intensity level */
-  intensity?: any;
-
-  /** Iterations count */
-  iterations?: number | string;
-
-  /** Animation direction */
-  direction?: 'normal' | 'reverse' | 'alternate' | 'alternate-reverse';
-
-  /** Animation play state */
-  playState?: 'running' | 'paused';
-}
+// Export getAccessibleAnimation from its actual location
+export { getAccessibleAnimation } from './presets/accessibleAnimations';
 
 // Animation accessibility
 export {
@@ -128,6 +95,7 @@ export {
   useAccessibleAnimation as useAccessibleAnimationCss,
   conditionalAnimation,
   getAccessibleKeyframes,
+  useAccessibleAnimation
 } from './accessibility';
 
 // Animation orchestration

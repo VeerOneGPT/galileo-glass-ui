@@ -136,36 +136,6 @@ export interface TransitionOptions {
 }
 
 /**
- * Animation preset configuration
- */
-export interface AnimationPreset {
-  /**
-   * Name of the preset
-   */
-  name: string;
-
-  /**
-   * The animation keyframes
-   */
-  animation: ReturnType<typeof keyframes>;
-
-  /**
-   * Reduced motion alternative
-   */
-  reducedMotionAlternative?: ReturnType<typeof keyframes>;
-
-  /**
-   * Default duration in seconds
-   */
-  defaultDuration: number;
-
-  /**
-   * Default easing function
-   */
-  defaultEasing: string;
-}
-
-/**
  * Spring animation options
  */
 export interface SpringAnimationOptions {

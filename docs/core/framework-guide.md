@@ -162,10 +162,10 @@ The Glass UI components use a domain-specific import structure. Here are the two
 
 ```tsx
 // Pattern 1: Standard import pattern for all components
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
-import { glassGlow } from '../../design/mixins/effects/glowEffects';
-import { edgeHighlight } from '../../design/mixins/effects/edgeEffects';
-import { createThemeContext } from '../../design/core/themeUtils';
+import { innerGlow } from '../../mixins/depth/innerEffects';
+import { glassGlow } from '../../mixins/effects/glowEffects';
+import { edgeHighlight } from '../../mixins/effects/edgeEffects';
+import { createThemeContext } from '../../core/themeUtils';
 
 // Pattern 2: Import Glass components directly
 import { 
@@ -194,8 +194,8 @@ This architecture ensures runtime safety, maintainability, and a standardized ap
 
 ```tsx
 // CORRECT: Domain-specific import with theme context
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
-import { createThemeContext } from '../../design/core/themeContext';
+import { innerGlow } from '../../mixins/depth/innerEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 ${props => innerGlow({ 
   color: 'primary', 
@@ -209,7 +209,7 @@ ${props => innerGlow({
 
 ```tsx
 // PROBLEM: Missing themeContext parameter 
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
+import { innerGlow } from '../../mixins/depth/innerEffects';
 
 ${innerGlow({ color: 'primary', intensity: 'medium' })}
 ```
@@ -217,8 +217,8 @@ ${innerGlow({ color: 'primary', intensity: 'medium' })}
 **Solution**: Always pass `themeContext` created from `props.theme`:
 
 ```tsx
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
-import { createThemeContext } from '../../design/core/themeContext';
+import { innerGlow } from '../../mixins/depth/innerEffects';
+import { createThemeContext } from '../../core/themeContext';
 
 const Component = styled.div<{ theme: any }>`
   ${props => innerGlow({ 
@@ -238,9 +238,9 @@ const Component = styled.div<{ theme: any }>`
 ```tsx
 import React from 'react';
 import styled from 'styled-components';
-import { glassSurface } from '../../design/mixins/surfaces/glassSurface';
+import { glassSurface } from '../../mixins/surfaces/glassSurface';
 import { GlassTypography, GlassButton } from '../../components/Glass';
-import { createThemeContext } from '../../design/core/themeUtils';
+import { createThemeContext } from '../../core/themeUtils';
 
 const CardContainer = styled.div<{ theme: any }>`
   ${props => glassSurface({ 
@@ -278,10 +278,10 @@ const GlassCard: React.FC<GlassCardProps> = ({
     ion}sTypassBy" o
    
        <xportCard;th Efatter Reacimpor-components';
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
-import { glassGlow } from '../../design/mixins/effects/glowEffects';
-import { cssWithKebabProps } from '../../design/core';
-import { createThemeContext } from '../../design/core/themeUtils';
+import { innerGlow } from '../../mixins/depth/innerEffects';
+import { glassGlow } from '../../mixins/effects/glowEffects';
+import { cssWithKebabProps } from '../../core';
+import { createThemeContext } from '../../core/themeUtils';
 
 const StyledButton = styled.button<{ theme: any }>`
   ${cssWithKebabProps`
@@ -374,13 +374,13 @@ frontend/src/
 
 ```tsx
 // ❌ INCORRECT: Missing theme context
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
+import { innerGlow } from '../../mixins/depth/innerEffects';
 // ...
 ${innerGlow({ color: 'primary', intensity: 'medium', spread: 15 })} // Missing themeContext!
 
 // ✅ CORRECT: Standard pattern with theme context
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
-import { createThemeContext } from '../../design/core/themeUtils';
+import { innerGlow } from '../../mixins/depth/innerEffects';
+import { createThemeContext } from '../../core/themeUtils';
 // ...
 ${props => innerGlow({ 
   color: 'primary', 
@@ -410,7 +410,7 @@ const Component = styled.div`
 `;
 
 // ✅ SOLUTION 2: Use the cssWithKebabProps helper
-import { cssWithKebabProps } from '../../design/core';
+import { cssWithKebabProps } from '../../core';
 
 const Component = styled.div`
   ${cssWithKebabProps`
@@ -457,7 +457,7 @@ The Glass UI system is integrated into the Galileo project and requires no addit
 To use Glass components, ensure you have the proper provider hierarchy:
 
 ```tsx
-import { StyledThemeProvider } from '../../design/StyledThemeProvider';
+import { StyledThemeProvider } from '../../theme/StyledThemeProvider';
 import { GlassProvider, GlassThemeProvider } from '../../components/Glass';
 
 const App: React.FC = () => {
@@ -559,12 +559,12 @@ See [Section 11: Animation System (v1.0.5 Overhaul)](#animation-system-v105-over
 ### Theme Access Pattern
 
 ```tsx
-import { useGlassTheme } from '../../design/ThemeProvider';
+import { useGlassTheme } from '../../theme/ThemeProvider';
 import { 
   createColorStyle, 
   createSpacingStyle, 
   createTypographyStyle 
-} from '../../design/core/styleUtils';
+} from '../../core/styleUtils';
 
 const MyComponent = () => {
   const { themeContext } = useGlassTheme();
@@ -623,7 +623,7 @@ const StyledElement = styled.div<StyledElementProps>`
 ### Theme Hook
 
 ```tsx
-import { useGlassTheme } from '../../design/GlassThemeProvider';
+import { useGlassTheme } from '../../theme/GlassThemeProvider';
 
 const ThemeSwitcher: React.FC = () => {
   const { 
@@ -658,7 +658,7 @@ const ThemeSwitcher: React.FC = () => {
 ### Creating Custom Themed Components
 
 ```tsx
-import { useGlassTheme } from '../../design/GlassThemeProvider';
+import { useGlassTheme } from '../../theme/GlassThemeProvider';
 import styled from 'styled-components';
 
 const CustomComponent: React.FC = () => {
@@ -889,7 +889,7 @@ frontend/src/design/
 #### glassSurface
 
 ```tsx
-import { glassSurface } from '../../design/mixins/surfaces/glassSurface';
+import { glassSurface } from '../../mixins/surfaces/glassSurface';
 import styled from 'styled-components';
 
 const GlassCard = styled.div`
@@ -906,7 +906,7 @@ const GlassCard = styled.div`
 #### interactiveGlass
 
 ```tsx
-import { interactiveGlass } from '../../design/mixins/interaction/interactiveGlass';
+import { interactiveGlass } from '../../mixins/interaction/interactiveGlass';
 import styled from 'styled-components';
 
 const InteractiveCard = styled.div`
@@ -924,7 +924,7 @@ const InteractiveCard = styled.div`
 #### glassGlow
 
 ```tsx
-import { glassGlow } from '../../design/mixins/effects/glowEffects';
+import { glassGlow } from '../../mixins/effects/glowEffects';
 import styled from 'styled-components';
 
 const GlowingElement = styled.div`
@@ -940,7 +940,7 @@ const GlowingElement = styled.div`
 #### glassBorder
 
 ```tsx
-import { glassBorder } from '../../design/mixins/surfaces/glassBorder';
+import { glassBorder } from '../../mixins/surfaces/glassBorder';
 import styled from 'styled-components';
 
 const BorderedCard = styled.div`
@@ -967,7 +967,7 @@ const GlowBorderButton = styled.button`
 #### innerGlow
 
 ```tsx
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
+import { innerGlow } from '../../mixins/depth/innerEffects';
 import styled from 'styled-components';
 
 const GlowCard = styled.div`
@@ -983,7 +983,7 @@ const GlowCard = styled.div`
 #### ambientGlow
 
 ```tsx
-import { ambientGlow } from '../../design/mixins/effects/ambientEffects';
+import { ambientGlow } from '../../mixins/effects/ambientEffects';
 import styled from 'styled-components';
 
 const AmbientCard = styled.div`
@@ -1088,9 +1088,9 @@ The standard four-layer system is mapped to the advanced layer system internally
 ### Z-Space Mixins
 
 ```tsx
-import { zSpaceLayer } from '../../design/mixins/depth/zSpaceEffects';
+import { zSpaceLayer } from '../../mixins/depth/zSpaceEffects';
 import styled from 'styled-components';
-import { createThemeContext } from '../../design/core';
+import { createThemeContext } from '../../core';
 
 const BaseLayer = styled.div<{ theme: any }>`
   ${props => zSpaceLayer({
@@ -1540,7 +1540,7 @@ const GlassComponent = styled.div`
 
 ```tsx
 // ✅ For options-based API (correct usage):
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
+import { innerGlow } from '../../mixins/depth/innerEffects';
 // ...
 ${innerGlow({ color: 'primary', intensity: 'medium', spread: 15 })}
 ```
@@ -1561,6 +1561,124 @@ const Card = styled.div`
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
 `;
+```
+
+### Basic Setup
+
+To use Glass components, ensure you have the proper provider hierarchy:
+
+```tsx
+import { StyledThemeProvider } from '../../theme/StyledThemeProvider';
+import { GlassProvider, GlassThemeProvider } from '../../components/Glass';
+
+const App: React.FC = () => {
+  return (
+    <StyledThemeProvider>
+      <GlassProvider>
+        <GlassThemeProvider initialTheme="nebula">
+          {/* Application content */}
+        </GlassThemeProvider>
+      </GlassProvider>
+    </StyledThemeProvider>
+  );
+};
+```
+
+### Theme Access Pattern
+
+```tsx
+import { useGlassTheme } from '../../theme/ThemeProvider';
+import { 
+  createColorStyle, 
+  createSpacingStyle, 
+  createTypographyStyle 
+} from '../../core/styleUtils';
+
+const MyComponent = () => {
+  const { themeContext } = useGlassTheme();
+  
+  return (
+    <StyledElement $themeContext={themeContext} />
+  );
+};
+
+interface StyledElementProps {
+  $themeContext: any;
+}
+
+const StyledElement = styled.div<StyledElementProps>`
+  // Type-safe color style
+  ${props => createColorStyle(props.$themeContext, 'backgroundColor', 'surface')}
+  
+  // Type-safe spacing style
+  ${props => createSpacingStyle(props.$themeContext, 'padding', 'md')}
+  
+  // Type-safe typography style
+  ${props => createTypographyStyle(props.$themeContext, 'body1')}
+`;
+```
+
+### Theme Hook
+
+```tsx
+import { useGlassTheme } from '../../theme/GlassThemeProvider';
+
+const ThemeSwitcher: React.FC = () => {
+  const { 
+    themeVariant, 
+    setThemeVariant, 
+    colorMode, 
+    setColorMode,
+    createThemedGlassEffect 
+  } = useGlassTheme();
+
+  const handleChangeTheme = () => {
+    setThemeVariant('cosmic');
+  };
+
+  const handleToggleMode = () => {
+    setColorMode(colorMode === 'light' ? 'dark' : 'light');
+  };
+
+  return (
+    <div>
+      <GlassButton onClick={handleChangeTheme}>
+        Change Theme
+      </GlassButton>
+      <GlassButton onClick={handleToggleMode}>
+        Toggle {colorMode === 'light' ? 'Dark' : 'Light'} Mode
+      </GlassButton>
+    </div>
+  );
+};
+```
+
+### Creating Custom Themed Components
+
+```tsx
+import { useGlassTheme } from '../../theme/GlassThemeProvider';
+import styled from 'styled-components';
+
+const CustomComponent: React.FC = () => {
+  const { createThemedGlassEffect } = useGlassTheme();
+  
+  const StyledComponent = styled.div`
+    ${props => createThemedGlassEffect({ 
+      depth: 2,
+      glowIntensity: 'medium',
+      blurStrength: 'standard',
+      borderStyle: 'gradient'
+    })}
+    padding: 24px;
+    border-radius: 12px;
+  `;
+  
+  return (
+    <StyledComponent>
+      Custom themed glass component
+    </StyledComponent>
+  );
+};
 ```
 
 ---
@@ -1608,10 +1726,10 @@ The Glass UI framework has been refactored into a fully modular architecture for
 Use domain-specific imports and always pass the `themeContext` parameter:
 
 ```tsx
-import { innerGlow } from '../../design/mixins/depth/innerEffects';
-import { glassGlow } from '../../design/mixins/effects/glowEffects';
-import { glassSurface } from '../../design/mixins/surfaces/glassSurface';
-import { createThemeContext } from '../../design/core/themeUtils';
+import { innerGlow } from '../../mixins/depth/innerEffects';
+import { glassGlow } from '../../mixins/effects/glowEffects';
+import { glassSurface } from '../../mixins/surfaces/glassSurface';
+import { createThemeContext } from '../../core/themeUtils';
 
 const StyledCard = styled.div<{ theme: any }>`
   ${props => glassSurface({ 

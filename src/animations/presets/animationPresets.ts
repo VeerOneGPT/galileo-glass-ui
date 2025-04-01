@@ -14,7 +14,6 @@ import {
   AnimationIntensity,
   useAccessibleAnimation,
   getAccessibleAnimation,
-  AnimationPreset
 } from './accessibleAnimations';
 
 import { 
@@ -27,10 +26,16 @@ import { orchestrationPresets, OrchestrationPreset, getOrchestrationDelay, getOr
 import { gestureAnimationPresets, GestureAnimationConfig, createGestureAnimationConfig } from './gestureAnimations';
 import { uiAnimations } from './ui';
 
+// Import the core type
+import type { AnimationPreset } from '../core/types';
+
 // Import system-specific components needed for the presets
 import { PhysicsAnimationMode } from '../physics';
 import { GestureAnimationPreset } from '../physics/gestures/GestureAnimation';
 import { GestureType } from '../physics/gestures/GestureDetector';
+
+// Unified Animation Presets Library
+import { keyframes } from 'styled-components';
 
 /**
  * Unified animation presets combining all categories

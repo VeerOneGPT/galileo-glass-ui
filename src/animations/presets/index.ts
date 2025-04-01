@@ -4,6 +4,9 @@
  * A comprehensive collection of animation presets for Galileo Glass UI.
  */
 
+// Export the core AnimationPreset type
+export type { AnimationPreset } from '../core/types';
+
 // Export UI-specific animations
 export * from './ui';
 
@@ -11,6 +14,9 @@ export * from './ui';
 export * from './physicsAnimations';
 export * from './orchestrationAnimations';
 export * from './gestureAnimations';
+
+// Explicitly export timings and easings from accessibleAnimations
+export { animationTimings, animationEasings, AnimationIntensity } from './accessibleAnimations';
 
 // Export unified animation presets library
 export * from './animationPresets';

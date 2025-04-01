@@ -382,7 +382,13 @@ export function usePointerFollowGroup(
   // Track if any element has pointer over it
   const hasPointerOverRef = useRef<boolean>(false);
   
-  // Initialize element origins
+  // Ref to store the reset function
+  const resetPositionsRef = useRef<(() => void) | undefined>(undefined); // Initialize with undefined
+
+  // Refs for animation loop control
+  const updateAnimationRef = useRef<((timestamp: number) => void) | undefined>(undefined); // Initialize with undefined
+
+  // Initialize physics world and state
   useEffect(() => {
     // Get initial positions for all followers
     const newOrigins: Vector2D[] = Array(count).fill({ x: 0, y: 0 });
@@ -418,9 +424,6 @@ export function usePointerFollowGroup(
     }
   }, [isFollowing, onFollowStart]);
 
-  // Forward declaration for resetPositions needed by stopFollowing
-  const resetPositionsRef = useRef<() => void>();
-
   const stopFollowing = useCallback(() => {
     if (isFollowing) {
       setIsFollowing(false);
@@ -428,9 +431,6 @@ export function usePointerFollowGroup(
       if (onFollowEnd) onFollowEnd();
     }
   }, [isFollowing, onFollowEnd]);
-
-  // Forward declaration for updateAnimation needed by startAnimation
-  const updateAnimationRef = useRef<(timestamp: number) => void>();
 
   // Animation Loop Start (Depends on updateAnimation)
   const startAnimation = useCallback(() => {

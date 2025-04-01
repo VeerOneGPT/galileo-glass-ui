@@ -338,16 +338,36 @@ Animations follow a consistent pattern:
 Example:
 
 ```jsx
-// Keyframe definition
+import { keyframes } from 'styled-components';
+import { getAccessibleAnimation, presets, type AnimationPreset } from '../../animations';
+
+// Keyframe definition (though presets are often used directly)
 export const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
 `;
 
-// Animation utility
-export const accessibleAnimation = (options: AnimateOptions) => {
-  // Implementation that returns CSS with accessibility support
+// Define a preset using the AnimationPreset type
+const myFadeInPreset: AnimationPreset = {
+  keyframes: fadeIn,
+  duration: '300ms',
+  easing: 'ease-in-out',
+  // Optional reduced motion alternative (can be null or another preset)
+  reducedMotionAlternative: {
+    keyframes: keyframes`from { opacity: 0.8; } to { opacity: 1; }`,
+    duration: '100ms',
+    easing: 'linear',
+  }
 };
+
+// Animation utility usage
+const AnimatedComponent = styled.div`
+  ${/* Example usage with the custom preset */ ''}
+  ${getAccessibleAnimation(myFadeInPreset)}
+
+  ${/* Or use a built-in preset */ ''}
+  ${getAccessibleAnimation(presets.slideUpAnimation)}
+`;
 ```
 
 ## Physics Hook Pattern

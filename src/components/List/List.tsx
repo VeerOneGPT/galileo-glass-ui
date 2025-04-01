@@ -390,7 +390,7 @@ const wantsStaggering = (config: Partial<AnimationSequenceConfig> | undefined): 
  *
  * A component for displaying lists of items.
  */
-export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
+export const List = forwardRef<any, ListProps>(function List(props, ref) {
   const {
     children,
     component: Component = 'ul',
@@ -500,8 +500,8 @@ export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
     let itemElement: ReactElement | null = null;
     const isLastItem = index === items.length - 1;
 
-    if (React.isValidElement(child)) {
-        const childProps: Partial<ListItemProps> = { 
+    if (React.isValidElement<ListItemProps>(child)) {
+        const childProps: ListItemProps = { 
             ...child.props,
             index: index,
             animationConfig: child.props.animationConfig ?? propAnimationConfig,
@@ -580,7 +580,7 @@ export const List = forwardRef<HTMLUListElement, ListProps>((props, ref) => {
 /**
  * Internal hook to manage physics for a ListItem
  */
-const useListItemPhysics = (itemProps: Partial<ListItemProps>, contextDefaultSpringConfig: Partial<SpringConfig> | keyof typeof SpringPresets | undefined): { style?: React.CSSProperties, handlers?: object, usePhysics: boolean } => {
+const useListItemPhysics = (itemProps: ListItemProps, contextDefaultSpringConfig: Partial<SpringConfig> | keyof typeof SpringPresets | undefined): { style?: React.CSSProperties, handlers?: object, usePhysics: boolean } => {
     const { 
         animationConfig: itemAnimConfig, 
         disableAnimation: itemDisableAnim, 

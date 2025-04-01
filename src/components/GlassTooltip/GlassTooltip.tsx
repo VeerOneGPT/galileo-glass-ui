@@ -4,7 +4,7 @@
  * An advanced glass tooltip with physics-based animations, intelligent positioning,
  * and context-aware backgrounds.
  */
-import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, useId } from 'react';
 import ReactDOM from 'react-dom';
 import styled, { css } from 'styled-components';
 
@@ -774,31 +774,29 @@ const useMultiSpring = (initialValues: SpringPosition, config: any): UseMultiSpr
 /**
  * Main GlassTooltip Component
  */
-export const GlassTooltip = forwardRef<HTMLDivElement, GlassTooltipProps>((props, ref) => {
-  const {
-    title,
-    children,
-    placement = 'top',
-    disabled = false,
-    color = 'primary',
-    glassStyle = 'frosted',
-    blurStrength = 'standard',
-    maxWidth = 300,
-    arrow = true,
-    enterDelay = 100,
-    leaveDelay = 0,
-    interactive = false,
-    animationStyle = 'spring',
-    physics = {},
-    followCursor = false,
-    followCursorDistance = 20,
-    contextAware = false,
-    className = '',
-    zIndex = 1500,
-    richContent,
-    ...rest
-  } = props;
-
+export const GlassTooltip = React.forwardRef<HTMLDivElement, GlassTooltipProps>(({
+  title,
+  children,
+  placement = 'top',
+  disabled = false,
+  color = 'primary',
+  glassStyle = 'frosted',
+  blurStrength = 'standard',
+  maxWidth = 300,
+  arrow = true,
+  enterDelay = 100,
+  leaveDelay = 0,
+  interactive = false,
+  animationStyle = 'spring',
+  physics = {},
+  followCursor = false,
+  followCursorDistance = 20,
+  contextAware = false,
+  className = '',
+  zIndex = 1500,
+  richContent,
+  ...rest
+}, ref) => {
   // Theme context
   const { theme, isDarkMode } = useGlassTheme();
 
@@ -813,12 +811,13 @@ export const GlassTooltip = forwardRef<HTMLDivElement, GlassTooltipProps>((props
   const [transformOrigin, setTransformOrigin] = useState('center bottom');
 
   // Refs
-  const triggerRef = useRef<HTMLElement | null>(null);
+  const triggerRef = useRef<HTMLElement | null>(null); // Allow null
   const tooltipRef = useRef<HTMLDivElement | null>(null);
-  const enterTimeoutRef = useRef<number | undefined>();
-  const leaveTimeoutRef = useRef<number | undefined>();
-  const mouseMoveTimeoutRef = useRef<number | undefined>();
-  
+  const enterTimeoutRef = useRef<number | undefined>(undefined);
+  const leaveTimeoutRef = useRef<number | undefined>(undefined);
+  const mouseMoveTimeoutRef = useRef<number | undefined>(undefined);
+  const tooltipId = useId(); // Unique ID for ARIA
+
   // Default physics values
   const defaultPhysics = {
     tension: 300,
@@ -856,19 +855,15 @@ export const GlassTooltip = forwardRef<HTMLDivElement, GlassTooltipProps>((props
   );
 
   // Update element refs
-  const updateRefs = (node: HTMLDivElement | null) => {
+  const updateRefs = useCallback((node: HTMLDivElement | null) => {
     tooltipRef.current = node;
-    setTooltipElement(node);
-    
-    // Forward the ref
-    if (ref) {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else {
-        (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
-      }
+    // Combine forwarded ref if provided
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
     }
-  };
+  }, [ref]);
 
   // Function to update tooltip position
   const updatePosition = useCallback(() => {
@@ -1074,69 +1069,73 @@ export const GlassTooltip = forwardRef<HTMLDivElement, GlassTooltipProps>((props
     };
   }, []);
 
-  // Clone child element with tooltip trigger props
-  const trigger = React.cloneElement(children, {
-    ref: (node: HTMLElement) => {
-      // Save the trigger element reference
-      triggerRef.current = node;
-      setTargetElement(node);
+  // Define handleMouseMoveThrottled (placeholder - add actual throttling if needed)
+  const handleMouseMoveThrottled = useCallback((event: MouseEvent) => {
+    // Basic implementation: Update cursor position directly
+    // Replace with actual throttled logic if performance is an issue
+    setCursorPosition({ x: event.clientX, y: event.clientY });
+  }, []); // Add dependencies if needed
 
-      // Forward the ref to the original ref if it exists
-      const { ref: childRef } = children as any;
-      if (childRef) {
-        if (typeof childRef === 'function') {
-          childRef(node);
-        } else if (Object.prototype.hasOwnProperty.call(childRef, 'current')) {
-          (childRef as React.MutableRefObject<HTMLElement>).current = node;
+  // Ensure children is a valid element before cloning
+  if (!React.isValidElement<React.HTMLAttributes<HTMLElement>>(children)) {
+    if (process.env.NODE_ENV !== 'production') {
+        console.error("GlassTooltip requires a single React element child.");
+    }
+    return <>{children}</>; 
+  }
+
+  // Define the props to add/override
+  const triggerProps: React.HTMLAttributes<HTMLElement> & { ref: React.Ref<HTMLElement> } = {
+      ref: (node: HTMLElement | null) => { 
+          triggerRef.current = node;
+          setTargetElement(node); // Assuming setTargetElement accepts null
+
+          // Forward the ref safely to the original child's ref
+          const childRef = (children as React.ReactElement & { ref?: React.Ref<any> }).ref;
+          if (typeof childRef === 'function') {
+              childRef(node);
+          } else if (childRef && typeof childRef === 'object' && 'current' in childRef) {
+              (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+          }
+      },
+      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => {
+          handleShow();
+          if (followCursor) {
+              setCursorPosition({ x: e.clientX, y: e.clientY });
+          }
+          (children.props as React.HTMLAttributes<HTMLElement>).onMouseEnter?.(e);
+      },
+      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => {
+          handleHide();
+          (children.props as React.HTMLAttributes<HTMLElement>).onMouseLeave?.(e);
+      },
+      onMouseMove: (e: React.MouseEvent<HTMLElement>) => {
+        if (followCursor) {
+            handleMouseMoveThrottled(e.nativeEvent as MouseEvent);
         }
-      }
-    },
-    onMouseEnter: (e: React.MouseEvent) => {
-      handleShow();
-      
-      // Update cursor position for follow cursor
-      if (followCursor) {
-        setCursorPosition({ x: e.clientX, y: e.clientY });
-      }
+        (children.props as React.HTMLAttributes<HTMLElement>).onMouseMove?.(e);
+      },
+      onFocus: (e: React.FocusEvent<HTMLElement>) => {
+          handleShow();
+          (children.props as React.HTMLAttributes<HTMLElement>).onFocus?.(e);
+      },
+      onBlur: (e: React.FocusEvent<HTMLElement>) => {
+          handleHide();
+          (children.props as React.HTMLAttributes<HTMLElement>).onBlur?.(e);
+      },
+      onTouchStart: (e: React.TouchEvent<HTMLElement>) => {
+          handleTouchStart(e);
+          (children.props as React.HTMLAttributes<HTMLElement>).onTouchStart?.(e);
+      },
+      'aria-describedby': visible ? tooltipId : undefined,
+      ...children.props,
+  };
 
-      // Call original handler if it exists
-      if (children.props.onMouseEnter) {
-        children.props.onMouseEnter(e);
-      }
-    },
-    onMouseLeave: (e: React.MouseEvent) => {
-      handleHide();
-
-      // Call original handler if it exists
-      if (children.props.onMouseLeave) {
-        children.props.onMouseLeave(e);
-      }
-    },
-    onFocus: (e: React.FocusEvent) => {
-      handleShow();
-
-      // Call original handler if it exists
-      if (children.props.onFocus) {
-        children.props.onFocus(e);
-      }
-    },
-    onBlur: (e: React.FocusEvent) => {
-      handleHide();
-
-      // Call original handler if it exists
-      if (children.props.onBlur) {
-        children.props.onBlur(e);
-      }
-    },
-    onTouchStart: (e: React.TouchEvent) => {
-      handleTouchStart(e);
-
-      // Call original handler if it exists
-      if (children.props.onTouchStart) {
-        children.props.onTouchStart(e);
-      }
-    },
-  });
+  // Clone child element with merged trigger props
+  const trigger = React.cloneElement(
+      children as React.ReactElement<React.HTMLAttributes<HTMLElement>>, 
+      triggerProps
+  );
 
   // Don't render anything if disabled or no title
   if (disabled || !title) {
@@ -1166,7 +1165,8 @@ export const GlassTooltip = forwardRef<HTMLDivElement, GlassTooltipProps>((props
       {trigger}
       {ReactDOM.createPortal(
         <TooltipContainer
-          ref={updateRefs}
+          id={tooltipId} // Add ID here
+          ref={updateRefs} // Use the combined ref handler
           className={`glass-tooltip ${className}`}
           $visible={visible}
           $zIndex={zIndex}

@@ -5,13 +5,13 @@
  * These patterns create coordinated animations that feel natural and cohesive.
  */
 import { keyframes } from 'styled-components';
-
 import {
-  AnimationPreset,
-  AnimationIntensity,
   animationTimings,
   animationEasings,
+  AnimationIntensity,
+  fadeAnimation,
 } from '../presets/accessibleAnimations';
+import type { AnimationPreset } from '../core/types';
 
 /**
  * Staggered animation options

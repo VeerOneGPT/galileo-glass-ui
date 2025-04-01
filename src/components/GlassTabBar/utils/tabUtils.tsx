@@ -4,6 +4,10 @@
  * Utility functions for GlassTabBar component
  */
 import { TabItem } from '../types';
+import { FlattenSimpleInterpolation, css } from 'styled-components';
+import React from 'react';
+
+import { GlassTheme } from '../../../core/theme';
 
 /**
  * Create a "More" menu tab

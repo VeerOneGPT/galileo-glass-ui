@@ -9,7 +9,11 @@ import styled, { css } from 'styled-components';
 import { useReducedMotion } from '../../accessibility/useReducedMotion';
 import { AnimationCategory, MotionSensitivityLevel, AnimationComplexity } from '../../accessibility/MotionSensitivity';
 import { AlternativeType } from '../../accessibility/ReducedMotionAlternatives';
-import { animationPresets } from '../../presets';
+import { 
+  AnimationPreset,
+  presets
+} from '../../presets';
+import { Card } from '../../../components';
 
 // Styled components for the demo
 const ExampleContainer = styled.div`
@@ -241,26 +245,26 @@ const EnhancedReducedMotionExample: React.FC = () => {
   const getCategoryAnimationPreset = (category: AnimationCategory) => {
     switch (category) {
       case AnimationCategory.ENTRANCE:
-        return animationPresets.slideUp;
+        return presets.basic.slideUp;
       case AnimationCategory.EXIT:
-        return animationPresets.slideDown;
+        return presets.basic.slideDown;
       case AnimationCategory.HOVER:
-        return animationPresets.fadeScale;
+        return presets.basic.fadeScale;
       case AnimationCategory.FOCUS:
-        return animationPresets.pulse;
+        return presets.basic.pulse;
       case AnimationCategory.ACTIVE:
-        return animationPresets.fadeScale;
+        return presets.basic.fadeScale;
       case AnimationCategory.LOADING:
-        return animationPresets.pulse;
+        return presets.basic.pulse;
       case AnimationCategory.BACKGROUND:
-        return animationPresets.fade;
+        return presets.basic.fade;
       case AnimationCategory.SCROLL:
-        return animationPresets.slideLeft;
+        return presets.basic.slideLeft;
       case AnimationCategory.ATTENTION:
-        return animationPresets.pulse;
+        return presets.basic.pulse;
       case AnimationCategory.ESSENTIAL:
       default:
-        return animationPresets.fade;
+        return presets.basic.fade;
     }
   };
 

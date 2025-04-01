@@ -16,6 +16,7 @@ export { GlassTabs } from './components/GlassTabs/GlassTabs';
 export { GlassTabBar } from './components/GlassTabBar';
 export { GlassCardLink } from './components/GlassCardLink/GlassCardLink';
 export { Icon } from './components/Icon';
+export { GlassMultiSelect } from './components/MultiSelect/GlassMultiSelect';
 export { default as ChartWrapper } from './components/Chart/ChartWrapper';
 export { default as PageGlassContainer } from './components/surfaces/PageGlassContainer';
 export { default as FrostedGlass } from './components/surfaces/FrostedGlass';
@@ -45,6 +46,7 @@ export { default as AtmosphericBackground } from './components/backgrounds/Atmos
 export { default as ParticleBackground } from './components/backgrounds/ParticleBackground';
 export { default as VisualFeedback } from './components/VisualFeedback/VisualFeedback';
 export { default as RippleButton } from './components/VisualFeedback/RippleButton';
+export { GlassDataChart as DataChart } from './components/DataChart';
 // Add other components intended for the main export here...
 
 // Explicitly re-export core modules
@@ -71,6 +73,14 @@ export type {
   ColorMode,
   ThemeOptions
 } from './core/types';
+
+// Export MultiSelect types
+export type { 
+  MultiSelectOption, 
+  OptionGroup, 
+  MultiSelectProps,
+  FilterFunction 
+} from './components/MultiSelect/types';
 
 // Explicitly re-export theme modules
 export {

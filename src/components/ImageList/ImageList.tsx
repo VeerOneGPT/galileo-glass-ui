@@ -252,9 +252,9 @@ function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLU
       >
         {/* Ensure children (ImageListItem) have the class name */}
         {React.Children.map(children, (child) => {
-          if (React.isValidElement(child)) {
-            // Add the target class name for the entrance animation
-            return React.cloneElement(child as React.ReactElement<any>, {
+          if (React.isValidElement<React.HTMLAttributes<HTMLElement>>(child)) {
+            // Clone element, merging className
+            return React.cloneElement(child, {
               className: `${child.props.className || ''} galileo-image-list-item`,
             });
           }

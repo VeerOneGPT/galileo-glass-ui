@@ -46,7 +46,7 @@ export const useMagneticEffect = (options: MagneticEffectOptions = {}) => {
   });
   
   // Handle animation frame requests
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | undefined>(undefined);
   const startTimeRef = useRef<number>(Date.now());
   
   // Combine options with defaults and accessibility

@@ -1,5 +1,6 @@
-import React, { forwardRef, Fragment, useRef, useEffect, useState } from 'react';
+import React, { forwardRef, Fragment, useRef, useEffect, useState, Children, cloneElement, isValidElement, useCallback, HTMLAttributes, ReactElement, RefCallback } from 'react';
 import styled, { css } from 'styled-components';
+import { DefaultTheme } from 'styled-components';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { fadeIn } from '../../animations/keyframes/basic';
@@ -275,7 +276,8 @@ const BreadcrumbList = styled.ol`
   list-style: none;
 `;
 
-const BreadcrumbItem = styled.li<{
+// Interface for styled list item props
+interface ListItemWrapperProps extends HTMLAttributes<HTMLLIElement> {
   $isLast: boolean;
   $variant: string;
   $color: string;
@@ -283,7 +285,9 @@ const BreadcrumbItem = styled.li<{
   $zSpaceDepth?: boolean;
   $magnetic?: boolean;
   $physicsEnabled?: boolean;
-}>`
+}
+
+const BreadcrumbItem = styled.li<ListItemWrapperProps>`
   display: flex;
   align-items: center;
   position: relative;
@@ -450,7 +454,7 @@ const ExpandIcon = () => (
  * A navigation component that shows the page hierarchy with physics-based interactions,
  * z-space depth, and advanced styling options.
  */
-export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref) => {
+export const Breadcrumbs = forwardRef<HTMLOListElement, BreadcrumbsProps>((props, ref) => {
   const {
     children,
     separator = '/',
@@ -478,7 +482,7 @@ export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
-  const itemRefs = useRef<(HTMLElement | null)[]>([]);
+  const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
   const prefersReducedMotion = useReducedMotion();
   
   // Spring animation for hover effect
@@ -519,39 +523,49 @@ export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref
     }
   };
 
+  // Typed ref callback (already defined)
+  const setItemRef = useCallback(
+    (index: number): RefCallback<HTMLLIElement> => (el) => {
+      itemRefs.current[index] = el;
+    },
+    []
+  );
+
+  // Adjust array size when children change
+  useEffect(() => {
+    const childCount = Children.count(children);
+    itemRefs.current = itemRefs.current.slice(0, childCount);
+  }, [children]);
+
   // Render items with separators
   const renderItems = () => {
     if (!shouldCollapse) {
       return childrenArray.map((child, index) => {
+        if (!isValidElement(child)) return null;
         const isLast = index === totalItems - 1;
         const itemDepth = zSpaceDepth ? (isLast ? 0 : totalItems - index - 1) * depthLevel / 10 : 0;
         
+        const listItemProps: ListItemWrapperProps = {
+          $isLast: isLast,
+          $variant: variant,
+          $color: color,
+          $depth: itemDepth,
+          $zSpaceDepth: zSpaceDepth,
+          $magnetic: magnetic,
+          $physicsEnabled: physicsEnabled
+        };
+
+        // Clone the child element, adding only necessary attributes like aria-current
+        const clonedChild = cloneElement(child as ReactElement<HTMLAttributes<HTMLElement>>, { 'aria-current': isLast ? 'page' : undefined });
+
         return (
           <Fragment key={index}>
             <BreadcrumbItem 
-              ref={el => itemRefs.current[index] = el}
-              $isLast={isLast} 
-              $variant={variant} 
-              $color={color}
-              $depth={itemDepth}
-              $zSpaceDepth={zSpaceDepth}
-              $magnetic={magnetic}
-              $physicsEnabled={physicsEnabled}
-              onMouseEnter={() => handleMouseEnter(index)}
-              onMouseLeave={handleMouseLeave}
-              style={hoveredItem === index ? { transform: `scale(${hoverScale})` } : undefined}
+              ref={setItemRef(index)} 
+              {...listItemProps}
             >
-              {React.isValidElement(child) 
-                ? React.cloneElement(child as React.ReactElement, {
-                    children: (
-                      <>
-                        {itemIcon && <span className="breadcrumb-icon">{itemIcon}</span>}
-                        {(child as React.ReactElement).props.children}
-                      </>
-                    )
-                  })
-                : child
-              }
+              {itemIcon && <span className="breadcrumb-icon">{itemIcon}</span>}
+              {clonedChild}
             </BreadcrumbItem>
             {index < totalItems - 1 && (
               <SeparatorContainer 
@@ -574,34 +588,23 @@ export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref
 
     // Items before collapse
     const startChildren = childrenArray.slice(0, startItems).map((child, index) => {
+      if (!isValidElement(child)) return null;
       const itemDepth = zSpaceDepth ? (totalItems - index - 1) * depthLevel / 10 : 0;
-      
+      const listItemProps: ListItemWrapperProps = {
+        $isLast: false,
+        $variant: variant,
+        $color: color,
+        $depth: itemDepth,
+        $zSpaceDepth: zSpaceDepth,
+        $magnetic: magnetic,
+        $physicsEnabled: physicsEnabled
+      };
+      const clonedChild = cloneElement(child as ReactElement<HTMLAttributes<HTMLElement>>);
       return (
-        <Fragment key={index}>
-          <BreadcrumbItem 
-            ref={el => itemRefs.current[index] = el}
-            $isLast={false} 
-            $variant={variant} 
-            $color={color}
-            $depth={itemDepth}
-            $zSpaceDepth={zSpaceDepth}
-            $magnetic={magnetic}
-            $physicsEnabled={physicsEnabled}
-            onMouseEnter={() => handleMouseEnter(index)}
-            onMouseLeave={handleMouseLeave}
-            style={hoveredItem === index ? { transform: `scale(${hoverScale})` } : undefined}
-          >
-            {React.isValidElement(child) 
-              ? React.cloneElement(child as React.ReactElement, {
-                  children: (
-                    <>
-                      {itemIcon && <span className="breadcrumb-icon">{itemIcon}</span>}
-                      {(child as React.ReactElement).props.children}
-                    </>
-                  )
-                })
-              : child
-            }
+        <Fragment key={`start-${index}`}>
+          <BreadcrumbItem ref={setItemRef(index)} {...listItemProps}>
+            {itemIcon && <span className="breadcrumb-icon">{itemIcon}</span>}
+            {clonedChild}
           </BreadcrumbItem>
           <SeparatorContainer 
             $variant={variant}
@@ -644,36 +647,25 @@ export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref
 
     // Items after collapse
     const endChildren = childrenArray.slice(endItems).map((child, index) => {
+      if (!isValidElement(child)) return null;
       const actualIndex = index + endItems;
-      const isLast = index === childrenArray.slice(endItems).length - 1;
+      const isLast = actualIndex === totalItems - 1;
       const itemDepth = zSpaceDepth ? (isLast ? 0 : (totalItems - actualIndex - 1) * depthLevel / 10) : 0;
-      
+      const listItemProps: ListItemWrapperProps = {
+        $isLast: isLast,
+        $variant: variant,
+        $color: color,
+        $depth: itemDepth,
+        $zSpaceDepth: zSpaceDepth,
+        $magnetic: magnetic,
+        $physicsEnabled: physicsEnabled
+      };
+      const clonedChild = cloneElement(child as ReactElement<HTMLAttributes<HTMLElement>>, { 'aria-current': isLast ? 'page' : undefined });
       return (
-        <Fragment key={actualIndex}>
-          <BreadcrumbItem 
-            ref={el => itemRefs.current[actualIndex] = el}
-            $isLast={isLast} 
-            $variant={variant} 
-            $color={color}
-            $depth={itemDepth}
-            $zSpaceDepth={zSpaceDepth}
-            $magnetic={magnetic}
-            $physicsEnabled={physicsEnabled}
-            onMouseEnter={() => handleMouseEnter(actualIndex)}
-            onMouseLeave={handleMouseLeave}
-            style={hoveredItem === actualIndex ? { transform: `scale(${hoverScale})` } : undefined}
-          >
-            {React.isValidElement(child) 
-              ? React.cloneElement(child as React.ReactElement, {
-                  children: (
-                    <>
-                      {itemIcon && <span className="breadcrumb-icon">{itemIcon}</span>}
-                      {(child as React.ReactElement).props.children}
-                    </>
-                  )
-                })
-              : child
-            }
+        <Fragment key={`end-${actualIndex}`}>
+          <BreadcrumbItem ref={setItemRef(actualIndex)} {...listItemProps}>
+            {itemIcon && <span className="breadcrumb-icon">{itemIcon}</span>}
+            {clonedChild}
           </BreadcrumbItem>
           {!isLast && (
             <SeparatorContainer 
@@ -714,7 +706,9 @@ export const Breadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref
       aria-label="Breadcrumbs navigation"
       {...rest}
     >
-      <BreadcrumbList>{renderItems()}</BreadcrumbList>
+      <BreadcrumbList ref={ref} {...rest} aria-label="breadcrumb">
+        {renderItems()}
+      </BreadcrumbList>
     </BreadcrumbsContainer>
   );
 });
@@ -727,7 +721,7 @@ Breadcrumbs.displayName = 'Breadcrumbs';
  * Enhanced breadcrumbs component with glass morphism styling, z-space depth,
  * and physics-based interactions.
  */
-export const GlassBreadcrumbs = forwardRef<HTMLElement, BreadcrumbsProps>((props, ref) => {
+export const GlassBreadcrumbs = forwardRef<HTMLOListElement, BreadcrumbsProps>((props, ref) => {
   const { 
     className, 
     variant = 'glass', 

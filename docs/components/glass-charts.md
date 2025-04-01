@@ -252,17 +252,10 @@ const StyledComponent3 = styled.div`
 
 #### 3. Modern Animation Pattern
 ```tsx
-import { accessibleAnimation } from '../../design/animations/presets/accessibleAnimations';
-import { fadeIn, reducedFadeIn } from '../../design/animations/keyframes/basic';
+import { getAccessibleAnimation, presets } from '../../animations';
 
 const AnimatedComponent = styled.div`
-  ${props => accessibleAnimation({
-    animation: fadeIn,
-    reducedMotionAnimation: reducedFadeIn,
-    duration: 0.3,
-    easing: 'ease-out',
-    themeContext: createThemeContext(props.theme)
-  })}
+  ${getAccessibleAnimation(presets.fadeAnimation)}
 `;
 ```
 
@@ -306,18 +299,10 @@ When adding animations to chart components, ensure accessibility, performance, a
 
 ### 1. Accessible Animations for Charts
 ```tsx
-import { accessibleAnimation } from '../../design/animations/presets/accessibleAnimations';
-import { fadeIn, reducedFadeIn } from '../../design/animations/keyframes/basic';
-import { createThemeContext } from '../../design/core/themeUtils';
+import { getAccessibleAnimation, presets } from '../../animations';
 
 const AnimatedChartContent = styled.div<{ theme: any }>`
-  ${props => accessibleAnimation({
-    animation: fadeIn,
-    reducedMotionAnimation: reducedFadeIn,
-    duration: 0.4,
-    easing: 'ease-out',
-    themeContext: createThemeContext(props.theme)
-  })}
+  ${getAccessibleAnimation(presets.slideUpAnimation)}
 `;
 ```
 

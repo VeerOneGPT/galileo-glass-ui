@@ -94,7 +94,7 @@ const CustomPhysicsDemo: React.FC = () => {
   };
   const engine = useGalileoPhysicsEngine(physicsConfig); 
   const [bodies, setBodies] = useState<Map<string, BodyRepresentation>>(new Map());
-  const rafRef = useRef<number>();
+  const rafRef = useRef<number>(null);
   const latestBodiesRef = useRef(bodies); // Ref to access latest bodies map in callbacks
 
   // Update ref whenever bodies state changes

@@ -10,7 +10,7 @@ import { keyframes as _keyframes } from 'styled-components';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { accessibleAnimation } from '../../accessibility/accessibleAnimation';
 import { getMotionSensitivity , MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
-import { AnimationPreset } from '../../utils/types';
+import { AnimationPreset } from '../../core/types';
 import { createAnimationSequence } from '../../orchestration/GestaltPatterns';
 
 // Import AnimationIntensity to use the proper enum values
@@ -389,7 +389,6 @@ const mockKeyframes = name => ({
 });
 
 const fadeInAnimation = {
-  name: 'fade-in-animation',
   keyframes: mockKeyframes('fadeIn'),
   duration: '300ms',
   easing: 'ease-out',
@@ -397,7 +396,6 @@ const fadeInAnimation = {
 };
 
 const slideInAnimation = {
-  name: 'slide-in-animation',
   keyframes: mockKeyframes('slideIn'),
   duration: '400ms',
   easing: 'ease-out',
@@ -405,7 +403,6 @@ const slideInAnimation = {
 };
 
 const bounceAnimation = {
-  name: 'bounce-animation',
   keyframes: mockKeyframes('bounce'),
   duration: '500ms',
   easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -413,32 +410,30 @@ const bounceAnimation = {
 };
 
 // Create a mock animation preset
-const mockAnimation = _keyframes`
-  from { opacity: 0; }
-  to { opacity: 1; }
-`;
+const mockAnimation = mockKeyframes('mockFade'); // Use the function to create keyframes
 
-const mockReducedMotion = _keyframes`
-  from { opacity: 0.8; }
-  to { opacity: 1; }
-`;
+// Define mockReducedMotion as a Keyframes object first
+const reducedMotionKeyframes = mockKeyframes('mockReducedFade');
 
-const mockPreset: AnimationPreset = {
-  name: 'fade',
-  animation: mockAnimation,
-  reducedMotionAlternative: mockReducedMotion,
-  defaultDuration: 0.3,
-  defaultEasing: 'ease-in-out'
+// Now define the full preset for reduced motion
+const mockReducedMotionPreset: AnimationPreset = {
+  keyframes: reducedMotionKeyframes, // Use the keyframes object
+  duration: '100ms', // Add duration
+  easing: 'linear', // Add easing
+  intensity: AnimationIntensity.SUBTLE,
 };
 
-// Create a mock animation preset using the existing mock keyframes function
-const testAnimation = mockKeyframes('test-animation');
-const reducedMotionAnimation = mockKeyframes('reduced-motion-animation');
+const mockPreset: AnimationPreset = {
+  keyframes: mockAnimation, // Use the keyframes object
+  duration: '300ms', // Ensure duration is a string or number
+  easing: 'ease-in-out', // Ensure easing is a string
+  reducedMotionAlternative: mockReducedMotionPreset, // Assign the full preset
+};
 
 // Create a mock animation preset compatible with the test
+const testAnimationKeyframes = mockKeyframes('test-animation');
 const mockAnimationPreset = {
-  name: 'test-animation',
-  keyframes: testAnimation,
+  keyframes: testAnimationKeyframes,
   duration: '300ms',
   easing: 'ease-out',
   intensity: AnimationIntensity.SUBTLE
@@ -447,7 +442,6 @@ const mockAnimationPreset = {
 // Mock the accessibleAnimation function
 jest.mock('../../accessibility/accessibleAnimation', () => ({
   accessibleAnimation: jest.fn().mockImplementation(() => ({
-    name: 'mock-accessible-animation',
     keyframes: mockKeyframes('accessibleFade'),
     duration: '300ms',
     easing: 'ease-out',
@@ -613,10 +607,7 @@ describe('Animation Pipeline Integration', () => {
     const mockAccessibleAnimation = accessibleAnimation as jest.MockedFunction<typeof accessibleAnimation>;
 
     // Create properly structured AnimationPreset for reduced motion
-    // @ts-ignore - AnimationPreset interface is inconsistently defined across the codebase
     const reducedMotionPreset: AnimationPreset = {
-      name: 'reduced-motion-animation',
-      // @ts-ignore - 'keyframes' property inconsistent across AnimationPreset definitions
       keyframes: mockKeyframes('reducedMotion'),
       duration: '50ms',
       easing: 'ease',

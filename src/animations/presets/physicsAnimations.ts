@@ -14,9 +14,9 @@ import {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  AnimationPreset,
   fadeAnimation,
 } from './accessibleAnimations';
+import type { AnimationPreset } from '../core/types';
 
 // Define spring preset type to match what's expected
 export interface SpringPreset {

@@ -9,9 +9,11 @@ import {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  AnimationPreset,
   fadeAnimation,
+  slideUpAnimation,
 } from '../accessibleAnimations';
+
+import type { AnimationPreset } from '..';
 
 // Card entrance animation
 export const cardEnterAnimation: AnimationPreset = {
@@ -36,32 +38,19 @@ export const cardEnterAnimation: AnimationPreset = {
 export const cardHoverAnimation: AnimationPreset = {
   keyframes: keyframes`
     from {
-      transform: translateY(0) scale(1);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     to {
-      transform: translateY(-5px) scale(1.01);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+      transform: translateY(-4px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
   `,
-  duration: animationTimings.normal,
-  easing: animationEasings.emphasized,
-  fillMode: 'forwards',
-  reducedMotionAlternative: {
-    keyframes: keyframes`
-      from {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-      to {
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
-      }
-    `,
-    duration: animationTimings.fast,
-    easing: animationEasings.standard,
-    fillMode: 'forwards',
-    intensity: AnimationIntensity.SUBTLE,
-  },
-  intensity: AnimationIntensity.STANDARD,
+  duration: animationTimings.fast,
+  easing: animationEasings.standard,
+  fillMode: 'both',
+  reducedMotionAlternative: null,
+  intensity: AnimationIntensity.SUBTLE,
 };
 
 // Glass card reveal animation
@@ -91,25 +80,17 @@ export const glassCardRevealAnimation: AnimationPreset = {
 export const cardExpandAnimation: AnimationPreset = {
   keyframes: keyframes`
     from {
-      max-height: 0;
-      opacity: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-      margin-top: 0;
-      margin-bottom: 0;
+      transform: scale(0.98);
+      opacity: 0.8;
     }
     to {
-      max-height: 1000px;
+      transform: scale(1);
       opacity: 1;
-      padding-top: inherit;
-      padding-bottom: inherit;
-      margin-top: inherit;
-      margin-bottom: inherit;
     }
   `,
-  duration: animationTimings.emphasized,
+  duration: animationTimings.normal,
   easing: animationEasings.emphasized,
-  fillMode: 'forwards',
+  fillMode: 'both',
   reducedMotionAlternative: fadeAnimation,
   intensity: AnimationIntensity.STANDARD,
 };
@@ -118,35 +99,18 @@ export const cardExpandAnimation: AnimationPreset = {
 export const cardCollapseAnimation: AnimationPreset = {
   keyframes: keyframes`
     from {
-      max-height: 1000px;
+      transform: scale(1);
       opacity: 1;
-      padding-top: inherit;
-      padding-bottom: inherit;
-      margin-top: inherit;
-      margin-bottom: inherit;
     }
     to {
-      max-height: 0;
+      transform: scale(0.98);
       opacity: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-      margin-top: 0;
-      margin-bottom: 0;
     }
   `,
-  duration: animationTimings.normal,
-  easing: animationEasings.emphasized,
-  fillMode: 'forwards',
-  reducedMotionAlternative: {
-    keyframes: keyframes`
-      from { opacity: 1; }
-      to { opacity: 0; display: none; }
-    `,
-    duration: animationTimings.fast,
-    easing: animationEasings.exit,
-    fillMode: 'forwards',
-    intensity: AnimationIntensity.SUBTLE,
-  },
+  duration: animationTimings.fast,
+  easing: animationEasings.exit,
+  fillMode: 'both',
+  reducedMotionAlternative: fadeAnimation,
   intensity: AnimationIntensity.STANDARD,
 };
 
@@ -203,6 +167,35 @@ export const card3DTiltAnimation: AnimationPreset = {
   intensity: AnimationIntensity.EXPRESSIVE,
 };
 
+// Card reveal animation (slide up and fade in)
+export const cardRevealAnimation: AnimationPreset = {
+  keyframes: slideUpAnimation.keyframes,
+  duration: animationTimings.normal,
+  easing: animationEasings.enter,
+  fillMode: 'both',
+  reducedMotionAlternative: fadeAnimation,
+  intensity: AnimationIntensity.STANDARD,
+};
+
+// Card dismiss animation (slide down and fade out)
+export const cardDismissAnimation: AnimationPreset = {
+  keyframes: keyframes`
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  `,
+  duration: animationTimings.fast,
+  easing: animationEasings.exit,
+  fillMode: 'both',
+  reducedMotionAlternative: fadeAnimation,
+  intensity: AnimationIntensity.STANDARD,
+};
+
 // Export all card animations
 export const cardAnimations = {
   enter: cardEnterAnimation,
@@ -213,4 +206,6 @@ export const cardAnimations = {
   flip: cardFlipAnimation,
   stackedEnter: cardStackedEnterAnimation,
   tilt3D: card3DTiltAnimation,
+  reveal: cardRevealAnimation,
+  dismiss: cardDismissAnimation,
 };

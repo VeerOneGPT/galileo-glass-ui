@@ -7,6 +7,7 @@
 import { keyframes } from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { AnimationPreset } from '../core/types';
 
 // Animation timing presets
 export const animationTimings = {
@@ -60,30 +61,6 @@ export enum AnimationIntensity {
 
   /** Expressive, emphasis animations */
   EXPRESSIVE = 'expressive',
-}
-
-// Types for animation presets
-export interface AnimationPreset {
-  /** The animation keyframes */
-  keyframes: ReturnType<typeof keyframes>;
-
-  /** Default animation duration */
-  duration: string;
-
-  /** Default animation easing */
-  easing: string;
-
-  /** Default animation delay */
-  delay?: string;
-
-  /** Default animation fill mode */
-  fillMode?: 'none' | 'forwards' | 'backwards' | 'both';
-
-  /** Reduced motion alternative */
-  reducedMotionAlternative?: AnimationPreset | null;
-
-  /** Animation intensity level */
-  intensity: AnimationIntensity;
 }
 
 // Basic fade animation

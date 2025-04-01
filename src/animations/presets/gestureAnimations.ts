@@ -12,9 +12,9 @@ import {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  AnimationPreset,
-  fadeAnimation,
+  fadeAnimation
 } from './accessibleAnimations';
+import type { AnimationPreset } from '../core/types';
 
 // Gesture animation configuration type
 export interface GestureAnimationConfig {
