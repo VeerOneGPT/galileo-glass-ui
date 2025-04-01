@@ -1,6 +1,7 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.12",
+  "version": "1.0.13",
+  "private": false,
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
   "repository": {
