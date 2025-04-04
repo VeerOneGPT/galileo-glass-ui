@@ -11,7 +11,7 @@
   </p>
 </div>
 
-**Galileo Glass UI** is more than just a component library; it's a complete framework for building stunning, modern web applications with a unique **glass morphism** aesthetic. Blend beautiful visual effects with a powerful, integrated **physics-based animation system** to create interfaces that feel alive and intuitive.
+**Galileo Glass UI** is a complete design system and component framework for building stunning, modern web applications with a unique **glass morphism** aesthetic. Blend beautiful visual effects with a powerful, integrated **physics-based animation system** – now featuring advanced constraints, physics-driven layouts, and enhanced interactivity – to create interfaces that feel alive and intuitive.
 
 Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides a comprehensive set of **accessible, performant, and highly customizable** components designed to elevate your user experience.
 
@@ -19,32 +19,55 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 
 ## ✨ Why Galileo Glass UI?
 
-*   **Unique Aesthetic:** Stand out with sophisticated glass morphism styling, complete with configurable blurs, reflections, glows, and dynamic transparency.
-*   **Dynamic Interactions:** Go beyond static interfaces. Leverage the integrated physics engine and intuitive hooks (`usePhysicsInteraction`, `useMagneticElement`, `useGesturePhysics`) to create engaging, natural-feeling user experiences.
-*   **Performant Animations:** Achieve smooth, 60fps animations thanks to a purpose-built system that replaces heavy dependencies and adapts to user device capabilities.
-*   **Orchestration Power:** Easily create complex, coordinated animation sequences with `useAnimationSequence` for delightful entrances, exits, and state transitions.
-*   **Accessibility Baked In:** Deliver inclusive experiences with fine-grained reduced motion controls, high-contrast adaptations, and full keyboard support.
-*   **Developer Experience:** Enjoy a fully typed API, extensive documentation, flexible customization options, and optimized bundling.
+*   **Unique Aesthetic:** Stand out with sophisticated glass morphism styling, featuring configurable blurs, reflections, glows, and dynamic transparency.
+*   **Dynamic & Realistic Interactions:** Go beyond static interfaces. Leverage the significantly enhanced physics engine (**new constraints**, layout hook) and intuitive hooks (`usePhysicsInteraction` with **magnetic/repel**, `useAmbientTilt`, `usePhysicsLayout`) to create engaging, natural-feeling user experiences.
+*   **Performant Animations:** Achieve smooth, 60fps animations thanks to a purpose-built system that adapts to user device capabilities and replaces heavy dependencies.
+*   **Orchestration Power:** Easily create complex, coordinated animation sequences with `useAnimationSequence` for delightful entrances, exits, and state transitions, now with new presets.
+*   **Accessibility Baked In:** Deliver inclusive experiences with fine-grained reduced motion controls, high-contrast adaptations, and full keyboard support, including the new `GlassFocusRing`.
+*   **Developer Experience:** Enjoy a fully typed API, improved component ref forwarding, extensive documentation, flexible customization options, and optimized bundling.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Key Features (Updated for v1.0.14)
 
 - ✨ **Glass Morphism Styling**: Configurable frosted glass effects, reflections, shadows, inner/outer glows, and adaptive transparency.
-- 📦 **Comprehensive Component Library**: 90+ components including specialized Glass versions (e.g., `GlassButton`, `GlassCard`, `GlassTabs`, `GlassDataChart`). See list below.
+- 📦 **Comprehensive Component Library**: 90+ components including 79 specialized Glass components and new additions like `GlassDataGrid` and `GlassStepper`.
 - 🚀 **Advanced Physics-Based Animation System**:
-    - Integrated Physics Engine: Springs, collisions, forces, object sleeping.
-    - Intuitive Hooks: `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement` for common UI interactions.
-    - **New (v1.0.8):** Lower-level `useGalileoPhysicsEngine` hook for direct engine access and custom simulations.
-    - Orchestration: `useAnimationSequence` and `useSequence` for complex sequences & staggering.
-    - Specialized Effects: Z-space, 3D transforms, parallax, particles.
-    - Performance: GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
-- ♿ **Accessibility-First Design**: Configurable `useReducedMotion`, sensitivity levels, animation categories, high contrast support, keyboard navigation, focus management.
+-    - **Integrated Physics Engine:** Springs, collisions, forces, object sleeping, constraints.
++    - **Integrated Physics Engine:** Springs, collisions, forces, object sleeping, **constraints (Distance, Hinge)**.
+     - **Intuitive Hooks:** `usePhysicsInteraction` (now with **magnetic & repel** types), `useAmbientTilt`, `usePhysicsLayout`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`, `useDraggableListPhysics`.
+     - **Direct Engine Access:** Lower-level `useGalileoPhysicsEngine` hook for custom simulations.
+     - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
+    - **Layout:** New `usePhysicsLayout` hook for physics-driven grid, stack, or freeform arrangements.
+    - **Orchestration:** `useAnimationSequence` and `useSequence` for complex sequences, staggering, and state transitions.
+    - **New Presets:** Added 'shake', 'pulse', and 'confetti' animation presets.
+    - **Specialized Effects:** Z-space, 3D transforms, parallax, particles.
+    - **Performance:** GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
+- ♿ **Accessibility-First Design**: Configurable `useReducedMotion`, sensitivity levels, animation categories, high contrast support, keyboard navigation, focus management, **new `GlassFocusRing` component**.
 - ⚡ **Performance Optimized**: Adaptive quality (`useQualityTier`), style caching, GPU acceleration, animation batching (`DomBatcher`).
-- 📦 **Bundle Optimization**: Fine-grained imports (`/components`, `/hooks`, `/animations`, etc.), `slim` bundle, tree-shaking.
+- 📦 **Bundle Optimization**: Fine-grained imports (`/components`, `/hooks`, `/physics`, etc.), `slim` bundle, tree-shaking.
 - 🎨 **Extensive Customization**: Powerful mixins (`glassSurface`, `glassGlow`, `zSpaceLayer`) & flexible `ThemeProvider`.
-- ⚙️ **Modern Tech Stack**: React 18/19, TypeScript 4.9+, Styled Components 5/6.
+- ⚙️ **Modern Tech Stack**: React 18/19, TypeScript 5+, Styled Components 5/6.
 - 🧪 **Tested & Reliable**: Comprehensive Jest & RTL test coverage.
+- 🔗 **Improved Ref Forwarding:** Correct `React.forwardRef` implementation across all major components.
+
+---
+
+## ✨ What's New in v1.0.14
+
+Version 1.0.14 is a major update focused on expanding physics capabilities, introducing new interactive components, and refining the developer experience.
+
+- **Physics Engine:** Introduced **constraints** (`DistanceConstraint`, `HingeConstraint`), enhanced **collision events** with more data, added **magnetic/repel** interaction types, and implemented a global **ambient tilt** effect.
+- **New Hooks:** Added `usePhysicsLayout` for dynamic, physics-based element arrangement and `useAmbientTilt` for easy implementation of the global tilt effect.
+- **New Components:** Introduced `GlassDataGrid` for tabular data with sorting and physics-based row dragging, and `GlassStepper` for multi-step processes with animated indicators. Added `GlassFocusRing` for accessible focus indication.
+- **Component Enhancements:** Added physics-based zoom/pan to `GlassDataChart`, improved `GlassTabs` indicator physics, enhanced `DataChart` per-element interaction capabilities, and completed a full `forwardRef` audit.
+- **Bug Fixes:** Resolved critical issues in physics state retrieval, collision detection, type definitions (`useAnimationSequence`, `usePhysicsInteraction`), component exports, and chart rendering.
+- **Documentation:** Added comprehensive docs for new physics features, performance profiling, and updated component documentation.
+
+> For full details, see the [**v1.0.14 Changelog**](./docs/changelog/CHANGELOG-1.0.14.md).
+> **Breaking Changes:** Note that v1.0.14 includes breaking changes related to `StyleAnimationStage` and `PhysicsInteractionType`. Please review the changelog before upgrading.
+
+**Patch Release v1.0.15:** This release focuses on bug fixes, type safety improvements, and documentation clarifications identified post v1.0.14. See the [v1.0.15 Changelog](./docs/changelog/CHANGELOG-1.0.15.md) for details.
 
 ---
 
@@ -52,90 +75,48 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 
 ### Installation
 
-<div align="center">
-  <table>
-    <tr>
-      <th>NPM (Recommended)</th>
-      <th>Next.js Projects</th>
-      <th>Other Package Managers</th>
-      <th>GitHub (Development)</th>
-    </tr>
-    <tr>
-      <td>
-        
+| NPM (Recommended) | Next.js Projects | Other Package Managers | GitHub (Development) |
+|---|---|---|---|
+| \
 ```bash
 # Install from NPM (recommended)
 npm install @veerone/galileo-glass-ui styled-components
-```
-      </td>
-      <td>
-        
+``` | \
 ```bash
 # Install in Next.js project
 npm install @veerone/galileo-glass-ui styled-components
 
 # In next.config.js:
 transpilePackages: ['@veerone/galileo-glass-ui']
-```
-      </td>
-      <td>
-        
+``` | \
 ```bash
 # For yarn
 yarn add @veerone/galileo-glass-ui styled-components
 
 # For pnpm
 pnpm add @veerone/galileo-glass-ui styled-components
-```
-      </td>
-      <td>
-        
+``` | \
 ```bash
 # Install from GitHub repository
 npm install github:VeerOneGPT/galileo-glass-ui styled-components
-```
-      </td>
-    </tr>
-  </table>
-</div>
+``` |
 
-#### What's New in v1.0.6
-
-Version 1.0.6 includes the major features originally planned for 1.0.5, plus critical build fixes.
-
-##### ✨ Comprehensive Animation System Overhaul
-- **Integrated Physics Engine:** Introduced a completely redesigned, powerful physics engine (`galileoPhysicsSystem.ts`) powering all animations. Features highly configurable spring physics, advanced collision detection, global forces, and performance optimizations like object sleeping.
-- **New Interaction & State Hooks:** Added intuitive hooks like `usePhysicsInteraction` (for rich hover/press feedback), `useGalileoStateSpring` (animating single values), `useMultiSpring` (animating vectors/transforms), and `useGesturePhysics` (natural gesture responses with inertia).
-- **Animation Orchestration:** Includes hooks like `useAnimationSequence` (declarative config with `stages`) and `useSequence` (builder pattern) for complex, precisely timed sequences with dependencies, staggering, grouping, and lifecycle control.
-- **Advanced Accessibility:** Enhanced `useReducedMotion` provides fine-grained control with sensitivity levels, animation categories, and alternative animation preferences.
-- **Specialized Effects:** Includes hooks and utilities for Z-space management (`useZSpace`), 3D transforms (`use3DTransform`), parallax, particle systems, and more.
-- **Unified System:** Replaces previous CSS transitions and external libraries (like Framer Motion) for a consistent, performant, and integrated animation experience across the library.
-- **Context & Configuration:** `AnimationProvider` and `useAnimationContext` allow global configuration of animation defaults and presets.
-
-##### 🆕 New Components
-- **GlassCardLink:** An interactive card designed for navigation, featuring enhanced 3D perspective transforms, physics-based hover effects, and interactive lighting.
-- **GlassTabs:** Glass-morphism styled tabs with an animated active indicator, physics-inspired transitions, and full keyboard accessibility.
-- **ChartWrapper:** A lightweight, styled container for embedding chart components consistently within the Glass UI aesthetic.
-
-##### 📊 Enhanced Charting & Data
-- **ModularGlassDataChart Architecture:** Refactored `GlassDataChart` into smaller, maintainable components (`ChartRenderer`, `ChartTooltip`, `KpiChart`, `AtmosphericEffects`, etc.).
-- **Adaptive Quality:** Charts automatically adjust rendering quality and animation fidelity based on device capabilities.
-
-##### ✅ React 19 Compatibility & TypeScript Improvements
-- **Full React 19 Support:** Ensured compatibility with React's latest features and type checking.
-- **Enhanced Refs & Types:** Implemented proper `forwardRef` usage, defined ref interfaces (`GlassDataChartRef`), and improved overall type safety and null-checking.
-- **Build Fix:** Resolved critical build errors related to invalid TypeScript declaration (`.d.ts`) generation, ensuring compatibility with consuming projects.
 
 ##### Optional Feature Dependencies
 
 Galileo Glass UI uses a modular approach where specialized features only require their dependencies when you use them:
 
 ```bash
-# Only if using chart components (BarChart, LineChart, etc.)
+# Only if using chart components (GlassDataChart, etc.)
 npm install chart.js react-chartjs-2
 
 # Only if using virtualized lists
 npm install react-window
+
+# Only if using DatePicker / DateRangePicker components
+npm install date-fns @date-io/date-fns @mui/x-date-pickers
+# OR
+npm install dayjs @date-io/dayjs @mui/x-date-pickers
 ```
 
 This keeps your bundle size small by only including what you need!
@@ -149,21 +130,21 @@ This keeps your bundle size small by only including what you need!
 
 ```jsx
 import React from 'react';
-import { ThemeProvider, Button, Card, Typography } from '@veerone/galileo-glass-ui';
+import { ThemeProvider, GlassButton, GlassCard, Typography } from '@veerone/galileo-glass-ui';
 import styled from 'styled-components';
 
 function App() {
   return (
     <ThemeProvider>
-      <Card glass>
+      <GlassCard>
         <Typography variant="h4">Galileo Glass UI</Typography>
         <Typography variant="body1">
           Modern, beautiful UI components with glass morphism styling.
         </Typography>
-        <Button variant="contained" glass>
+        <GlassButton variant="contained">
           Get Started
-        </Button>
-      </Card>
+        </GlassButton>
+      </GlassCard>
     </ThemeProvider>
   );
 }
@@ -188,19 +169,19 @@ export default function MyApp({ Component, pageProps }) {
 
 ```jsx
 // Any Next.js page or component
-import { Card, Button, Typography } from '@veerone/galileo-glass-ui';
+import { GlassCard, GlassButton, Typography } from '@veerone/galileo-glass-ui';
 
 export default function HomePage() {
   return (
-    <Card glass>
+    <GlassCard>
       <Typography variant="h4">Welcome to Next.js with Galileo Glass</Typography>
       <Typography variant="body1">
         Beautiful glass morphism styling in your Next.js application.
       </Typography>
-      <Button variant="contained" glass>
+      <GlassButton variant="contained">
         Explore
-      </Button>
-    </Card>
+      </GlassButton>
+    </GlassCard>
   );
 }
 ```
@@ -220,14 +201,15 @@ import { ThemeProvider } from '@veerone/galileo-glass-ui/theme';
 
 // Option 3: Domain-specific imports
 import { accessibleAnimation } from '@veerone/galileo-glass-ui/animations';
-import { glassSurface, glassGlow } from '@veerone/galileo-glass-ui/core';
+import { glassSurface, glassGlow } from '@veerone/galileo-glass-ui/core'; // Mixins moved to core
 import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks';
+import { useGalileoPhysicsEngine } from '@veerone/galileo-glass-ui/physics'; // Direct physics engine hook
 ```
 
 <details>
 <summary><strong>🎬 Live Demo / Examples</strong></summary>
 <!-- 💡 Add link to Storybook or deployed examples site here! 💡 -->
-Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass-ui/blob/main/examples/README.md) to see Galileo Glass UI in action!
+Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass-ui/tree/main/examples) to see Galileo Glass UI in action!
 
 </details>
 
@@ -245,44 +227,61 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <th>📊 Advanced Features</th>
       <th>🏗️ Development</th>
     </tr>
-    <tr>
+    <tr valign="top">
       <td><a href="./docs/core/framework-guide.md">Framework Guide</a></td>
       <td><a href="./docs/core/framework-guide.md#glass-surface-system">Glass Surfaces</a></td>
-      <td><a href="./docs/animations/physics-hooks.md">Core Physics Hooks</a></td>
-      <td></td>
+      <td><a href="./docs/hooks/physics-interaction.md">Core Physics Hooks</a></td>
+      <td><a href="./docs/physics/engine-api.md">Engine API</a></td>
       <td><a href="./docs/components/glass-charts.md">Chart Components</a></td>
       <td><a href="./docs/core/project-structure.md">Package Architecture</a></td>
     </tr>
-    <tr>
+    <tr valign="top">
       <td><a href="./docs/core/theme-system.md">Theme System</a></td>
       <td><a href="./docs/core/framework-guide.md#z-space-layering">Z-Space Layering</a></td>
       <td><a href="./docs/animations/orchestration.md">Sequence Orchestration</a></td>
-      <td></td>
+      <td><a href="./docs/physics/constraints.md">Constraints (New)</a></td>
       <td><a href="./docs/components/specialized-surfaces.md">Specialized Surfaces</a></td>
       <td><a href="./docs/performance/optimization/optimization-techniques.md">Optimization Techniques</a></td>
     </tr>
-    <tr>
+    <tr valign="top">
       <td><a href="./docs/components/advanced-components.md">Advanced Components</a></td>
       <td><a href="./docs/core/framework-guide.md#common-patterns">Common Patterns</a></td>
       <td><a href="./docs/animations/context-config.md">Context & Configuration</a></td>
-      <td><a href="./docs/physics/engine-api.md">Engine API (WIP)</a></td> 
-      <td>{/* Removed Legacy Physics Link */}</td> 
+      <td><a href="./docs/physics/collisions.md">Collision System</a></td>
+      <td><a href="./docs/components/glass-data-grid.md">GlassDataGrid</a></td>
       <td><a href="./docs/development/component-patterns.md">Component Patterns</a></td>
     </tr>
-    <tr>
-      <td><a href="./INSTALLATION.md">Installation Guide</a></td>
+    <tr valign="top">
+      <td><a href="./docs/installation/INSTALLATION.md">Installation Guide</a></td>
       <td><a href="./docs/components/TROUBLESHOOTING.md">Troubleshooting</a></td>
       <td><a href="./docs/animations/accessibility.md">Accessibility</a></td> 
-      <td></td>
-      <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
+      <td><a href="./docs/physics/debugging.md">Debugging Guide</a></td>
+      <td><a href="./docs/components/glass-stepper.md">GlassStepper</a></td>
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
-    <tr>
+    <tr valign="top">
+      <td><a href="./docs/changelog/CHANGELOG-1.0.14.md">v1.0.14 Changelog</a></td>
+      <td></td>
+      <td><a href="./docs/animations/presets.md">Animation Presets</a></td>
+      <td></td>
+      <td><a href="./docs/hooks/usePhysicsLayout.md">usePhysicsLayout</a></td>
+      <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
+    </tr>
+     <tr valign="top">
       <td></td>
       <td></td>
-      <td>{/* Removed WIP Transition Hooks Link */}</td>
       <td></td>
+      <td></td>
+      <td><a href="./docs/hooks/useAmbientTilt.md">useAmbientTilt</a></td>
       <td><a href="./docs/development/implementation-notes.md">Implementation Notes</a></td>
+    </tr>
+     <tr valign="top">
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td><a href="./docs/hooks/useGlassFocus.md">useGlassFocus</a></td>
+      <td></td>
     </tr>
   </table>
 </div>
@@ -325,7 +324,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
 >
 > ```tsx
 > // ✅ CORRECT: Pass themeContext to glass mixins
-> import { glassSurface } from '@veerone/galileo-glass-ui/mixins';
+> import { glassSurface } from '@veerone/galileo-glass-ui/core'; // Mixins moved to core
 > import { createThemeContext } from '@veerone/galileo-glass-ui/core';
 > 
 > const GlassComponent = styled.div`
@@ -345,7 +344,7 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
 
 ---
 
-## 📦 Component Library
+## 📦 Component Library (Updated for v1.0.14)
 
 Galileo Glass UI offers a comprehensive set of components that work universally across React, Next.js, and TypeScript applications:
 <!-- 💡 Add GIF showcasing component variety here! 💡 -->
@@ -368,6 +367,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Stack</li>
           <li>Divider</li>
           <li>GlassMasonry</li>
+          <li>**ZSpaceAppLayout**</li>
         </ul>
       </td>
       <td>
@@ -388,7 +388,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>Slider</li>
           <li>Autocomplete</li>
           <li>DatePicker / GlassDatePicker</li>
-          <li>GlassDateRangePicker</li>
+          <li>**GlassDateRangePicker**</li>
           <li>GlassMultiSelect</li>
           <li>TagInput</li>
           <li>ToggleButton</li>
@@ -412,12 +412,13 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>MenuItem</li>
           <li>Toolbar</li>
           <li>GlassNavigation</li>
-          <li>GlassTabBar</li>
+          <li>**ResponsiveNavigation**</li>
+          <li>**GlassTabBar**</li>
           <li>GlassCarousel</li>
           <li>PageTransition</li>
-          <li>ZSpaceAppLayout</li>
-          <li>GlassTimeline</li>
+          <li>**GlassTimeline**</li>
           <li>GlassCardLink</li> 
+          <li>**GlassStepper**</li>
         </ul>
       </td>
     </tr>
@@ -439,6 +440,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>VisualFeedback</li>
           <li>RippleButton</li>
           <li>FocusIndicator</li>
+          <li>**GlassFocusRing**</li>
           <li>StateIndicator</li>
           <li>CookieConsent</li>
           <li>GlobalCookieConsent</li>
@@ -459,6 +461,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>KpiCard</li>
           <li>PerformanceMetricCard</li>
           <li>InteractiveKpiCard</li>
+          <li>**GlassDataGrid**</li>
         </ul>
       </td>
       <td>
@@ -478,7 +481,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
           <li>GlassLocalizationProvider</li>
           <li>AccessibilityProvider</li>
           <li>AccessibilitySettings</li>
-          <li>GlassImageViewer</li>
+          <li>**GlassImageViewer**</li>
         </ul>
       </td>
       <td>
@@ -516,7 +519,7 @@ Galileo Glass UI offers a comprehensive set of components that work universally 
 ```jsx
 import { styled } from 'styled-components';
 import { Box } from '@veerone/galileo-glass-ui';
-import { glassSurface, glassGlow, innerGlow } from '@veerone/galileo-glass-ui/mixins';
+import { glassSurface, glassGlow, innerGlow } from '@veerone/galileo-glass-ui/core'; // Updated path
 import { createThemeContext } from '@veerone/galileo-glass-ui/core';
 
 const GlassCard = styled(Box)`
@@ -576,7 +579,7 @@ const AnimatedComponent = styled.div`
 
 ```jsx
 import { styled } from 'styled-components';
-import { zSpaceLayer } from '@veerone/galileo-glass-ui/mixins';
+import { zSpaceLayer } from '@veerone/galileo-glass-ui/core'; // Updated path
 import { createThemeContext } from '@veerone/galileo-glass-ui/core';
 
 const OverlayComponent = styled.div`
@@ -593,23 +596,24 @@ const OverlayComponent = styled.div`
 </details>
 
 <details>
-<summary><b>🧲 Physics Interactions (Magnetic Effect)</b></summary>
+<summary><b>🧲 Physics Interactions (Magnetic/Repel v1.0.14+)</b></summary>
 <br>
 <!-- 💡 Add GIF for Magnetic Button interaction here! 💡 -->
 
 ```jsx
 import { useRef } from 'react';
-import { useMagneticElement } from '@veerone/galileo-glass-ui/hooks'; // Correct hook import
+import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks'; // Correct hook import
 
-function MagneticButton() {
+function InteractiveButton() {
   const elementRef = useRef<HTMLButtonElement>(null);
-  const { style } = useMagneticElement({ // Use the specific hook
+  const { style } = usePhysicsInteraction<HTMLButtonElement>({ // Use the general interaction hook
     elementRef,
-    options: {
-      strength: 0.5, // Attraction force
-      radius: 100,   // Activation distance
-      easeFactor: 0.8 // Smoothness
-    }
+    type: 'magnetic', // Or 'repel'
+    strength: 0.6,
+    radius: 120,
+    affectsScale: true,
+    scaleAmplitude: 0.08,
+    animationConfig: { tension: 180, friction: 15 }
   });
   
   return (
@@ -623,7 +627,7 @@ function MagneticButton() {
 }
 ```
 
-> **Magnetic Interactions** create natural-feeling UI elements that respond to user movements using hooks like `useMagneticElement`.
+> **Magnetic & Repel Interactions** (v1.0.14+) create natural attraction or repulsion effects using the enhanced `usePhysicsInteraction` hook.
 </details>
 
 <details>
@@ -696,59 +700,71 @@ function StaggeredList() {
 </details>
 
 <details>
-<summary><b>🎮 Physics Engine (v1.0.9)</b></summary>
+<summary><b>📐 Physics Layout (v1.0.14+)</b></summary>
 <br>
 
 ```jsx
-import { useRef, useEffect } from 'react';
-import { 
-  useGalileoPhysicsEngine,
-  type PhysicsBodyOptions
-} from '@veerone/galileo-glass-ui';
+import { useState, useRef, useEffect } from 'react';
+import { usePhysicsLayout } from '@veerone/galileo-glass-ui/hooks';
+import { styled } from 'styled-components';
 
-function PhysicsSimulation() {
-  const engine = useGalileoPhysicsEngine({
-    gravity: { x: 0, y: 9.81 },
-    defaultDamping: 0.01
+const LayoutContainer = styled.div`
+  position: relative;
+  width: 400px;
+  height: 400px;
+  border: 1px solid grey;
+`;
+
+const PhysicsItem = styled.div`
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background-color: purple;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: grab;
+`;
+
+function PhysicsGridLayout() {
+  const [items, setItems] = useState([1, 2, 3, 4, 5, 6]);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  const { styles } = usePhysicsLayout({
+    itemRefs,
+    layoutType: 'grid',
+    options: {
+      columns: 3,
+      gap: 10,
+      physics: { tension: 180, friction: 20 }
+    }
   });
 
   useEffect(() => {
-    if (!engine) return;
+    itemRefs.current = itemRefs.current.slice(0, items.length);
+  }, [items]);
 
-    // Add a bouncing ball
-    const ballOptions: PhysicsBodyOptions = {
-      shape: { type: 'circle', radius: 20 },
-      position: { x: 100, y: 0 },
-      restitution: 0.7, // Bounciness
-      friction: 0.1
-    };
-    const ballId = engine.addBody(ballOptions);
-
-    // Add a static floor
-    const floorId = engine.addBody({
-      shape: { type: 'rectangle', width: 500, height: 20 },
-      position: { x: 250, y: 400 },
-      isStatic: true // Infinite mass
-    });
-
-    // Listen for collisions
-    const unsubscribe = engine.onCollisionStart((event) => {
-      if (event.bodyAId === ballId || event.bodyBId === ballId) {
-        console.log('Ball collision!');
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [engine]);
-
-  return <div>Physics simulation container</div>;
+  return (
+    <LayoutContainer>
+      {items.map((item, index) => (
+        <PhysicsItem 
+          key={item}
+          ref={el => itemRefs.current[index] = el}
+          style={styles[index]}
+        >
+          {item}
+        </PhysicsItem>
+      ))}
+    </LayoutContainer>
+  );
 }
 ```
+> **Physics Layout** (v1.0.14+) uses the `usePhysicsLayout` hook to arrange elements dynamically with smooth, physics-based transitions.
 
-> **Physics Engine**: The new `useGalileoPhysicsEngine` hook (v1.0.9) provides direct access to the physics simulation system for advanced use cases.
 </details>
+
 
 ---
 
@@ -837,6 +853,7 @@ For detailed optimization guidelines, see our [performance documentation](./docs
 | `npm run typecheck` | Verify TypeScript types |
 | `npm run typecheck:permissive` | Run type checking with less strict rules |
 | `npm run build` | Build the production bundle |
+| `npm run build:production` | Build optimized production bundle |
 | `npm run dev` | Start development mode |
 
 </div>
@@ -915,13 +932,9 @@ To automatically fix common issues:
     node scripts/fix-hooks.js [--fix]
     ```
 
-#### 3. Pre-commit Hooks (Husky & lint-staged)
+#### 3. Pre-commit Hooks (Optional)
 
-Automatic checks run before each commit:
-
-*   ESLint checks for code style and potential errors.
-*   Prettier formats code.
-*   (Potentially add TypeScript check here if desired via lint-staged config)
+If you choose to use Git hooks (e.g., with Husky), you can configure `lint-staged` to run checks before commits. *Note: Pre-commit hooks are not currently enabled by default.*
 
 #### 4. Code Style Guidelines
 
@@ -950,3 +963,5 @@ For the most detailed and up-to-date documentation, visit our [documentation sit
 ```bash
 npm install @mui/icons-material @emotion/react @emotion/styled
 ```
+
+</rewritten_file>
