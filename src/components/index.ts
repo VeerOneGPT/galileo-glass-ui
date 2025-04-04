@@ -202,6 +202,9 @@ export {
   useCarousel
 } from './Carousel';
 
+// Export Focus Ring component (Task 8 Fix)
+export { GlassFocusRing } from './GlassFocusRing';
+
 // Import and export specific components from DataChart
 import { GlassDataChart } from './DataChart/GlassDataChart';
 import { ModularGlassDataChart } from './DataChart/ModularGlassDataChart';

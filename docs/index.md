@@ -54,7 +54,7 @@ The Galileo Glass UI features a powerful, integrated physics-based animation sys
 |---------------|-------------|
 | [**Animation System**](./animations/index.md) | Core concepts, physics hooks, orchestration, accessibility. |
 | [**Physics Engine API**](./physics/engine-api.md) | Direct access to the physics engine (v1.0.8+) |
-| [**Core Physics Hooks**](./animations/physics-hooks.md) | Documentation for physics interaction hooks (`useGalileoPhysicsEngine`, `usePhysicsInteraction`, etc.) |
+| [**Physics Interaction Hook**](./hooks/physics-interaction.md) | Documentation for physics interaction hooks (`useGalileoPhysicsEngine`, `usePhysicsInteraction`, etc.) |
 | [**Sequence Orchestration**](./animations/orchestration.md) | Guide to `useAnimationSequence` for complex, timed animations |
 | [**Context & Configuration**](./animations/context-config.md) | Using `AnimationProvider` and presets for global configuration |
 | [**Accessibility**](./animations/accessibility.md) | Details on `useReducedMotion` and accessibility features |
@@ -123,14 +123,14 @@ For detailed accessibility documentation, see the [Animation Accessibility Guide
 
 ## Component Library
 
-The Galileo Glass UI library includes 85+ components across the following categories:
+The Galileo Glass UI library includes 90+ components across the following categories:
 
 - **Layout Components**: Box, Container, Grid, Stack, Paper, Divider, PageGlassContainer, GlassMasonry
 - **Typography Components**: Typography, Link
 - **Input Components**: Button, TextField, Select, Checkbox, Radio, Switch, Slider, Autocomplete, DatePicker, GlassDateRangePicker, GlassMultiSelect, TagInput, Form components
 - **Navigation Components**: Tabs, Pagination, BottomNavigation, Accordion, SpeedDial, TreeView, Breadcrumbs, GlassBreadcrumbs, GlassTabBar, GlassCarousel, GlassNavigation, GlassTimeline, Navigation components
 - **Feedback Components**: Alert, Progress, Snackbar, Loader, VisualFeedback, RippleButton, FocusIndicator, StateIndicator
-- **Data Display Components**: Card, Table, List, Chip, Avatar, Badge, ImageList, KpiCard, GlassDataChart, PerformanceMetricCard
+- **Data Display Components**: Card, Table, List, Chip, Avatar, Badge, ImageList, KpiCard, GlassDataChart, PerformanceMetricCard, CodeBlock
 - **Utility Components**: Backdrop, Modal, Drawer, Tooltip, GlassTooltip, Icon, GlassImageViewer, Theme components, Performance components
 - **Specialized Surfaces**: DimensionalGlass, HeatGlass, FrostedGlass, WidgetGlass, AtmosphericBackground, ParticleBackground
 
@@ -138,7 +138,7 @@ For a complete component reference, see the [Framework Guide](./core/framework-g
 
 ## Key Features
 
-- **Premium Glass Components**: 85+ UI components including 58 specialized Glass components
+- **Premium Glass Components**: 90+ UI components including 79 specialized Glass components
 - **Enhanced Z-Space System**: Meaningful depth and layout hierarchy
 - **Advanced Physics-Based Animation System**: Natural motion with spring physics, orchestration, and interaction hooks.
 - **Atmospheric Environments**: Dynamic backgrounds and contextual adaptations

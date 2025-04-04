@@ -27,7 +27,7 @@ The Galileo animation system is built around a few core concepts:
 ## Documentation Sections
 
 *   **[Physics Engine API](../physics/engine-api.md):** Documentation for the enhanced physics engine and `useGalileoPhysicsEngine` hook (v1.0.8+).
-*   **[Core Physics Hooks](./physics-hooks.md):** Learn about hooks like `usePhysicsInteraction`, `useGalileoStateSpring`, and `useMultiSpring` for adding physics-based feedback and state transitions.
+*   **[Core Physics Hooks](./hooks/physics-interaction.md):** Learn about hooks like `usePhysicsInteraction`, `useGalileoStateSpring`, and `useMultiSpring` for adding physics-based feedback and state transitions.
 *   **[Gesture Physics](./gesture-physics.md):** Documentation for `useGesturePhysics` and related gesture handling.
 *   **[Magnetic Effects](./magnetic-effects.md):** Documentation for `useMagneticElement`.
 *   **[Animation Orchestration](./orchestration.md):** Deep dive into `useAnimationSequence` for creating complex animation sequences.

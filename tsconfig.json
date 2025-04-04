@@ -40,6 +40,7 @@
     "node_modules",
     "dist",
     "src/__mocks__",
-    "src/__tests__"
+    "src/__tests__",
+    "src/test"
   ]
 }

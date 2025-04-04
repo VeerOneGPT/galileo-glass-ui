@@ -467,3 +467,127 @@ describe('GlassDataChart - Core Rendering Variants', () => {
     });
 
 });
+
+// --- Test for Small Pie Segment Aggregation (Fix 1) ---
+
+describe('GlassDataChart - Pie Chart Small Segment Aggregation', () => {
+  test('should aggregate segments below threshold into \'Other\' for pie charts', () => {
+    const pieDataWithSmallSegments: ChartDataset[] = [
+      {
+        id: 'smallPie',
+        label: 'Small Segments Test',
+        data: [
+          { label: 'Large A', x: 'Large A', y: 500 }, 
+          { label: 'Large B', x: 'Large B', y: 480 },  
+          { label: 'Small C', x: 'Small C', y: 4 }, // < 1%
+          { label: 'Small D', x: 'Small D', y: 1 }, // < 1%
+          { label: 'Medium E', x: 'Medium E', y: 15 }, // > 1%
+        ],
+      }
+    ];
+    // Total = 1000
+    // Threshold = 0.005 * 1000 = 5
+    // Expected: [Large A (500), Large B (480), Medium E (15), Other (4+1=5)]
+    // Expected Labels: ['Large A', 'Large B', 'Medium E', 'Other']
+
+    render(
+      <TestWrapper>
+        <GlassDataChart 
+          datasets={pieDataWithSmallSegments}
+          variant="pie" 
+        />
+      </TestWrapper>
+    );
+
+    expect(require('react-chartjs-2').Chart).toHaveBeenCalled();
+    const passedData = mockChartInstance.data;
+
+    // Check the processed data values
+    expect(passedData.datasets[0].data).toEqual([500, 480, 15, 5]);
+    
+    // Check the processed labels used by Chart.js
+    expect(passedData.labels).toEqual(['Large A', 'Large B', 'Medium E', 'Other']);
+
+    // Check the background colors (ensure 'Other' has its specific color)
+    // This assumes the palette setup and 'Other' color are consistent
+    expect(passedData.datasets[0].backgroundColor.length).toBe(4);
+    expect(passedData.datasets[0].backgroundColor[3]).toEqual('#9CA3AF'); // The gray color for 'Other'
+  });
+
+  test('should aggregate segments below threshold into \'Other\' for doughnut charts', () => {
+    const doughnutDataWithSmallSegments: ChartDataset[] = [
+      {
+        id: 'smallDoughnut',
+        label: 'Small Segments Test',
+        data: [
+          { label: 'Big 1', x: 'Big 1', y: 900 }, 
+          { label: 'Small 2', x: 'Small 2', y: 3 }, 
+          { label: 'Small 3', x: 'Small 3', y: 2 }, 
+          { label: 'Big 4', x: 'Big 4', y: 95 },
+        ],
+      }
+    ];
+    // Total = 1000
+    // Threshold = 0.005 * 1000 = 5
+    // Expected: [Big 1 (900), Big 4 (95), Other (3+2=5)]
+    // Expected Labels: ['Big 1', 'Big 4', 'Other']
+
+    render(
+      <TestWrapper>
+        <GlassDataChart 
+          datasets={doughnutDataWithSmallSegments}
+          variant="doughnut" 
+        />
+      </TestWrapper>
+    );
+
+    expect(require('react-chartjs-2').Chart).toHaveBeenCalled();
+    const passedData = mockChartInstance.data;
+
+    // Check the processed data values
+    expect(passedData.datasets[0].data).toEqual([900, 95, 5]);
+    
+    // Check the processed labels used by Chart.js
+    expect(passedData.labels).toEqual(['Big 1', 'Big 4', 'Other']);
+
+    // Check the background colors
+    expect(passedData.datasets[0].backgroundColor.length).toBe(3);
+    expect(passedData.datasets[0].backgroundColor[2]).toEqual('#9CA3AF'); // The gray color for 'Other'
+  });
+
+  test('should not create \'Other\' segment if no segments are below threshold', () => {
+    const pieDataNoSmallSegments: ChartDataset[] = [
+      {
+        id: 'noSmallPie',
+        label: 'No Small Segments',
+        data: [
+          { label: 'Segment A', x: 'Segment A', y: 50 }, 
+          { label: 'Segment B', x: 'Segment B', y: 30 },  
+          { label: 'Segment C', x: 'Segment C', y: 20 }, 
+        ],
+      }
+    ];
+    // Total = 100
+    // Threshold = 0.005 * 100 = 0.5. All segments are above.
+    // Expected Data: [50, 30, 20]
+    // Expected Labels: ['Segment A', 'Segment B', 'Segment C']
+
+    render(
+      <TestWrapper>
+        <GlassDataChart 
+          datasets={pieDataNoSmallSegments}
+          variant="pie" 
+        />
+      </TestWrapper>
+    );
+
+    expect(require('react-chartjs-2').Chart).toHaveBeenCalled();
+    const passedData = mockChartInstance.data;
+
+    expect(passedData.datasets[0].data).toEqual([50, 30, 20]);
+    expect(passedData.labels).toEqual(['Segment A', 'Segment B', 'Segment C']);
+    expect(passedData.datasets[0].backgroundColor.length).toBe(3);
+    // Ensure the 'Other' color is not present unless specifically assigned by palette coincidence
+    expect(passedData.datasets[0].backgroundColor).not.toContain('#9CA3AF'); 
+  });
+});

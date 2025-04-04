@@ -1,5 +1,13 @@
 # Galileo Glass UI Changelog
 
+## [1.0.14] - 2025-06-15
+
+This major release enhances the physics engine with advanced constraints (Distance, Hinge), introduces a physics-based layout hook (`usePhysicsLayout`), and improves collision event data. New components include `GlassDataGrid` (sortable, draggable rows) and `GlassStepper`. Added features like ambient tilt, new animation presets (shake, pulse, confetti), magnetic/repel interactions, and an optional glass focus ring. Enhancements were made to chart interactivity (zoom/pan), component ref forwarding, `GlassTabs` physics indicator, and per-element physics in `DataChart`. Numerous bug fixes address physics engine state retrieval, collision detection, type definitions (`useAnimationSequence`, `usePhysicsInteraction`), component exports, and `DataChart` rendering. Documentation was significantly improved for the physics engine, performance guidance, and component usage.
+
+## [1.0.13] - 2025-04-01
+
+This patch release addresses several key bug fixes related to physics interactions, hook exports, and component implementations, improving stability and developer experience. Fixes include corrections to the 3D tilt effect in `usePhysicsInteraction`, added missing hook exports (`useAnimationSequence`, `useGesturePhysics`), and resolved various TypeScript/build errors.
+
 ## [1.0.11] - 2025-03-31
 
 This release focuses on improving component composability and resolving build/type errors related to component exports.
@@ -70,7 +78,7 @@ This major release introduces a comprehensive overhaul of the animation system, 
     *   Integrated `useReducedMotion` for enhanced accessibility.
     *   Specialized hooks like `useInertialMovement`, `useMagneticElement` (details in component integrations).
 *   **Comprehensive Animation Documentation:**
-    *   Added new documentation sections for [Physics Hooks](../docs/animations/physics-hooks.md), [Transition Hooks](../docs/animations/transition-hooks.md), [Orchestration](../docs/animations/orchestration.md), [Context/Config](../docs/animations/context-config.md), and [Accessibility](../docs/animations/accessibility.md).
+    *   Added new documentation sections for [Transition Hooks](../docs/animations/transition-hooks.md), [Orchestration](../docs/animations/orchestration.md), [Context/Config](../docs/animations/context-config.md), and [Accessibility](../docs/animations/accessibility.md).
     *   Added an [Animation Migration Guide](../docs/migration/animation-migration-v1.0.5.md).
 *   **Component Animation Integration:**
     *   Refactored numerous components (Buttons, Inputs, Modals, Menus, Cards, Navigation, etc.) to use the new animation system (see integration checklist in `animate2.md` for full list).

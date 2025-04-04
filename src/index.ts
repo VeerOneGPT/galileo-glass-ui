@@ -54,6 +54,9 @@ export { GlassStepper } from './components/GlassStepper';
 export { GlassDataGrid } from './components/GlassDataGrid';
 // Add other components intended for the main export here...
 
+// Export Focus Ring component via components barrel (Task 8 Fix)
+export { GlassFocusRing } from './components';
+
 // Explicitly re-export core modules
 export { createThemeContext } from './core/themeContext';
 
@@ -134,9 +137,11 @@ export {
   // useDebounce,            // Removed - Assuming not exported from ./hooks, potentially in ./utils or internal
   // useIsomorphicLayoutEffect, // Removed - Assuming not exported from ./hooks, potentially in ./utils or internal
   // usePrevious,            // Removed - Assuming not exported from ./hooks, potentially in ./utils or internal
-  useReducedMotion        // Added from later duplicate - path corrected
+  useReducedMotion,        // Added from later duplicate - path corrected
   // useIntersectionObserver, // Removed - Assuming file doesn't exist or is elsewhere
   // useGesturePhysics      // Removed - Assuming file doesn't exist or is elsewhere
+  useGlassFocus,           // Added via hooks barrel (Task 8 Fix)
+  useAmbientTilt          // Added: Export useAmbientTilt (Conflict 15 Fix)
 } from './hooks'; // Assuming ./hooks barrel exports these
 
 // --- Removed direct hook exports like useGlassTheme, useBreakpoint, etc. ---
@@ -155,6 +160,16 @@ export type {
   SpringConstraintOptions,
   HingeConstraintOptions
 } from './animations/physics/engineTypes';
+
+// Export AnimationStage types (Conflict 15 Fix)
+export type { 
+  AnimationStage,
+  StyleAnimationStage,
+  CallbackAnimationStage,
+  EventAnimationStage,
+  GroupAnimationStage,
+  StaggerAnimationStage 
+} from './animations/orchestration/useAnimationSequence';
 
 // --- Removed duplicate physics type exports ---
 
@@ -177,8 +192,8 @@ export {
   withForwardedRef
 } from './utils/refUtils'; // Assuming ./utils/refUtils barrel exports these
 
-// --- Removed direct ref util exports like mergeRefs ---
-
+// Export Animation Context/Provider (Task 12 Fix)
+export { AnimationProvider, useAnimationContext } from './contexts/AnimationContext';
 
 // Re-export core hooks (REMOVED - consolidated above)
 // export { useGlassTheme } from './hooks/useGlassTheme';
@@ -214,3 +229,12 @@ export {
 
 // Export core utilities (REMOVED - consolidated above)
 // export { mergeRefs } from './utils/mergeRefs'; // Assumed in ./utils/refUtils
+
+// Add missing exports (Task 8 Storybook Fix)
+export { Box, GlassBox } from './components/Box'; 
+export { TextField, GlassTextField } from './components/TextField';
+// Export DateRange type (Task 14 Fix)
+export type { DateRange } from './components/DateRangePicker/types';
+// Export Step type (Task 6 Fix)
+export type { Step } from './components/GlassStepper/types';
+// End missing exports

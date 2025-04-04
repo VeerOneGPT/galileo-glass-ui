@@ -15,7 +15,7 @@ This patch release addresses several key bug fixes related to physics interactio
     -   Corrected the returned `state` object: `state.x`, `state.y`, `state.z` now accurately reflect the spring's translation offset, while new `state.relativeX` and `state.relativeY` provide the pointer's normalized position relative to the element center (-1 to 1).
     -   Switched internal event listeners from mouse events to pointer events for better device compatibility.
     -   Removed the outdated `eventHandlers` return value, as listeners are now handled internally.
-    -   Updated documentation (`docs/animations/physics-hooks.md`) to reflect these changes, including the requirement for a parent element with `perspective` for the tilt effect.
+    -   Updated documentation (`docs/hooks/physics-interaction.md`) to reflect these changes, including the requirement for a parent element with `perspective` for the tilt effect.
 -   **Hook Exports (`src/hooks/index.ts`):**
     -   Added missing exports for `useAnimationSequence` and `useGesturePhysics`, allowing them to be imported and used as intended.
     -   Corrected exported type names associated with these hooks (e.g., `AnimationSequenceConfig` instead of `AnimationSequenceOptions`).

@@ -102,6 +102,9 @@ export { useGestureAnimation, GestureAnimationPresets, GestureTypes } from './us
 // Export the new constraint hook
 export { usePhysicsConstraint } from './usePhysicsConstraint';
 
+// Export the focus hook (Task 8 Fix)
+export { useGlassFocus } from './useGlassFocus';
+
 // Add missing exports for useAnimationSequence and useGesturePhysics
 export {
   useAnimationSequence,

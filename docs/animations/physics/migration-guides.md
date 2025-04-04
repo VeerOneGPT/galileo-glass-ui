@@ -195,4 +195,4 @@ If you still encounter issues after upgrading:
 4. Make sure you're not accidentally unmounting components using the physics engine prematurely.
 5. Check the browser console for any error messages, especially related to physics or animation.
 
-For more information, refer to the [Physics Engine API Documentation](./engine-api.md) and the [Physics Hooks Documentation](../physics-hooks.md). 
+For more information, refer to the [Physics Engine API Documentation](./engine-api.md) and the [Physics Interaction Hook Documentation](../hooks/physics-interaction.md). 

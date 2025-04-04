@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "private": false,
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
@@ -69,7 +69,7 @@
     "preinstall": "echo '\\n💡 Galileo Glass UI - Installation in progress\\n'",
     "postinstall": "echo '\\n✅ Galileo Glass UI installed successfully!\\n'",
     "preuninstall": "echo '\\n🧹 Cleaning up Galileo Glass UI...\\n'",
-    "build": "rm -rf dist && rollup -c",
+    "build": "rm -rf dist && node --max-old-space-size=8192 scripts/build/process-configs.js",
     "quick-build": "SKIP_TS_CHECK=true npm run build",
     "build:skip-ts": "SKIP_TS_CHECK=true npm run build",
     "build:production": "(npm run lint:build || true) && SKIP_TS_CHECK=true npm run build && node scripts/fix-declarations.js",

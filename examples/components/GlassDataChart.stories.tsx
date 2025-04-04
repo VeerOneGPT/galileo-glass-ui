@@ -505,6 +505,92 @@ export const PhysicsZoomPan: Story = {
   },
 };
 
+// --- Add Story for Physics Zoom/Pan Configuration (Task 9) ---
+export const ConfiguredPhysicsZoomPan: Story = {
+  ...Template,
+  args: {
+    title: "Configurable Physics Zoom & Pan",
+    subtitle: "Use Ctrl+Wheel to zoom, Shift+Drag or Middle-Click+Drag to pan",
+    variant: "line",
+    datasets: denseData, // Use data with many points
+    glassVariant: "frosted",
+    color: "primary",
+    animation: { physicsEnabled: true }, // Keep general physics enabled if desired
+    interaction: {
+      // -- Physics Zoom/Pan Configuration --
+      zoomPanEnabled: true,         // Explicitly enable physics zoom/pan
+      zoomMode: 'xy',               // Allow zooming/panning on both axes
+      physics: {                    // Configure the physics parameters
+        tension: 180,               // Spring stiffness (higher = faster snap)
+        friction: 22,               // Spring damping (higher = less oscillation)
+        mass: 1,                    // Mass (affects inertia)
+        minZoom: 0.3,               // Allow zooming out to 30%
+        maxZoom: 10,                // Allow zooming in to 1000%
+        wheelSensitivity: 0.05,     // Make wheel zooming less sensitive
+        inertiaDuration: 700,       // Increase pan inertia duration (ms)
+      },
+      // -- Other Interaction Options --
+      showTooltips: true,
+      tooltipStyle: 'dynamic',      // Use dynamic tooltip style
+      tooltipFollowCursor: false,
+      physicsHoverEffects: true,    // Keep element hover effects enabled if needed
+    },
+    // Optional: Callback for zoom/pan events
+    onZoomPan: (chart: any) => { 
+      // console.log('Zoom/Pan Event', chart.scales.x.min, chart.scales.x.max);
+    },
+    height: 350, // Increase height slightly for better visibility
+  },
+  parameters: { 
+    docs: { 
+      description: { 
+        story: 'Demonstrates enabling and configuring physics-based zoom and pan via the `interaction` prop. Use Ctrl+MouseWheel to zoom and Shift+Drag or Middle-Click+Drag to pan.'
+      }
+    }
+  }
+};
+// --- End Task 9 Story ---
+
+// --- Story for Small Pie Segment Aggregation (Fix 1) ---
+
+// Data specifically for showcasing the aggregation
+const pieDataWithSmallSegments: ChartDataset[] = [
+  {
+    id: 'smallPieData',
+    label: 'Market Share',
+    data: [
+      { label: 'Company A', x: 'A', y: 450, color: '#6366F1' }, // 45%
+      { label: 'Company B', x: 'B', y: 350, color: '#10B981' }, // 35%
+      { label: 'Company C', x: 'C', y: 180, color: '#F59E0B' }, // 18%
+      { label: 'Startup X', x: 'X', y: 9, color: '#EF4444' },  // 0.9% (<1% threshold, usually 0.5% used in code)
+      { label: 'Startup Y', x: 'Y', y: 7, color: '#EC4899' },  // 0.7%
+      { label: 'Startup Z', x: 'Z', y: 4, color: '#8B5CF6' },  // 0.4%
+    ],
+    // Total: 1000
+  }
+];
+
+export const PieWithSmallSegments: Story = {
+  ...Template,
+  args: {
+    title: "Pie Chart with Small Segment Aggregation",
+    subtitle: "Segments <0.5% are grouped into 'Other'",
+    variant: "pie",
+    datasets: pieDataWithSmallSegments,
+    height: 350, // Slightly taller for better visibility
+    legend: {
+      show: true,
+      position: 'right', // Move legend to the side
+      style: 'default',
+    },
+    interaction: {
+        showTooltips: true,
+        tooltipStyle: 'glass'
+    }
+  },
+};
+
+// ---
 
 // Customizable Story
 const CustomizableChartStory: React.FC = () => {

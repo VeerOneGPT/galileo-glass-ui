@@ -173,12 +173,44 @@ export const convertToChartJsDataset = (
       // IMPORTANT: Expects datasets prop to contain ONE dataset, 
       // and its data property to be DataPoint[] where the `y` values are positive numbers.
       // Labels for segments are taken from chartData.labels, which GlassDataChart generates from DataPoint.label or DataPoint.x.
+      
+      // --- BEGIN MODIFICATION: Aggregate small segments ---
+      const MIN_PERCENTAGE_THRESHOLD = 0.005; // 0.5% threshold for aggregation
+      const totalValue = data.reduce((sum, point) => sum + (point.y || 0), 0);
+      
+      const processedData: number[] = [];
+      const processedLabels: string[] = [];
+      const processedColors: string[] = [];
+      let otherValue = 0;
+      
+      data.forEach((point, i) => {
+        const pointValue = point.y || 0;
+        const percentage = totalValue > 0 ? pointValue / totalValue : 0;
+        
+        if (percentage < MIN_PERCENTAGE_THRESHOLD) {
+          otherValue += pointValue;
+        } else {
+          processedData.push(pointValue);
+          // Use original label from the data point if available
+          processedLabels.push(point.label || `Segment ${i + 1}`); 
+          processedColors.push(point.color || palette[i % palette.length] || palette[0] || '#6366F1');
+        }
+      });
+      
+      // Add the 'Other' segment if it has aggregated value
+      if (otherValue > 0) {
+        processedData.push(otherValue);
+        processedLabels.push('Other'); 
+        // Use a distinct color for 'Other' - maybe a neutral gray?
+        processedColors.push('#9CA3AF'); // Example: Tailwind gray-400
+      }
+      // --- END MODIFICATION ---
+
       return {
         label: label || `Dataset ${index + 1}`, 
-        data: data.map(point => point.y), 
-        backgroundColor: data.map((point, i) => 
-          point.color || palette[i % palette.length] || palette[0] || '#6366F1'
-        ),
+        data: processedData, 
+        backgroundColor: processedColors,
+        processedLabels: processedLabels,
         borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
         hoverOffset: 10,

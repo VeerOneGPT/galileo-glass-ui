@@ -387,4 +387,5 @@ const configs = [
   ...dtsConfigs // ADDED BACK
 ];
 
-export default configs;
+// Export as named exports for Rollup v2/v3 ESM compatibility
+export { configs as default };

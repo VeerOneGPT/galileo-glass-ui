@@ -14,7 +14,7 @@ Galileo Glass is a React-based UI framework that implements glass morphism desig
 
 ### Key Features
 
-- **Premium Glass Components**: 85+ UI components including 58 specialized Glass components  
+- **Premium Glass Components**: 90+ UI components including 79 specialized Glass components  
 - **Enhanced Z-Space System**: Meaningful depth and layout hierarchy  
 - **Physics-Based Animations**: Natural motion with spring animations and path physics  
 - **Atmospheric Environments**: Dynamic backgrounds and contextual adaptations  
@@ -457,18 +457,16 @@ The Glass UI system is integrated into the Galileo project and requires no addit
 To use Glass components, ensure you have the proper provider hierarchy:
 
 ```tsx
-import { StyledThemeProvider } from '../../theme/StyledThemeProvider';
-import { GlassProvider, GlassThemeProvider } from '../../components/Glass';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { AnimationProvider } from '@veerone/galileo-glass-ui';
 
 const App: React.FC = () => {
   return (
-    <StyledThemeProvider>
-      <GlassProvider>
-        <GlassThemeProvider initialTheme="nebula">
+    <ThemeProvider initialTheme="nebula">
+      <AnimationProvider value={{ /* Optional animation defaults */ }}>
           {/* Application content */}
-        </GlassThemeProvider>
-      </GlassProvider>
-    </StyledThemeProvider>
+      </AnimationProvider>
+    </ThemeProvider>
   );
 };
 ```
@@ -757,9 +755,8 @@ const CustomComponent: React.FC = () => {
 
 ### Data Display Components
 
-- **GlassCard**: Card container (use `<Card glass>`) 
-- **GlassTable**: Data tables  
-- **GlassChip**: Tags/pills  
+- **GlassCard**: Surface for content (use `<Card>`) 
+- **GlassTable**: Data tables (use `<Table>`)
 - **GlassList**: List containers  
 - **GlassAvatar**: User avatars  
 - **GlassBadge**: Badge indicators  
@@ -768,6 +765,7 @@ const CustomComponent: React.FC = () => {
 - **GlassDataChart**: Data visualization with physics animations
 - **GlassPerformanceMetricCard**: Performance metric visualization
 - **GlassInteractiveKpiCard**: Interactive data visualization card
+- **GlassCodeBlock**: Displays formatted code snippets
 
 ### Utility Components
 
@@ -1199,7 +1197,7 @@ These hooks are the primary tools for implementing animations:
   ```
 
 **For detailed API and usage, see:**
-- [Core Physics Hooks Documentation](../../animations/physics-hooks.md)
+- [Core Physics Hooks Documentation](../../hooks/physics-interaction.md)
 - [Sequence Orchestration Documentation](../../animations/orchestration.md)
 
 ### Performance & Optimization
@@ -1207,7 +1205,6 @@ These hooks are the primary tools for implementing animations:
 - **Adaptive Quality**: Automatically adjusts physics precision and effect fidelity based on device capabilities.
 - **Object Sleeping**: Physics calculations pause for elements at rest.
 - **GPU Acceleration**: Utilizes `transform: translate3d` and `will-change` where appropriate.
-- **Efficient Updates**: Optimized `requestAnimationFrame` loop.
 
 ### Accessibility (`useReducedMotion`)
 
@@ -1568,18 +1565,16 @@ const Card = styled.div`
 To use Glass components, ensure you have the proper provider hierarchy:
 
 ```tsx
-import { StyledThemeProvider } from '../../theme/StyledThemeProvider';
-import { GlassProvider, GlassThemeProvider } from '../../components/Glass';
+import { ThemeProvider } from '../../theme/ThemeProvider';
+import { AnimationProvider } from '@veerone/galileo-glass-ui';
 
 const App: React.FC = () => {
   return (
-    <StyledThemeProvider>
-      <GlassProvider>
-        <GlassThemeProvider initialTheme="nebula">
+    <ThemeProvider initialTheme="nebula">
+      <AnimationProvider value={{ /* Optional animation defaults */ }}>
           {/* Application content */}
-        </GlassThemeProvider>
-      </GlassProvider>
-    </StyledThemeProvider>
+      </AnimationProvider>
+    </ThemeProvider>
   );
 };
 ```

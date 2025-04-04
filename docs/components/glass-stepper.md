@@ -6,7 +6,7 @@ The `GlassStepper` component displays a sequence of steps with physics-based ani
 
 ```tsx
 import { GlassStepper } from '@veerone/galileo-glass-ui';
-import type { Step } from '@veerone/galileo-glass-ui'; // If you need the type
+import type { Step } from '@veerone/galileo-glass-ui'; // Updated path
 ```
 
 ## Usage

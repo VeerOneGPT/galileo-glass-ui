@@ -5,6 +5,12 @@ import { createThemeContext } from "../../core/themeContext";
 import { useAccessibilitySettings } from "../../hooks/useAccessibilitySettings";
 import { usePhysicsAnimation, PhysicsAnimationProps } from "../../components/DataChart/hooks/usePhysicsAnimation";
 
+// --- Define Variant Type ---
+export type GlassTabsVariant = 'equal' | 'auto' | 'scrollable';
+
+// --- Define Vertical Align Type ---
+export type GlassTabsVerticalAlign = 'top' | 'center' | 'bottom' | 'stretch';
+
 // Animations
 const slideIn = keyframes`
   from { 
@@ -30,7 +36,7 @@ const TabsContainer = styled.div`
 `;
 
 // Tab List Styled Component
-const TabList = styled.div`
+const TabList = styled.div<{ $variant: GlassTabsVariant; $verticalAlign: GlassTabsVerticalAlign }>`
   display: flex;
   gap: 8px;
   padding: 4px;
@@ -39,9 +45,37 @@ const TabList = styled.div`
   backdrop-filter: blur(10px);
   margin-bottom: 24px;
   position: relative;
-  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
   
+  /* Vertical Alignment */
+  align-items: ${({ $verticalAlign }) => {
+      switch ($verticalAlign) {
+          case 'top': return 'flex-start';
+          case 'bottom': return 'flex-end';
+          case 'stretch': return 'stretch';
+          case 'center':
+          default: return 'center';
+      }
+  }};
+
+  ${({ $variant }) => ($variant === 'scrollable') && css`
+    overflow-x: auto;
+    /* Simple scrollbar styling */
+    &::-webkit-scrollbar {
+      height: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+    }
+    &::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+  `}
+
   &::before {
     content: '';
     position: absolute;
@@ -57,7 +91,7 @@ const TabList = styled.div`
 `;
 
 // Tab Button Styled Component
-const TabButton = styled.button<{ $isActive: boolean }>`
+const TabButton = styled.button<{ $isActive: boolean; $variant: GlassTabsVariant }>`
   background: ${props => props.$isActive ? 
     'rgba(var(--glass-primary-rgb), 0.2)' : 
     'transparent'
@@ -78,9 +112,15 @@ const TabButton = styled.button<{ $isActive: boolean }>`
   transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
   position: relative;
   overflow: hidden;
-  flex: 1;
   text-align: center;
-  
+  white-space: nowrap; // Prevent text wrapping
+  flex-shrink: 0; // Prevent shrinking in scrollable/auto modes
+
+  /* Apply flex: 1 only for 'equal' variant */
+  ${({ $variant }) => $variant === 'equal' && css`
+    flex: 1;
+  `}
+
   /* Glow effect when active */
   ${props => props.$isActive && css`
     animation: ${glowEffect} 3s infinite ease-in-out;
@@ -159,6 +199,10 @@ export interface GlassTabsProps {
   tabs: GlassTabItem[];
   /** Default active tab ID */
   defaultTab?: string;
+  /** Controls how tabs are sized and behave when overflowing. */
+  variant?: GlassTabsVariant;
+  /** Controls the vertical alignment of tabs within the list container. */
+  verticalAlign?: GlassTabsVerticalAlign;
   /** Callback when tab changes */
   onChange?: (tabId: string) => void;
   /** Additional className */
@@ -189,6 +233,8 @@ export interface GlassTabsRef {
 export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({ 
   tabs, 
   defaultTab, 
+  variant = 'equal', // Default to 'equal'
+  verticalAlign = 'center', // Default vertical alignment
   onChange,
   className = '',
   physics
@@ -223,25 +269,25 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
     const activeTabElement = tabRefs.current.get(activeTab);
     if (activeTabElement && listRef.current) {
       const listRect = listRef.current.getBoundingClientRect();
-      const tabRect = activeTabElement.getBoundingClientRect();
-            
-      const targetLeft = tabRect.left - listRect.left + 4;
-      const targetWidth = tabRect.width - 8;
+      // Use offsetLeft relative to the scrollable container for accurate positioning
+      const targetLeft = activeTabElement.offsetLeft; 
+      const targetWidth = activeTabElement.offsetWidth;
       
-      // Update the target indicator style state
+      // Adjust for padding within the TabList
+      const adjustedLeft = targetLeft + 4; // Consider the 4px padding
+      const adjustedWidth = targetWidth - 8; // Consider the 4px padding on each side
+
       setTargetIndicatorStyle({ 
-        left: targetLeft < 0 ? 0 : targetLeft,
-        width: targetWidth < 0 ? 0 : targetWidth
+        left: adjustedLeft < 0 ? 0 : adjustedLeft,
+        width: adjustedWidth < 0 ? 0 : adjustedWidth
       });
 
-      // Only trigger animations if not reduced motion
       if (!isReducedMotion) {
-        // Trigger the animations with the new target values using start()
-        startLeft(targetLeft < 0 ? 0 : targetLeft);
-        startWidth(targetWidth < 0 ? 0 : targetWidth);
+        startLeft(adjustedLeft < 0 ? 0 : adjustedLeft);
+        startWidth(adjustedWidth < 0 ? 0 : adjustedWidth);
       }
     }
-  }, [activeTab, tabs, startLeft, startWidth, isReducedMotion]); // Include isReducedMotion in dependencies
+  }, [activeTab, tabs, startLeft, startWidth, isReducedMotion]); // Dependencies remain similar
   
   // Handle tab change
   const handleTabChange = (tabId: string) => {
@@ -298,7 +344,12 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
       ref={containerRef} // Assign ref to root container
       className={`glass-tabs ${className}`}
     >
-      <TabList role="tablist" ref={listRef}>
+      <TabList 
+        role="tablist" 
+        ref={listRef} 
+        $variant={variant} // Pass variant to styled component
+        $verticalAlign={verticalAlign} // Pass verticalAlign to styled component
+      >
         {tabs.map((tab, index) => (
           <TabButton
             key={tab.id}
@@ -308,6 +359,7 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
             aria-controls={`panel-${tab.id}`}
             id={`tab-${tab.id}`}
             $isActive={activeTab === tab.id}
+            $variant={variant} // Pass variant to styled component
             onClick={() => handleTabChange(tab.id)}
             onKeyDown={(e) => handleKeyDown(e, tab.id, index)}
             tabIndex={activeTab === tab.id ? 0 : -1}
@@ -320,7 +372,6 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
              style={{
                 left: `${animatedLeft}px`,
                 width: `${animatedWidth}px`,
-                // Use transform to move to GPU for better performance
                 transform: 'translateZ(0)',
              }}
            />

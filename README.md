@@ -75,32 +75,27 @@ Version 1.0.14 is a major update focused on expanding physics capabilities, intr
 
 ### Installation
 
-| NPM (Recommended) | Next.js Projects | Other Package Managers | GitHub (Development) |
-|---|---|---|---|
-| \
-```bash
-# Install from NPM (recommended)
-npm install @veerone/galileo-glass-ui styled-components
-``` | \
-```bash
-# Install in Next.js project
-npm install @veerone/galileo-glass-ui styled-components
+Install the library and its core peer dependency, `styled-components`:
 
-# In next.config.js:
-transpilePackages: ['@veerone/galileo-glass-ui']
-``` | \
-```bash
-# For yarn
-yarn add @veerone/galileo-glass-ui styled-components
+| Package Manager | Command                                                            |
+|-----------------|--------------------------------------------------------------------|
+| npm             | `npm install @veerone/galileo-glass-ui styled-components`            |
+| yarn            | `yarn add @veerone/galileo-glass-ui styled-components`             |
+| pnpm            | `pnpm add @veerone/galileo-glass-ui styled-components`             |
+| GitHub (Dev)    | `npm install github:VeerOneGPT/galileo-glass-ui styled-components` |
 
-# For pnpm
-pnpm add @veerone/galileo-glass-ui styled-components
-``` | \
-```bash
-# Install from GitHub repository
-npm install github:VeerOneGPT/galileo-glass-ui styled-components
-``` |
+**Note for Next.js:** You might need to configure Next.js to transpile the package. Add the following to your `next.config.js`:
 
+```js
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ['@veerone/galileo-glass-ui'],
+  // ... other config
+};
+
+module.exports = nextConfig;
+```
 
 ##### Optional Feature Dependencies
 

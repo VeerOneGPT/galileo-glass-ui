@@ -619,22 +619,35 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   );
 
   // Use the enhanced dataset conversion in the chartData
+  // Process datasets first to get converted structure including processed labels if applicable
+  const convertedDatasets = datasets.map((dataset, i) => {
+    return convertToChartJsDatasetWithEffects(dataset, i, chartType, palette, animation);
+  });
+
+  // Prepare labels, using processed ones for pie/doughnut if available
+  let chartLabels: string[] | undefined;
+  if (chartType === 'pie' || chartType === 'doughnut') {
+    // Access processedLabels from the *first* dataset's conversion result
+    // Type assertion might be needed if TypeScript cannot infer the added property
+    const firstConvertedDataset = convertedDatasets[0] as any; 
+    if (firstConvertedDataset?.processedLabels && firstConvertedDataset.processedLabels.length > 0) {
+      chartLabels = firstConvertedDataset.processedLabels;
+    } else if (datasets[0]?.data) {
+      // Fallback to original data labels if processed labels aren't available
+      chartLabels = datasets[0].data.map(point => point.label || String(point.x));
+    }
+  } else if (chartType === 'polarArea') {
+      // Use original labels for polarArea
+      chartLabels = datasets[0]?.data.map(point => point.label || String(point.x));
+  }
+
   const chartData = {
-    datasets: datasets.map((dataset, i) => {
-      // Pass the original component variant state (chartType) to the conversion function
-      const baseDataset = convertToChartJsDatasetWithEffects(dataset, i, chartType, palette, animation);
-      
-      // Store format information in the dataset's custom properties
-      return {
-        ...baseDataset,
-        formatType: dataset.formatType || 'number',
-        formatOptions: dataset.formatOptions || {},
-      };
-    }) as any,
-    // Labels are used for pie/doughnut/polarArea charts
-    labels: chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea'
-      ? datasets[0]?.data.map(point => point.label || String(point.x))
-      : undefined,
+    // Map converted datasets, removing any temporary properties like processedLabels
+    datasets: convertedDatasets.map(ds => {
+      const { processedLabels, ...rest } = ds as any; // Use type assertion here too
+      return rest;
+    }),
+    labels: chartLabels, // Assign the prepared labels
   };
   
   // Zoom in function
@@ -1149,7 +1162,8 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       },
       // Customize arc elements (pie/doughnut)
       arc: {
-        borderWidth: 1,
+        // Set borderWidth to 0 for pie/doughnut to avoid artifacts with small segments (Task 1 Fix)
+        borderWidth: (chartType === 'pie' || chartType === 'doughnut') ? 0 : 1,
         borderColor: 'rgba(255, 255, 255, 0.1)',
       }
     }

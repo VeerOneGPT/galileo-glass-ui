@@ -1,522 +1,289 @@
-# Animation Orchestration: `useAnimationSequence` & `useSequence`
+# Animation Orchestration: `useOrchestration`
 
-This document details the hooks provided by Galileo Glass UI for creating and managing coordinated sequences of animations: `useAnimationSequence` (using a declarative configuration object) and `useSequence` (using a builder pattern). These allow for precise control over timing, dependencies, and staggering, enabling complex animation choreography.
+This document details the `useOrchestration` hook provided by Galileo Glass UI for creating and managing coordinated sequences of animations based on various timing patterns and optional Gestalt principles.
 
 ## Table of Contents
 
-- [Choosing Between Hooks](#choosing-between-hooks)
-- [`useAnimationSequence` (Declarative Config)](#useanimationsequence-declarative-config)
-  - [Purpose](#purpose-useanimationsequence)
-  - [Core Concepts](#core-concepts-useanimationsequence)
-    - [Configuration (`AnimationSequenceConfig`)](#configuration-animationsequenceconfig)
+- [Purpose](#purpose)
+- [Core Concepts](#core-concepts)
+  - [Configuration (`OrchestrationOptions`)](#configuration-orchestrationoptions)
     - [Stages (`AnimationStage`)](#stages-animationstage)
-    - [Targets](#targets-useanimationsequence)
-    - [Timing & Dependencies](#timing--dependencies-useanimationsequence)
-    - [Controls (`SequenceControls`)](#controls-sequencecontrols-useanimationsequence)
-    - [Reduced Motion](#reduced-motion-useanimationsequence)
-  - [Signature](#signature-useanimationsequence)
-  - [Parameters (`AnimationSequenceConfig`)](#parameters-animationsequenceconfig)
-  - [Key Stage Types (`AnimationStage`)](#key-stage-types-animationstage)
-    - [`StyleAnimationStage`](#styleanimationstage)
-    - [`GroupAnimationStage`](#groupanimationstage)
-    - [`StaggerAnimationStage`](#staggeranimationstage)
-    - [`CallbackAnimationStage`](#callbackanimationstage)
-    - [`EventAnimationStage`](#eventanimationstage)
-  - [Return Value (`AnimationSequenceResult`)](#return-value-animationsequenceresult)
-  - [Example Usage](#example-usage-useanimationsequence)
-  - [Best Practices](#best-practices-useanimationsequence)
-- [`useSequence` (Builder Pattern)](#usesequence-builder-pattern)
-  - [Purpose](#purpose-usesequence)
-  - [Core Concepts](#core-concepts-usesequence)
-    - [Builder Function (`builderFn`)](#builder-function-builderfn)
-    - [Sequence Builder (`SequenceBuilder`)](#sequence-builder-sequencebuilder)
-    - [Animation Definitions](#animation-definitions-usesequence)
-    - [Controls](#controls-usesequence)
-  - [Signature](#signature-usesequence)
-  - [Parameters (`UseSequenceParams`)](#parameters-usesequenceparams)
-  - [Return Value (`UseSequenceResult`)](#return-value-usesequenceresult)
-  - [Example Usage](#example-usage-usesequence)
-  - [Best Practices](#best-practices-usesequence)
-- [Key Types & Enums (Common)](#key-types--enums-common)
-  - [`PlaybackDirection`](#playbackdirection)
-  - [`PlaybackState`](#playbackstate)
-  - [`AnimationCategory`](#animationcategory)
-- [`useAnimationStateMachine` (Finite State Machine)](#useanimationstatemachine-finite-state-machine)
-  - [Purpose](#purpose-useanimationstatemachine)
-  - [Core Concepts](#core-concepts-useanimationstatemachine)
-    - [States (`AnimationState[]`)](#states-animationstate)
-    - [Transitions (`StateTransition[]`)](#transitions-statetransition)
-    - [Events](#events-useanimationstatemachine)
-    - [Context](#context-useanimationstatemachine)
-  - [Signature](#signature-useanimationstatemachine)
-  - [Parameters (`UseAnimationStateMachineParams`)](#parameters-useanimationstatemachineparams)
-  - [Return Value (`UseAnimationStateMachineResult`)](#return-value-useanimationstatemachineresult)
-  - [Example Usage](#example-usage-useanimationstatemachine)
-  - [Best Practices](#best-practices-useanimationstatemachine)
+  - [Patterns (`OrchestrationPattern`)](#patterns-orchestrationpattern)
+  - [Gestalt Patterns (`GestaltPatternOptions`)](#gestalt-patterns-gestaltpatternoptions)
+  - [Reduced Motion](#reduced-motion)
+- [Signature](#signature)
+- [Parameters (`OrchestrationOptions`)](#parameters-orchestrationoptions)
+- [Stage Configuration (`AnimationStage`)](#stage-configuration-animationstage)
+- [Return Value](#return-value)
+- [Example Usage](#example-usage)
+- [Best Practices](#best-practices)
 
 ---
 
-## Choosing Between Hooks
+## Purpose {#purpose}
 
-- **`useAnimationSequence`:** Choose this hook if you prefer defining your entire animation sequence upfront using a declarative JavaScript configuration object. This can be easier for complex sequences defined dynamically or loaded from external sources.
-- **`useSequence`:** Choose this hook if you prefer a fluent, builder-style API to define your sequence steps programmatically within a function. This can feel more imperative and might be preferable for sequences built up conditionally.
+The `useOrchestration` hook is designed to:
 
-Both hooks provide similar underlying capabilities and controls.
+- Manage the timing and execution order of multiple independent animation triggers or stages.
+- Apply predefined timing patterns (sequential, parallel, staggered, wave, etc.) to a list of animation stages.
+- Optionally calculate stage timing based on Gestalt principles (proximity, similarity, continuity) using stage metadata like position or type.
+- Control the playback of the entire orchestration (start, stop, pause - implied, though not explicitly returned).
+- Respect user preferences for reduced motion.
+
+**Note:** This hook primarily focuses on calculating *when* each stage should start (`delay`) based on the chosen pattern. It does not directly perform the animations themselves; it assumes other mechanisms (like CSS transitions triggered by state changes, or other animation hooks) are responsible for the actual visual changes associated with each stage.
 
 ---
 
-## `useAnimationSequence` (Declarative Config)
+## Core Concepts {#core-concepts}
 
-### Purpose {#purpose-useanimationsequence}
-
-The `useAnimationSequence` hook is designed to:
-
-- Define multi-step animations involving multiple properties or elements using a single configuration object.
-- Coordinate animations with precise timing relationships (e.g., one after another, overlapping, dependencies).
-- Create entrance/exit animations for lists or groups of elements with controlled staggering.
-- Build complex UI transitions involving several distinct animation phases.
-- Provide fine-grained playback control (play, pause, stop, seek) over complex animations defined declaratively.
-
-### Core Concepts {#core-concepts-useanimationsequence}
-
-#### Configuration (`AnimationSequenceConfig`)
-
-The primary input is a single configuration object (`AnimationSequenceConfig`) defining the entire sequence, including stages, timing, looping, and callbacks.
+#### Configuration (`OrchestrationOptions`)
+The hook takes a single configuration object (`OrchestrationOptions`) that defines the stages, the desired timing pattern, and other control parameters.
 
 #### Stages (`AnimationStage`)
+The core input is the `stages` array. Each object in the array represents an `AnimationStage` to be timed by the orchestrator. Importantly, this is a generic definition; the hook uses properties like `id`, `delay`, `duration`, `dependencies`, `position`, and `elementType` from these stage objects to calculate the final timing, but it doesn't interpret other properties specific to how the animation might be implemented.
 
-The core is the `stages` array. Each object in the array represents a step (an `AnimationStage`) with a specific `type` (e.g., `'style'`, `'stagger'`, `'callback'`).
+#### Patterns (`OrchestrationPattern`)
+You specify how the timing between stages should be calculated using the `pattern` option (e.g., `'sequential'`, `'parallel'`, `'staggered'`, `'wave'`, `'gestalt'`). The hook calculates the final `delay` for each stage based on the chosen pattern and potentially other stage properties or options (`staggerDelay`, `gestaltOptions`).
 
-#### Targets {#targets-useanimationsequence}
+#### Gestalt Patterns (`GestaltPatternOptions`)
+If `pattern` is set to `'gestalt'`, you can provide `gestaltOptions` to influence timing based on perceptual principles. This requires stages to have relevant properties like `position` (for proximity, continuity, converge/diverge) or `elementType` (for similarity).
 
-Stages like `StyleAnimationStage` require a `targets` property:
-- React ref(s) (`React.RefObject<HTMLElement>` or array).
-- CSS selector string(s).
-- Direct HTMLElement/NodeList (less common).
-
-#### Timing & Dependencies {#timing--dependencies-useanimationsequence}
-
-Control timing using `duration`, `delay`, explicit `startTime`, or `dependsOn` (an array of stage IDs that must complete first). Easing is specified per stage.
-
-#### Controls (`SequenceControls`) {#controls-sequencecontrols-useanimationsequence}
-
-Returns an object with methods like `play()`, `pause()`, `stop()`, `seek()`, etc., to manage playback.
-
-#### Reduced Motion {#reduced-motion-useanimationsequence}
-
-Respects `useReducedMotion`. Animations may be skipped or run instantly based on category and user preferences.
-
-### Signature {#signature-useanimationsequence}
-
-```typescript
-import {
-  useAnimationSequence,
-  type AnimationSequenceConfig,
-  type AnimationSequenceResult
-} from '@veerone/galileo-glass-ui/animations'; // Correct path
-// or from '@veerone/galileo-glass-ui/hooks';
-
-function useAnimationSequence(
-  config: AnimationSequenceConfig
-): AnimationSequenceResult;
-```
-
-### Parameters (`AnimationSequenceConfig`)
-
-A single object with properties like:
-
-- **`stages`** (`AnimationStage[]`, **Required**): Array defining the animation steps.
-- `id` (`string`, optional): Unique sequence identifier.
-- `autoplay` (`boolean`, optional): Play on mount. Default: `false`.
-- `duration` (`number`, optional): Explicit total duration (ms). Calculated if omitted.
-- `repeatCount` (`number`, optional): Repeats (0=none, -1=infinite). Default: 0.
-- `yoyo` (`boolean`, optional): Reverse direction on repeat. Default: `false`.
-- `direction` (`PlaybackDirection`, optional): Initial direction. Default: `FORWARD`.
-- `category` (`AnimationCategory`, optional): Accessibility category.
-- `playbackRate` (`number`, optional): Speed multiplier. Default: 1.
-- **Lifecycle Callbacks** (optional): `onStart`, `onUpdate`, `onComplete`, etc.
-
-### Key Stage Types (`AnimationStage`) {#key-stage-types-animationstage}
-
-Common types for the `stages` array:
-
-#### `StyleAnimationStage`
-
-Animates CSS properties. **Use the `properties` key for target values, and optionally `from` for starting values.**
-
-```typescript
-interface StyleAnimationStage extends BaseAnimationStage { // Base contains id, duration, delay, easing, dependsOn etc.
-  type: 'style';
-  targets: AnimationTarget | AnimationTarget[];
-  // Use 'properties' for target values, 'from' (optional) for start values
-  properties: Record<string, unknown | number | string>; // Target CSS properties (camelCase)
-  from?: Record<string, unknown | number | string>; // Optional starting CSS properties
-  exclude?: string[]; // Properties to exclude from animation
-}
-```
-
-#### `GroupAnimationStage`
-
-Groups child stages (`children: AnimationStage[]`) with timing relationships (`relationship?: TimingRelationship`).
-
-#### `StaggerAnimationStage`
-
-Applies an animation sequentially across multiple `targets`.
-
-```typescript
-interface StaggerAnimationStage extends BaseAnimationStage {
-  type: 'stagger';
-  targets: AnimationTarget | AnimationTarget[];
-  // Use 'properties' for target values, 'from' for start values
-  properties: { /* Target CSS properties like in StyleAnimationStage */ };
-  from: { /* Starting CSS properties */ };
-  duration: number; // Duration for each element
-  staggerDelay: number; // Delay (ms) between targets
-  staggerPattern?: StaggerPattern;
-  // ... other options
-}
-```
-*(Note: The exact structure for `to`/`from` within `StaggerAnimationStage` should be confirmed from implementation if needed.)*
-
-#### `CallbackAnimationStage`
-
-Executes `callback: (progress: number, stageId: string) => void` on each frame.
-
-#### `EventAnimationStage`
-
-Executes `callback: (stageId: string) => void` once. `duration` is 0.
-
-*(Refer to source types `AnimationStage` union in `useAnimationSequence.ts` for full details)*
-
-### Return Value (`AnimationSequenceResult`)
-
-Object containing state and `SequenceControls`:
-- `play`, `pause`, `stop`, `seek`, etc.
-- `progress` (0 to 1)
-- `playbackState` (`PlaybackState` enum)
-- `duration` (ms)
-- ... and other state values.
-
-### Example Usage {#example-usage-useanimationsequence}
-
-```tsx
-import React, { useRef } from 'react';
-import {
-  useAnimationSequence,
-  type AnimationSequenceConfig
-} from '@veerone/galileo-glass-ui/animations';
-import { GlassBox, GlassButton } from '@veerone/galileo-glass-ui/components';
-
-const SequenceDemo = () => {
-  const element1Ref = useRef<HTMLDivElement>(null);
-  const element2Ref = useRef<HTMLDivElement>(null);
-
-  const sequenceConfig: AnimationSequenceConfig = {
-    id: 'declarative-sequence',
-    autoplay: false,
-    stages: [
-      {
-        id: 'el1-fade-move',
-        type: 'style',
-        targets: element1Ref,
-        // Use 'from' and 'properties' keys here
-        from: { opacity: 0, transform: 'translateY(20px)' },
-        properties: { opacity: 1, transform: 'translateY(0px)' },
-        duration: 500,
-        easing: 'easeOutCubic'
-      },
-      {
-        id: 'el2-fade-in',
-        type: 'style',
-        targets: element2Ref,
-        from: { opacity: 0 },
-        properties: { opacity: 1 },
-        duration: 400,
-        dependsOn: ['el1-fade-move'],
-        delay: 100
-      }
-    ]
-  };
-
-  const { play, stop, playbackState } = useAnimationSequence(sequenceConfig);
-
-  return (
-    <GlassBox style={{ padding: '16px' }}>
-      {/* ... elements with refs ... */}
-      <GlassButton onClick={play} disabled={playbackState === 'playing'}>Play</GlassButton>
-      <GlassButton onClick={stop} disabled={playbackState === 'idle'}>Stop</GlassButton>
-      {/* ... Element 1 and Element 2 definitions ... */}
-    </GlassBox>
-  );
-};
-```
-
-### Best Practices {#best-practices-useanimationsequence}
-
-- Use unique stage IDs.
-- Set initial element styles to match the `from` state if provided.
-- Use `will-change` CSS property.
-- Use `dependsOn` and `delay` for timing control.
-- Ensure `properties` (and optionally `from`) keys are used for `StyleAnimationStage`.
+#### Reduced Motion {#reduced-motion}
+If `respectReducedMotion` is true (default), the hook checks the user's system preference. If reduced motion is preferred, stage delays and durations might be modified (potentially set to 0) to minimize motion.
 
 ---
 
-## `useSequence` (Builder Pattern)
-
-### Purpose {#purpose-usesequence}
-
-The `useSequence` hook allows you to:
-
-- Define animation sequences programmatically using a fluent builder API.
-- Build sequences step-by-step within a function.
-- Primarily works with predefined animation presets or potentially keyframes objects.
-
-### Core Concepts {#core-concepts-usesequence}
-
-#### Builder Function (`builderFn`)
-The hook takes a function (`builderFn`) as its second argument. This function receives a `SequenceBuilder` instance which you use to define the animation steps.
-
-#### Sequence Builder (`SequenceBuilder`)
-The `builder` object provides methods like:
-- `builder.animate(target, animation, options)`: Animate a target using a preset or keyframes.
-- `builder.stagger(target, animation, options)`: Apply staggered animation.
-- `builder.wait(duration)`: Add a delay.
-- `builder.add(declaration)`: Add a raw animation declaration (structure may vary).
-
-#### Animation Definitions {#animation-definitions-usesequence}
-Instead of inline `properties`, `builder.animate` typically takes:
-- `target`: CSS selector or ref.
-- `animation`: The **name** of an animation preset (string, e.g., `'fadeIn'`) or a `keyframes` object.
-- `options`: Optional configuration like `duration`, `delay`, `easing`.
-
-#### Controls {#controls-usesequence}
-Returns an object (`UseSequenceResult`) with methods like `start()`, `pause()`, `resume()`, `stop()`, `reset()`.
-
-### Signature {#signature-usesequence}
+## Signature {#signature}
 
 ```typescript
 import {
-  useSequence,
-  type UseSequenceParams,
-  type UseSequenceResult,
-  type SequenceBuilder // May need to import builder type if used outside
-} from '@veerone/galileo-glass-ui/animations'; // Correct path
-// Or from '@veerone/galileo-glass-ui/hooks'; // If re-exported
+  useOrchestration,
+  type OrchestrationOptions,
+  type AnimationStage, // Defined within useOrchestration.ts
+  // ... other related types like OrchestrationPattern
+} from '../hooks/useOrchestration'; // Adjust path as necessary
 
-function useSequence(
-  params: UseSequenceParams, // Basic config like name, loop, etc.
-  builderFn: (builder: SequenceBuilder) => void // Function to build the sequence
-): UseSequenceResult;
+// Simplified return type - actual return includes more internal state
+interface OrchestrationResult {
+  processedStages: AnimationStage[];
+  isPlaying: boolean;
+  progress: number;
+  totalDuration: number;
+  // Controls like play, pause, stop are managed internally or via active prop
+  // And might not be directly exposed in the return value.
+  // Refer to the hook's implementation for the exact return structure.
+}
+
+function useOrchestration(
+  options: OrchestrationOptions
+): OrchestrationResult;
+```
+*(Note: The exact return type should be confirmed from the hook's implementation as it includes state values like `activeStages`, `completedStages`, etc., which might be primarily for internal use.)*
+
+---
+
+## Parameters (`OrchestrationOptions`)
+
+A single object with the following key properties:
+
+- **`stages`** (`AnimationStage[]`, **Required**): Array defining the animation stages to be orchestrated.
+- `autoStart` (`boolean`, optional): Start the orchestration automatically on mount if `active`. Default: `true`.
+- `startDelay` (`number`, optional): Initial delay (ms) before the first stage begins. Default: `0`.
+- `repeat` (`boolean`, optional): Whether the sequence should repeat. Default: `false`.
+- `repeatCount` (`number`, optional): Number of repetitions (Infinity for endless). Default: `1`.
+- `repeatDelay` (`number`, optional): Delay (ms) between repetitions. Default: `0`.
+- `active` (`boolean`, optional): Controls whether the orchestration is currently running or paused. Default: `true`.
+- `onComplete` (`() => void`, optional): Callback when the entire sequence (including repeats) finishes.
+- `onStart` (`() => void`, optional): Callback when the orchestration first starts.
+- `pattern` (`OrchestrationPattern`, optional): The timing pattern to apply. Default: `'sequential'`.
+- `staggerDelay` (`number`, optional): Base delay (ms) used for `'staggered'` pattern and potentially others. Default: `100`.
+- `gestaltOptions` (`GestaltPatternOptions`, optional): Configuration for the `'gestalt'` pattern (see details below).
+- `respectReducedMotion` (`boolean`, optional): Apply reduced motion adjustments. Default: `true`.
+- `optimizeForPerformance` (`boolean`, optional): Apply performance optimizations (may adjust timing slightly). Default: `true`.
+- `customTimingFunction` (`(stage: AnimationStage, index: number, total: number) => number`, optional): Provide a custom function to calculate stage delays if `pattern` is `'custom'`.
+- `analyzeRelationships` (`boolean`, optional): If true, attempts to analyze `dependencies` for `'connectedness'` gestalt pattern. Default: `false`.
+
+### Gestalt Pattern Options (`GestaltPatternOptions`)
+
+Used when `pattern` is `'gestalt'`:
+
+- `primaryRelationship` (`GestaltRelationship`, **Required**): The main principle to use (e.g., `'proximity'`, `'similarity'`, `'continuity'`).
+- `secondaryRelationship` (`GestaltRelationship`, optional): A secondary principle.
+- `baseDelay` (`number`, optional): Base delay used in calculations. Default: `50`.
+- `maxDelay` (`number`, optional): Maximum delay constraint. Default: `1000`.
+- `focalPoint` (`Point { x: number; y: number; z?: number }`, optional): Target point for `'converge'` / `'diverge'` patterns.
+- `proximityThreshold` (`number`, optional): Distance threshold for `'proximity'`. Default: `100`.
+- `waveEffect` (`boolean`, optional): Apply wave effect (likely relevant to `'continuity'`).
+- `similarityAttribute` (`string`, optional): Attribute to use for `'similarity'` (likely `elementType` on the stage).
+- `continuityPath` (`Point[]`, optional): Explicit path for `'continuity'` pattern.
+
+---
+
+## Stage Configuration (`AnimationStage`)
+
+Each object in the `stages` array should conform to this interface (defined within `useOrchestration.ts`):
+
+```typescript
+interface AnimationStage {
+  id: string; // Required: Unique identifier for the stage
+  delay: number; // Required: Base delay before this stage starts (can be modified by the pattern)
+  duration: number; // Required: Duration of this stage's animation
+  onStart?: () => void; // Optional: Callback when this specific stage starts
+  onEnd?: () => void; // Optional: Callback when this specific stage ends
+  completed?: boolean; // Optional: Initial completed state (managed internally)
+  order?: number; // Optional: Explicit order for sorting stages before pattern application
+  animation?: { // Optional: Metadata about the animation (not directly used by orchestrator)
+    easing?: TimingFunction;
+    keyframes?: string;
+  };
+  group?: string; // Optional: Group identifier for gestalt 'closure' pattern
+  position?: { x: number; y: number; z?: number }; // Optional: Spatial position for gestalt patterns
+  dependencies?: string[]; // Optional: Array of stage IDs that must complete first
+  elementType?: string; // Optional: Type/category for gestalt 'similarity' pattern
+  priority?: number; // Optional: Priority level for potential future use
+  relationship?: GestaltRelationship; // Optional: Metadata for potential future use
+}
 ```
 
-### Parameters (`UseSequenceParams`)
+**Key Points:**
 
-Object with basic sequence configuration:
-- `name` (string, Required): Unique sequence name.
-- `autoPlay` (boolean, optional): Default: `false`.
-- `startDelay` (number, optional): Delay before starting (ms).
-- `loop`, `iterations`, `alternate` (optional): Looping behavior.
-- `sensitivity`, `relative`, `defaultEase` (optional): Other sequence defaults.
-- `deps` (any[], optional): Dependencies to recreate the sequence.
+- The `delay` you provide is the *base* delay. The final calculated delay used by the hook depends on the `pattern` and other options.
+- Properties like `position`, `elementType`, `group`, and `dependencies` are only used if the corresponding `pattern` (e.g., `'gestalt'`) or `analyzeRelationships` option is active.
+- The hook focuses on calculating timing. The actual animation logic tied to `onStart`/`onEnd` or triggered by state changes based on `isPlaying` or `activeStages` is external to this hook.
 
-### Return Value (`UseSequenceResult`)
+---
 
-Object containing controls and state:
-- `builder`: The builder function passed in.
-- `start`, `pause`, `resume`, `stop`, `reset`: Control methods.
-- `isPlaying`, `isPaused`, `isComplete`: State booleans.
-- `animationTarget`, `staggerTarget`: Utility functions (might be related to builder).
+## Return Value
 
-### Example Usage {#example-usage-usesequence}
+The hook returns an object containing the state of the orchestration. Key values include:
+
+- `processedStages` (`AnimationStage[]`): The input stages array with calculated `delay` values based on the chosen pattern and options.
+- `isPlaying` (`boolean`): Whether the orchestration is currently active and playing.
+- `activeStages` (`string[]`): Array of IDs of stages currently considered active (started but not ended).
+- `completedStages` (`string[]`): Array of IDs of stages that have completed.
+- `iteration` (`number`): Current repetition count.
+- `sequenceComplete` (`boolean`): True if the entire sequence (including repeats) is finished.
+- `progress` (`number`): Overall progress of the current iteration (0 to 1, based on time elapsed relative to `totalDuration`).
+- `totalDuration` (`number`): The calculated maximum duration of a single iteration of the sequence based on stage delays and durations.
+
+*(Note: Direct playback controls like `play()`, `pause()`, `stop()` are not explicitly returned. Control is primarily managed via the `active` prop and the hook's internal state based on timers.)*
+
+---
+
+## Example Usage
 
 ```tsx
-import React, { useRef } from 'react';
-import { useSequence, type UseSequenceParams } from '@veerone/galileo-glass-ui/animations';
-import { keyframes } from 'styled-components';
-import { GlassBox, GlassButton } from '@veerone/galileo-glass-ui/components';
+import React, { useState, useEffect, useRef } from 'react';
+import styled, { keyframes } from 'styled-components';
+import {
+  useOrchestration,
+  type OrchestrationOptions,
+  type AnimationStage
+} from './hooks/useOrchestration'; // Adjust path
+import { GlassBox, GlassButton } from './components'; // Example components
 
-// Define keyframes if not using presets
-const fadeAndMoveKf = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0px); }
+// Example animation
+const fadeIn = keyframes`from { opacity: 0; } to { opacity: 1; }`;
+const moveUp = keyframes`from { transform: translateY(20px); } to { transform: translateY(0); }`;
+
+const AnimatedItem = styled(GlassBox)<{ $isActive?: boolean }>`
+  opacity: 0; // Start hidden
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  ${({ $isActive }) =>
+    $isActive &&
+    `
+    opacity: 1;
+    transform: translateY(0);
+  `}
+  // For more complex animations directly tied to stage start/end,
+  // you might use different keyframes or inline styles triggered by callbacks.
 `;
 
-const BuilderSequenceDemo = () => {
-  const element1Ref = useRef<HTMLDivElement>(null);
-  const element2Ref = useRef<HTMLDivElement>(null);
+const OrchestrationDemo = () => {
+  const [runSequence, setRunSequence] = useState(false);
 
-  const sequenceParams: UseSequenceParams = {
-    name: 'builder-sequence',
-    autoPlay: false
+  // Define stages with IDs, base delays, and durations
+  // These delays will be recalculated based on the pattern
+  const stages: AnimationStage[] = [
+    {
+      id: 'item1',
+      delay: 0, // Base delay
+      duration: 500, // How long the animation for item1 takes
+      position: { x: 10, y: 10 },
+      elementType: 'card',
+      onStart: () => console.log('Item 1 Start'),
+      onEnd: () => console.log('Item 1 End'),
+    },
+    {
+      id: 'item2',
+      delay: 100, // Base delay
+      duration: 500,
+      position: { x: 120, y: 10 },
+      elementType: 'card',
+      dependencies: ['item1'], // Example dependency
+      onStart: () => console.log('Item 2 Start'),
+    },
+    {
+      id: 'item3',
+      delay: 200, // Base delay
+      duration: 500,
+      position: { x: 10, y: 120 },
+      elementType: 'icon',
+      onStart: () => console.log('Item 3 Start'),
+    },
+  ];
+
+  const orchestrationOptions: OrchestrationOptions = {
+    stages,
+    pattern: 'staggered', // Use staggered timing
+    staggerDelay: 150, // Delay between each item start
+    autoStart: false, // Don't start immediately
+    active: runSequence, // Control playback with state
+    onStart: () => console.log('Orchestration Started'),
+    onComplete: () => {
+      console.log('Orchestration Complete');
+      setRunSequence(false); // Reset control state
+    },
   };
 
-  // Use the hook with the builder function
-  const { start, stop, isPlaying } = useSequence(sequenceParams, (builder) => {
-    // Use builder methods to define steps
-    builder.animate(element1Ref, 'fadeIn', { duration: 500 }); // Preset
-    builder.animate(element1Ref, 'slideUp', { duration: 300, delay: 500 }); // Preset
+  const { activeStages, isPlaying, processedStages } = useOrchestration(orchestrationOptions);
 
-    // Use keyframes for the second element, wait until first is done
-    builder.animate(element2Ref, fadeAndMoveKf, { duration: 800, delay: 800 });
-  });
+  // Log calculated delays
+  useEffect(() => {
+    console.log('Processed Stage Delays:', processedStages.map(s => ({ id: s.id, delay: s.delay })));
+  }, [processedStages]);
 
   return (
     <GlassBox style={{ padding: '16px' }}>
-      {/* ... elements with refs ... */}
-      <GlassButton onClick={start} disabled={isPlaying}>Play Builder Sequence</GlassButton>
-      {/* ... Element 1 and Element 2 definitions ... */}
+      <GlassButton onClick={() => setRunSequence(true)} disabled={runSequence}>
+        {isPlaying ? 'Playing...' : 'Start Staggered Sequence'}
+      </GlassButton>
+
+      <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+        {stages.map(stage => (
+          <AnimatedItem
+            key={stage.id}
+            $isActive={activeStages.includes(stage.id)} // Trigger animation based on active state
+            style={{ width: '100px', height: '100px' }} // Example styling
+          >
+            {stage.id}
+          </AnimatedItem>
+        ))}
+      </div>
     </GlassBox>
   );
 };
+
+export default OrchestrationDemo;
 ```
-
-### Best Practices {#best-practices-usesequence}
-
-- Define reusable animation presets in your theme/provider.
-- Use the builder methods (`animate`, `stagger`, `wait`) as intended.
-- Keep the builder function focused on defining the sequence flow.
-- Refer to the `AnimationDeclaration` and `StaggerOptions` type definitions (exported from `@veerone/galileo-glass-ui/animations`) for detailed configuration options available within the builder methods.
 
 ---
 
-## `useAnimationStateMachine` (Finite State Machine)
+## Best Practices {#best-practices}
 
-### Purpose
-
-The `useAnimationStateMachine` hook allows you to manage complex UI states and orchestrate animations *between* those states using a finite state machine (FSM) model.
-
-- Define distinct UI states (e.g., 'idle', 'loading', 'success', 'error').
-- Specify transitions between states triggered by events (e.g., button click, data fetch complete).
-- Automatically apply animations (enter/exit/transition) when moving between states.
-- Manage complex conditional logic for state changes and associated animations.
-
-### Core Concepts
-
-- **States (`AnimationState[]`):** Define each possible state with an `id`, optional `enterAnimation`/`exitAnimation` presets, and potentially initial `properties` or `styles` for elements in that state.
-- **Transitions (`StateTransition[]`):** Define the rules for moving between states. Each transition specifies the `from` state, the `to` state, and the `on` event that triggers it. Transitions can have `conditions`, `actions` (callbacks), and specific `transitionAnimation` presets.
-- **Events:** You trigger state changes by `send`ing events (strings) to the machine.
-- **Context:** The machine maintains internal context (data) that can be used in conditions or actions.
-
-### Signature
-
-```typescript
-import {
-  useAnimationStateMachine,
-  type UseAnimationStateMachineParams,
-  type UseAnimationStateMachineResult,
-  type AnimationState, // Import supporting types as needed
-  type StateTransition
-} from '@veerone/galileo-glass-ui/animations'; // Correct path
-// Or from '@veerone/galileo-glass-ui/hooks'; // If re-exported
-
-function useAnimationStateMachine(
-  params: UseAnimationStateMachineParams
-): UseAnimationStateMachineResult;
-```
-
-### Parameters (`UseAnimationStateMachineParams`)
-
-Object containing the machine definition:
-- **`states`** (`AnimationState[]`, **Required**): Array of state definitions.
-- **`transitions`** (`StateTransition[]`, **Required**): Array of transition definitions.
-- `targets` (optional): DOM element(s) to potentially manage/animate.
-- `sensitivity`, `debug`, `persist`, `storageKey`, `deps`, `onStateChange` (optional).
-
-### Return Value (`UseAnimationStateMachineResult`)
-
-Object containing state and controls:
-- `currentState` (string): The ID of the current state.
-- `previousState` (string): The ID of the previous state.
-- `send(event, params?)`: Function to trigger a transition event.
-- `is(stateId)`: Check if currently in a specific state.
-- `can(event)`: Check if an event can be handled.
-- `reset()`: Reset to initial state.
-- `transitioning` (boolean): Is a transition currently in progress?
-- `setData`, `getData`, `getHistory`, `clearHistory`, `on`, `off`, `machine` (raw instance).
-
-### Example Usage
-
-```tsx
-import React, { useState } from 'react';
-import {
-  useAnimationStateMachine,
-  type AnimationState,
-  type StateTransition
-} from '@veerone/galileo-glass-ui/animations';
-import { GlassBox, GlassButton, GlassLoader, GlassTypography } from '@veerone/galileo-glass-ui/components';
-
-// Define States
-const states: AnimationState[] = [
-  { id: 'idle', name: 'Idle' },
-  { 
-    id: 'loading', 
-    name: 'Loading', 
-    enterAnimation: 'fadeIn' // Use animation presets
-  },
-  { 
-    id: 'success', 
-    name: 'Success', 
-    enterAnimation: 'pulse',
-    properties: { /* styles for success state */ }
-  },
-  { id: 'error', name: 'Error', enterAnimation: 'shake' }
-];
-
-// Define Transitions
-const transitions: StateTransition[] = [
-  { from: 'idle', on: 'FETCH', to: 'loading' },
-  { from: 'loading', on: 'RESOLVE', to: 'success' },
-  { from: 'loading', on: 'REJECT', to: 'error' },
-  { from: 'success', on: 'RESET', to: 'idle' },
-  { from: 'error', on: 'RESET', to: 'idle' },
-];
-
-const StateMachineDemo = () => {
-  const machine = useAnimationStateMachine({
-    states,
-    transitions,
-    initialState: 'idle',
-    onStateChange: (from, to) => console.log(`Moved from ${from} to ${to}`)
-  });
-
-  const handleFetch = () => {
-    machine.send('FETCH').then(() => {
-      // Simulate API call
-      setTimeout(() => {
-        const success = Math.random() > 0.3;
-        machine.send(success ? 'RESOLVE' : 'REJECT');
-      }, 1500);
-    });
-  };
-
-  const handleReset = () => {
-    machine.send('RESET');
-  };
-
-  return (
-    <GlassBox style={{ padding: '16px', textAlign: 'center' }}>
-      <GlassTypography variant="h3">Current State: {machine.currentState}</GlassTypography>
-      {machine.is('idle') && (
-        <GlassButton variant="contained" onClick={handleFetch}>Fetch Data</GlassButton>
-      )}
-      {machine.is('loading') && <GlassLoader />}
-      {machine.is('success') && (
-        <GlassTypography color="success"> 
-           Success! <GlassButton onClick={handleReset}>Reset</GlassButton>
-        </GlassTypography>
-      )}
-      {machine.is('error') && (
-        <GlassTypography color="error">
-          Error! <GlassButton onClick={handleReset}>Reset</GlassButton>
-        </GlassTypography>
-      )}
-    </GlassBox>
-  );
-};
-```
-
-### Best Practices
-
-- Clearly define all possible states and the events that trigger transitions.
-- Use animation presets (`enterAnimation`, `exitAnimation`, `transitionAnimation`) for common effects.
-- Leverage `conditions` and `
+- **Provide Required Stage Properties:** Ensure all stages have `id`, `delay`, and `duration`.
+- **Match Patterns and Stage Data:** If using `'gestalt'` patterns, ensure stages have the necessary `position`, `elementType`, or `group` properties.
+- **Use `active` Prop for Control:** Since `play`/`pause`/`stop` aren't returned, manage playback primarily by toggling the `active` prop in your component's state.
+- **Coordinate with Actual Animations:** Remember this hook calculates timing. You need a separate mechanism (CSS transitions based on `activeStages`, other animation libraries triggered by `onStart`/`onEnd`, etc.) to perform the visual animations.
+- **Unique Stage IDs:** Use unique and descriptive `id` values for stages, especially if using `dependencies`.
+- **Consider Performance:** For very large numbers of stages, be mindful of the complexity of pattern calculations, especially complex gestalt patterns. 
