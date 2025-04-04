@@ -735,13 +735,36 @@ export const harmonicOscillation = (
  * Apply easing function to a value with specified range
  */
 export const applyEasing = (
-  easing: EasingFunction | InterpolationFunction,
   t: number,
+  easing: EasingFunction | keyof typeof Easings | string,
   start = 0,
   end = 1
 ): number => {
-  const easingFn = typeof easing === 'function' ? easing : easing.function;
-  return start + (end - start) * easingFn(t);
+  let easingFn: InterpolationFunction | undefined;
+  
+  if (typeof easing === 'function') {
+    easingFn = easing as InterpolationFunction; 
+  } else if (typeof easing === 'object' && easing.function) { 
+    easingFn = easing.function;
+  } else if (typeof easing === 'string' && Easings[easing as keyof typeof Easings]) {
+    const easingObject = Easings[easing as keyof typeof Easings];
+    if (typeof easingObject === 'object' && easingObject.function) {
+       easingFn = easingObject.function;
+    } else {
+       console.warn(`Easing function generator "${easing}" cannot be used directly. Defaulting to linear.`);
+       easingFn = Easings.linear.function;
+    }
+  } else {
+    console.warn(`Easing function "${easing}" not found. Defaulting to linear.`);
+    easingFn = Easings.linear.function;
+  }
+
+  const time = Math.max(0, Math.min(1, t));
+
+  if (typeof easingFn !== 'function') {
+      return time; // Linear fallback
+  }
+  return start + (end - start) * easingFn(time); 
 };
 
 /**

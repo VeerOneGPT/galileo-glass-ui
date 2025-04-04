@@ -5,7 +5,8 @@ import {
   PhysicsBodyState, 
   CollisionEvent,
   Vector2D,
-  UnsubscribeFunction
+  UnsubscribeFunction,
+  PhysicsConstraintOptions
 } from './engineTypes';
 // Import internal physics system and types
 import { 
@@ -28,6 +29,10 @@ import {
   CollisionShape, // Enum for shapes
   PhysicsMaterial // Type for material
 } from './collisionSystem';
+// Import vector utilities needed for impulse calculation
+import { multiplyVector, dotProduct } from './physicsCalculations';
+// Comment out VectorUtils import and usage
+// import { VectorUtils } from '../utils/vectorUtils'; 
 
 // Helper to map internal PhysicsObject state to public PhysicsBodyState
 const mapInternalStateToPublic = (internalObj: PhysicsObject): PhysicsBodyState => ({
@@ -151,14 +156,18 @@ const mapOptionsToCollisionBody = (options: PhysicsBodyOptions, id: string): Col
 
 // Maps internal collision event to public format
 const mapInternalCollisionToPublic = (internalEvent: InternalCollisionEvent): CollisionEvent => ({
-  bodyAId: String(internalEvent.collision.bodyA.id), // Ensure string IDs
+  bodyAId: String(internalEvent.collision.bodyA.id), 
   bodyBId: String(internalEvent.collision.bodyB.id),
+  // Attempt to access userData if it exists (might be on body directly)
   bodyAUserData: (internalEvent.collision.bodyA as any).userData,
   bodyBUserData: (internalEvent.collision.bodyB as any).userData,
-  contactPoints: internalEvent.collision.contactPoint ? [internalEvent.collision.contactPoint] : undefined,
+  // Map fields from CollisionResult within the internal event
+  contactPoint: internalEvent.collision.contactPoint,
+  relativeVelocity: internalEvent.collision.relativeVelocity,
   normal: internalEvent.collision.normal,
   penetration: internalEvent.collision.penetration,
-  // Add duration, impulse if available/needed later
+  // Map the impulse magnitude calculated during resolution
+  impulse: internalEvent.impulse 
 });
 
 /**
@@ -240,7 +249,7 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
 
   // --- Public API Methods --- 
 
-  const addBody = useCallback((options: PhysicsBodyOptions): string => {
+  const addBody = (options: PhysicsBodyOptions): string => {
     if (!physicsSystemRef.current || !collisionSystemRef.current) {
       console.warn('[PhysicsEngine] Systems not initialized. Cannot add body.');
       return '';
@@ -257,9 +266,9 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
 
     console.log(`[PhysicsEngine] Added body: ${finalId}`);
     return finalId;
-  }, []);
+  };
 
-  const removeBody = useCallback((id: string): void => {
+  const removeBody = (id: string): void => {
     if (!physicsSystemRef.current || !collisionSystemRef.current) return;
     const physSuccess = physicsSystemRef.current.removeObject(id);
     collisionSystemRef.current.removeBody(id);
@@ -268,9 +277,9 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
     } else {
       console.warn(`[PhysicsEngine] Failed to remove body from physics system: ${id}`);
     }
-  }, []);
+  };
 
-  const updateBodyState = useCallback((id: string, state: Partial<Omit<PhysicsBodyState, 'id' | 'isStatic'>>): void => {
+  const updateBodyState = (id: string, state: Partial<Omit<PhysicsBodyState, 'id' | 'isStatic'>>): void => {
     if (!physicsSystemRef.current || !collisionSystemRef.current) return;
     console.warn(`[PhysicsEngine] updateBodyState is partially implemented. Use applyForce/applyImpulse. Updating: ${id}`, state);
     
@@ -286,11 +295,13 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
       collisionUpdates.velocity = state.velocity;
     }
     if (state.angle !== undefined) { 
-        physUpdates.position = { ...physicsSystemRef.current.getObject(id)?.position, z: state.angle }; // Assumption
+        const currentPhysPos = physicsSystemRef.current.getObject(id)?.position ?? { x:0, y:0, z:0 };
+        physUpdates.position = { ...currentPhysPos, z: state.angle }; // Assumption
         collisionUpdates.rotation = state.angle;
     }
      if (state.angularVelocity !== undefined) { 
-        physUpdates.velocity = { ...physicsSystemRef.current.getObject(id)?.velocity, z: state.angularVelocity }; // Assumption
+        const currentPhysVel = physicsSystemRef.current.getObject(id)?.velocity ?? { x:0, y:0, z:0 };
+        physUpdates.velocity = { ...currentPhysVel, z: state.angularVelocity }; // Assumption
         // Collision system doesn't track angular velocity directly
     }
     if (state.userData !== undefined) {
@@ -307,15 +318,34 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
       collisionSystemRef.current.updateBody(id, collisionUpdates);
     }
 
-  }, []);
+  };
 
-  const getBodyState = useCallback((id: string): PhysicsBodyState | null => {
-    if (!physicsSystemRef.current) return null;
-    const internalObj = physicsSystemRef.current.getObject(id);
-    return internalObj ? mapInternalStateToPublic(internalObj) : null;
-  }, []);
+  const getBodyState = (id: string): PhysicsBodyState | null => {
+    const stringId = String(id); // Ensure we are using a string ID
+    console.log(`[PhysicsEngine Hook] getBodyState called for ID: "${stringId}"`);
+
+    if (!physicsSystemRef.current) {
+      console.warn('[PhysicsEngine Hook] Physics system not initialized.');
+      return null;
+    }
+    
+    // Rely solely on the internal system's getObject method
+    const internalObj = physicsSystemRef.current.getObject(stringId);
+    
+    if (internalObj) {
+      console.log(`[PhysicsEngine Hook] Found body "${stringId}" via getObject.`);
+      return mapInternalStateToPublic(internalObj);
+    } else {
+      // Log failure if direct lookup fails, but do not fall back to getAllObjects
+      console.warn(`[PhysicsEngine Hook] Body "${stringId}" not found via getObject.`);
+      // Optionally log available keys for debugging, but avoid iterating all objects here
+      // const availableIds = Array.from(physicsSystemRef.current.getAllObjects().map(o => o.id));
+      // console.debug(`[PhysicsEngine Hook] Available IDs in internal system: [${availableIds.join(', ')}]`);
+      return null;
+    }
+  };
   
-  const getAllBodyStates = useCallback((): Map<string, PhysicsBodyState> => {
+  const getAllBodyStates = (): Map<string, PhysicsBodyState> => {
     if (!physicsSystemRef.current) return new Map();
     const internalObjects = physicsSystemRef.current.getAllObjects();
     const states = new Map<string, PhysicsBodyState>();
@@ -323,9 +353,9 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
       states.set(obj.id, mapInternalStateToPublic(obj));
     });
     return states;
-  }, []);
+  };
 
-  const applyForce = useCallback((id: string, force: Vector2D, point?: Vector2D): void => {
+  const applyForce = (id: string, force: Vector2D, point?: Vector2D): void => {
     if (!physicsSystemRef.current) return;
     const forceVec: Partial<Vector> = { ...force, z: 0 };
     // TODO: Point application not supported by internal physics system currently.
@@ -333,9 +363,9 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
     if (!success) {
       console.warn(`[PhysicsEngine] Failed to apply force to body: ${id}`);
     }
-  }, []);
+  };
 
-  const applyImpulse = useCallback((id: string, impulse: Vector2D, point?: Vector2D): void => {
+  const applyImpulse = (id: string, impulse: Vector2D, point?: Vector2D): void => {
     if (!physicsSystemRef.current) return;
     const impulseVec: Partial<Vector> = { ...impulse, z: 0 };
     // TODO: Point application not supported by internal physics system currently.
@@ -343,11 +373,39 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
      if (!success) {
       console.warn(`[PhysicsEngine] Failed to apply impulse to body: ${id}`);
     }
-  }, []);
+  };
+
+  // --- Constraint Methods ---
+  const addConstraint = (options: PhysicsConstraintOptions): string => {
+    if (!physicsSystemRef.current) {
+      console.warn('[PhysicsEngine] Physics system not initialized. Cannot add constraint.');
+      return '';
+    }
+    const constraintId = physicsSystemRef.current.addConstraint(options);
+    if (!constraintId) {
+      console.warn('[PhysicsEngine] Failed to add constraint.', options);
+      return '';
+    }
+    console.log(`[PhysicsEngine] Added constraint: ${constraintId}`);
+    return constraintId;
+  };
+
+  const removeConstraint = (id: string): void => {
+    if (!physicsSystemRef.current) {
+      console.warn('[PhysicsEngine] Physics system not initialized. Cannot remove constraint.');
+      return;
+    }
+    const success = physicsSystemRef.current.removeConstraint(id);
+    if (success) {
+      console.log(`[PhysicsEngine] Removed constraint: ${id}`);
+    } else {
+      console.warn(`[PhysicsEngine] Failed to remove constraint: ${id}`);
+    }
+  };
 
   // --- Collision Event Subscription ---
-  // Helper to manage subscriptions via the CollisionSystem
-  const subscribeToCollision = useCallback(( 
+  // Define these without useCallback first
+  const subscribeToCollision = ( 
     eventType: CollisionEventType, 
     callback: (event: CollisionEvent) => void
   ): UnsubscribeFunction => {
@@ -360,6 +418,75 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
     const internalCallback: CollisionEventCallback = (internalEvent) => {
       const publicEvent = mapInternalCollisionToPublic(internalEvent);
       callback(publicEvent); // Call the user's callback
+
+      // --- Apply Collision Response --- 
+      const collisionData = internalEvent.collision;
+      const impulseMagnitude = internalEvent.impulse; // Use pre-calculated impulse if available
+      const normal = collisionData.normal;
+      
+      // Ensure we have necessary data to apply response
+      if (
+          impulseMagnitude !== undefined && 
+          impulseMagnitude > 0 && // Only apply positive impulse
+          normal &&
+          physicsSystemRef.current // Check if physics system still exists
+      ) {
+        const bodyAId = String(collisionData.bodyA.id);
+        const bodyBId = String(collisionData.bodyB.id);
+        
+        // Calculate impulse vectors along the normal
+        // Impulse is applied opposite to normal for body A, along normal for body B
+        const impulseVectorA = multiplyVector(normal, -impulseMagnitude);
+        const impulseVectorB = multiplyVector(normal, impulseMagnitude);
+        
+        // Apply impulses to the physics bodies
+        physicsSystemRef.current.applyImpulse(bodyAId, impulseVectorA);
+        physicsSystemRef.current.applyImpulse(bodyBId, impulseVectorB);
+        
+        // Optional: Log the applied impulse for debugging
+        // console.log(`[PhysicsEngine] Applied impulse ${impulseMagnitude.toFixed(2)} to ${bodyAId} and ${bodyBId}`);
+      
+      } else if (!normal) {
+          console.warn('[PhysicsEngine] Cannot apply collision response: Collision normal missing.', internalEvent);
+      } else if (impulseMagnitude === undefined) {
+          console.warn('[PhysicsEngine] Cannot apply collision response: Impulse magnitude missing. Calculating fallback.', internalEvent);
+          // Calculate impulse here as a fallback
+          const bodyA = collisionData.bodyA;
+          const bodyB = collisionData.bodyB;
+          // Safely access optional material properties with defaults
+          const restitution = Math.min(bodyA.material?.restitution ?? 0.2, bodyB.material?.restitution ?? 0.2);
+          // Use CollisionBody mass, guarding against Infinity for static bodies
+          const invMassA = bodyA.isStatic || bodyA.mass === Infinity ? 0 : 1 / bodyA.mass;
+          const invMassB = bodyB.isStatic || bodyB.mass === Infinity ? 0 : 1 / bodyB.mass;
+          
+          const totalInverseMass = invMassA + invMassB;
+
+          // Ensure we have relative velocity data
+          const relativeVelocity = collisionData.relativeVelocity ?? {x:0,y:0}; // Provide default if missing
+          
+          if (totalInverseMass > 0) { // Avoid division by zero if both objects are static
+              // Calculate relative velocity along the normal
+              // Need dotProduct utility (assuming it exists in scope or import it)
+              const velocityAlongNormal = dotProduct(relativeVelocity, normal);
+              
+              // Only apply impulse if objects are moving towards each other along the normal
+              if (velocityAlongNormal < 0) {
+                  const calculatedImpulseMag = -(1 + restitution) * velocityAlongNormal / totalInverseMass;
+
+                  if (calculatedImpulseMag > 0 && physicsSystemRef.current) {
+                      const impulseVectorA = multiplyVector(normal, -calculatedImpulseMag);
+                      const impulseVectorB = multiplyVector(normal, calculatedImpulseMag);
+                      
+                      physicsSystemRef.current.applyImpulse(String(bodyA.id), impulseVectorA);
+                      physicsSystemRef.current.applyImpulse(String(bodyB.id), impulseVectorB);
+                      // console.log(`[PhysicsEngine] Applied FALLBACK impulse ${calculatedImpulseMag.toFixed(2)} to ${bodyA.id} and ${bodyB.id}`);
+                  }
+              }
+          } else {
+              console.warn('[PhysicsEngine] Fallback impulse calculation skipped: Both bodies are static or have zero inverse mass.');
+          }
+      }
+      // --- End Collision Response ---
     };
 
     collisionCallbackMapRef.current.set(subId, { 
@@ -380,19 +507,19 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
          console.warn(`[PhysicsEngine] Failed to unregister ${eventType} callback (Internal ID: ${internalSubId})`);
       }
     };
-  }, []);
+  };
 
-  const onCollisionStart = useCallback((callback: (event: CollisionEvent) => void): UnsubscribeFunction => {
+  const onCollisionStart = (callback: (event: CollisionEvent) => void): UnsubscribeFunction => {
     return subscribeToCollision(CollisionEventType.START, callback);
-  }, [subscribeToCollision]);
+  };
 
-  const onCollisionActive = useCallback((callback: (event: CollisionEvent) => void): UnsubscribeFunction => {
+  const onCollisionActive = (callback: (event: CollisionEvent) => void): UnsubscribeFunction => {
      return subscribeToCollision(CollisionEventType.ACTIVE, callback);
-  }, [subscribeToCollision]);
+  };
 
-  const onCollisionEnd = useCallback((callback: (event: CollisionEvent) => void): UnsubscribeFunction => {
+  const onCollisionEnd = (callback: (event: CollisionEvent) => void): UnsubscribeFunction => {
      return subscribeToCollision(CollisionEventType.END, callback);
-  }, [subscribeToCollision]);
+  };
 
 
   // Create the stable API object only once
@@ -408,6 +535,8 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
         onCollisionStart,
         onCollisionActive,
         onCollisionEnd,
+        addConstraint, 
+        removeConstraint
       };
   }
 
@@ -424,8 +553,10 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
         apiRef.current.onCollisionStart = onCollisionStart;
         apiRef.current.onCollisionActive = onCollisionActive;
         apiRef.current.onCollisionEnd = onCollisionEnd;
+        apiRef.current.addConstraint = addConstraint;
+        apiRef.current.removeConstraint = removeConstraint;
     }
-  }, [addBody, removeBody, updateBodyState, getBodyState, getAllBodyStates, applyForce, applyImpulse, onCollisionStart, onCollisionActive, onCollisionEnd]);
+  }, [addBody, removeBody, updateBodyState, getBodyState, getAllBodyStates, applyForce, applyImpulse, onCollisionStart, onCollisionActive, onCollisionEnd, addConstraint, removeConstraint]);
 
   // Return the stable API ref, assert non-null as it's created synchronously on first render
   return apiRef.current!;

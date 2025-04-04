@@ -50,26 +50,50 @@ describe('useQualityTier', () => {
     writable: true,
   });
 
-  // Mock requestAnimationFrame
-  global.requestAnimationFrame = (callback: FrameRequestCallback) => {
-    return setTimeout(callback, 0) as unknown as number;
-  };
-
-  global.cancelAnimationFrame = (id: number) => {
-    clearTimeout(id);
-  };
-
-  // Mock performance.now
+  // --- Improved Time Mocks ---
+  let mockRafCallbacks: FrameRequestCallback[] = [];
+  let currentRafId = 0;
   let mockTime = 0;
   const originalPerformanceNow = performance.now;
+  const originalRaf = global.requestAnimationFrame;
+  const originalCaf = global.cancelAnimationFrame;
+
+  const advanceTime = (ms: number) => {
+    mockTime += ms;
+  };
+
+  const runAnimationFrame = (timeDeltaMs = 16.667) => {
+    advanceTime(timeDeltaMs);
+    const callbacks = mockRafCallbacks;
+    mockRafCallbacks = [];
+    callbacks.forEach(cb => {
+      try {
+        cb(mockTime);
+      } catch (e) {
+        console.error('Error in rAF callback', e);
+      }
+    });
+  };
+  // --- End Improved Time Mocks ---
 
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.clear();
+    
+    // Reset Time Mocks
     mockTime = 0;
-
-    // Reset performance.now mock
-    performance.now = originalPerformanceNow;
+    mockRafCallbacks = [];
+    currentRafId = 0;
+    performance.now = jest.fn(() => mockTime);
+    global.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      const id = ++currentRafId;
+      mockRafCallbacks.push(callback);
+      return id;
+    });
+    global.cancelAnimationFrame = jest.fn((id: number) => {
+      // Basic cancel, could be more sophisticated if needed
+    });
+    // End Reset Time Mocks
 
     // Default device capabilities
     (useDeviceCapabilities as jest.Mock).mockReturnValue({
@@ -82,9 +106,15 @@ describe('useQualityTier', () => {
     });
   });
 
+  afterEach(() => {
+    // Restore original time functions
+    performance.now = originalPerformanceNow;
+    global.requestAnimationFrame = originalRaf;
+    global.cancelAnimationFrame = originalCaf;
+  });
+
   test('should return a default quality tier', () => {
     const { result } = renderHook(() => useQualityTier());
-
     expect(result.current.qualityTier).toBeDefined();
     expect(result.current.featureFlags).toBeDefined();
   });
@@ -119,18 +149,15 @@ describe('useQualityTier', () => {
 
   test('should respect user preferences', () => {
     localStorageMock.setItem('galileo-glass-quality-preference', QualityTier.LOW);
-
     const { result } = renderHook(() => useQualityTier());
     expect(result.current.qualityTier).toBe(QualityTier.LOW);
   });
 
   test('should allow manual setting of quality tier', () => {
     const { result } = renderHook(() => useQualityTier());
-
     act(() => {
       result.current.setQualityPreference(QualityTier.ULTRA);
     });
-
     expect(result.current.qualityTier).toBe(QualityTier.ULTRA);
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'galileo-glass-quality-preference',
@@ -140,16 +167,17 @@ describe('useQualityTier', () => {
 
   test('should reset to automatic tier detection', () => {
     localStorageMock.setItem('galileo-glass-quality-preference', QualityTier.LOW);
-
     const { result } = renderHook(() => useQualityTier());
-    expect(result.current.qualityTier).toBe(QualityTier.LOW);
+    expect(result.current.qualityTier).toBe(QualityTier.LOW); // Verify initial state
 
     act(() => {
       result.current.resetQualityToAuto();
     });
 
-    expect(localStorageMock.removeItem).toHaveBeenCalled();
-    // Should now be based on device tier which is mocked as MEDIUM
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('galileo-glass-quality-preference');
+    // Re-render might be needed if the hook doesn't immediately update state synchronously
+    // Rerender(); // If needed
+    // Assuming immediate update based on mock
     expect(result.current.qualityTier).toBe(QualityTier.MEDIUM);
   });
 
@@ -191,24 +219,24 @@ describe('useQualityTier', () => {
     expect(result.current.qualityTier).toBe(QualityTier.MINIMAL);
   });
 
-  test('should start and stop performance monitoring', () => {
+  test('should start and stop performance monitoring', async () => { // Make async
     const { result } = renderHook(() => useQualityTier());
 
-    // Initially not monitoring
     expect(result.current.isPerformanceMonitoring).toBe(false);
 
-    // Start monitoring
-    act(() => {
+    await act(async () => {
       result.current.startPerformanceMonitoring();
+      // Simulate a few frames to allow monitoring setup/initial calculation
+      runAnimationFrame();
+      runAnimationFrame();
     });
-
     expect(result.current.isPerformanceMonitoring).toBe(true);
+    // We don't assert currentFps here as it depends on the hook's internal logic
+    // and the mock time advancement.
 
-    // Stop monitoring
-    act(() => {
+    await act(async () => {
       result.current.stopPerformanceMonitoring();
     });
-
     expect(result.current.isPerformanceMonitoring).toBe(false);
   });
 

@@ -37,7 +37,6 @@ export {
 } from './useOptimizedAnimation';
 export {
   useOrchestration,
-  type AnimationStage,
   type OrchestrationOptions,
   type OrchestrationPattern,
   type TimingFunction,
@@ -100,14 +99,42 @@ export { useAnimationEvent, type UseAnimationEventOptions, type UseAnimationEven
 export { useStaggeredAnimation, type UseStaggeredAnimationOptions, type UseStaggeredAnimationReturn } from './useStaggeredAnimation';
 export { useGestureAnimation, GestureAnimationPresets, GestureTypes } from './useGestureAnimation';
 
+// Export the new constraint hook
+export { usePhysicsConstraint } from './usePhysicsConstraint';
+
 // Add missing exports for useAnimationSequence and useGesturePhysics
 export {
   useAnimationSequence,
-  type AnimationSequenceConfig,
-  type SequenceControls
+  // Export enums as values
+  StaggerPattern,
+  PlaybackState,
+  PlaybackDirection,
+  TimingRelationship
 } from '../animations/orchestration/useAnimationSequence';
+
+// Use 'export type' syntax for re-exporting interfaces and types (not enums)
+export type {
+  AnimationSequenceConfig,
+  SequenceControls,
+  AnimationStage,
+  StyleAnimationStage,
+  CallbackAnimationStage,
+  EventAnimationStage,
+  GroupAnimationStage,
+  StaggerAnimationStage
+} from '../animations/orchestration/useAnimationSequence';
+
 export {
   useGesturePhysics,
   type GesturePhysicsOptions,
   type GesturePhysicsPreset
 } from '../animations/physics/gestures/useGesturePhysics';
+
+export { useAmbientTilt } from './useAmbientTilt';
+
+// Physics Utilities (Added from physics/physicUtils)
+export { 
+    getPhysicsBodyState, 
+    verifyPhysicsEngineState, 
+    forcePhysicsEngineUpdate 
+} from '../animations/physics/physicUtils';

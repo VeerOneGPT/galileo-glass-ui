@@ -1,4 +1,4 @@
-import React, { forwardRef, Children, cloneElement, useState, useEffect, useMemo, useRef, isValidElement } from 'react';
+import React, { forwardRef, Children, cloneElement, useState, useEffect, useMemo, useRef, isValidElement, useCallback } from 'react';
 import styled, { css } from 'styled-components';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
@@ -12,19 +12,9 @@ import { useMultiSpring } from '../../animations/physics/useMultiSpring';
 import { accessibleAnimation } from '../../animations/accessibility/accessibleAnimation';
 import { slideUp } from '../../animations/keyframes/basic';
 import { AnimationProps } from '../../animations/types'; // Import AnimationProps
-
-// Basic composeRefs utility
-function composeRefs<T>(...refs: (React.Ref<T> | undefined)[]): React.RefCallback<T> {
-  return (node) => {
-    refs.forEach(ref => {
-      if (typeof ref === 'function') {
-        ref(node);
-      } else if (ref != null) {
-        (ref as React.MutableRefObject<T | null>).current = node;
-      }
-    });
-  };
-}
+import { mergePhysicsRef } from '../../utils/refUtils';
+import { ThemeProvider, useTheme } from '@emotion/react';
+import { CoreThemeContext } from '../../core/themeContext';
 
 export interface BottomNavigationProps extends AnimationProps {
   /**
@@ -101,6 +91,16 @@ export interface BottomNavigationActionProps extends AnimationProps {
   showLabel?: boolean;
 
   /**
+   * The color theme of the action
+   */
+  color?: string;
+
+  /**
+   * The size of the action
+   */
+  size?: 'small' | 'medium' | 'large';
+
+  /**
    * Callback fired when the action is selected
    */
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -109,6 +109,12 @@ export interface BottomNavigationActionProps extends AnimationProps {
    * Additional CSS class
    */
   className?: string;
+  
+  /**
+   * Internal prop for parent to register the element
+   * @internal
+   */
+  registerElement?: (element: HTMLElement | null) => void;
 }
 
 // Get color by name
@@ -146,6 +152,7 @@ const BottomNavigationContainer = styled.div<{
   $variant: string;
   $color: string;
   $elevation: number;
+  theme?: any;
 }>`
   display: flex;
   justify-content: center;
@@ -161,6 +168,7 @@ const BottomNavigationContainer = styled.div<{
 
   /* Variant styles */
   ${props => {
+    const themeContext = createThemeContext(props.theme);
     if (props.$variant === 'glass') {
       return css`
         background-color: rgba(255, 255, 255, 0.1);
@@ -179,35 +187,52 @@ const BottomNavigationContainer = styled.div<{
   }}
 
   /* Glass effect for glass variant */
-  ${props =>
-    props.$variant === 'glass' &&
-    glassSurface({
-      elevation: props.$elevation,
-      blurStrength: 'enhanced',
-      backgroundOpacity: 'subtle',
-      borderOpacity: 'subtle',
-      themeContext: createThemeContext({}),
-    })}
+  ${props => {
+    const themeContext = createThemeContext(props.theme);
+    if (props.$variant === 'glass') {
+      return css`
+        ${glassSurface({
+          elevation: props.$elevation,
+          blurStrength: 'enhanced',
+          backgroundOpacity: 'subtle',
+          borderOpacity: 'subtle',
+          themeContext: themeContext,
+        })}
+      `;
+    }
+    return ''
+  }}
   
   /* Glass glow for glass variant */
-  ${props =>
-    props.$variant === 'glass' &&
-    props.$color !== 'default' &&
-    glassGlow({
-      glowIntensity: 'minimal',
-      glowColor: props.$color,
-      themeContext: createThemeContext({}),
-    })}
+  ${props => {
+    const themeContext = createThemeContext(props.theme);
+    if (props.$variant === 'glass' && props.$color !== 'default') {
+      return css`
+        ${glassGlow({
+          glowIntensity: 'minimal',
+          glowColor: props.$color,
+          themeContext: themeContext,
+        })}
+      `;
+    }
+    return ''
+  }}
   
   /* Edge highlight for glass variant */
-  ${props =>
-    props.$variant === 'glass' &&
-    edgeHighlight({
-      thickness: 1,
-      opacity: 0.3,
-      position: 'top',
-      themeContext: createThemeContext({}),
-    })}
+  ${props => {
+    const themeContext = createThemeContext(props.theme);
+    if (props.$variant === 'glass') {
+      return css`
+        ${edgeHighlight({
+          thickness: 1,
+          opacity: 0.3,
+          position: 'top',
+          themeContext: themeContext,
+        })}
+      `;
+    }
+    return ''
+  }}
   
   /* Animation */
   ${accessibleAnimation({
@@ -325,106 +350,84 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
     ...rest
   } = props;
 
-  const [actionRefs, setActionRefs] = useState<Map<number | string, HTMLElement>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
+  const actionElementsRef = useRef<Map<number | string, HTMLElement>>(new Map());
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
   const { defaultSpring } = useAnimationContext();
   const prefersReducedMotion = useReducedMotion();
   const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
+  const theme = useTheme();
 
-  // Calculate final spring config for indicator using animationConfig
-  const finalIndicatorSpringConfig = useMemo(() => {
-    const baseConfig: SpringConfig = SpringPresets.DEFAULT;
-    let contextConfig: Partial<SpringConfig> = {};
-    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
-      contextConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
-    } else if (typeof defaultSpring === 'object') {
-      contextConfig = defaultSpring ?? {};
+  // Helper to register an action element
+  const registerActionElement = useCallback((value: number | string, element: HTMLElement | null) => {
+    if (element) {
+      actionElementsRef.current.set(value, element);
+    } else {
+      actionElementsRef.current.delete(value);
     }
+  }, []);
 
-    let propConfig: Partial<SpringConfig> = {};
-    const propSource = animationConfig;
-    if (typeof propSource === 'string' && propSource in SpringPresets) {
-      propConfig = SpringPresets[propSource as keyof typeof SpringPresets];
-    } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
-      propConfig = propSource as Partial<SpringConfig>;
-    }
-    return { ...baseConfig, ...contextConfig, ...propConfig };
-  }, [defaultSpring, animationConfig]);
-
-  // Setup spring for indicator
-  const initialIndicatorStyle = { left: 0, width: 0, opacity: 0 };
-  const { values: indicatorStyle, start: animateIndicator } = useMultiSpring({
-    from: initialIndicatorStyle,
-    animationConfig: finalIndicatorSpringConfig,
-    immediate: finalDisableAnimation,
-    autoStart: false,
-  });
-
-  // Effect to update indicator position
+  // Update indicator position when value changes
   useEffect(() => {
-    const selectedActionElement = actionRefs.get(value);
-    if (selectedActionElement && containerRef.current) {
-      const actionRect = selectedActionElement.getBoundingClientRect();
+    if (!containerRef.current) return;
+    
+    const selectedElement = actionElementsRef.current.get(value);
+    if (selectedElement) {
+      const actionRect = selectedElement.getBoundingClientRect();
       const containerRect = containerRef.current.getBoundingClientRect();
-
-      // Calculate position relative to the container
-      const newStyle = {
+      
+      setIndicatorStyle({
         left: actionRect.left - containerRect.left,
         width: actionRect.width,
-        opacity: 1,
-      };
-      animateIndicator({ to: newStyle });
+        opacity: 1
+      });
     } else {
-      // If no value or element not found, hide indicator
-      animateIndicator({ to: { ...initialIndicatorStyle, opacity: 0 } });
+      setIndicatorStyle({ left: 0, width: 0, opacity: 0 });
     }
-  }, [value, actionRefs, animateIndicator, initialIndicatorStyle]);
+  }, [value]);
 
-  // Clone children with additional props, including ref assignment
-  const childrenWithProps = Children.map(children, (child, childIndex) => {
+  // Clone children with additional props
+  const childrenWithProps = Children.map(children, (child) => {
     if (!isValidElement<BottomNavigationActionProps>(child)) {
-      return null;
+      return child;
     }
 
     const childValue = child.props.value;
-    const childAnimProps: AnimationProps = {
-      animationConfig: child.props.animationConfig ?? animationConfig,
-      disableAnimation: child.props.disableAnimation ?? finalDisableAnimation,
-      motionSensitivity: child.props.motionSensitivity ?? motionSensitivity,
-    };
+    const isSelected = childValue === value;
+    
     return cloneElement(child, {
       ...child.props,
-      ref: (node: HTMLElement | null) => {
-        if (node) {
-          setActionRefs(prev => new Map(prev).set(childValue, node));
-        } else {
-          // Clean up ref if node is unmounted
-          setActionRefs(prev => {
-            const newMap = new Map(prev);
-            newMap.delete(childValue);
-            return newMap;
-          });
-        }
-      },
-      selected: childValue === value,
-      showLabel: showLabels || childValue === value,
+      selected: isSelected,
+      showLabel: showLabels || isSelected,
       onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
-        if (onChange) {
+        if (!child.props.disabled && onChange) {
           onChange(event, childValue);
         }
         if (child.props.onClick) {
           child.props.onClick(event);
         }
       },
-      variant,
-      color,
-      ...childAnimProps,
-    } as React.HTMLAttributes<HTMLElement>);
+      registerElement: (element: HTMLElement | null) => {
+        registerActionElement(childValue, element);
+      }
+    } as any); // Using 'any' to bypass TS property checking
   });
+
+  // Handle container ref
+  const handleRef = useCallback((node: HTMLDivElement | null) => {
+    containerRef.current = node;
+    
+    // Forward the ref
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref]);
 
   return (
     <BottomNavigationContainer
-      ref={containerRef}
+      ref={handleRef}
       className={className}
       $variant={variant}
       $color={color}
@@ -432,7 +435,10 @@ export const BottomNavigation = forwardRef<HTMLDivElement, BottomNavigationProps
       {...rest}
     >
       {childrenWithProps}
-      <ActiveIndicator $style={indicatorStyle as React.CSSProperties} color={color} />
+      <ActiveIndicator 
+        $style={indicatorStyle}
+        color={color}
+      />
     </BottomNavigationContainer>
   );
 });
@@ -449,26 +455,23 @@ export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNaviga
     const {
       label,
       icon,
-      selected = false,
       value,
       onClick,
-      showLabel = false,
-      className,
+      selected = false,
       disabled = false,
+      className,
+      showLabel = false,
+      color,
+      size,
       animationConfig,
       disableAnimation,
       motionSensitivity,
+      registerElement,
       ...rest
     } = props;
 
     // Placeholder context values (replace with actual context if implemented)
-    const size = 'medium';
-    const color = 'primary';
-
-    const { defaultSpring } = useAnimationContext();
-    const prefersReducedMotion = useReducedMotion();
-    const finalDisableAnimation = disableAnimation ?? prefersReducedMotion;
-    const usePhysics = !finalDisableAnimation && !disabled; // Determine if physics should be used
+    const usePhysics = !disableAnimation && !disabled; // Determine if physics should be used
 
     // Calculate final physics interaction config
     const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
@@ -478,10 +481,10 @@ export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNaviga
         };
 
         let contextResolvedConfig: Partial<SpringConfig> = {};
-        if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
-            contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
-        } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
-            contextResolvedConfig = defaultSpring;
+        if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
+            contextResolvedConfig = SpringPresets[animationConfig as keyof typeof SpringPresets];
+        } else if (typeof animationConfig === 'object' && animationConfig !== null) {
+            contextResolvedConfig = animationConfig;
         }
 
         let propResolvedConfig: Partial<PhysicsInteractionOptions> = {};
@@ -520,29 +523,46 @@ export const BottomNavigationAction = forwardRef<HTMLButtonElement, BottomNaviga
             ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
             ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
         };
-    }, [defaultSpring, animationConfig, motionSensitivity]);
+    }, [animationConfig, motionSensitivity]);
 
     // Apply physics interaction hook with calculated config
     const {
       ref: physicsRef,
       style: physicsStyle,
-    } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
+    } = usePhysicsInteraction<HTMLButtonElement>(usePhysics ? finalInteractionConfig : { reducedMotion: true });
+
+    // Use mergePhysicsRef utility for proper ref handling
+    const combinedRef = mergePhysicsRef(ref, physicsRef);
+    
+    // Use effect to call registerElement when the element is available
+    useEffect(() => {
+      // Check if combinedRef is a RefObject
+      if (combinedRef && 'current' in combinedRef && combinedRef.current && registerElement) {
+        registerElement(combinedRef.current);
+        // Cleanup when unmounted
+        return () => {
+          registerElement(null);
+        };
+      }
+    }, [combinedRef, registerElement]);
 
     return (
       <ActionButton
-        ref={composeRefs(physicsRef, ref)}
-        $selected={selected}
-        $size={size}
-        $showLabel={showLabel || selected}
-        $color={color}
-        $disabled={disabled}
+        ref={combinedRef}
         onClick={onClick}
+        type="button"
         className={className}
         style={physicsStyle}
+        disabled={disabled}
+        $selected={selected}
+        $showLabel={showLabel || selected}
+        $color={color}
+        $size={size}
+        $disabled={disabled}
         {...rest}
       >
         {icon && <span className="action-icon">{icon}</span>}
-        {label && <span className="action-label">{label}</span>}
+        {(showLabel || selected) && <span className="action-label">{label}</span>}
       </ActionButton>
     );
   }

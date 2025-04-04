@@ -45,7 +45,7 @@ function useGesturePhysics<T extends HTMLElement = HTMLElement>(
   scaleDelta?: number; // For pinching
   rotationDelta?: number; // For rotation gestures
   // Event handlers to attach:
-  eventHandlers: Record<string, (e: any) => void>; 
+  // eventHandlers: Record<string, (e: any) => void>; // Note: Actual hooks like usePhysicsInteraction handle events internally.
   // Functions to connect to animation hooks:
   applyToSpring?: (springApi: MultiSpringResult<any>) => void; // Example
 };
@@ -69,7 +69,7 @@ interface GesturePhysicsOptions {
 - `ref`: Attach to the element that should respond to gestures.
 - `isDragging`, `isPinching`, etc.: State flags indicating the current gesture type.
 - `delta`, `velocity`, etc.: Real-time information about the gesture's movement.
-- `eventHandlers`: Handlers (`onPointerDown`, `onPointerMove`, etc.) to attach to the target element.
+- `eventHandlers`: *Note: In the actual implemented hooks (like `usePhysicsInteraction`), event handlers are typically managed internally and not returned for manual attachment.* Conceptual handlers (`onPointerDown`, `onPointerMove`, etc.) would be attached to the target element.
 - `applyToSpring` (or similar): Functions or mechanisms to link the gesture output to drive animation hooks.
 
 ## Inertial Movement (`useInertialMovement`)
@@ -86,7 +86,8 @@ function ScrollableContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
   
   // Hook manages gesture capture and applies physics-based scroll offset
-  const { ref: gestureRef, eventHandlers, scrollStyle } = useInertialMovement({
+  // Corrected: Assuming useInertialMovement handles events internally, like usePhysicsInteraction.
+  const { ref: gestureRef, scrollStyle } = useInertialMovement({
     containerRef: scrollRef, // Ref to the scrollable container
     friction: 0.95, // Adjust friction for desired deceleration
     bounds: { top: 0, bottom: /* Calculate based on content height */ },
@@ -98,7 +99,7 @@ function ScrollableContent() {
       <div 
         ref={gestureRef} 
         style={{ ...scrollStyle, touchAction: 'pan-y' }} // Apply calculated transform
-        {...eventHandlers} // Attach gesture handlers
+        // Removed {...eventHandlers} - Assuming internal handling
       >
         {/* Long content here */} 
       </div>

@@ -386,7 +386,12 @@ const Footer = styled.div`
 /**
  * Format a number according to a format string
  */
-const formatValue = (value: number, format?: string): string => {
+const formatValue = (value: number | undefined | null, format?: string): string => {
+  // Handle undefined or null value
+  if (value === undefined || value === null || isNaN(value)) {
+    return '--'; // Or return 'N/A', '', etc.
+  }
+
   if (!format) return value.toString();
 
   // Handle percentage format

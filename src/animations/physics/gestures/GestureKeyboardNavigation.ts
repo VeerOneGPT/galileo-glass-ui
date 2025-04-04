@@ -332,8 +332,10 @@ function createGestureEvent(
   // Manually delete if overrides accidentally included invalid props
   delete (finalEvent as any).preventDefault;
   delete (finalEvent as any).stopPropagation;
-  delete (finalEvent as any).isKeyboardGenerated;
   delete (finalEvent as any).absoluteRotation;
+  
+  // --- ADD isKeyboardGenerated property --- 
+  finalEvent.isKeyboardGenerated = true;
   
   return finalEvent;
 }
@@ -467,6 +469,12 @@ const handlePanGestures: KeyboardHandlerFn = (
   active
 ) => {
   if (!active) return null;
+  
+  // --- ADD CHECK: Ignore pan if shift key is pressed (likely for swipe) ---
+  if (event.shiftKey) {
+    return null;
+  }
+  // --- END CHECK ---
   
   const { 
     keyboardMapping = DEFAULT_KEYBOARD_MAPPING,
@@ -709,66 +717,22 @@ const handleSwipeGestures: KeyboardHandlerFn = (
     
     state.activeGestureType = GestureType.SWIPE;
     const now = Date.now();
+    const velocity = { x: movement.x * 0.5, y: movement.y * 0.5 };
     
-    // Calculate velocity (swipes should have higher velocity)
-    const velocity = {
-      x: movement.x * 0.5, // Simulate a fast swipe velocity
-      y: movement.y * 0.5
-    };
-    
-    // Send swipe gesture events in sequence: BEGAN -> CHANGED -> ENDED
-    if (options.onGestureEvent) {
-      // First send BEGAN
-      const beganEvent = createGestureEvent(
-        GestureType.SWIPE,
-        GestureState.BEGAN,
-        options.elementRef.current,
-        event,
-        { 
-          movement: { x: 0, y: 0 },
-          velocity: { x: 0, y: 0 },
-          direction: swipeDirection,
-          timestamp: now
-        }
-      );
-      options.onGestureEvent(beganEvent);
-      
-      // Then send CHANGED with movement
-      const changedEvent = createGestureEvent(
-        GestureType.SWIPE,
-        GestureState.CHANGED,
-        options.elementRef.current,
-        event,
-        { 
-          movement,
-          velocity,
-          direction: swipeDirection,
-          timestamp: now + 10 // Slight time offset
-        }
-      );
-      options.onGestureEvent(changedEvent);
-      
-      // Immediately send ENDED to complete the swipe sequence
+    // Construct and return ENDED event directly 
       const endedEvent = createGestureEvent(
         GestureType.SWIPE,
         GestureState.ENDED,
         options.elementRef.current,
         event,
-        { 
-          movement,
-          velocity,
-          direction: swipeDirection,
-          timestamp: now + 20 // Slight time offset
-        }
+      { movement, velocity, direction: swipeDirection, timestamp: now + 20 }
       );
       
       // Reset active gesture after completion
-      setTimeout(() => {
         state.activeGestureType = null;
-      }, 100);
       
+    // Return the final ENDED event 
       return endedEvent;
-    }
   }
   else if (event.type === 'keyup') {
     state.activeGestureType = null;

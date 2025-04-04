@@ -101,8 +101,8 @@ const ChangeValue = styled.div<{
   font-weight: 500;
   color: ${props => {
     const isPositive = props.$value >= 0;
-    const goodColor = props.theme?.colors?.success?.main || 'rgba(76, 175, 80, 1)';
-    const badColor = props.theme?.colors?.error?.main || 'rgba(240, 82, 82, 1)';
+    const goodColor = props.theme?.colors?.success?.[500] || 'rgb(16, 185, 129)';
+    const badColor = props.theme?.colors?.error?.[500] || 'rgb(239, 68, 68)';
     if (props.$positiveIsGood) {
       return isPositive ? goodColor : badColor;
     } else {

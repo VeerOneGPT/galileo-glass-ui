@@ -67,6 +67,34 @@ import {
   pathAnimationPlugin
 } from './utils/ChartAnimationUtils';
 
+// Import and register required Chart.js components
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Tooltip as ChartJsTooltip,
+  Legend as ChartJsLegend,
+  Filler,
+  RadialLinearScale
+} from 'chart.js';
+
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  ChartJsTooltip,
+  ChartJsLegend,
+  Filler,
+  RadialLinearScale
+);
+
 /**
  * ModularGlassDataChart Component
  * 
@@ -371,6 +399,15 @@ export const ModularGlassDataChart = React.forwardRef<GlassDataChartRef, GlassDa
     }
   }), [chartRef, handleExport]);
   
+  // Prepare axis options, adjusting color for clear variant
+  const effectiveAxisOptions = {
+    ...axis,
+    // Use a more visible grid color for the clear variant
+    gridColor: glassVariant === 'clear' 
+      ? 'rgba(0, 0, 0, 0.15)' // Darker, semi-transparent
+      : axis.gridColor || 'rgba(255, 255, 255, 0.1)', // Original default
+  };
+  
   // Special case for KPI chart type
   if (chartType === 'kpi' && kpi) {
     return (
@@ -444,12 +481,14 @@ export const ModularGlassDataChart = React.forwardRef<GlassDataChartRef, GlassDa
         qualityTier={activeQuality}
       />
       
-      {/* Atmospheric effects */}
-      <AtmosphericEffects
-        qualityTier={activeQuality}
-        color={color}
-        isReducedMotion={isReducedMotion}
-      />
+      {/* Atmospheric effects - Conditionally render */}
+      {glassVariant !== 'clear' && (
+        <AtmosphericEffects
+          qualityTier={activeQuality}
+          color={color}
+          isReducedMotion={isReducedMotion}
+        />
+      )}
       
       {/* Chart header */}
       {(title || subtitle) && (
@@ -547,7 +586,7 @@ export const ModularGlassDataChart = React.forwardRef<GlassDataChartRef, GlassDa
         qualityTier={activeQuality}
         animation={animation}
         interaction={interaction}
-        axis={axis}
+        axis={effectiveAxisOptions}
         isReducedMotion={isReducedMotion}
         springValue={springValue}
         enablePhysicsAnimation={enablePhysicsAnimation}
@@ -555,6 +594,7 @@ export const ModularGlassDataChart = React.forwardRef<GlassDataChartRef, GlassDa
         onChartHover={handleChartHover}
         onChartLeave={handleChartLeave}
         chartRefCallback={(chart) => chartRef.current = chart}
+        glassVariant={glassVariant}
       />
       
       {/* Legend - Bottom position */}

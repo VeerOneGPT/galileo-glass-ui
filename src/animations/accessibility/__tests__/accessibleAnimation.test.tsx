@@ -35,12 +35,6 @@ jest.mock('../AnimationMapper', () => ({
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { animationMapper } from '../AnimationMapper';
 
-// Mock styled-components
-jest.mock('styled-components', () => ({
-  css: jest.fn(() => ({})),
-  keyframes: jest.fn(() => ({})),
-}));
-
 // Create a proper mock Keyframes object for testing
 const testKeyframes = {
   getName: () => 'test-keyframes',

@@ -88,7 +88,8 @@ export type TimelineAnimationType =
 export type NavigationType = 
   | 'scroll'     // Navigate by scrolling
   | 'button'     // Navigate with next/prev buttons
-  | 'pagination'; // Navigate with pagination controls
+  | 'pagination' // Navigate with pagination controls
+  | 'none';      // No navigation controls
 
 /**
  * Timeline zoom level for controlling the density of events
@@ -334,4 +335,24 @@ export interface TimelineProps {
   
   /** ARIA label for the timeline */
   ariaLabel?: string;
+}
+
+/**
+ * TimelineRef interface - defines the methods available via forwarded ref
+ */
+export interface TimelineRef {
+  /** Scroll to a specific date on the timeline */
+  scrollToDate: (date: Date, smooth?: boolean) => void;
+  
+  /** Scroll to a specific item on the timeline */
+  scrollToItem: (itemId: string | number, smooth?: boolean) => void;
+  
+  /** Get the timeline container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
+  
+  /** Get the current focused date */
+  getCurrentDate: () => Date;
+  
+  /** Select a specific item on the timeline */
+  selectItem: (itemId: string | number) => void;
 }

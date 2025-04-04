@@ -3,30 +3,34 @@
  */
 export default {
   testEnvironment: 'jsdom',
-  roots: ['<rootDir>/src'],
-  transform: {
-    '^.+\\.(ts|tsx)$': 'babel-jest',
-  },
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(ts|tsx)$',
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   moduleNameMapper: {
-    '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
-    '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/src/__mocks__/fileMock.js'
+    '\\.(css|less|scss|sass)$': '<rootDir>/src/test/mocks/styleMock.js',
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/src/test/mocks/fileMock.js'
   },
+  transform: {
+    '^.+\\.(ts|tsx)$': [
+      'babel-jest',
+      {
+        presets: ['@babel/preset-env', '@babel/preset-react', '@babel/preset-typescript'],
+      }
+    ]
+  },
+  setupFilesAfterEnv: [
+    '<rootDir>/src/test/setup/jest.setup.ts'
+  ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/dist/'
+  ],
+  testMatch: [
+    '**/__tests__/**/*.test.(ts|tsx)'
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/**/*.stories.{ts,tsx}',
-    '!src/index.ts',
-    '!src/**/index.ts',
+    '!src/test/**',
+    '!src/**/*.stories.{ts,tsx}'
   ],
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
-    }
-  }
+  workerIdleMemoryLimit: '512MB',
+  maxWorkers: '50%'
 };

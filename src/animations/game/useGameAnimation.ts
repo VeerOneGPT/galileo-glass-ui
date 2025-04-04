@@ -310,9 +310,20 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
   // Reduced motion detection
   const { prefersReducedMotion, isAnimationAllowed } = useReducedMotion();
   
+  // --- Initialize statesMap synchronously --- 
+  const statesMap = useRef(new Map<string, GameAnimationState>());
+  // Populate map immediately based on initial config
+  if (statesMap.current.size === 0 && states.length > 0) { // Only on first setup
+     states.forEach(state => {
+       statesMap.current.set(state.id, state);
+     });
+  }
+  // --- End Sync Init ---
+
   // Track active states
   const [activeStateIds, setActiveStateIds] = useState<string[]>(
-    initialState ? [initialState] : []
+    // Ensure initial state exists in the map before setting
+    initialState && statesMap.current.has(initialState) ? [initialState] : []
   );
   
   // Transition state
@@ -321,7 +332,6 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
   const [transitionProgress, setTransitionProgress] = useState(0);
   
   // Maps for efficient lookups
-  const statesMap = useRef(new Map<string, GameAnimationState>());
   const transitionsMap = useRef(new Map<string, StateTransition>());
   
   // Create animation sequence for coordinated transitions
@@ -332,30 +342,40 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
     category
   });
   
-  // Update maps when config changes
+  // Update maps when config changes (Keep effect for updates)
   useEffect(() => {
-    // Update states map
     const newStatesMap = new Map<string, GameAnimationState>();
     states.forEach(state => {
       newStatesMap.set(state.id, state);
     });
     statesMap.current = newStatesMap;
     
-    // Update transitions map
     const newTransitionsMap = new Map<string, StateTransition>();
     transitions.forEach(transition => {
       const key = `${transition.from}:${transition.to}`;
       newTransitionsMap.set(key, transition);
     });
     transitionsMap.current = newTransitionsMap;
-  }, [states, transitions]);
+
+    // Re-validate initial state if states change
+    if (initialState && !newStatesMap.has(initialState)) {
+        console.warn(`useGameAnimation: Initial state "${initialState}" not found in provided states.`);
+        setActiveStateIds([]);
+    } else if (initialState && activeStateIds.length === 0) {
+        // If initial state is now valid and active states were empty, set it.
+        setActiveStateIds([initialState]);
+    }
+
+  }, [states, transitions, initialState]); // Add initialState dependency
   
   // Get active state objects
   const activeStates = useMemo(() => {
+    // Now this should reliably find states in the map
     return activeStateIds
       .map(id => statesMap.current.get(id))
       .filter(Boolean) as GameAnimationState[];
-  }, [activeStateIds]);
+  // Keep original dependency array, `states` added previously was also valid
+  }, [activeStateIds, states]); 
   
   /**
    * Find transition between two states
@@ -564,7 +584,7 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
               opacity: 0, 
               transform: enterTransform
             },
-            to: { opacity: 1, transform: 'none' },
+            properties: { opacity: 1, transform: 'none' },
             duration: enterDuration,
             easing,
             dependsOn: [`exit-${fromState.id}`], // wait for exit animation
@@ -979,7 +999,7 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
       type: 'style',
       targets: elements,
       from: { opacity: 0, transform: 'translateY(20px)' },
-      to: { opacity: 1, transform: 'none' },
+      properties: { opacity: 1, transform: 'none' },
       duration: state.enterDuration || defaultDuration,
       easing: defaultEasing,
       category
@@ -1009,7 +1029,7 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
       type: 'style',
       targets: elements,
       from: { opacity: 1, transform: 'none' },
-      to: { opacity: 0, transform: 'translateY(20px)' },
+      properties: { opacity: 0, transform: 'translateY(20px)' },
       duration: state.exitDuration || defaultDuration,
       easing: defaultEasing,
       category

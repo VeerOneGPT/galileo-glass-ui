@@ -220,4 +220,9 @@ export interface MultiSelectProps<T = string> {
   
   /** Whether to enable mobile-optimized touch handling */
   touchFriendly?: boolean;
+
+  /**
+   * Optional test ID for targeting elements in tests.
+   */
+  dataTestId?: string;
 }

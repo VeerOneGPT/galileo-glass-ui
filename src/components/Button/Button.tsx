@@ -1,5 +1,6 @@
 import React, { forwardRef, useCallback, useState, useMemo, useRef } from 'react';
 import styled, { useTheme, css, keyframes, DefaultTheme } from 'styled-components';
+import { Slot } from '@radix-ui/react-slot';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
@@ -62,6 +63,12 @@ export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonE
    * Disable animation
    */
   disableAnimation?: boolean;
+
+  /**
+   * If true, the component will render its child element directly,
+   * merging its own props and behavior onto the child.
+   */
+  asChild?: boolean;
 }
 
 // Define default props if needed
@@ -279,6 +286,7 @@ const StyledButton = styled.button<{
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(props, ref) {
   const {
     children,
+    asChild,
     variant = 'contained',
     color = 'primary',
     disabled = false,
@@ -362,12 +370,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!disabled && onClick) {
+      if (asChild && event.currentTarget.closest('a, form')) {
+        // Potentially check if the direct child is the interactive element
+      }
       onClick(event);
     }
   };
 
+  const Comp = asChild ? Slot : StyledButton;
+
   return (
-    <StyledButton
+    <Comp
       ref={combinedRef}
       style={{ ...(finalReducedMotion ? {} : physicsStyle), ...style }}
       onMouseDown={handleMouseDown}
@@ -375,17 +388,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}
       className={className}
-      $variant={variant}
-      $color={color}
-      $disabled={disabled}
-      $size={size}
-      $theme={theme}
-      disabled={disabled}
-      $fullWidth={fullWidth}
+      {...(!asChild && {
+        $variant: variant,
+        $color: color,
+        $disabled: disabled,
+        $size: size,
+        $theme: theme,
+        $fullWidth: fullWidth,
+        disabled: disabled,
+      })}
       {...rest}
     >
       {children}
-    </StyledButton>
+    </Comp>
   );
 });
 
@@ -399,6 +414,7 @@ Button.displayName = 'Button';
 export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>(function GlassButton(props, ref) {
   const {
     children,
+    asChild,
     variant = 'contained',
     color = 'primary',
     disabled = false,
@@ -408,10 +424,10 @@ export const GlassButton = forwardRef<HTMLButtonElement, ButtonProps>(function G
     ...rest
   } = props;
 
-  // Add glass styling to the base button
   return (
     <Button
       ref={ref}
+      asChild={asChild}
       variant={variant}
       color={color}
       disabled={disabled}

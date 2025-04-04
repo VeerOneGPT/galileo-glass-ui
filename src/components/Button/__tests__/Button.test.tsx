@@ -1,8 +1,10 @@
-import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import { render, screen, fireEvent } from '../../../test/utils/test-utils';
+import { Slot } from '@radix-ui/react-slot';
 
-import { ThemeProvider } from '../../../theme/ThemeProvider';
+import { ThemeProvider } from '../../../theme';
 import { Button, GlassButton } from '../Button';
+import 'jest-styled-components';
 
 // Test wrapper with ThemeProvider
 const renderWithTheme = (ui: React.ReactElement) => {
@@ -115,6 +117,24 @@ describe('Button Component', () => {
 
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
+
+  test('forwards ref correctly', () => {
+    const ref = React.createRef<HTMLButtonElement>(); 
+    renderWithTheme(<Button ref={ref}>Click</Button>);
+    expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  test('works with asChild prop', () => {
+    renderWithTheme(
+      <Button asChild>
+        <a href="#">Link Button</a>
+      </Button>
+    );
+    const linkElement = screen.getByRole('link', { name: /Link Button/i });
+    expect(linkElement).toBeInTheDocument();
+    expect(linkElement.tagName).toBe('A');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });
 
 describe('GlassButton Component', () => {
@@ -148,5 +168,23 @@ describe('GlassButton Component', () => {
     fireEvent.click(button);
 
     expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  test('forwards ref correctly', () => {
+    const ref = React.createRef<HTMLButtonElement>(); 
+    renderWithTheme(<GlassButton ref={ref}>Glass Button</GlassButton>);
+    expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  test('works with asChild prop', () => {
+    renderWithTheme(
+      <GlassButton asChild>
+        <a href="#">Glass Link Button</a>
+      </GlassButton>
+    );
+    const linkElement = screen.getByRole('link', { name: /Glass Link Button/i });
+    expect(linkElement).toBeInTheDocument();
+    expect(linkElement.tagName).toBe('A');
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });

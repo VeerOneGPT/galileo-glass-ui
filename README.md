@@ -36,7 +36,7 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
     - Integrated Physics Engine: Springs, collisions, forces, object sleeping.
     - Intuitive Hooks: `usePhysicsInteraction`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement` for common UI interactions.
     - **New (v1.0.8):** Lower-level `useGalileoPhysicsEngine` hook for direct engine access and custom simulations.
-    - Orchestration: `useAnimationSequence` for complex sequences & staggering.
+    - Orchestration: `useAnimationSequence` and `useSequence` for complex sequences & staggering.
     - Specialized Effects: Z-space, 3D transforms, parallax, particles.
     - Performance: GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
 - ♿ **Accessibility-First Design**: Configurable `useReducedMotion`, sensitivity levels, animation categories, high contrast support, keyboard navigation, focus management.
@@ -106,7 +106,7 @@ Version 1.0.6 includes the major features originally planned for 1.0.5, plus cri
 ##### ✨ Comprehensive Animation System Overhaul
 - **Integrated Physics Engine:** Introduced a completely redesigned, powerful physics engine (`galileoPhysicsSystem.ts`) powering all animations. Features highly configurable spring physics, advanced collision detection, global forces, and performance optimizations like object sleeping.
 - **New Interaction & State Hooks:** Added intuitive hooks like `usePhysicsInteraction` (for rich hover/press feedback), `useGalileoStateSpring` (animating single values), `useMultiSpring` (animating vectors/transforms), and `useGesturePhysics` (natural gesture responses with inertia).
-- **Animation Orchestration:** `useAnimationSequence` enables complex, precisely timed animation sequences with dependencies, staggering, grouping, and lifecycle control.
+- **Animation Orchestration:** Includes hooks like `useAnimationSequence` (declarative config with `stages`) and `useSequence` (builder pattern) for complex, precisely timed sequences with dependencies, staggering, grouping, and lifecycle control.
 - **Advanced Accessibility:** Enhanced `useReducedMotion` provides fine-grained control with sensitivity levels, animation categories, and alternative animation preferences.
 - **Specialized Effects:** Includes hooks and utilities for Z-space management (`useZSpace`), 3D transforms (`use3DTransform`), parallax, particle systems, and more.
 - **Unified System:** Replaces previous CSS transitions and external libraries (like Framer Motion) for a consistent, performant, and integrated animation experience across the library.
@@ -603,7 +603,7 @@ import { useMagneticElement } from '@veerone/galileo-glass-ui/hooks'; // Correct
 
 function MagneticButton() {
   const elementRef = useRef<HTMLButtonElement>(null);
-  const { style, eventHandlers } = useMagneticElement({ // Use the specific hook
+  const { style } = useMagneticElement({ // Use the specific hook
     elementRef,
     options: {
       strength: 0.5, // Attraction force
@@ -616,7 +616,6 @@ function MagneticButton() {
     <button 
       ref={elementRef} 
       style={style} // Apply the dynamic style from the hook
-      {...eventHandlers} // Attach pointer event handlers
     >
       Magnetic Button
     </button>
@@ -628,15 +627,18 @@ function MagneticButton() {
 </details>
 
 <details>
-<summary><b>🎶 Animation Orchestration (Staggered List)</b></summary>
+<summary><b>🎶 Animation Orchestration (Staggered List using `useAnimationSequence`)</b></summary>
 <br>
 <!-- 💡 Add GIF for Staggered List entrance animation here! 💡 -->
 
 ```jsx
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, Fragment } from 'react';
 import { styled } from 'styled-components';
-import { useSequence, type UseSequenceParams } from '@veerone/galileo-glass-ui/hooks'; // Corrected import
-import { Box } from '@veerone/galileo-glass-ui'; // Assuming Box component exists
+import {
+  useAnimationSequence,
+  type AnimationSequenceConfig,
+} from '@veerone/galileo-glass-ui/animations';
+import { Box } from '@veerone/galileo-glass-ui';
 
 const items = ['Item 1', 'Item 2', 'Item 3', 'Item 4'];
 
@@ -647,47 +649,49 @@ const StaggeredItem = styled(Box)`
   padding: 16px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
+  will-change: opacity, transform;
 `;
 
 function StaggeredList() {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
-  // Corrected: useSequence provides controls like play, pause, etc.
-  const { play } = useSequence();
+  const { play } = useAnimationSequence({
+    id: 'list-entrance-readme',
+    autoplay: false,
+    stages: [
+      {
+        id: 'stagger-fade-in',
+        type: 'stagger',
+        targets: () => itemRefs.current.filter(el => el !== null),
+        properties: {
+          opacity: [0, 1],
+          transform: ['translateY(20px)', 'translateY(0px)']
+        },
+        duration: 400,
+        stagger: 100,
+        easing: 'easeOutCubic'
+      }
+    ]
+  });
 
   useEffect(() => {
-    // Adjust the sequence definition to match useSequence's API
-    // This is a simplified example; useSequence might require a different config structure.
-    // Refer to useSequence documentation for the correct API.
-    const sequenceConfig: UseSequenceParams = { // Use the correct type if available
-      steps: items.map((_, index) => ({
-        target: itemRefs.current[index],
-        animations: [
-          { property: 'opacity', to: 1, duration: 300 },
-          { property: 'transform', to: 'translateY(0px)', duration: 300, easing: 'easeOutQuad' }
-        ],
-        options: {
-          delay: index * 100 // Stagger delay
-        }
-      }))
-      // Add other useSequence specific options if needed
-    };
-
-    play(sequenceConfig); // Call play with the config
+    if (itemRefs.current.length === items.length) {
+       play();
+    }
   }, [play]);
 
   return (
-    <div>
+    <Fragment>
       {items.map((item, index) => (
         <StaggeredItem key={item} ref={el => itemRefs.current[index] = el}>
           {item}
         </StaggeredItem>
       ))}
-    </div>
+    </Fragment>
   );
 }
 ```
 
-> **Orchestration** using `useSequence` allows complex, timed animations across multiple elements, like this staggered entrance effect. // Corrected hook name in description
+> **Orchestration** using `useAnimationSequence` (declarative config) or `useSequence` (builder pattern) allows complex, timed animations across multiple elements.
 
 </details>
 
@@ -929,7 +933,7 @@ Automatic checks run before each commit:
 6.  **Imports**: Group imports: React, third-party, internal modules, relative.
 7.  **Styled Components**: Use `$` prefix for transient props (e.g., `$isActive`).
 8.  **Error Handling**: Provide graceful fallbacks for user interactions.
-9.  **Animation**: Use integrated hooks (`usePhysicsInteraction`, `useSequence`, etc.). Respect `useReducedMotion`.
+9.  **Animation**: Use integrated hooks (`usePhysicsInteraction`, `useAnimationSequence`, etc.). Respect `useReducedMotion`.
 10. **Performance**: Use memoization (`React.memo`, `useMemo`) where appropriate.
 
 For complete styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).

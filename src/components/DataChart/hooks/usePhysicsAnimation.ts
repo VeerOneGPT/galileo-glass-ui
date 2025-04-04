@@ -4,7 +4,7 @@
  * A hook that provides physics-based animations for UI elements.
  * Based on spring physics for natural, responsive animations.
  */
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useAccessibilitySettings } from '../../../hooks/useAccessibilitySettings';
 
 // Type of animation
@@ -85,7 +85,7 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
   /**
    * Performs one step of the spring physics simulation
    */
-  const updateSpringAnimation = (time: number) => {
+  const updateSpringAnimation = useCallback((time: number) => {
     if (!lastTimeRef.current) {
       lastTimeRef.current = time;
       animationRef.current = requestAnimationFrame(updateSpringAnimation);
@@ -143,12 +143,12 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
       // Continue animation
       animationRef.current = requestAnimationFrame(updateSpringAnimation);
     }
-  };
+  }, [params.stiffness, params.damping, params.mass, params.precision]);
   
   /**
    * Start the animation with given parameters
    */
-  const startAnimation = (targetValue: number) => {
+  const startAnimation = useCallback((targetValue: number) => {
     // If reduced motion is preferred and we respect it, jump directly to target
     if (shouldReduceMotion) {
       setValue(targetValue);
@@ -171,12 +171,12 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
       lastTimeRef.current = 0;
       animationRef.current = requestAnimationFrame(updateSpringAnimation);
     }
-  };
+  }, [shouldReduceMotion]);
   
   /**
    * Apply a pop animation (scale from small to normal)
    */
-  const applyPopIn = () => {
+  const applyPopIn = useCallback(() => {
     if (params.type === 'none') return;
     
     physicsRef.current = {
@@ -186,12 +186,12 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
     };
     
     startAnimation(1);
-  };
+  }, [params.type, startAnimation]);
   
   /**
    * Apply an oscillation effect (like shaking or pulsing)
    */
-  const applyOscillation = (intensity = 1) => {
+  const applyOscillation = useCallback((intensity = 1) => {
     if (params.type === 'none') return;
     
     // Get current position and add a burst of velocity
@@ -203,12 +203,12 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
     };
     
     startAnimation(1);
-  };
+  }, [params.type, shouldReduceMotion, startAnimation]);
   
   /**
    * Apply a rebound animation (stretch and bounce back)
    */
-  const applyRebound = (intensity = 1) => {
+  const applyRebound = useCallback((intensity = 1) => {
     if (params.type === 'none') return;
     
     // Set position beyond target to create stretch effect
@@ -219,7 +219,7 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
     };
     
     startAnimation(1);
-  };
+  }, [params.type, startAnimation]);
   
   /**
    * Handle resize events for adaptive motion
@@ -249,7 +249,7 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
   }, [params.adaptiveMotion]);
   
   // Return the animation value, isAnimating flag, and the element ref
-  return {
+  return useMemo(() => ({
     value,
     isAnimating,
     ref: elementRef,
@@ -261,7 +261,7 @@ export const usePhysicsAnimation = (props: Partial<PhysicsAnimationProps> = {}) 
       transform: `scale(${value})`,
       transformOrigin: 'center'
     }
-  };
+  }), [value, isAnimating, applyPopIn, applyOscillation, applyRebound, startAnimation]);
 };
 
 export default usePhysicsAnimation; 

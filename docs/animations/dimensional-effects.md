@@ -88,46 +88,48 @@ interface Transform3DOptions {
 
 ```tsx
 import React from 'react';
-import { use3DTransform, usePhysicsInteraction } from 'galileo-glass-ui';
-import { Box } from '@mui/material';
+import { use3DTransform, usePhysicsInteraction, useComposedRef } from '@veerone/galileo-glass-ui/hooks';
+import { GlassBox } from '@veerone/galileo-glass-ui/components';
 
 function TiltingCard() {
   // usePhysicsInteraction detects hover/press and gives interaction strength/position
   const { 
     ref: interactionRef, 
-    eventHandlers, 
-    pointerPosition, // e.g., { x: -1 to 1, y: -1 to 1 } relative to center
+    state, // Get state including relative pointer position
     isHovering 
-  } = usePhysicsInteraction({ /* ... options ... */ }); 
+  } = usePhysicsInteraction({ 
+    affectsTilt: true, // Make sure tilt is enabled in the hook's options
+    tiltAmplitude: 15,
+    /* ... other options ... */ 
+  }); 
   
-  // use3DTransform applies rotations based on pointer position
+  // use3DTransform applies rotations based on pointer position from state
   const tiltIntensity = 15; // Max degrees tilt
   const { ref: transformRef, style: transformStyle } = use3DTransform({
-    rotateX: isHovering ? -pointerPosition.y * tiltIntensity : 0,
-    rotateY: isHovering ? pointerPosition.x * tiltIntensity : 0,
+    rotateX: isHovering ? -state.relativeY * tiltIntensity : 0, // Use state.relativeY
+    rotateY: isHovering ? state.relativeX * tiltIntensity : 0,  // Use state.relativeX
   }, { usePhysics: true, animationConfig: 'gentle' }); 
 
   // Need a way to combine refs if necessary (e.g., useComposedRef hook)
   const composedRef = useComposedRef(interactionRef, transformRef);
 
   return (
-    <Box sx={{ perspective: '1000px' }}> {/* Apply perspective to parent */} 
-      <Box
+    <GlassBox style={{ perspective: '1000px' }}> {/* Apply perspective to parent */}
+      <GlassBox
         ref={composedRef}
-        style={transformStyle}
-        {...eventHandlers}
-        sx={{
+        style={{
+          ...transformStyle,
           width: 200,
           height: 300,
-          backgroundColor: 'primary.main',
+          backgroundColor: '#6366F1', // Placeholder for theme.colors.primary.main
           borderRadius: '12px',
           willChange: 'transform', // Performance
           transformStyle: 'preserve-3d', // Important for nested 3D elements
         }}
       >
         I tilt!
-      </Box>
-    </Box>
+      </GlassBox>
+    </GlassBox>
   );
 }
 ```

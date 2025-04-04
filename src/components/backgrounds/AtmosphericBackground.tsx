@@ -4,7 +4,7 @@
  * A dynamic background component with atmospheric effects.
  */
 import React, { forwardRef, useState, useEffect, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { AtmosphericBackgroundProps } from '../surfaces/types';
@@ -80,16 +80,16 @@ const GradientLayer = styled.div<{
     props.$animate &&
     !props.$reducedMotion &&
     !props.$interactive &&
-    `
-    animation: ${gradientShift} ${props.$duration}s ease infinite;
-  `}
+    css`
+      animation: ${css`${gradientShift} ${props.$duration}s ease infinite`};
+    `}
 
   /* Interactive mode */
   ${props =>
     props.$interactive &&
-    `
-    transition: background-position 0.3s ease;
-  `}
+    css`
+      transition: background-position 0.3s ease;
+    `}
 `;
 
 const AtmosphericEffect = styled.div<{
@@ -111,9 +111,9 @@ const AtmosphericEffect = styled.div<{
   ${props =>
     props.$animate &&
     !props.$reducedMotion &&
-    `
-    animation: ${cloudMove} 30s ease infinite;
-  `}
+    css`
+      animation: ${css`${cloudMove} 30s ease infinite`};
+    `}
 `;
 
 const BlurLayer = styled.div<{

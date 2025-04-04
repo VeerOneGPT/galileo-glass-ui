@@ -1,7 +1,6 @@
-import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import React, { useRef } from 'react';
+import { render, fireEvent, act, screen } from '@testing-library/react';
 import { useMagneticEffect } from '../useMagneticEffect';
-import { DirectionalFieldConfig } from '../directionalField';
 import { useReducedMotion } from '../../accessibility/useReducedMotion';
 
 // Mock the useReducedMotion hook
@@ -19,221 +18,124 @@ const mockRaf = (cb: FrameRequestCallback): number => {
 global.requestAnimationFrame = mockRaf;
 global.cancelAnimationFrame = jest.fn();
 
-// Helper to create a test component with magnetic effect
-const createTestComponent = (options = {}) => {
-  const TestComponent = () => {
-    const ref = useMagneticEffect(options);
-    return <div ref={ref} data-testid="magnetic-element">Magnetic Element</div>;
-  };
-  return TestComponent;
+// Test Component: Uses the real hook, assuming it returns the ref directly
+const TestComponent = ({ options }: { options: any }) => { // Use 'any' for options type temporarily
+  // Assume the hook returns the ref object directly
+  const magneticRef = useMagneticEffect(options); 
+  return <div data-testid="magnetic-target" ref={magneticRef} style={{ width: 100, height: 50 }}>Target</div>;
 };
 
 describe('useMagneticEffect', () => {
+  // Add fake timer setup/teardown
   beforeEach(() => {
+    jest.useFakeTimers();
+    // Mock MutationObserver (if needed by the hook)
+    global.MutationObserver = class {
+        observe = jest.fn();
+        disconnect = jest.fn();
+        constructor(callback: MutationCallback) {}
+    } as any;
+    // Clear other mocks
     jest.clearAllMocks();
+    (useReducedMotion as jest.Mock).mockReturnValue(false); // Reset reduced motion mock
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
   
-  test('renders without crashing', () => {
-    const TestComponent = createTestComponent();
-    render(<TestComponent />);
-    expect(screen.getByTestId('magnetic-element')).toBeInTheDocument();
-  });
-  
-  test('applies transform on mousemove', () => {
-    const TestComponent = createTestComponent({
-      strength: 1,
-      radius: 100,
-      maxDisplacement: 20
-    });
-    
-    render(<TestComponent />);
-    const element = screen.getByTestId('magnetic-element');
-    
-    // Create DOMRect mock for getBoundingClientRect
-    const rectMock = {
-      left: 100,
-      top: 100,
-      width: 100,
-      height: 100,
-      right: 200,
-      bottom: 200,
-      x: 100,
-      y: 100,
-      toJSON: () => {}
-    };
-    
+  it('updates transform based on mouse position within radius', () => {
+    // Pass the options object to the TestComponent
+    render(<TestComponent options={{
+        strength: 0.5,
+        radius: 200,
+        damping: 0.9
+    }} />);
+    const targetElement = screen.getByTestId('magnetic-target');
     // Mock getBoundingClientRect
-    element.getBoundingClientRect = jest.fn(() => rectMock);
-    
-    // Simulate mouse movement
+    targetElement.getBoundingClientRect = jest.fn(() => ({
+        width: 100, height: 50, top: 100, left: 100, bottom: 150, right: 200, x: 100, y: 100, toJSON: () => this
+    }));
+
+    // Simulate mouse enter & move (dispatch move on window)
     act(() => {
-      window.dispatchEvent(new MouseEvent('mousemove', {
-        clientX: 150,
-        clientY: 150,
-        bubbles: true
-      }));
+        fireEvent.mouseEnter(targetElement);
+    });
+    act(() => {
+       const moveEvent = new MouseEvent('mousemove', { clientX: 150, clientY: 125, bubbles: true, cancelable: true });
+       fireEvent(window, moveEvent); 
+    });
+
+    // Advance timers & run pending
+    act(() => {
+        jest.advanceTimersByTime(16.667); 
+        jest.runOnlyPendingTimers();
     });
     
-    // Update animation frame
-    act(() => {
-      jest.runAllTimers();
-    });
-    
-    // Check if transform has been applied
-    expect(element.style.transform).toBeDefined();
+    expect(targetElement.style.transform).toContain('translate3d');
   });
-  
-  test('supports directional field configuration', () => {
-    // Create a directional field config
-    const directionalField: DirectionalFieldConfig = {
-      type: 'unidirectional',
-      behavior: 'constant',
-      direction: { x: 1, y: 0 }
-    };
-    
-    const TestComponent = createTestComponent({
-      directionalField,
-      strength: 1,
-      radius: 100,
-      maxDisplacement: 20
-    });
-    
-    render(<TestComponent />);
-    const element = screen.getByTestId('magnetic-element');
-    
-    // Create DOMRect mock for getBoundingClientRect
-    const rectMock = {
-      left: 100,
-      top: 100,
-      width: 100,
-      height: 100,
-      right: 200,
-      bottom: 200,
-      x: 100,
-      y: 100,
-      toJSON: () => {}
-    };
-    
-    // Mock getBoundingClientRect
-    element.getBoundingClientRect = jest.fn(() => rectMock);
-    
-    // Simulate mouse movement
+
+  it('resets transform when mouse leaves radius', () => {
+    render(<TestComponent options={{
+        strength: 0.5,
+        radius: 200,
+        damping: 0.9
+    }} />);
+    const targetElement = screen.getByTestId('magnetic-target');
+    targetElement.getBoundingClientRect = jest.fn(() => ({
+        width: 100, height: 50, top: 100, left: 100, bottom: 150, right: 200, x: 100, y: 100, toJSON: () => this
+    }));
+
+    // Enter, Move, Advance
     act(() => {
-      window.dispatchEvent(new MouseEvent('mousemove', {
-        clientX: 150,
-        clientY: 150,
-        bubbles: true
-      }));
+        fireEvent.mouseEnter(targetElement);
+        const moveEvent = new MouseEvent('mousemove', { clientX: 150, clientY: 125, bubbles: true, cancelable: true });
+        fireEvent(window, moveEvent); 
+        jest.advanceTimersByTime(16.667);
+        jest.runOnlyPendingTimers(); 
     });
-    
-    // Update animation frame
+    const initialTransform = targetElement.style.transform;
+    expect(initialTransform).toContain('translate3d');
+
+    // Leave
     act(() => {
-      jest.runAllTimers();
+        fireEvent.mouseLeave(targetElement); 
     });
-    
-    // Check if transform has been applied
-    expect(element.style.transform).toBeDefined();
+
+    // Advance timers & run pending
+    act(() => {
+        jest.advanceTimersByTime(500);
+        jest.runOnlyPendingTimers();
+    });
+
+    expect(targetElement.style.transform).not.toBe(initialTransform);
+    // Check against the expected reset style string
+    expect(targetElement.style.transform).toBe('translate3d(0px, 0px, 0px) scale(1) rotate(0deg)'); 
   });
-  
-  test('resets transform on mouseout', () => {
-    const TestComponent = createTestComponent();
-    render(<TestComponent />);
-    const element = screen.getByTestId('magnetic-element');
-    
-    // Create DOMRect mock for getBoundingClientRect
-    const rectMock = {
-      left: 100,
-      top: 100,
-      width: 100,
-      height: 100,
-      right: 200,
-      bottom: 200,
-      x: 100,
-      y: 100,
-      toJSON: () => {}
-    };
-    
-    // Mock getBoundingClientRect
-    element.getBoundingClientRect = jest.fn(() => rectMock);
-    
-    // Simulate mouse movement inside
+
+  it('does not apply transform when reduced motion is preferred', () => {
+    (useReducedMotion as jest.Mock).mockReturnValue(true); 
+
+    render(<TestComponent options={{
+        strength: 0.5,
+        radius: 200,
+        damping: 0.9
+    }} />);
+    const targetElement = screen.getByTestId('magnetic-target');
+    targetElement.getBoundingClientRect = jest.fn(() => ({
+        width: 100, height: 50, top: 100, left: 100, bottom: 150, right: 200, x: 100, y: 100, toJSON: () => this
+    }));
+
+    // Enter, Move, Advance
     act(() => {
-      window.dispatchEvent(new MouseEvent('mousemove', {
-        clientX: 150,
-        clientY: 150,
-        bubbles: true
-      }));
+      fireEvent.mouseEnter(targetElement);
+      const moveEvent = new MouseEvent('mousemove', { clientX: 150, clientY: 125, bubbles: true, cancelable: true });
+      fireEvent(window, moveEvent);
+      jest.advanceTimersByTime(16.667); 
+      jest.runOnlyPendingTimers();
     });
-    
-    // Update animation frame
-    act(() => {
-      jest.runAllTimers();
-    });
-    
-    // Now move mouse outside the radius
-    act(() => {
-      window.dispatchEvent(new MouseEvent('mousemove', {
-        clientX: 500,
-        clientY: 500,
-        bubbles: true
-      }));
-    });
-    
-    // Update several animation frames to reset
-    act(() => {
-      for (let i = 0; i < 10; i++) {
-        jest.runAllTimers();
-      }
-    });
-    
-    // Transform should eventually reset (or be very close to reset)
-    // This is hard to test precisely since it's based on animation easing
-    expect(element.style.transform).toBeDefined();
-  });
-  
-  test('respects reduced motion settings', () => {
-    // Mock useReducedMotion to return true
-    (useReducedMotion as jest.Mock).mockReturnValue(true);
-    
-    const TestComponent = createTestComponent({
-      strength: 1,
-      maxDisplacement: 50
-    });
-    
-    render(<TestComponent />);
-    const element = screen.getByTestId('magnetic-element');
-    
-    // Create DOMRect mock for getBoundingClientRect
-    const rectMock = {
-      left: 100,
-      top: 100,
-      width: 100,
-      height: 100,
-      right: 200,
-      bottom: 200,
-      x: 100,
-      y: 100,
-      toJSON: () => {}
-    };
-    
-    // Mock getBoundingClientRect
-    element.getBoundingClientRect = jest.fn(() => rectMock);
-    
-    // Simulate mouse movement
-    act(() => {
-      window.dispatchEvent(new MouseEvent('mousemove', {
-        clientX: 150,
-        clientY: 150,
-        bubbles: true
-      }));
-    });
-    
-    // Update animation frame
-    act(() => {
-      jest.runAllTimers();
-    });
-    
-    // Effect should still work, but with reduced strength
-    expect(element.style.transform).toBeDefined();
+
+    // Expect the reset style string
+    expect(targetElement.style.transform).toBe('translate3d(0px, 0px, 0px) scale(1) rotate(0deg)');
   });
 });

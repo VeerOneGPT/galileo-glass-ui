@@ -3,6 +3,7 @@
  */
 import React from 'react';
 import { ChartVariant, DatasetStyle, DataPoint, ChartDataset, KpiProps } from './ChartTypes';
+export type { ChartVariant };
 
 /**
  * Animation options for chart
@@ -44,6 +45,16 @@ export interface ChartInteractionOptions {
   tooltipStyle?: 'glass' | 'frosted' | 'tinted' | 'luminous' | 'dynamic';
   /** Follow cursor option for tooltips */
   tooltipFollowCursor?: boolean;
+  /** Physics configuration for zoom/pan and hover effects */
+  physics?: Partial<{
+    tension: number;
+    friction: number;
+    mass: number;
+    minZoom: number;
+    maxZoom: number;
+    wheelSensitivity: number;
+    inertiaDuration: number;
+  }>;
 }
 
 /**
@@ -60,6 +71,17 @@ export interface ChartLegendOptions {
   style?: 'default' | 'glass' | 'pills';
   /** Use glass styling for legend */
   glassEffect?: boolean;
+  kpi?: {
+    value: number | string;
+    title?: string;
+    subtitle?: string;
+    trend?: { value: number; direction: 'up' | 'down' | 'neutral' };
+    formatType?: 'number' | 'currency' | 'percentage' | 'units';
+    formatOptions?: any;
+  };
+  useAdaptiveQuality?: boolean;
+  /** Optional function to configure physics interactions per data element */
+  getElementPhysicsOptions?: GetElementPhysicsOptions;
 }
 
 /**
@@ -89,6 +111,36 @@ export interface ChartAxisOptions {
   /** Grid line style */
   gridStyle?: 'solid' | 'dashed' | 'dotted';
 }
+
+// Define the expected return structure locally to avoid import issues
+interface ElementPhysicsConfig {
+  hoverEffect?: {
+    scale?: number;
+    opacity?: number;
+    x?: number;
+    y?: number;
+  };
+  clickEffect?: {
+    scale?: number;
+    opacity?: number;
+    x?: number;
+    y?: number;
+  };
+  // Basic physics params for the element's animation
+  tension?: number;
+  friction?: number;
+  mass?: number;
+}
+
+/**
+ * Function type for configuring physics interactions per data element.
+ */
+export type GetElementPhysicsOptions = (
+  dataPoint: any, 
+  datasetIndex: number,
+  dataIndex: number,
+  chartType: ChartVariant
+) => ElementPhysicsConfig | null | undefined;
 
 /**
  * GlassDataChart Component Props
@@ -171,6 +223,8 @@ export interface GlassDataChartProps {
   kpi?: KpiProps;
   /** Option to use quality tier system for adaptive rendering */
   useAdaptiveQuality?: boolean;
+  /** Optional function to configure physics interactions per data element */
+  getElementPhysicsOptions?: GetElementPhysicsOptions;
 }
 
 /**

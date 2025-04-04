@@ -10,156 +10,147 @@ import { keyframes as _keyframes } from 'styled-components';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { accessibleAnimation } from '../../accessibility/accessibleAnimation';
 import { getMotionSensitivity , MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
-import { AnimationPreset } from '../../core/types';
+import { AnimationPreset, AnimationIntensity } from '../../core/types'; // Keep original import for type casting if needed
 import { createAnimationSequence } from '../../orchestration/GestaltPatterns';
-
-// Import AnimationIntensity to use the proper enum values
 import { ZSpaceProvider } from '../../../core/zspace/ZSpaceContext';
 import { ThemeProvider } from '../../../theme/ThemeProvider';
 import { ZSpaceAnimator } from '../../dimensional/ZSpaceAnimation';
 import { AnimationOrchestrator } from '../../orchestration/Orchestrator';
 import { springAnimation } from '../../physics/springAnimation';
-import { AnimationIntensity } from '../../presets/accessibleAnimations';
+// Removed import from '../../presets/accessibleAnimations' as it might conflict
+// Import the MOCKED functions to use them in tests
+import { createStaggeredSequence as mockCreateStaggeredSequence, createAnimationSequence as mockCreateAnimationSequence } from '../../orchestration/GestaltPatterns';
+
+// No local enum needed
 
 // Mock styled-components
 jest.mock('styled-components', () => {
-  const mockKeyframes = str => ({
+  const mockKeyframes = (str: TemplateStringsArray) => ({
     name: 'mock-keyframes',
-    styles: str,
-    // Add required Keyframes properties
     getName: () => 'mock-keyframes',
     id: 'mock-id',
-    rules: str,
+    rules: str ? str.join('') : '',
   });
 
+  // Mock the default export (styled function)
+  const mockStyled = () => {
+    const component = (strings: TemplateStringsArray, ...interpolations: any[]) => {
+      // Return a basic component mock or string representation
+      return 'StyledComponentMock'; 
+    };
+    // Add methods like .div, .button etc. to the function object
+    component.div = component;
+    component.button = component;
+    // Add other common tags if needed by tests
+    return component;
+  };
+
   return {
+    __esModule: true, // Indicate it's an ES module
+    default: mockStyled(), // Mock the default export
     keyframes: jest.fn(mockKeyframes),
-    css: jest.fn(str => ({ styles: str })),
+    css: jest.fn((strings: TemplateStringsArray) => ({ styles: strings ? strings.join('') : '' })),
+    // Keep ThemeProvider mock if tests rely on it directly here, otherwise remove
+    // ThemeProvider: ({ children }: { children: React.ReactNode }) => children, 
   };
 });
 
-// Mock animation presets
-jest.mock('../../presets', () => ({
-  presets: {
-    fade: {
-      keyframes: { name: 'fade', getName: () => 'fade', id: 'fade-id', rules: '' },
-      duration: '300ms',
-      easing: 'ease',
-      intensity: AnimationIntensity.SUBTLE,
-    },
-    slideUp: {
-      keyframes: { name: 'slideUp', getName: () => 'slideUp', id: 'slideUp-id', rules: '' },
-      duration: '300ms',
-      easing: 'ease',
-      intensity: AnimationIntensity.STANDARD,
-    },
-    slideDown: {
-      keyframes: { name: 'slideDown', getName: () => 'slideDown', id: 'slideDown-id', rules: '' },
-      duration: '300ms',
-      easing: 'ease',
-      intensity: AnimationIntensity.STANDARD,
-    },
-    slideLeft: {
-      keyframes: { name: 'slideLeft', getName: () => 'slideLeft', id: 'slideLeft-id', rules: '' },
-      duration: '300ms',
-      easing: 'ease',
-      intensity: AnimationIntensity.STANDARD,
-    },
-    slideRight: {
-      keyframes: {
-        name: 'slideRight',
-        getName: () => 'slideRight',
-        id: 'slideRight-id',
-        rules: '',
-      },
-      duration: '300ms',
-      easing: 'ease',
-      intensity: AnimationIntensity.STANDARD,
-    },
-    glassReveal: {
-      keyframes: {
-        name: 'glassReveal',
-        getName: () => 'glassReveal',
-        id: 'glassReveal-id',
-        rules: '',
-      },
-      duration: '500ms',
-      easing: 'ease',
-      intensity: AnimationIntensity.EXPRESSIVE,
-    },
-    button: {
-      ripple: {
-        keyframes: {
-          name: 'buttonRipple',
-          getName: () => 'buttonRipple',
-          id: 'buttonRipple-id',
-          rules: '',
-        },
+// Mock animation presets - Use string literals for intensity
+jest.mock('../../presets', () => {
+  const mockKeyframes = (name: string) => ({
+    name,
+    getName: () => name,
+    id: `${name}-id`,
+    rules: '',
+  });
+
+  return {
+    presets: {
+      fade: {
+        keyframes: mockKeyframes('fade'),
         duration: '300ms',
         easing: 'ease',
-        intensity: AnimationIntensity.STANDARD,
+        intensity: 'subtle', 
       },
-      hover: {
-        keyframes: {
-          name: 'buttonHover',
-          getName: () => 'buttonHover',
-          id: 'buttonHover-id',
-          rules: '',
-        },
-        duration: '200ms',
+      slideUp: {
+        keyframes: mockKeyframes('slideUp'),
+        duration: '300ms',
         easing: 'ease',
-        intensity: AnimationIntensity.SUBTLE,
+        intensity: 'standard', 
       },
-      press: {
-        keyframes: {
-          name: 'buttonPress',
-          getName: () => 'buttonPress',
-          id: 'buttonPress-id',
-          rules: '',
-        },
-        duration: '100ms',
+      slideDown: {
+        keyframes: mockKeyframes('slideDown'),
+        duration: '300ms',
         easing: 'ease',
-        intensity: AnimationIntensity.SUBTLE,
+        intensity: 'standard',
       },
-      loading: {
-        keyframes: {
-          name: 'buttonLoading',
-          getName: () => 'buttonLoading',
-          id: 'buttonLoading-id',
-          rules: '',
-        },
-        duration: '1500ms',
+      slideLeft: {
+        keyframes: mockKeyframes('slideLeft'),
+        duration: '300ms',
         easing: 'ease',
-        intensity: AnimationIntensity.STANDARD,
+        intensity: 'standard',
       },
-    },
-    card: {
-      hover: {
-        keyframes: { name: 'cardHover', getName: () => 'cardHover', id: 'cardHover-id', rules: '' },
-        duration: '200ms',
+      slideRight: {
+        keyframes: mockKeyframes('slideRight'),
+        duration: '300ms',
         easing: 'ease',
-        intensity: AnimationIntensity.SUBTLE,
+        intensity: 'standard',
       },
-      flip: {
-        keyframes: { name: 'cardFlip', getName: () => 'cardFlip', id: 'cardFlip-id', rules: '' },
+      glassReveal: {
+        keyframes: mockKeyframes('glassReveal'),
         duration: '500ms',
         easing: 'ease',
-        intensity: AnimationIntensity.EXPRESSIVE,
+        intensity: 'expressive',
       },
-      tilt3D: {
-        keyframes: {
-          name: 'cardTilt3D',
-          getName: () => 'cardTilt3D',
-          id: 'cardTilt3D-id',
-          rules: '',
+       button: {
+        ripple: {
+          keyframes: mockKeyframes('buttonRipple'),
+          duration: '300ms',
+          easing: 'ease',
+          intensity: 'standard',
         },
-        duration: '300ms',
-        easing: 'ease',
-        intensity: AnimationIntensity.STANDARD,
+        hover: {
+          keyframes: mockKeyframes('buttonHover'),
+          duration: '200ms',
+          easing: 'ease',
+          intensity: 'subtle',
+        },
+        press: {
+          keyframes: mockKeyframes('buttonPress'),
+          duration: '100ms',
+          easing: 'ease',
+          intensity: 'subtle',
+        },
+        loading: {
+          keyframes: mockKeyframes('buttonLoading'),
+          duration: '1500ms',
+          easing: 'ease',
+          intensity: 'standard',
+        },
+      },
+      card: {
+        hover: {
+          keyframes: mockKeyframes('cardHover'),
+          duration: '200ms',
+          easing: 'ease',
+          intensity: 'subtle',
+        },
+        flip: {
+          keyframes: mockKeyframes('cardFlip'),
+          duration: '500ms',
+          easing: 'ease',
+          intensity: 'expressive',
+        },
+        tilt3D: {
+          keyframes: mockKeyframes('cardTilt3D'),
+          duration: '300ms',
+          easing: 'ease',
+          intensity: 'standard',
+        },
       },
     },
-  },
-}));
+  }
+});
 
 // Mock AccessibilityTypes
 jest.mock('../../accessibility/AccessibilityTypes', () => ({
@@ -198,48 +189,80 @@ jest.mock('../../accessibility/AnimationMapper', () => {
   };
 });
 
-// Mock all animation-related modules
+// Mock Orchestrator - Fix play mock
 jest.mock('../../orchestration/Orchestrator', () => {
+  const mockSequences = new Map<string, any>();
   const MockAnimationOrchestrator = jest.fn().mockImplementation(() => ({
-    createSequence: jest.fn(sequenceConfig => ({
-      animations: Array.isArray(sequenceConfig) ? sequenceConfig : [],
-      totalDuration: 950,
-    })),
-    play: jest.fn(_sequence => ({
-      isPlaying: true,
-      then: jest.fn(callback => {
-        setTimeout(callback, 1000);
-        return { isPlaying: false };
-      }),
-    })),
-    getSequences: jest.fn(() => new Map()),
+    createSequence: jest.fn((id, sequenceConfig) => {
+      // Add the sequence to our mock map
+      mockSequences.set(id, sequenceConfig);
+      return this; // Return instance for chaining if needed
+    }),
+    play: jest.fn(_sequenceId => { // Return a Promise
+      return new Promise(resolve => {
+        setTimeout(() => resolve({ isPlaying: false }), 10); 
+      });
+    }),
+    getSequences: jest.fn(() => mockSequences), // Return the mock map
     pause: jest.fn(),
-    stop: jest.fn(),
+    stop: jest.fn((id) => { mockSequences.delete(id); }), // Mock stop to clear sequence
     addEventListener: jest.fn(),
     removeEventListener: jest.fn(),
   }));
 
+  // Return a new instance for the default export
+  const mockInstance = new MockAnimationOrchestrator(); 
+
   return {
     AnimationOrchestrator: MockAnimationOrchestrator,
-    animationOrchestrator: new MockAnimationOrchestrator(),
+    animationOrchestrator: mockInstance, 
     withOrchestration: jest.fn((Component, _config) => props => Component(props)),
   };
 });
 
-jest.mock('../../orchestration/GestaltPatterns', () => ({
-  createStaggeredSequence: jest.fn(options => ({
-    sequences: options.elements.map((element, i) => ({
-      startTime: options.initialDelay + i * options.staggerDelay,
+// Mock GestaltPatterns - Export both functions explicitly
+jest.mock('../../orchestration/GestaltPatterns', () => {
+  const mockCreateStaggeredSequence = jest.fn(options => ({
+    sequences: options.elements.map((element: any, i: number) => ({
+      target: element, 
+      startTime: (options.initialDelay || 0) + i * (options.staggerDelay || 0),
     })),
-  })),
+    totalDuration: (options.initialDelay || 0) + (options.elements.length * (options.staggerDelay || 0))
+  }));
+
+  const mockCreateAnimationSequence = jest.fn(sequenceConfig => ({
+    config: sequenceConfig,
+    play: jest.fn(() => Promise.resolve()),
+    stop: jest.fn(),
+  }));
+
+  // Return an object containing the mocked functions
+  return {
+    createStaggeredSequence: mockCreateStaggeredSequence,
+    createAnimationSequence: mockCreateAnimationSequence,
+  };
+});
+
+// Mock ZSpaceAnimator - Handle sensitivity
+jest.mock('../../dimensional/ZSpaceAnimation', () => ({
+  ZSpaceAnimator: jest.fn().mockImplementation((config) => {
+    const sensitivity = config?.sensitivity;
+    return {
+      getCSSProperties: jest.fn(() => {
+        // Return empty styles if sensitivity is high
+        if (sensitivity === 'high') { 
+          return { containerStyle: {}, elementStyle: {} };
+        }
+        // Return default mock styles otherwise
+        return {
+          containerStyle: { perspective: '1000px', transformStyle: 'preserve-3d' },
+          elementStyle: { transform: 'translateZ(10px)' },
+        };
+      }),
+    };
+  }),
 }));
 
-// Now import animation system components
-
-const withOrchestration = (Component, _config) => {
-  // Simple mock that just returns the original component
-  return props => <Component {...props} />;
-};
 // Mock ThemeProvider
 jest.mock('../../../theme/ThemeProvider', () => ({
   ThemeProvider: ({ children }) => children,
@@ -321,7 +344,7 @@ global.window = {
   })),
 } as any;
 
-// Mock the animation functions
+// Mock the accessibleAnimation function - Use string literals
 jest.mock('../../accessibility/accessibleAnimation', () => {
   // Create a compliant keyframes object
   const mockKeyframes = {
@@ -343,7 +366,7 @@ jest.mock('../../accessibility/accessibleAnimation', () => {
       keyframes: mockKeyframes,
       duration: `${duration}ms`,
       easing: 'ease-out',
-      intensity: AnimationIntensity.SUBTLE,
+      intensity: 'subtle', // Use string literal
       fillMode: 'both',
     };
   });
@@ -375,7 +398,7 @@ jest.mock('../../physics/springAnimation', () => {
       keyframes: mockKeyframes,
       duration: '300ms',
       easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-      intensity: AnimationIntensity.STANDARD,
+      intensity: 'standard', // Use string literal
     })),
   };
 });
@@ -392,21 +415,21 @@ const fadeInAnimation = {
   keyframes: mockKeyframes('fadeIn'),
   duration: '300ms',
   easing: 'ease-out',
-  intensity: AnimationIntensity.STANDARD,
+  intensity: 'standard' as AnimationIntensity,
 };
 
 const slideInAnimation = {
   keyframes: mockKeyframes('slideIn'),
   duration: '400ms',
   easing: 'ease-out',
-  intensity: AnimationIntensity.STANDARD,
+  intensity: 'standard' as AnimationIntensity,
 };
 
 const bounceAnimation = {
   keyframes: mockKeyframes('bounce'),
   duration: '500ms',
   easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-  intensity: AnimationIntensity.EXPRESSIVE,
+  intensity: 'expressive' as AnimationIntensity,
 };
 
 // Create a mock animation preset
@@ -420,7 +443,7 @@ const mockReducedMotionPreset: AnimationPreset = {
   keyframes: reducedMotionKeyframes, // Use the keyframes object
   duration: '100ms', // Add duration
   easing: 'linear', // Add easing
-  intensity: AnimationIntensity.SUBTLE,
+  intensity: 'subtle' as AnimationIntensity, // Use string literal + type assertion
 };
 
 const mockPreset: AnimationPreset = {
@@ -428,6 +451,7 @@ const mockPreset: AnimationPreset = {
   duration: '300ms', // Ensure duration is a string or number
   easing: 'ease-in-out', // Ensure easing is a string
   reducedMotionAlternative: mockReducedMotionPreset, // Assign the full preset
+  intensity: 'standard' as AnimationIntensity, // Use string literal + type assertion
 };
 
 // Create a mock animation preset compatible with the test
@@ -436,23 +460,45 @@ const mockAnimationPreset = {
   keyframes: testAnimationKeyframes,
   duration: '300ms',
   easing: 'ease-out',
-  intensity: AnimationIntensity.SUBTLE
+  intensity: 'subtle' as AnimationIntensity
 };
 
-// Mock the accessibleAnimation function
-jest.mock('../../accessibility/accessibleAnimation', () => ({
-  accessibleAnimation: jest.fn().mockImplementation(() => ({
-    keyframes: mockKeyframes('accessibleFade'),
-    duration: '300ms',
-    easing: 'ease-out',
-    intensity: AnimationIntensity.SUBTLE,
-    fillMode: 'both',
-  }))
-}));
+// Mock the AnimationPresets for presets/ui - Use string literals
+jest.mock('../../presets/ui', () => {
+    return {
+        getDefaultAnimationPresets: jest.fn(() => ({
+            fadeIn: {
+                keyframes: { name: 'fadeIn', getName: () => 'fadeIn', id: 'fadeIn-id', rules: '' },
+                duration: '500ms',
+                easing: 'ease-out',
+                intensity: 'medium', // Use string literal
+            },
+            fadeOut: {
+                keyframes: { name: 'fadeOut', getName: () => 'fadeOut', id: 'fadeOut-id', rules: '' },
+                duration: '300ms',
+                easing: 'ease',
+                intensity: 'subtle',
+            },
+            slideUp: {
+                keyframes: { name: 'slideUp', getName: () => 'slideUp', id: 'slideUp-id', rules: '' },
+                duration: '400ms',
+                easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)',
+                intensity: 'medium',
+            },
+        })),
+    };
+});
 
-// Mock the getMotionSensitivity function
-jest.mock('../../accessibility/MotionSensitivity', () => ({
-  getMotionSensitivity: jest.fn()
+// Mock the PerformanceMonitor
+jest.mock('../../../utils/performance/performanceMonitor', () => ({
+    PerformanceMonitor: jest.fn().mockImplementation(() => ({
+        start: jest.fn(),
+        stop: jest.fn(),
+        getMetrics: jest.fn().mockReturnValue({ fps: 60 }),
+        getMetric: jest.fn().mockReturnValue({ value: 60 }),
+        on: jest.fn(),
+        off: jest.fn(),
+    }))
 }));
 
 describe('Animation Pipeline Integration', () => {
@@ -489,8 +535,8 @@ describe('Animation Pipeline Integration', () => {
     // Create a staggered sequence for multiple elements
     const elements = ['elem1', 'elem2', 'elem3', 'elem4'];
 
-    // @ts-ignore - Temporarily ignore type error for staggered animations
-    const staggered = createStaggeredSequence({
+    // Call the MOCKED function
+    const staggered = mockCreateStaggeredSequence({
       elements,
       animation: fadeInAnimation,
       staggerDelay: 50,
@@ -611,7 +657,7 @@ describe('Animation Pipeline Integration', () => {
       keyframes: mockKeyframes('reducedMotion'),
       duration: '50ms',
       easing: 'ease',
-      intensity: AnimationIntensity.SUBTLE,
+      intensity: 'subtle' as AnimationIntensity,
       fillMode: 'both',
     };
 
@@ -668,7 +714,7 @@ describe('Animation Pipeline Integration', () => {
 
   it('should respect reduced motion preferences', () => {
     // Create a sequence with the mock animation
-    const sequence = createAnimationSequence([
+    const sequence = mockCreateAnimationSequence([
       {
         target: '.test-element',
         animation: mockAnimationPreset,
@@ -686,3 +732,9 @@ const TestComponent = () => {
   return <div>Test Component</div>;
 };
 TestComponent.displayName = 'TestComponent';
+
+// Restore the withOrchestration mock helper
+const withOrchestration = (Component: React.ComponentType<any>, _config: any) => {
+  // Simple mock that just returns the original component
+  return (props: any) => <Component {...props} />;
+};

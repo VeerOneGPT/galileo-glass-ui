@@ -8,6 +8,19 @@
  * @version 1.0.5
  */
 
+import { 
+  PhysicsBodyOptions, 
+  PhysicsBodyState, 
+  CollisionEvent, 
+  Vector2D, 
+  UnsubscribeFunction, 
+  PhysicsConstraintOptions,
+  DistanceConstraintOptions,
+  HingeConstraintOptions,
+  BaseConstraintOptions,
+  SpringConstraintOptions
+} from './engineTypes';
+
 // Basic vector interface for physics calculations
 export interface Vector {
   x: number;
@@ -35,6 +48,11 @@ export interface PhysicsObjectConfig {
   height?: number;
   vertices?: Vector[];
   userData?: any;
+  angle?: number;
+  angularVelocity?: number;
+  torque?: number;
+  inertia?: number;
+  inverseInertia?: number;
 }
 
 // Complete physics object with all properties
@@ -63,6 +81,11 @@ export interface PhysicsObject {
   vertices: Vector[];
   boundingRadius: number;
   forces: Vector;
+  angle: number;
+  angularVelocity: number;
+  torque: number;
+  inertia: number;
+  inverseInertia: number;
   userData: any;
 }
 
@@ -109,6 +132,31 @@ export interface PhysicsEvent {
 // Event listener type
 export type PhysicsEventListener = (event: PhysicsEvent) => void;
 
+// --- Internal Constraint Types ---
+
+// Base internal constraint structure
+interface InternalConstraint {
+  id: string;
+  options: PhysicsConstraintOptions; // Store the original options (UNION type is OK here)
+  bodyA: PhysicsObject; // Direct reference to the first body
+  bodyB: PhysicsObject; // Direct reference to the second body
+  // Pre-calculate attachment points in local coordinates for efficiency
+  localPointA: Vector;
+  localPointB: Vector;
+}
+
+// No longer need specific internal types if the base holds the union
+// interface InternalDistanceConstraint extends InternalConstraint {
+//   options: DistanceConstraintOptions;
+// }
+// 
+// interface InternalHingeConstraint extends InternalConstraint {
+//   options: HingeConstraintOptions;
+//   // Add runtime state for hinge if necessary (e.g., current impulse)
+// }
+
+type PhysicsConstraint = InternalConstraint; // Just use the base internal type now
+
 /**
  * Galileo Physics System - Central physics management for animations
  * 
@@ -124,6 +172,8 @@ export class GalileoPhysicsSystem {
   private isRunning = false;
   private rafId: number | null = null;
   private nextObjectId = 1;
+  private nextConstraintId = 1; // Counter for constraint IDs
+  private constraints: Map<string, InternalConstraint> = new Map(); // Storage for constraints
 
   /**
    * Get the current running state of the physics system
@@ -203,6 +253,11 @@ export class GalileoPhysicsSystem {
       vertices: [],
       boundingRadius: 1,
       forces: { x: 0, y: 0, z: 0 },
+      angle: 0,
+      angularVelocity: 0,
+      torque: 0,
+      inertia: 1,
+      inverseInertia: 1,
       userData: {}
     };
   }
@@ -213,17 +268,17 @@ export class GalileoPhysicsSystem {
    * @returns The ID of the created object
    */
   public addObject(config: PhysicsObjectConfig): string {
-    const id = config.id || this.generateId();
-    
-    // Check if ID already exists
+    const rawId = config.id !== undefined ? config.id : this.generateId();
+    const id = String(rawId);
+
     if (this.objects.has(id)) {
-      throw new Error(`Physics object with ID ${id} already exists`);
+      console.warn(
+        `Physics object with stringified ID "${id}" (raw: ${rawId}) already exists. Consider using unique IDs.`
+      );
     }
-    
-    // Create base object with defaults
+
     const object = this.createDefaultObject(id);
     
-    // Apply configuration
     if (config.position) {
       object.position.x = config.position.x ?? object.position.x;
       object.position.y = config.position.y ?? object.position.y;
@@ -263,6 +318,7 @@ export class GalileoPhysicsSystem {
     if (config.isStatic !== undefined) {
       object.isStatic = config.isStatic;
       object.inverseMass = object.isStatic ? 0 : 1 / object.mass;
+      object.inverseInertia = object.isStatic ? 0 : object.inverseInertia;
     }
     
     if (config.gravityScale !== undefined) {
@@ -280,10 +336,10 @@ export class GalileoPhysicsSystem {
     if (config.shape !== undefined) {
       object.shape = config.shape;
       
-      // Set shape-specific properties
       if (config.shape === 'circle' && config.radius !== undefined) {
         object.radius = Math.max(0.0001, config.radius);
         object.boundingRadius = object.radius;
+        object.inertia = 0.5 * object.mass * object.radius * object.radius;
       } else if (config.shape === 'rectangle') {
         if (config.width !== undefined) {
           object.width = Math.max(0.0001, config.width);
@@ -292,13 +348,11 @@ export class GalileoPhysicsSystem {
           object.height = Math.max(0.0001, config.height);
         }
         
-        // Calculate bounding radius for rectangle
         object.boundingRadius = Math.sqrt(
           (object.width / 2) * (object.width / 2) + 
           (object.height / 2) * (object.height / 2)
         );
         
-        // Generate vertices for rectangle if not provided
         if (!config.vertices || config.vertices.length === 0) {
           const halfWidth = object.width / 2;
           const halfHeight = object.height / 2;
@@ -309,10 +363,10 @@ export class GalileoPhysicsSystem {
             { x: -halfWidth, y: halfHeight, z: 0 }
           ];
         }
+        object.inertia = (1/12) * object.mass * (object.width * object.width + object.height * object.height);
       } else if (config.shape === 'polygon' && config.vertices) {
         object.vertices = [...config.vertices];
         
-        // Calculate bounding radius for polygon
         let maxDistSq = 0;
         for (const vertex of object.vertices) {
           const distSq = vertex.x * vertex.x + vertex.y * vertex.y;
@@ -321,6 +375,7 @@ export class GalileoPhysicsSystem {
           }
         }
         object.boundingRadius = Math.sqrt(maxDistSq);
+        object.inertia = 0.5 * object.mass * object.boundingRadius * object.boundingRadius;
       }
     }
     
@@ -328,10 +383,15 @@ export class GalileoPhysicsSystem {
       object.userData = config.userData;
     }
     
-    // Add object to the system
+    if (config.angle !== undefined) {
+      object.angle = config.angle;
+    }
+    if (config.angularVelocity !== undefined) {
+      object.angularVelocity = config.angularVelocity;
+    }
+    
     this.objects.set(id, object);
     
-    // Dispatch event
     this.dispatchEvent({
       type: 'objectAdded',
       objectA: object,
@@ -351,7 +411,6 @@ export class GalileoPhysicsSystem {
     if (object) {
       this.objects.delete(id);
       
-      // Dispatch event
       this.dispatchEvent({
         type: 'objectRemoved',
         objectA: object,
@@ -369,7 +428,23 @@ export class GalileoPhysicsSystem {
    * @param id The ID of the object to retrieve
    */
   public getObject(id: string): PhysicsObject | undefined {
-    return this.objects.get(id);
+    // Ensure we consistently use a string ID for map lookup
+    const stringId = String(id);
+
+    const obj = this.objects.get(stringId);
+
+    // If found directly, return it
+    if (obj) {
+      return obj;
+    }
+
+    // REMOVED complex fallback logic (trimming, iterating)
+    // A direct map lookup should be sufficient and less error-prone.
+    // If the object isn't found with its string ID, it's considered not present.
+
+    // Log failure only if not found directly
+    console.debug(`[PhysicsSystem] Object not found with ID: "${stringId}". Available IDs: [${Array.from(this.objects.keys()).join(', ')}]`);
+    return undefined;
   }
 
   /**
@@ -384,44 +459,37 @@ export class GalileoPhysicsSystem {
       return false;
     }
     
-    // Handle position updates
     if (updates.position) {
       if (updates.position.x !== undefined) object.position.x = updates.position.x;
       if (updates.position.y !== undefined) object.position.y = updates.position.y;
       if (updates.position.z !== undefined) object.position.z = updates.position.z;
     }
     
-    // Handle velocity updates
     if (updates.velocity) {
       if (updates.velocity.x !== undefined) object.velocity.x = updates.velocity.x;
       if (updates.velocity.y !== undefined) object.velocity.y = updates.velocity.y;
       if (updates.velocity.z !== undefined) object.velocity.z = updates.velocity.z;
       
-      // Wake up object if velocity changed
       if (object.isSleeping && this.getVelocityMagnitudeSquared(object) > 0) {
         this.wakeObject(object);
       }
     }
     
-    // Handle acceleration updates
     if (updates.acceleration) {
       if (updates.acceleration.x !== undefined) object.acceleration.x = updates.acceleration.x;
       if (updates.acceleration.y !== undefined) object.acceleration.y = updates.acceleration.y;
       if (updates.acceleration.z !== undefined) object.acceleration.z = updates.acceleration.z;
       
-      // Wake up object if acceleration changed
       if (object.isSleeping && this.getVelocityMagnitudeSquared(object) > 0) {
         this.wakeObject(object);
       }
     }
     
-    // Handle mass updates
     if (updates.mass !== undefined) {
       object.mass = Math.max(0.0001, updates.mass);
       object.inverseMass = object.isStatic ? 0 : 1 / object.mass;
     }
     
-    // Handle other scalar properties
     if (updates.restitution !== undefined) {
       object.restitution = Math.max(0, Math.min(1, updates.restitution));
     }
@@ -437,6 +505,7 @@ export class GalileoPhysicsSystem {
     if (updates.isStatic !== undefined) {
       object.isStatic = updates.isStatic;
       object.inverseMass = object.isStatic ? 0 : 1 / object.mass;
+      object.inverseInertia = object.isStatic ? 0 : object.inverseInertia;
     }
     
     if (updates.gravityScale !== undefined) {
@@ -447,27 +516,117 @@ export class GalileoPhysicsSystem {
       object.userData = updates.userData;
     }
     
+    if (updates.angle !== undefined) {
+      object.angle = updates.angle;
+    }
+    if (updates.angularVelocity !== undefined) {
+      object.angularVelocity = updates.angularVelocity;
+      if (object.isSleeping && Math.abs(object.angularVelocity) > 0) {
+        this.wakeObject(object);
+      }
+    }
+    
+    let needsInertiaUpdate = false;
+    if (updates.shape !== undefined) {
+      if (updates.shape === 'circle' && updates.radius !== undefined) {
+        object.radius = Math.max(0.0001, updates.radius);
+        object.boundingRadius = object.radius;
+        object.inertia = 0.5 * object.mass * object.radius * object.radius;
+      } else if (updates.shape === 'rectangle') {
+        if (updates.width !== undefined) {
+          object.width = Math.max(0.0001, updates.width);
+        }
+        if (updates.height !== undefined) {
+          object.height = Math.max(0.0001, updates.height);
+        }
+        
+        object.boundingRadius = Math.sqrt(
+          (object.width / 2) * (object.width / 2) + 
+          (object.height / 2) * (object.height / 2)
+        );
+        
+        if (!updates.vertices || updates.vertices.length === 0) {
+          const halfWidth = object.width / 2;
+          const halfHeight = object.height / 2;
+          object.vertices = [
+            { x: -halfWidth, y: -halfHeight, z: 0 },
+            { x: halfWidth, y: -halfHeight, z: 0 },
+            { x: halfWidth, y: halfHeight, z: 0 },
+            { x: -halfWidth, y: halfHeight, z: 0 }
+          ];
+        }
+        object.inertia = (1/12) * object.mass * (object.width * object.width + object.height * object.height);
+      } else if (updates.shape === 'polygon' && updates.vertices) {
+        object.vertices = [...updates.vertices];
+        
+        let maxDistSq = 0;
+        for (const vertex of object.vertices) {
+          const distSq = vertex.x * vertex.x + vertex.y * vertex.y;
+          if (distSq > maxDistSq) {
+            maxDistSq = distSq;
+          }
+        }
+        object.boundingRadius = Math.sqrt(maxDistSq);
+        object.inertia = 0.5 * object.mass * object.boundingRadius * object.boundingRadius;
+      }
+    }
+    
+    if (updates.isStatic !== undefined) {
+      object.isStatic = updates.isStatic;
+      object.inverseMass = object.isStatic ? 0 : 1 / object.mass;
+      object.inverseInertia = object.isStatic ? 0 : object.inverseInertia;
+    }
+    
+    if (needsInertiaUpdate) {
+      if (object.shape === 'circle') {
+        object.inertia = 0.5 * object.mass * object.radius * object.radius;
+      } else if (object.shape === 'rectangle') {
+        object.inertia = (1/12) * object.mass * (object.width * object.width + object.height * object.height);
+      } else if (object.shape === 'polygon') {
+        object.inertia = 0.5 * object.mass * object.boundingRadius * object.boundingRadius;
+      }
+
+      if (!object.isStatic) {
+        object.inertia = Math.max(0.0001, object.inertia);
+        object.inverseInertia = 1.0 / object.inertia;
+      } else {
+        object.inertia = Infinity;
+        object.inverseInertia = 0;
+      }
+    }
+    
     return true;
   }
 
   /**
    * Apply a force to a physics object
    * @param id The ID of the object to apply force to
-   * @param force The force vector to apply
+   * @param force The force vector { x, y, z } to apply
+   * @param point Optional point relative to the object's center where the force is applied. Defaults to center.
+   * @returns True if force was applied, false otherwise.
    */
-  public applyForce(id: string, force: Partial<Vector>): boolean {
+  public applyForce(id: string, force: Partial<Vector>, point?: Partial<Vector>): boolean {
     const object = this.objects.get(id);
     
     if (!object) {
       return false;
     }
     
-    // Apply force to object
-    if (force.x) object.forces.x += force.x;
-    if (force.y) object.forces.y += force.y;
-    if (force.z) object.forces.z += force.z;
+    const fx = force.x ?? 0;
+    const fy = force.y ?? 0;
+    const fz = force.z ?? 0;
+
+    object.forces.x += fx;
+    object.forces.y += fy;
+    object.forces.z += fz;
+
+    if (point && !object.isStatic) {
+      const rx = point.x ?? 0;
+      const ry = point.y ?? 0;
+      const torqueZ = rx * fy - ry * fx;
+      object.torque += torqueZ;
+    }
     
-    // Wake up object if sleeping
     if (object.isSleeping) {
       this.wakeObject(object);
     }
@@ -478,21 +637,32 @@ export class GalileoPhysicsSystem {
   /**
    * Apply an impulse (immediate velocity change) to a physics object
    * @param id The ID of the object to apply impulse to
-   * @param impulse The impulse vector to apply
+   * @param impulse The impulse vector { x, y, z } to apply
+   * @param point Optional point relative to the object's center where the impulse is applied. Defaults to center.
+   * @returns True if impulse was applied, false otherwise.
    */
-  public applyImpulse(id: string, impulse: Partial<Vector>): boolean {
+  public applyImpulse(id: string, impulse: Partial<Vector>, point?: Partial<Vector>): boolean {
     const object = this.objects.get(id);
     
     if (!object || object.isStatic) {
       return false;
     }
     
-    // Apply impulse directly to velocity (F = m*a, impulse = m*Δv)
-    if (impulse.x) object.velocity.x += impulse.x * object.inverseMass;
-    if (impulse.y) object.velocity.y += impulse.y * object.inverseMass;
-    if (impulse.z) object.velocity.z += impulse.z * object.inverseMass;
+    const ix = impulse.x ?? 0;
+    const iy = impulse.y ?? 0;
+    const iz = impulse.z ?? 0;
+
+    object.velocity.x += ix * object.inverseMass;
+    object.velocity.y += iy * object.inverseMass;
+    object.velocity.z += iz * object.inverseMass;
+
+    if (point) {
+      const rx = point.x ?? 0;
+      const ry = point.y ?? 0;
+      const angularImpulseZ = rx * iy - ry * ix;
+      object.angularVelocity += angularImpulseZ * object.inverseInertia;
+    }
     
-    // Wake up object if sleeping
     if (object.isSleeping) {
       this.wakeObject(object);
     }
@@ -508,7 +678,6 @@ export class GalileoPhysicsSystem {
       object.isSleeping = false;
       object.timeIdle = 0;
       
-      // Dispatch wake event
       this.dispatchEvent({
         type: 'wake',
         objectA: object,
@@ -532,8 +701,9 @@ export class GalileoPhysicsSystem {
       object.forces.x = 0;
       object.forces.y = 0;
       object.forces.z = 0;
+      object.angularVelocity = 0;
+      object.torque = 0;
       
-      // Dispatch sleep event
       this.dispatchEvent({
         type: 'sleep',
         objectA: object,
@@ -554,12 +724,20 @@ export class GalileoPhysicsSystem {
   }
 
   /**
-   * Reset accumulated forces on an object
+   * Calculate the squared magnitude of an object's angular velocity
    */
-  private resetForces(object: PhysicsObject): void {
+  private getAngularVelocityMagnitudeSquared(object: PhysicsObject): number {
+    return object.angularVelocity * object.angularVelocity;
+  }
+
+  /**
+   * Reset accumulated forces and torques on an object
+   */
+  private resetForcesAndTorques(object: PhysicsObject): void {
     object.forces.x = 0;
     object.forces.y = 0;
     object.forces.z = 0;
+    object.torque = 0;
   }
 
   /**
@@ -570,98 +748,56 @@ export class GalileoPhysicsSystem {
       return;
     }
     
-    // Store previous position for verlet integration
     object.previousPosition.x = object.position.x;
     object.previousPosition.y = object.position.y;
     object.previousPosition.z = object.position.z;
     
-    // Apply gravity
     const gravityForceX = this.config.gravity.x * object.gravityScale * object.mass;
     const gravityForceY = this.config.gravity.y * object.gravityScale * object.mass;
     const gravityForceZ = this.config.gravity.z * object.gravityScale * object.mass;
     
-    // Calculate acceleration from forces (F = ma, a = F/m)
-    const accelerationX = (object.forces.x + gravityForceX) * object.inverseMass;
-    const accelerationY = (object.forces.y + gravityForceY) * object.inverseMass;
-    const accelerationZ = (object.forces.z + gravityForceZ) * object.inverseMass;
+    const linearAccelerationX = (object.forces.x + gravityForceX) * object.inverseMass;
+    const linearAccelerationY = (object.forces.y + gravityForceY) * object.inverseMass;
+    const linearAccelerationZ = (object.forces.z + gravityForceZ) * object.inverseMass;
     
-    // Set new acceleration
-    object.acceleration.x = accelerationX;
-    object.acceleration.y = accelerationY;
-    object.acceleration.z = accelerationZ;
+    object.acceleration.x = linearAccelerationX;
+    object.acceleration.y = linearAccelerationY;
+    object.acceleration.z = linearAccelerationZ;
     
-    // Perform integration based on selected method
-    if (this.config.integrationMethod === 'euler') {
-      // Explicit Euler integration (simplest, but less stable)
-      // Update velocity using acceleration (v = v0 + a*dt)
-      object.velocity.x += object.acceleration.x * dt;
-      object.velocity.y += object.acceleration.y * dt;
-      object.velocity.z += object.acceleration.z * dt;
-      
-      // Apply damping (drag)
-      const damping = Math.pow(1 - object.damping, dt);
-      object.velocity.x *= damping;
-      object.velocity.y *= damping;
-      object.velocity.z *= damping;
-      
-      // Update position using velocity (p = p0 + v*dt)
-      object.position.x += object.velocity.x * dt;
-      object.position.y += object.velocity.y * dt;
-      object.position.z += object.velocity.z * dt;
-    }
-    else if (this.config.integrationMethod === 'verlet') {
-      // Velocity Verlet integration (more stable than Euler)
-      // Update velocity using half-step acceleration (v = v0 + a*dt/2)
-      object.velocity.x += object.acceleration.x * dt * 0.5;
-      object.velocity.y += object.acceleration.y * dt * 0.5;
-      object.velocity.z += object.acceleration.z * dt * 0.5;
-      
-      // Update position using velocity (p = p0 + v*dt)
-      object.position.x += object.velocity.x * dt;
-      object.position.y += object.velocity.y * dt;
-      object.position.z += object.velocity.z * dt;
-      
-      // Apply damping (drag)
-      const damping = Math.pow(1 - object.damping, dt);
-      object.velocity.x *= damping;
-      object.velocity.y *= damping;
-      object.velocity.z *= damping;
-      
-      // Complete velocity update with second half-step
-      object.velocity.x += object.acceleration.x * dt * 0.5;
-      object.velocity.y += object.acceleration.y * dt * 0.5;
-      object.velocity.z += object.acceleration.z * dt * 0.5;
-    }
-    else if (this.config.integrationMethod === 'rk4') {
-      // Runge-Kutta 4th order (most accurate, but more computationally expensive)
-      // Implementation omitted for brevity, would include 4 evaluation steps
-      // This is a placeholder for future implementation
-      
-      // For now, fall back to verlet integration
-      object.velocity.x += object.acceleration.x * dt * 0.5;
-      object.velocity.y += object.acceleration.y * dt * 0.5;
-      object.velocity.z += object.acceleration.z * dt * 0.5;
-      
-      object.position.x += object.velocity.x * dt;
-      object.position.y += object.velocity.y * dt;
-      object.position.z += object.velocity.z * dt;
-      
-      const damping = Math.pow(1 - object.damping, dt);
-      object.velocity.x *= damping;
-      object.velocity.y *= damping;
-      object.velocity.z *= damping;
-      
-      object.velocity.x += object.acceleration.x * dt * 0.5;
-      object.velocity.y += object.acceleration.y * dt * 0.5;
-      object.velocity.z += object.acceleration.z * dt * 0.5;
-    }
+    const angularAcceleration = object.torque * object.inverseInertia;
     
-    // Check for sleeping
+    object.velocity.x += linearAccelerationX * dt * 0.5;
+    object.velocity.y += linearAccelerationY * dt * 0.5;
+    object.velocity.z += linearAccelerationZ * dt * 0.5;
+    object.angularVelocity += angularAcceleration * dt * 0.5;
+    
+    object.position.x += object.velocity.x * dt;
+    object.position.y += object.velocity.y * dt;
+    object.position.z += object.velocity.z * dt;
+    object.angle += object.angularVelocity * dt;
+    
+    const linearDamping = Math.pow(1 - object.damping, dt);
+    const angularDampingFactor = 0.99;
+    const angularDamping = Math.pow(1 - angularDampingFactor, dt);
+    object.velocity.x *= linearDamping;
+    object.velocity.y *= linearDamping;
+    object.velocity.z *= linearDamping;
+    object.angularVelocity *= angularDamping;
+    
+    object.velocity.x += linearAccelerationX * dt * 0.5;
+    object.velocity.y += linearAccelerationY * dt * 0.5;
+    object.velocity.z += linearAccelerationZ * dt * 0.5;
+    object.angularVelocity += angularAcceleration * dt * 0.5;
+    
     if (this.config.enableSleeping) {
-      const velocitySquared = this.getVelocityMagnitudeSquared(object);
+      const linearSpeedSq = this.getVelocityMagnitudeSquared(object);
+      const angularSpeedSq = this.getAngularVelocityMagnitudeSquared(object);
       
-      if (velocitySquared < object.sleepThreshold * object.sleepThreshold) {
-        object.timeIdle += dt * 1000; // Convert to ms
+      const linearThresholdSq = this.config.velocitySleepThreshold * this.config.velocitySleepThreshold;
+      const angularThresholdSq = this.config.angularSleepThreshold * this.config.angularSleepThreshold;
+      
+      if (linearSpeedSq < linearThresholdSq && angularSpeedSq < angularThresholdSq) {
+        object.timeIdle += dt * 1000;
         
         if (object.timeIdle > this.config.sleepTimeThreshold) {
           this.sleepObject(object);
@@ -671,8 +807,7 @@ export class GalileoPhysicsSystem {
       }
     }
     
-    // Reset forces for next step
-    this.resetForces(object);
+    this.resetForcesAndTorques(object);
   }
 
   /**
@@ -680,15 +815,14 @@ export class GalileoPhysicsSystem {
    * @param dt Time step in seconds
    */
   private update(dt: number): void {
-    // Scale time step by time scale
     const scaledDt = dt * this.config.timeScale;
     
-    // Integrate physics for each object
     for (const object of this.objects.values()) {
       this.integrateObject(object, scaledDt);
     }
     
-    // Dispatch step event
+    this.applyConstraints(scaledDt);
+
     this.dispatchEvent({
       type: 'step',
       timestamp: Date.now()
@@ -707,10 +841,8 @@ export class GalileoPhysicsSystem {
    * @param elapsed Elapsed time in seconds since last update
    */
   public simulate(elapsed: number): void {
-    // Add elapsed time to accumulator
     this.accumulator += elapsed;
     
-    // Run fixed time steps while accumulated time exceeds fixed time step
     let steps = 0;
     while (this.accumulator >= this.config.fixedTimeStep && steps < this.config.maxSubSteps) {
       this.update(this.config.fixedTimeStep);
@@ -729,14 +861,11 @@ export class GalileoPhysicsSystem {
       this.lastTime = timestamp;
     }
     
-    // Calculate elapsed time in seconds
     const elapsed = (timestamp - this.lastTime) / 1000;
     this.lastTime = timestamp;
     
-    // Run simulation with elapsed time
     this.simulate(elapsed);
     
-    // Schedule next frame
     this.rafId = requestAnimationFrame(this.animationFrame);
   };
 
@@ -840,9 +969,310 @@ export class GalileoPhysicsSystem {
   public updateConfig(config: Partial<PhysicsConfig>): void {
     this.config = { ...this.config, ...config };
   }
+
+  // --- Constraint Management ---
+
+  /**
+   * Generate a unique ID for a physics constraint
+   */
+  private generateConstraintId(): string {
+    return `physics_constraint_${this.nextConstraintId++}`;
+  }
+
+  /**
+   * Adds a constraint between two bodies.
+   * @param options Configuration options for the constraint.
+   * @returns The unique ID of the created constraint, or null if creation failed.
+   */
+  public addConstraint(options: PhysicsConstraintOptions): string | null {
+    const bodyA = this.getObject(options.bodyAId);
+    const bodyB = this.getObject(options.bodyBId);
+
+    if (!bodyA || !bodyB) {
+      console.error(
+        `[PhysicsSystem] Cannot add constraint: Body A ('${options.bodyAId}') or Body B ('${options.bodyBId}') not found.`
+      );
+      return null;
+    }
+
+    if (bodyA === bodyB) {
+      console.error(
+        `[PhysicsSystem] Cannot add constraint: Body A and Body B are the same ('${options.bodyAId}').`
+      );
+      return null;
+    }
+
+    // Ensure Z is 0 if not provided in local points
+    const localPointA: Vector = { x: options.pointA?.x ?? 0, y: options.pointA?.y ?? 0, z: 0 };
+    const localPointB: Vector = { x: options.pointB?.x ?? 0, y: options.pointB?.y ?? 0, z: 0 };
+
+    const constraintId = options.id ?? this.generateConstraintId();
+
+    if (this.constraints.has(constraintId)) {
+        console.warn(`[PhysicsSystem] Constraint with ID "${constraintId}" already exists. Overwriting.`);
+    }
+
+    const internalConstraint: InternalConstraint = {
+      id: constraintId,
+      options: options, // Store the specific options (DistanceConstraintOptions, etc.)
+      bodyA: bodyA,
+      bodyB: bodyB,
+      localPointA: localPointA,
+      localPointB: localPointB,
+    };
+
+    this.constraints.set(constraintId, internalConstraint);
+    console.log(`[PhysicsSystem] Added constraint ${constraintId} of type ${options.type} between ${bodyA.id} and ${bodyB.id}`);
+    return constraintId;
+  }
+
+  /**
+   * Removes a constraint from the simulation.
+   * @param id The ID of the constraint to remove.
+   * @returns True if the constraint was found and removed, false otherwise.
+   */
+  public removeConstraint(id: string): boolean {
+    if (this.constraints.has(id)) {
+      this.constraints.delete(id);
+      console.log(`[PhysicsSystem] Removed constraint ${id}`);
+      return true;
+    }
+    console.warn(`[PhysicsSystem] Constraint with ID "${id}" not found for removal.`);
+    return false;
+  }
+
+  /**
+   * Resolves all constraints iteratively.
+   * This method applies positional corrections to satisfy constraints.
+   * @param dt Time step (can be used for stiffness/damping later, ignored for now)
+   */
+  private applyConstraints(dt: number): void {
+      if (this.constraints.size === 0) {
+          return;
+      }
+
+      // --- Simple Iterative Solver ---
+      // Repeat resolution step multiple times for better stability
+      const iterations = 5; // TODO: Make configurable?
+      for (let i = 0; i < iterations; ++i) {
+          for (const constraint of this.constraints.values()) {
+              // --- Distance & Spring Constraint Resolution ---
+              this.resolveDistanceConstraint(constraint);
+          }
+      }
+  }
+
+  /**
+   * Resolves a single distance or spring constraint using iterative impulse solver.
+   * @param constraint The internal constraint data.
+   */
+  private resolveDistanceConstraint(constraint: InternalConstraint): void {
+      const { bodyA, bodyB, localPointA, localPointB } = constraint;
+      // Assert the constraint type to access specific options
+      if (constraint.options.type !== 'distance' && constraint.options.type !== 'spring') return;
+      const options = constraint.options; // Now options is DistanceConstraintOptions | SpringConstraintOptions
+
+      // Determine target length and parameters based on type
+      const targetDistance = options.type === 'spring' ? options.restLength : options.distance;
+      // Stiffness/Damping are currently used only for simple positional correction scaling, not true spring forces here
+      const stiffnessFactor = 1.0; // For rigid positional correction in this solver iteration
+
+      if (bodyA.isStatic && bodyB.isStatic) {
+          return;
+      }
+
+      // --- Calculate World Attachment Points (Includes rotation) ---
+      // Use VectorUtils for consistency
+      const rotatedLocalA = VectorUtils.rotate(localPointA, bodyA.angle);
+      const rotatedLocalB = VectorUtils.rotate(localPointB, bodyB.angle);
+
+      const worldPointA: Vector = {
+          x: bodyA.position.x + rotatedLocalA.x,
+          y: bodyA.position.y + rotatedLocalA.y,
+          z: bodyA.position.z ?? 0, // Assuming 2D if z is undefined
+      };
+      const worldPointB: Vector = {
+          x: bodyB.position.x + rotatedLocalB.x,
+          y: bodyB.position.y + rotatedLocalB.y,
+          z: bodyB.position.z ?? 0, // Assuming 2D if z is undefined
+      };
+
+      // --- Calculate Delta and Current Distance --- 
+      const delta = VectorUtils.subtract(worldPointB, worldPointA);
+      const currentDistanceSq = VectorUtils.magnitudeSquared(delta);
+      const currentDistance = Math.sqrt(currentDistanceSq);
+
+      if (currentDistance < 0.0001 && targetDistance < 0.0001) {
+          // Avoid division by zero if points coincide and target is zero
+          return;
+      }
+
+      // --- Calculate Positional Difference --- 
+      const positionError = currentDistance - targetDistance;
+
+      // If error is negligible, skip correction
+      if (Math.abs(positionError) < 0.001) { // Use a small tolerance
+        return;
+      }
+
+      const normal: Vector = currentDistance < 0.0001
+          ? { x: 1, y: 0, z: 0 } // Default direction if points coincide
+          : VectorUtils.divide(delta, currentDistance);
+
+      // --- Calculate Effective Mass & Impulse (Simplified for Position Correction) ---
+      // Vectors from body centers to world anchor points
+      const rA = VectorUtils.subtract(worldPointA, bodyA.position);
+      const rB = VectorUtils.subtract(worldPointB, bodyB.position);
+
+      // Terms involving cross product with normal (for angular contribution)
+      const rACrossN = VectorUtils.cross2D(rA, normal); // Cross product z-component for 2D rotation
+      const rBCrossN = VectorUtils.cross2D(rB, normal);
+
+      // Effective mass along the constraint normal
+      const k = bodyA.inverseMass + bodyB.inverseMass + 
+                (rACrossN * rACrossN * bodyA.inverseInertia) + 
+                (rBCrossN * rBCrossN * bodyB.inverseInertia);
+
+      if (k <= 0.00001) { // Avoid division by zero if effective mass is near zero
+        return; 
+      }
+
+      // Calculate impulse magnitude needed for positional correction
+      // Simple linear correction: lambda = -Error / EffectiveMass
+      // Scaled by stiffnessFactor (which is 1.0 for now for rigidity)
+      const lambda = (-positionError / k) * stiffnessFactor;
+
+      // Impulse vector
+      const impulse = VectorUtils.multiply(normal, lambda);
+
+      // --- Apply Positional Correction --- 
+      // Distribute correction based on inverse mass
+      // Convert impulse to positional change (deltaPos = impulse * inverseMass)
+      // Note: This is a direct positional adjustment, common in iterative solvers like Sequential Impulse or PBD
+      if (!bodyA.isStatic) {
+          const posCorrectionA = VectorUtils.multiply(impulse, bodyA.inverseMass);
+          bodyA.position = VectorUtils.add(bodyA.position, posCorrectionA);
+
+          // Apply angular correction
+          const angularCorrectionA = VectorUtils.cross2D(rA, impulse) * bodyA.inverseInertia;
+          bodyA.angle += angularCorrectionA;
+      }
+
+      if (!bodyB.isStatic) {
+          const posCorrectionB = VectorUtils.multiply(impulse, bodyB.inverseMass);
+          bodyB.position = VectorUtils.subtract(bodyB.position, posCorrectionB);
+
+          // Apply angular correction
+          const angularCorrectionB = VectorUtils.cross2D(rB, impulse) * bodyB.inverseInertia;
+          bodyB.angle -= angularCorrectionB;
+      }
+  }
+
+  /**
+   * Resolves a hinge constraint, ensuring anchor points coincide.
+   * Note: This does NOT currently implement angular limits or motors.
+   * @param constraint The internal constraint data.
+   * @param options The specific hinge constraint options.
+   */
+  private resolveHingeConstraint(constraint: InternalConstraint, options: HingeConstraintOptions): void {
+      const { bodyA, bodyB, localPointA, localPointB } = constraint;
+      // Stiffness/Damping might be added later for softness or limits
+
+      if (bodyA.isStatic && bodyB.isStatic) {
+          return; // Both bodies are fixed
+      }
+
+      // --- Calculate World Attachment Points (Includes rotation) ---
+      const rotatedLocalA = VectorUtils.rotate(localPointA, bodyA.angle);
+      const rotatedLocalB = VectorUtils.rotate(localPointB, bodyB.angle);
+
+      const worldPointA: Vector = {
+          x: bodyA.position.x + rotatedLocalA.x,
+          y: bodyA.position.y + rotatedLocalA.y,
+          z: bodyA.position.z ?? 0, // Assuming 2D
+      };
+      const worldPointB: Vector = {
+          x: bodyB.position.x + rotatedLocalB.x,
+          y: bodyB.position.y + rotatedLocalB.y,
+          z: bodyB.position.z ?? 0, // Assuming 2D
+      };
+
+      // --- Calculate Delta (Difference between world anchor points) ---
+      const delta = VectorUtils.subtract(worldPointB, worldPointA);
+
+      const currentDistanceSq = delta.x * delta.x + delta.y * delta.y + (delta.z ? delta.z * delta.z : 0);
+
+      // If points nearly coincide, no positional correction needed
+      if (currentDistanceSq < 0.001 * 0.001) { // Tolerance
+          return; 
+      }
+
+      // Target distance for a hinge is 0
+      const positionError = Math.sqrt(currentDistanceSq); // The error is the current distance
+
+      // --- Calculate Correction ---
+      // Normalize delta vector (direction of correction)
+      const currentDistance = Math.sqrt(currentDistanceSq);
+      const normal: Vector = currentDistance < 0.0001
+          ? { x: 1, y: 0, z: 0 } // Default correction direction if points coincide exactly
+          : VectorUtils.divide(delta, currentDistance);
+
+      // --- Calculate Effective Mass & Impulse (Same as distance constraint with target=0) ---
+      const rA = VectorUtils.subtract(worldPointA, bodyA.position);
+      const rB = VectorUtils.subtract(worldPointB, bodyB.position);
+
+      const rACrossN = VectorUtils.cross2D(rA, normal);
+      const rBCrossN = VectorUtils.cross2D(rB, normal);
+
+      const k = bodyA.inverseMass + bodyB.inverseMass + 
+                (rACrossN * rACrossN * bodyA.inverseInertia) + 
+                (rBCrossN * rBCrossN * bodyB.inverseInertia);
+
+      if (k <= 0.00001) return; // Effective mass is zero
+
+      // Calculate impulse magnitude: lambda = -Error / EffectiveMass
+      // Error is positionError (the current distance)
+      const lambda = -positionError / k;
+
+      // Impulse vector
+      const impulse = VectorUtils.multiply(normal, lambda);
+
+      // --- Apply Positional Correction --- 
+      // Distribute correction based on inverse mass to move anchors together
+      // (Same impulse application as distance constraint)
+      if (!bodyA.isStatic) {
+          const posCorrectionA = VectorUtils.multiply(impulse, bodyA.inverseMass);
+          bodyA.position = VectorUtils.add(bodyA.position, posCorrectionA);
+          const angularCorrectionA = VectorUtils.cross2D(rA, impulse) * bodyA.inverseInertia;
+          bodyA.angle += angularCorrectionA;
+      }
+
+      if (!bodyB.isStatic) {
+          const posCorrectionB = VectorUtils.multiply(impulse, bodyB.inverseMass);
+          bodyB.position = VectorUtils.subtract(bodyB.position, posCorrectionB);
+          const angularCorrectionB = VectorUtils.cross2D(rB, impulse) * bodyB.inverseInertia;
+          bodyB.angle -= angularCorrectionB;
+      }
+  }
+
+  /**
+   * Helper function to rotate a 2D vector by an angle.
+   * @param v The vector { x, y } to rotate.
+   * @param angle The angle in radians.
+   * @returns The rotated vector.
+   */
+  private rotateVector(v: { x: number; y: number }, angle: number): { x: number; y: number } {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      return {
+          x: v.x * cos - v.y * sin,
+          y: v.x * sin + v.y * cos
+      };
+  }
 }
 
-// Vector utility functions
+// --- Vector Math Utilities ---
+// Exported utility object for vector operations
 export const VectorUtils = {
   /**
    * Create a new vector
@@ -889,7 +1319,8 @@ export const VectorUtils = {
    */
   divide(v: Vector, scalar: number): Vector {
     if (scalar === 0) {
-      throw new Error('Cannot divide vector by zero');
+      console.warn('Attempted to divide vector by zero.');
+      return { x: 0, y: 0, z: 0 };
     }
     
     return {
@@ -931,11 +1362,11 @@ export const VectorUtils = {
    * Calculate the magnitude (length) of a vector
    */
   magnitude(v: Vector): number {
-    return Math.sqrt(v.x * v.x + v.y * v.y + (v.z ?? 0) * (v.z ?? 0));
+    return Math.sqrt(this.magnitudeSquared(v));
   },
   
   /**
-   * Calculate the squared magnitude of a vector
+   * Calculate the squared magnitude of a vector (cheaper than magnitude)
    */
   magnitudeSquared(v: Vector): number {
     return v.x * v.x + v.y * v.y + (v.z ?? 0) * (v.z ?? 0);
@@ -945,12 +1376,11 @@ export const VectorUtils = {
    * Normalize a vector (make it unit length)
    */
   normalize(v: Vector): Vector {
-    const mag = this.magnitude(v);
-    
-    if (mag === 0) {
-      return { ...v };
+    const magSq = this.magnitudeSquared(v);
+    if (magSq === 0) {
+      return { x: 0, y: 0, z: 0 };
     }
-    
+    const mag = Math.sqrt(magSq);
     return this.divide(v, mag);
   },
   
@@ -972,10 +1402,11 @@ export const VectorUtils = {
    * Linearly interpolate between two vectors
    */
   lerp(a: Vector, b: Vector, t: number): Vector {
+    const clampedT = Math.max(0, Math.min(1, t));
     return {
-      x: a.x + (b.x - a.x) * t,
-      y: a.y + (b.y - a.y) * t,
-      z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * t
+      x: a.x + (b.x - a.x) * clampedT,
+      y: a.y + (b.y - a.y) * clampedT,
+      z: (a.z ?? 0) + ((b.z ?? 0) - (a.z ?? 0)) * clampedT
     };
   },
   
@@ -983,24 +1414,23 @@ export const VectorUtils = {
    * Calculate the angle between two vectors in radians
    */
   angle(a: Vector, b: Vector): number {
-    const magA = this.magnitude(a);
-    const magB = this.magnitude(b);
+    const magSqA = this.magnitudeSquared(a);
+    const magSqB = this.magnitudeSquared(b);
     
-    if (magA === 0 || magB === 0) {
+    if (magSqA === 0 || magSqB === 0) {
       return 0;
     }
     
     const dot = this.dot(a, b);
-    const cos = dot / (magA * magB);
+    const cos = dot / (Math.sqrt(magSqA * magSqB));
     
-    // Clamp to prevent floating point errors
     const clampedCos = Math.max(-1, Math.min(1, cos));
     
     return Math.acos(clampedCos);
   },
   
   /**
-   * Rotate a 2D vector by an angle in radians
+   * Rotate a 2D vector by an angle in radians around the Z axis
    */
   rotate(v: Vector, angle: number): Vector {
     const cos = Math.cos(angle);

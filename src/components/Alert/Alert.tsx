@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useEffect, CSSProperties, useRef, useCallback, useMemo } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 // Import AnimationProps
 import { AnimationProps } from '../../animations/types';
@@ -193,11 +193,13 @@ const AlertRoot = styled.div<{
   /* Subtle glow for filled and glass variants */
   ${props =>
     (props.$variant === 'filled' || props.$variant === 'glass') &&
-    glassGlow({
-      glowIntensity: 'light',
-      glowColor: getSeverityColor(props.$severity),
-      themeContext: createThemeContext({}),
-    })}
+    css`
+      ${glassGlow({
+        glowIntensity: 'light',
+        glowColor: getSeverityColor(props.$severity),
+        themeContext: createThemeContext({}),
+      })}
+    `}
 `;
 
 const AlertIcon = styled.div<{ $severity: string; $variant: string }>`

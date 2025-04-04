@@ -3,20 +3,21 @@
  */
 
 import React from 'react';
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, act } from '@testing-library/react';
 import { MagneticSystemProvider, useMagneticSystem } from '../MagneticSystemProvider';
 
-// Mock requestAnimationFrame and cancelAnimationFrame
-jest.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
-  setTimeout(() => cb(performance.now()), 0);
-  return 0;
-});
-
-jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-
 describe('MagneticSystemProvider', () => {
+  beforeEach(() => {
+    // Use Jest fake timers
+    jest.useFakeTimers(); 
+    // Reset Time Mocks (No longer needed)
+  });
+
   afterEach(() => {
     cleanup();
+    // Restore originals (No longer needed)
+    // Use Jest real timers
+    jest.useRealTimers(); 
     jest.clearAllMocks();
   });
   
@@ -47,7 +48,7 @@ describe('MagneticSystemProvider', () => {
     expect(getByTestId('has-system').textContent).toBe('yes');
   });
   
-  test('should allow changing active field', () => {
+  test('should allow changing active field', async () => {
     // Create a test consumer component that changes the field
     const TestFieldChanger = () => {
       const { activeField, setActiveField } = useMagneticSystem();
@@ -78,8 +79,10 @@ describe('MagneticSystemProvider', () => {
     // Should start with no field
     expect(getByTestId('field-type').textContent).toBe('none');
     
-    // Change the field
-    getByTestId('change-field').click();
+    // Change the field using act
+    await act(async () => {
+        getByTestId('change-field').click();
+    });
     
     // Should update to the new field type
     expect(getByTestId('field-type').textContent).toBe('radial');

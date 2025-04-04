@@ -25,43 +25,43 @@
   ],
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.esm.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./minimal": {
       "import": "./dist-min/minimal.esm.js",
       "require": "./dist-min/minimal.js"
     },
     "./slim": {
+      "types": "./dist/slim.d.ts",
       "import": "./dist/slim.esm.js",
-      "require": "./dist/slim.js",
-      "types": "./dist/slim.d.ts"
+      "require": "./dist/slim.js"
     },
     "./core": {
+      "types": "./dist/core.d.ts",
       "import": "./dist/core.esm.js",
-      "require": "./dist/core.js",
-      "types": "./dist/core.d.ts"
+      "require": "./dist/core.js"
     },
     "./theme": {
+      "types": "./dist/theme.d.ts",
       "import": "./dist/theme.esm.js",
-      "require": "./dist/theme.js",
-      "types": "./dist/theme.d.ts"
+      "require": "./dist/theme.js"
     },
     "./animations": {
+      "types": "./dist/animations.d.ts",
       "import": "./dist/animations.esm.js",
-      "require": "./dist/animations.js",
-      "types": "./dist/animations.d.ts"
+      "require": "./dist/animations.js"
     },
     "./hooks": {
+      "types": "./dist/hooks/index.d.ts",
       "import": "./dist/hooks.esm.js",
-      "require": "./dist/hooks.js",
-      "types": "./dist/hooks/index.d.ts"
+      "require": "./dist/hooks.js"
     },
     "./physics": {
+      "types": "./dist/animations/physics/index.d.ts",
       "import": "./dist/animations/physics/index.esm.js",
-      "require": "./dist/animations/physics/index.js",
-      "types": "./dist/animations/physics/index.d.ts"
+      "require": "./dist/animations/physics/index.js"
     }
   },
   "sideEffects": false,
@@ -80,7 +80,9 @@
     "install-local": "node scripts/installation/install-local.js",
     "prepublishOnly": "npm run build",
     "dev": "rollup -c -w",
-    "test": "jest",
+    "test": "node --max-old-space-size=8192 node_modules/.bin/jest",
+    "test:chunk": "node scripts/chunked-test-runner.js",
+    "test:single": "node --max-old-space-size=8192 node_modules/.bin/jest --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:physics": "jest --config=jest.physics.config.js",
@@ -99,8 +101,8 @@
     "typecheck:examples": "tsc --noEmit --skipLibCheck --project ./.ts-examples.json",
     "typecheck:build": "tsc --noEmit --skipLibCheck --project ./.tsconfig-ultra-permissive.json",
     "prepare": "node --input-type=module -e \"import { execSync } from 'child_process'; if (process.env.NODE_ENV !== 'production') { console.log('\\n⚙️ Development environment detected - running build...'); execSync('npm run build && husky install', {stdio: 'inherit'}); } else { console.log('\\n🚀 Production environment detected - skipping build...'); }\"",
-    "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "verify": "./scripts/verify.sh",
     "verify:fix": "./scripts/verify.sh --fix",
     "fix:unused-vars": "node scripts/fix-unused-vars.js",
@@ -145,10 +147,13 @@
   },
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
-    "@radix-ui/react-slot": "^1.1.2",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/x-date-pickers": "^7.28.2",
     "color": "^5.0.0",
     "csstype": "^3.1.3",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "polished": "^4.3.1",
     "tiny-invariant": "^1.3.1",
     "zustand": "^4.4.7"
@@ -169,15 +174,21 @@
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-react": "^7.18.6",
     "@babel/preset-typescript": "^7.18.6",
+    "@chromatic-com/storybook": "^3.2.6",
     "@mui/icons-material": "^5.11.16",
+    "@radix-ui/react-slot": "^1.1.2",
     "@rollup/plugin-babel": "^6.0.3",
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-terser": "^0.4.4",
-    "@storybook/addon-actions": "^6.5.16",
-    "@storybook/addon-essentials": "^6.5.16",
-    "@storybook/addon-links": "^6.5.16",
-    "@storybook/react": "^6.5.16",
+    "@storybook/addon-essentials": "^8.6.11",
+    "@storybook/addon-interactions": "^8.6.11",
+    "@storybook/addon-onboarding": "^8.6.11",
+    "@storybook/addon-webpack5-compiler-swc": "^3.0.0",
+    "@storybook/blocks": "^8.6.11",
+    "@storybook/react": "^8.6.11",
+    "@storybook/react-webpack5": "^8.6.11",
+    "@storybook/test": "^8.6.11",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
     "@testing-library/react-hooks": "^7.0.2",
@@ -186,6 +197,7 @@
     "@types/jest": "^29.5.14",
     "@types/react": "^19.0.12",
     "@types/react-dom": "^19.0.4",
+    "@types/react-router-dom": "^5.3.3",
     "@types/react-window": "^1.8.5",
     "@types/styled-components": "^5.1.34",
     "@types/testing-library__react": "^10.0.1",
@@ -198,6 +210,7 @@
     "eslint-plugin-prettier": "^4.2.1",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-storybook": "^0.12.0",
     "eslint-plugin-testing-library": "^7.1.1",
     "husky": "^8.0.3",
     "identity-obj-proxy": "^3.0.0",
@@ -209,11 +222,16 @@
     "prettier": "^2.8.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.4.1",
     "rollup": "^3.14.0",
     "rollup-plugin-dts": "^6.2.1",
     "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-typescript2": "^0.36.0",
+    "storybook": "^8.6.11",
     "styled-components": "^5.3.6",
-    "typescript": "^5.8.2"
+    "tsconfig-paths-webpack-plugin": "^4.2.0",
+    "typescript": "^5.8.2",
+    "buffer": "^6.0.3"
   }
 }

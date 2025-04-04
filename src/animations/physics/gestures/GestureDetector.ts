@@ -59,6 +59,7 @@ export interface GestureEventData {
   target: EventTarget | null;
   event: MouseEvent | TouchEvent | PointerEvent;
   timestamp: number;
+  isKeyboardGenerated?: boolean;
 }
 
 /**
@@ -840,7 +841,7 @@ export class GestureDetector {
       const scale = currentDistance / this.initialTouchDistance;
       
       // Update pinch gesture if scale change exceeds threshold
-      if (Math.abs(scale - 1) > this.options.pinchScaleThreshold!) {
+      if (Math.abs(scale - 1) > this.options.pinchScaleThreshold) {
         this.triggerGestureEvent(
           this.createGestureData(
             GestureType.PINCH,
@@ -866,7 +867,7 @@ export class GestureDetector {
       if (rotation < -180) rotation += 360;
       
       // Update rotate gesture if rotation exceeds threshold
-      if (Math.abs(rotation) > this.options.rotationThreshold!) {
+      if (Math.abs(rotation) > this.options.rotationThreshold) {
         this.triggerGestureEvent(
           this.createGestureData(
             GestureType.ROTATE,

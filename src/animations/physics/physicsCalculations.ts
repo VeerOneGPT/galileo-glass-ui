@@ -173,20 +173,26 @@ export const vectorDistance = (v1: Vector2D, v2: Vector2D): number => {
  * @param position Current position
  * @param target Rest position
  * @param springParams Spring parameters
+ * @param velocity Current velocity
  * @returns Force vector
  */
 export const calculateSpringForce = (
   position: Vector2D,
   target: Vector2D,
-  springParams: SpringParams
+  springParams: SpringParams,
+  velocity: Vector2D
 ): Vector2D => {
-  // Calculate displacement vector
-  const displacement = subtractVectors(target, position);
+  // Calculate displacement vector (position - target)
+  const displacement = subtractVectors(position, target);
 
-  // Calculate spring force (F = k * x) where k is stiffness and x is displacement
-  const springForce = multiplyVector(displacement, springParams.stiffness);
+  // Calculate spring force (F = -k * x)
+  const springForce = multiplyVector(displacement, -springParams.stiffness);
 
-  return springForce;
+  // Calculate damping force (F = -c * v)
+  const dampingForce = calculateDampingForce(velocity, springParams.damping);
+
+  // Return total force (Spring + Damping)
+  return addVectors(springForce, dampingForce);
 };
 
 /**
@@ -411,7 +417,8 @@ export const oscillateAround = (
 export const noise = (x: number, y: number, t: number): number => {
   // Simplified Perlin-like noise function
   const p = (x + y * 57 + t * 131) * 15731;
-  return ((Math.sin(p) * 43758.5453) % 1) * 2 - 1;
+  // Return Math.sin directly, which is in the range [-1, 1]
+  return Math.sin(p);
 };
 
 /**

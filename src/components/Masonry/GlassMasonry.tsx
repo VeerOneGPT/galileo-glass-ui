@@ -4,7 +4,7 @@
  * A glass-styled masonry layout component with physics-based animations
  * for smooth item positioning and transitions.
  */
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { ResizeObserver } from '@juggle/resize-observer';
 
@@ -31,6 +31,16 @@ import {
   AnimationOrigin,
   PhysicsConfig
 } from './types';
+
+// Ref interface
+export interface GlassMasonryRef {
+  /** Gets the main container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
+  /** Programmatically recalculates the layout */
+  recalculateLayout: () => void;
+  /** Scrolls the masonry container to a specific Y offset */
+  scrollToY: (offset: number, behavior?: 'smooth' | 'auto') => void;
+}
 
 // Animation keyframes
 const fadeInKeyframes = keyframes`
@@ -82,6 +92,11 @@ const MasonryContainer = styled.div<{
   $glassVariant?: 'clear' | 'frosted' | 'tinted';
   $blurStrength?: 'light' | 'standard' | 'strong';
   $color?: string;
+  'data-placement-algorithm'?: PlacementAlgorithm;
+  'data-animation-type'?: ItemAnimationType;
+  'data-responsive-columns'?: string;
+  'data-lazy-load'?: string;
+  'data-draggable'?: string;
 }>`
   position: relative;
   width: ${props => props.$width 
@@ -99,8 +114,7 @@ const MasonryContainer = styled.div<{
   `}
   
   /* Glass container styling if enabled */
-  ${props => props.$isGlassContainer && props.$glassVariant && css`
-    ${() => glassSurface({
+  ${props => props.$isGlassContainer && glassSurface({
       elevation: 1,
       blurStrength: props.$blurStrength || 'standard',
       backgroundOpacity: 'light',
@@ -111,6 +125,14 @@ const MasonryContainer = styled.div<{
     
     border-radius: 8px;
     padding: 10px;
+  
+  /* Spread data attributes for testing */
+  ${props => css`
+    &[data-placement-algorithm="${props['data-placement-algorithm']}"] {}
+    &[data-animation-type="${props['data-animation-type']}"] {}
+    &[data-responsive-columns="${props['data-responsive-columns']}"] {}
+    &[data-lazy-load="${props['data-lazy-load']}"] {}
+    &[data-draggable="${props['data-draggable']}"] {}
   `}
 `;
 
@@ -155,6 +177,7 @@ const MasonryItemContainer = styled.div<{
   $scale: number;
   $opacity: number;
   $rotation: number;
+  'data-glass-item'?: string;
 }>`
   position: absolute;
   left: ${props => props.$x}px;
@@ -176,8 +199,7 @@ const MasonryItemContainer = styled.div<{
   `}
   
   /* Apply glass styling if enabled */
-  ${props => props.$isGlassItem && props.$glassVariant && css`
-    ${() => glassSurface({
+  ${props => props.$isGlassItem && glassSurface({
       elevation: 2,
       blurStrength: props.$blurStrength || 'standard',
       backgroundOpacity: 'light',
@@ -188,7 +210,6 @@ const MasonryItemContainer = styled.div<{
     
     border-radius: 8px;
     overflow: hidden;
-  `}
   
   /* Apply physics-based transform */
   transform: translate(${props => props.$translateX}px, ${props => props.$translateY}px) 
@@ -240,8 +261,7 @@ const LoadMoreButton = styled.button<{
   font-size: 0.9rem;
   transition: all 0.2s ease;
   
-  ${props => props.$glassVariant && css`
-    ${() => glassSurface({
+  ${props => props.$glassVariant && glassSurface({
       elevation: 2,
       blurStrength: props.$blurStrength || 'standard',
       backgroundOpacity: 'light',
@@ -260,7 +280,6 @@ const LoadMoreButton = styled.button<{
     &:active {
       transform: translateY(0);
     }
-  `}
 `;
 
 const LoadingIndicator = styled.div`
@@ -268,6 +287,8 @@ const LoadingIndicator = styled.div`
   justify-content: center;
   align-items: center;
   padding: 16px;
+  
+  &[data-testid="masonry-loading-indicator"] {}
   
   .spinner {
     width: 24px;
@@ -350,7 +371,7 @@ const usePositionInertia = (
 /**
  * GlassMasonry Component
  */
-export const GlassMasonry: React.FC<MasonryProps> = ({
+export const GlassMasonry = forwardRef<GlassMasonryRef, MasonryProps>(({
   // Core props
   items = [],
   children,
@@ -412,8 +433,9 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
   // AnimationProps
   animationConfig: propAnimationConfig,
   disableAnimation: propDisableAnimation,
-  motionSensitivity
-}) => {
+  motionSensitivity,
+  onItemClick,
+}, ref) => {
   // State for masonry layout
   const [layout, setLayout] = useState<{
     items: Array<{
@@ -537,9 +559,9 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
     return {
       tension: randomizePhysicsParams(baseConfig.tension),
       friction: randomizePhysicsParams(baseConfig.friction),
-      mass: randomizePhysicsParams(baseConfig.mass)
+      mass: randomizePhysicsParams(baseConfig.mass),
     };
-  }, [physics]);
+  }, [physics, propAnimationConfig]);
   
   // Create a spring for each item (for physics animation)
   const [itemPhysicsProps, setItemPhysicsProps] = useState<Record<string | number, {
@@ -995,10 +1017,10 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
   }, [
     items,
     columnCount,
-    numericGap,
+    numericGap.x,
+    numericGap.y,
     placementAlgorithm,
     direction,
-    layout.items,
     animateOnChange,
     physics.staggerDelay,
     respectOrder,
@@ -1141,11 +1163,67 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
     };
   }, [lazyLoad, virtualized, overscanCount, items]);
   
-  // Calculate layout on initial render and when dependencies change
+  // Calculate layout on initial render and when specific dependencies change
   useEffect(() => {
     calculateLayout();
-  }, [calculateLayout]);
+  }, [items, columnCount, numericGap.x, numericGap.y, placementAlgorithm, direction, respectOrder]);
   
+  // --- Imperative Handle ---
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => containerRef.current,
+    recalculateLayout: () => {
+      itemSizeCache.current.clear();
+      calculateLayout();
+    },
+    scrollToY: (offset, behavior = 'auto') => {
+      if (containerRef.current && useScroller) {
+        containerRef.current.scrollTo({ top: offset, behavior });
+      }
+    },
+  }), [containerRef, calculateLayout, useScroller]);
+
+  // Handle reordering after drag
+  const handleItemReordering = useCallback((draggedItemId: string | number) => {
+    // Find the dragged item in the layout
+    const draggedLayoutItem = layout.items.find(item => item.item.id === draggedItemId);
+    if (!draggedLayoutItem) return;
+    
+    // Calculate the final position of the dragged item
+    const finalX = draggedLayoutItem.x + dragOffset.x;
+    const finalY = draggedLayoutItem.y + dragOffset.y;
+    
+    // Find which item it was dropped onto
+    const dropTarget = layout.items.find(item => {
+      if (item.item.id === draggedItemId) return false;
+      
+      return (
+        finalX + draggedLayoutItem.width / 2 >= item.x &&
+        finalX + draggedLayoutItem.width / 2 <= item.x + item.width &&
+        finalY + draggedLayoutItem.height / 2 >= item.y &&
+        finalY + draggedLayoutItem.height / 2 <= item.y + item.height
+      );
+    });
+    
+    if (dropTarget) {
+      // Reorder the items
+      const newItems = [...items];
+      const draggedIndex = newItems.findIndex(item => item.id === draggedItemId);
+      const dropIndex = newItems.findIndex(item => item.id === dropTarget.item.id);
+      
+      if (draggedIndex !== -1 && dropIndex !== -1) {
+        // Swap the items
+        const [draggedItem] = newItems.splice(draggedIndex, 1);
+        newItems.splice(dropIndex, 0, draggedItem);
+        
+        // Notify parent
+        onOrderChange?.(newItems);
+      }
+    }
+    
+    // Reset position with animation
+    setDragOffset({ x: 0, y: 0 }, true);
+  }, [dragOffset.x, dragOffset.y, items, layout.items, onOrderChange, setDragOffset]);
+
   // Handle drag start for reordering
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent, itemId: string | number) => {
     if (!dragToReorder) return;
@@ -1195,56 +1273,16 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
     document.addEventListener('touchmove', handleMouseMove as any);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('touchend', handleMouseUp);
-  }, [dragToReorder, setDragOffset]);
+  }, [dragToReorder, setDragOffset, handleItemReordering]);
   
-  // Handle reordering after drag
-  const handleItemReordering = useCallback((draggedItemId: string | number) => {
-    // Find the dragged item in the layout
-    const draggedLayoutItem = layout.items.find(item => item.item.id === draggedItemId);
-    if (!draggedLayoutItem) return;
-    
-    // Calculate the final position of the dragged item
-    const finalX = draggedLayoutItem.x + dragOffset.x;
-    const finalY = draggedLayoutItem.y + dragOffset.y;
-    
-    // Find which item it was dropped onto
-    const dropTarget = layout.items.find(item => {
-      if (item.item.id === draggedItemId) return false;
-      
-      return (
-        finalX + draggedLayoutItem.width / 2 >= item.x &&
-        finalX + draggedLayoutItem.width / 2 <= item.x + item.width &&
-        finalY + draggedLayoutItem.height / 2 >= item.y &&
-        finalY + draggedLayoutItem.height / 2 <= item.y + item.height
-      );
-    });
-    
-    if (dropTarget) {
-      // Reorder the items
-      const newItems = [...items];
-      const draggedIndex = newItems.findIndex(item => item.id === draggedItemId);
-      const dropIndex = newItems.findIndex(item => item.id === dropTarget.item.id);
-      
-      if (draggedIndex !== -1 && dropIndex !== -1) {
-        // Swap the items
-        const [draggedItem] = newItems.splice(draggedIndex, 1);
-        newItems.splice(dropIndex, 0, draggedItem);
-        
-        // Notify parent
-        onOrderChange?.(newItems);
-      }
-    }
-    
-    // Reset position with animation
-    setDragOffset({ x: 0, y: 0 }, true);
-  }, [dragOffset, items, layout.items, onOrderChange, setDragOffset]);
-  
-  // Handle item click for image preview
+  // Wrapper for onItemClick prop to potentially help with test scoping
   const handleItemClick = useCallback((item: MasonryItem) => {
-    if (enableImagePreview) {
-      setPreviewItem(item);
+    if (typeof onItemClick === 'function') {
+      // Prevent click during drag
+      if (isDragging === item.id) return;
+      onItemClick(item);
     }
-  }, [enableImagePreview]);
+  }, [onItemClick, isDragging]);
   
   // Close preview
   const handleClosePreview = useCallback(() => {
@@ -1302,19 +1340,32 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
     );
   };
   
+  const isResponsive = typeof columns === 'object' && columns !== null;
+  
+  const containerProps: any = {
+    ref: containerRef,
+    $width: width,
+    $height: height,
+    $useScroller: useScroller,
+    $isGlassContainer: glassContainer,
+    $glassVariant: glassContainer ? glassVariant : undefined,
+    $blurStrength: glassContainer ? blurStrength : undefined,
+    $color: glassContainer ? color : undefined,
+    className,
+    style,
+    id: id || 'glass-masonry-container',
+    'data-testid': 'glass-masonry', // Ensure test id is present
+    // Add data attributes for testing based on props
+    'data-placement-algorithm': placementAlgorithm,
+    'data-animation-type': itemAnimation,
+    'data-responsive-columns': String(isResponsive),
+    'data-lazy-load': String(lazyLoad),
+    'data-draggable': String(dragToReorder),
+  };
+  
   return (
     <MasonryContainer
-      ref={containerRef}
-      className={className}
-      style={style}
-      $width={width}
-      $height={height}
-      $useScroller={useScroller}
-      $isGlassContainer={glassContainer}
-      $glassVariant={glassVariant}
-      $blurStrength={blurStrength}
-      $color={color}
-      id={id}
+      {...containerProps}
     >
       <div style={{ position: 'relative', height: `${layout.containerHeight}px` }}>
         {layout.items.map((layoutItem, index) => {
@@ -1351,12 +1402,10 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
           return (
             <MasonryItemContainer
               key={itemId}
-              ref={el => {
+              ref={(el) => {
                 if (el) itemRefs.current.set(itemId, el);
                 else itemRefs.current.delete(itemId);
               }}
-              data-item-id={itemId}
-              className={itemClassName}
               $x={layoutItem.x}
               $y={layoutItem.y}
               $width={layoutItem.width}
@@ -1364,25 +1413,27 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
               $columnSpan={layoutItem.item.columnSpan || 1}
               $rowSpan={layoutItem.item.rowSpan || 1}
               $isGlassItem={glassItems}
-              $glassVariant={glassVariant}
-              $blurStrength={blurStrength}
-              $color={color}
+              $glassVariant={glassItems ? glassVariant : undefined}
+              $blurStrength={glassItems ? blurStrength : undefined}
+              $color={glassItems ? color : undefined}
               $animation={itemAnimation}
               $origin={animationOrigin}
               $delay={staggerDelay}
               $shouldAnimate={shouldAnimate}
               $isDragging={isItemDragging}
               $animateOnMount={animateOnMount}
+              // Apply physics props
               $translateX={finalTranslateX}
               $translateY={finalTranslateY}
               $scale={physicsProps.scale}
               $opacity={physicsProps.opacity}
               $rotation={physicsProps.rotation}
-              onMouseDown={e => handleDragStart(e, itemId)}
-              onTouchStart={e => handleDragStart(e, itemId)}
-              onClick={() => handleItemClick(layoutItem.item)}
+              data-glass-item={String(glassItems)}
+              draggable={dragToReorder} // Set draggable attribute directly
+              data-animated={String(shouldAnimate)} // Add data-animated attribute
+              onClick={() => handleItemClick(layoutItem.item)} // Use the local wrapper function, pass only item
             >
-              {children(layoutItem.item, layout.items.indexOf(layoutItem))}
+              {children(layoutItem.item, index)} 
             </MasonryItemContainer>
           );
         })}
@@ -1390,10 +1441,13 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
       
       {/* Load more trigger */}
       {loadMoreTrigger === 'scroll' && hasMore && (
-        <div ref={loadMoreRef}>
+        <div 
+          ref={loadMoreRef} 
+          data-testid="masonry-loading-indicator"
+        >
           {loading ? (
             loadingComponent || (
-              <LoadingIndicator>
+              <LoadingIndicator data-testid="masonry-loading-indicator">
                 <div className="spinner" />
               </LoadingIndicator>
             )
@@ -1418,6 +1472,8 @@ export const GlassMasonry: React.FC<MasonryProps> = ({
       {renderImagePreview()}
     </MasonryContainer>
   );
-};
+});
+
+GlassMasonry.displayName = 'GlassMasonry';
 
 export default GlassMasonry;

@@ -10,11 +10,7 @@ import * as OrchestratorModule from '../Orchestrator';
 import { withOrchestration, AnimationSequence } from '../Orchestrator';
 
 // Mock dependencies
-jest.mock('styled-components', () => ({
-  keyframes: jest.fn(() => ({
-    name: 'mock-keyframes',
-  })),
-}));
+// REMOVED manual jest.mock for styled-components
 
 // Create spy objects for the orchestrator functions
 const createSequenceSpy = jest

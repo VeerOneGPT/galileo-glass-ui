@@ -12,6 +12,8 @@ import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/us
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useAnimationContext } from '../../contexts/AnimationContext';
 import { SpringPresets , SpringConfig } from '../../animations/physics/springPhysics';
+import { AnimationProps } from '../../animations/types';
+import { mergePhysicsRef } from '../../utils/refUtils';
 
 import { ToggleButtonProps } from './types';
 
@@ -368,7 +370,7 @@ function ToggleButtonComponent(
   const {
     ref: physicsRef,
     style: physicsStyle,
-  } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
+  } = usePhysicsInteraction<HTMLButtonElement>(finalInteractionConfig);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (!disabled && onChange) {
@@ -379,9 +381,12 @@ function ToggleButtonComponent(
   // Combine styles
   const combinedStyle = { ...style, ...physicsStyle };
 
+  // Merge the forwarded ref with the physics ref
+  const combinedRef = mergePhysicsRef(ref, physicsRef);
+
   return (
     <ButtonRoot
-      ref={ref}
+      ref={combinedRef}
       style={combinedStyle}
       type="button"
       aria-pressed={selected}

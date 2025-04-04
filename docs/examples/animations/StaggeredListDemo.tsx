@@ -8,7 +8,10 @@ import {
 } from '../../../src/animations/orchestration/useAnimationSequence';
 import { AnimationCategory } from '../../../src/animations/accessibility/MotionSensitivity';
 import { Easings } from '../../../src/animations/physics/interpolation';
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { Box } from '../../../src/components/Box';
+import { Paper } from '../../../src/components/Paper';
+import { Typography } from '../../../src/components/Typography';
+import { Button } from '../../../src/components/Button';
 
 // Sample data
 const listItems = Array.from({ length: 5 }, (_, i) => `List Item ${i + 1}`);
@@ -25,7 +28,7 @@ export const StaggeredListDemo: React.FC = () => {
     staggerDelay: 80,
     staggerPattern: StaggerPattern.SEQUENTIAL,
     from: { opacity: 0, transform: 'translateY(20px)' },
-    to: { opacity: 1, transform: 'translateY(0px)' },
+    properties: { opacity: 1, transform: 'translateY(0px)' },
     easing: Easings.easeOutCubic.function,
   };
 
@@ -61,11 +64,11 @@ export const StaggeredListDemo: React.FC = () => {
   }, []);
 
   return (
-    <Paper elevation={2} sx={{ padding: 3, margin: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Paper elevation={2} style={{ padding: '24px', margin: '16px' }}>
+      <Typography variant="h6" style={{ marginBottom: '16px' }}>
         Staggered List Entrance Demo
       </Typography>
-      <Button onClick={handleReplay} sx={{ marginBottom: 2 }}>
+      <Button onClick={handleReplay} style={{ marginBottom: '16px' }}>
         Replay Animation
       </Button>
       <Box ref={listRef}>
@@ -73,13 +76,13 @@ export const StaggeredListDemo: React.FC = () => {
           <Box
             key={index}
             className="stagger-list-item"
-            sx={{
-              padding: 1.5,
-              marginBottom: 1,
-              backgroundColor: 'grey.100',
+            style={{
+              padding: '12px',
+              marginBottom: '8px',
+              backgroundColor: '#f5f5f5',
               borderRadius: '4px',
               border: '1px solid',
-              borderColor: 'grey.300',
+              borderColor: '#e0e0e0',
               opacity: 0,
               transform: 'translateY(20px)',
               willChange: 'opacity, transform',

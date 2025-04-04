@@ -4,7 +4,7 @@
  * A glass surface with frosted ice effects.
  */
 import React, { forwardRef, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
@@ -128,9 +128,9 @@ const FrostContainer = styled.div<{
     ${props =>
       props.$animate &&
       !props.$reducedMotion &&
-      `
-      animation: ${frostGrow} 8s ease-in-out infinite;
-    `}
+      css`
+        animation: ${frostGrow} 8s ease-in-out infinite;
+      `}
   }
 
   /* Ice frost edge effect */
@@ -150,23 +150,23 @@ const FrostContainer = styled.div<{
   /* Interactive effects */
   ${props =>
     props.$interactive &&
-    `
-    cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(255, 255, 255, 0.1);
+    css`
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       
-      &::after {
-        opacity: ${0.3 + props.$intensity * 0.4};
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(255, 255, 255, 0.1);
+        
+        &::after {
+          opacity: ${0.3 + props.$intensity * 0.4};
+        }
       }
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
-  `}
+      
+      &:active {
+        transform: translateY(0);
+      }
+    `}
 `;
 
 const FrostContent = styled.div`
@@ -194,9 +194,9 @@ const FrostSparkles = styled.div<{
   ${props =>
     props.$animate &&
     !props.$reducedMotion &&
-    `
-    animation: ${frostSparkle} 4s ease-in-out infinite;
-  `}
+    css`
+      animation: ${frostSparkle} 4s ease-in-out infinite;
+    `}
 `;
 
 /**

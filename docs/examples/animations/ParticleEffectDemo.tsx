@@ -4,7 +4,10 @@ import {
   GameParticlesHookConfig,
   GameEventType, // Import event types
 } from '../../../src/animations/physics/useGameParticles'; // Corrected path and hook name
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { Box } from '../../../src/components/Box';
+import { Paper } from '../../../src/components/Paper';
+import { Typography } from '../../../src/components/Typography';
+import { Button } from '../../../src/components/Button';
 
 // Hook configuration - primarily setting the container and event type
 const hookConfig: GameParticlesHookConfig = {
@@ -15,13 +18,14 @@ const hookConfig: GameParticlesHookConfig = {
 };
 
 export const ParticleEffectDemo: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null); // Ref for the general area
+  const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   // Initialize the particle hook
   const { actions } = useGameParticles({
     ...hookConfig,
-    containerRef: containerRef, // Assign container ref here
+    // Keep the type assertion for the hook
+    containerRef: containerRef as React.RefObject<HTMLElement>, 
   });
 
   // Callback for the button click
@@ -36,22 +40,22 @@ export const ParticleEffectDemo: React.FC = () => {
   );
 
   return (
-    <Paper elevation={2} sx={{ padding: 3, margin: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Paper elevation={2} style={{ padding: '24px', margin: '16px' }}>
+      <Typography variant="h6" style={{ marginBottom: '8px' }}>
         Particle Effect Demo (useGameParticles)
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: 3 }}>
+      <Typography variant="body2" style={{ marginBottom: '24px' }}>
         Click the button to trigger a particle effect using the REWARD preset.
       </Typography>
       <Box
-        ref={containerRef} // Assign ref to the container Box
-        sx={{
+        ref={containerRef}
+        style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
           height: '150px',
-          position: 'relative', // Needed for particle positioning relative to container
-          border: '1px dashed lightgrey', // Optional: visualize container
+          position: 'relative',
+          border: '1px dashed lightgrey',
           borderRadius: '4px',
         }}
       >

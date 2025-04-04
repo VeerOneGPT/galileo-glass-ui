@@ -13,6 +13,7 @@ import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/us
 import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 import { useAnimationContext } from '../../contexts/AnimationContext';
 import { AnimationProps } from '../../animations/types';
+import { mergePhysicsRef } from '../../utils/refUtils';
 
 import { DimensionalGlassProps } from './types';
 
@@ -227,22 +228,15 @@ const DimensionalGlassComponent = (
   });
   // --- End Physics Interaction Setup --- 
 
-  // Use forwarded ref and local ref
-  const setRefs = (element: HTMLDivElement) => {
-    containerRef.current = element;
-    if (typeof ref === 'function') {
-      ref(element);
-    } else if (ref) {
-      (ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
-    }
-  };
+  // Use our utility for ref merging
+  const combinedRef = mergePhysicsRef(ref, physicsRef);
 
   // Combine styles
   const combinedStyle = useMemo(() => ({ ...style, ...physicsStyle }), [style, physicsStyle]);
 
   return (
     <DimensionalContainer
-      ref={setRefs}
+      ref={combinedRef}
       className={className}
       $elevation={elevation}
       $blurStrength={blurStrength}
@@ -262,6 +256,7 @@ const DimensionalGlassComponent = (
       $backgroundColor={backgroundColor}
       $isHovered={false}
       $reducedMotion={prefersReducedMotion}
+      {...rest}
     >
       <DimensionalContent style={combinedStyle}>
         {children}

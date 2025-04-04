@@ -14,7 +14,7 @@
  * - Fullscreen mode with proper browser API integration
  * - Gallery mode for image collections
  */
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, useImperativeHandle, forwardRef } from 'react';
 import styled, { css, keyframes } from 'styled-components';
 
 // Import physics-related dependencies
@@ -39,7 +39,7 @@ import { SpringPresets, type SpringConfig } from '../../animations/physics/sprin
 import { AnimationProps } from '../../animations/types';
 
 // Define a Vector2D interface for position coordinates
-interface Vector2D {
+export interface Vector2D {
   x: number;
   y: number;
 }
@@ -70,7 +70,7 @@ export interface ImageMetadata {
 }
 
 /**
- * Main image item interface
+ * Main image item interface - EXPORT THIS
  */
 export interface ImageItem {
   /** Image source URL */
@@ -164,6 +164,32 @@ export interface GlassImageViewerProps extends AnimationProps {
   onZoomChange?: (zoomLevel: number) => void;
   /** Function called when active image changes in gallery mode */
   onImageChange?: (image: ImageItem, index: number) => void;
+}
+
+/**
+ * Interface for methods exposed via the GlassImageViewer ref - EXPORT THIS
+ */
+export interface GlassImageViewerRef {
+  /** Programmatically set the zoom level */
+  zoomTo: (level: number) => void;
+  /** Programmatically pan the image */
+  panTo: (position: Vector2D) => void;
+  /** Reset zoom and pan to the initial state */
+  resetView: () => void;
+  /** Navigate to the next image in gallery mode */
+  nextImage: () => void;
+  /** Navigate to the previous image in gallery mode */
+  prevImage: () => void;
+  /** Toggle fullscreen mode */
+  toggleFullscreen: () => void;
+  /** Get the currently displayed image data */
+  getCurrentImage: () => ImageItem;
+  /** Get the current zoom level */
+  getCurrentZoom: () => number;
+  /** Get the current pan position */
+  getCurrentPosition: () => Vector2D;
+  /** Get the main container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
 }
 
 /**
@@ -590,7 +616,7 @@ const Spinner = styled.div<{$color: string}>`
 /**
  * GlassImageViewer Component
  */
-export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
+export const GlassImageViewer = forwardRef<GlassImageViewerRef, GlassImageViewerProps>(({
   image,
   images,
   initialZoom = 1.0,
@@ -622,8 +648,7 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
   onImageChange,
   animationConfig,
   disableAnimation,
-  motionSensitivity,
-}) => {
+}, ref) => {
   // State variables
   const [currentImage, setCurrentImage] = useState<ImageItem>(image);
   const [currentIndex, setCurrentIndex] = useState<number>(() => 
@@ -1041,6 +1066,68 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
       revealControls(); // Always reveal on click
   };
 
+  // --- Imperative Handle Implementation ---
+  useImperativeHandle(ref, () => ({
+    zoomTo: (level) => {
+      const clampedZoom = Math.max(minZoom, Math.min(maxZoom, level));
+      setZoomLevel(clampedZoom);
+      // Note: Might need to adjust position as well depending on zoom origin logic
+    },
+    panTo: (newPosition) => {
+      // Need to implement bounds checking similar to how dragging does it
+      // For now, just setting the state directly
+      setPosition(newPosition);
+      // If using useInertialMovement2D, might need to stop() and setPosition()
+      // panMovement.stop();
+      // panMovement.setPosition(newPosition);
+    },
+    resetView: () => {
+      setZoomLevel(initialZoom);
+      setPosition({ x: 0, y: 0 });
+      // If using useInertialMovement2D, reset it too
+      // panMovement.stop();
+      // panMovement.setPosition({ x: 0, y: 0 });
+    },
+    nextImage: () => {
+      if (mode === 'gallery' && images && images.length > 1) {
+        const nextIndex = (currentIndex + 1) % images.length;
+        setCurrentIndex(nextIndex);
+        setCurrentImage(images[nextIndex]);
+        // Reset view for new image
+        setZoomLevel(initialZoom);
+        setPosition({ x: 0, y: 0 });
+        // panMovement.stop();
+        // panMovement.setPosition({ x: 0, y: 0 });
+      }
+    },
+    prevImage: () => {
+      if (mode === 'gallery' && images && images.length > 1) {
+        const prevIndex = (currentIndex - 1 + images.length) % images.length;
+        setCurrentIndex(prevIndex);
+        setCurrentImage(images[prevIndex]);
+        // Reset view for new image
+        setZoomLevel(initialZoom);
+        setPosition({ x: 0, y: 0 });
+        // panMovement.stop();
+        // panMovement.setPosition({ x: 0, y: 0 });
+      }
+    },
+    toggleFullscreen: () => {
+      // Needs implementation using handleFullscreenToggle logic
+      // handleFullscreenToggle(); // Assuming this function exists and handles state/API calls
+      console.warn("toggleFullscreen via ref not fully implemented yet.");
+    },
+    getCurrentImage: () => currentImage,
+    getCurrentZoom: () => zoomLevel,
+    getCurrentPosition: () => position, // Or panMovement.getPosition() if using inertial hook
+    getContainerElement: () => containerRef.current,
+  }), [
+    minZoom, maxZoom, setZoomLevel, setPosition, initialZoom,
+    mode, images, currentIndex, setCurrentIndex, setCurrentImage,
+    currentImage, zoomLevel, position, containerRef // Add other dependencies like panMovement if used
+    // handleFullscreenToggle (dependency needed if implemented)
+  ]);
+
   // --- Render Functions ---
   const renderControls = () => (
     <>
@@ -1179,7 +1266,10 @@ export const GlassImageViewer: React.FC<GlassImageViewerProps> = ({
 
     </ViewerContainer>
   );
-};
+});
 
-// Default export
-export default GlassImageViewer;
+// Add displayName
+GlassImageViewer.displayName = 'GlassImageViewer';
+
+// Note: Default export might need adjustment if this becomes the primary export
+// export default GlassImageViewer; // If this was the previous export

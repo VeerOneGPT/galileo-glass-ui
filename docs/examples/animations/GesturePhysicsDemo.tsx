@@ -2,9 +2,12 @@ import React, { useRef, CSSProperties } from 'react';
 import {
   useGesturePhysics,
   GesturePhysicsOptions,
-  GestureTransform,
+  // GestureTransform, // Unused?
 } from '../../../src/animations/physics/gestures/useGesturePhysics';
-import { Box, Paper, Typography } from '@mui/material';
+// Replace MUI imports
+import { Box } from '../../../src/components/Box'; 
+import { Paper } from '../../../src/components/Paper'; 
+import { Typography } from '../../../src/components/Typography'; 
 
 export const GesturePhysicsDemo: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -12,7 +15,7 @@ export const GesturePhysicsDemo: React.FC = () => {
 
   // Define options for the hook
   const gestureOptions: GesturePhysicsOptions = {
-    elementRef: draggableRef,
+    elementRef: draggableRef as React.RefObject<HTMLElement>,
     pan: {
       enabled: true,
       momentum: 0.8,
@@ -32,7 +35,8 @@ export const GesturePhysicsDemo: React.FC = () => {
   const draggableStyle: CSSProperties = {
     width: 80,
     height: 80,
-    backgroundColor: 'primary.main',
+    // Use basic colors or theme variables
+    backgroundColor: '#1976d2', // Example: primary blue
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -48,17 +52,18 @@ export const GesturePhysicsDemo: React.FC = () => {
   };
 
   return (
-    <Paper elevation={2} sx={{ padding: 3, margin: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    // Use Galileo components with style prop
+    <Paper elevation={2} style={{ padding: '24px', margin: '16px' }}>
+      <Typography variant="h6" style={{ marginBottom: '8px' }}>
         Gesture Physics Demo
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: 3 }}>
+      <Typography variant="body2" style={{ marginBottom: '24px' }}>
         Click and drag the blue circle. Flick it to see momentum.
         It should stay within the dashed container bounds.
       </Typography>
       <Box
         ref={containerRef}
-        sx={{
+        style={{ // Use style prop
           width: '100%',
           height: '300px',
           border: '1px dashed grey',
@@ -67,7 +72,7 @@ export const GesturePhysicsDemo: React.FC = () => {
           overflow: 'hidden',
         }}
       >
-        <Box ref={draggableRef} sx={draggableStyle}>
+        <Box ref={draggableRef} style={draggableStyle}> {/* Use style prop */}
           Drag Me
         </Box>
       </Box>

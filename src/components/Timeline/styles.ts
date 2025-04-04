@@ -102,44 +102,37 @@ export const TimelineScrollContainer = styled.div<{
 // Timeline axis
 export const TimelineAxis = styled.div<{
   $orientation: TimelineOrientation;
-  $height: number;
+  $height?: number;
   $glassVariant?: GlassVariant;
   $blurStrength?: BlurStrength;
+  $markerPosition: MarkerPosition;
+  $color?: string;
 }>`
-  position: absolute;
-  z-index: 1;
+  position: relative;
+  z-index: 3;
+  
   ${props => props.$orientation === 'vertical' 
     ? `
-      left: 50%;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      transform: translateX(-50%);
+      width: ${props.$height || 40}px;
+      height: 100%;
+      position: absolute;
+      ${props.$markerPosition === 'left' ? 'left: 0;' : 'right: 0;'}
     ` 
     : `
-      top: ${props.$height}px;
-      left: 0;
-      right: 0;
-      height: 2px;
+      height: ${props.$height || 40}px;
+      width: 100%;
+      position: absolute;
+      ${props.$markerPosition === 'left' ? 'top: 0;' : 'bottom: 0;'}
     `
   }
-  background-color: rgba(255, 255, 255, 0.2);
   
-  /* Glass styling for axis (if enabled) */
-  ${props => props.$glassVariant && css`
-    ${() => glassSurface({
-      elevation: 1,
-      blurStrength: props.$blurStrength || 'standard',
-      backgroundOpacity: 'light',
-      borderOpacity: 'none',
-      themeContext: createThemeContext(props.theme),
-    })}
-    
-    ${props.$orientation === 'vertical' 
-      ? 'width: 4px;' 
-      : 'height: 4px;'
-    }
-  `}
+  ${props => glassSurface({
+    elevation: 0,
+    blurStrength: props.$blurStrength || 'light',
+    backgroundOpacity: 'light',
+    borderOpacity: 'none',
+    themeContext: createThemeContext(props.theme),
+  })}
 `;
 
 // Time markers container
@@ -519,7 +512,10 @@ export const GroupedEvents = styled.div`
 `;
 
 // Loading indicator
-export const LoadingIndicator = styled.div`
+export const LoadingIndicator = styled.div<{
+  $position: 'start' | 'end';
+  $orientation: TimelineOrientation;
+}>`
   display: flex;
   justify-content: center;
   align-items: center;

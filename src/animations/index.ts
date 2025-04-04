@@ -137,7 +137,6 @@ export {
 // Animation renderers
 export {
   WaapiRenderer,
-  WaapiRendererExample,
   type AnimationRenderer,
   type AnimationOptions,
   type KeyframeEffect,

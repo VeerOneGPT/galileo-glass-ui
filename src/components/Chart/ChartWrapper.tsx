@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { forwardRef, useRef, useImperativeHandle } from 'react';
 import styled from 'styled-components';
 
-interface ChartWrapperProps {
+// Export the props interface
+export interface ChartWrapperProps {
   children: React.ReactNode;
   title?: string;
   height?: number | string;
   className?: string;
+}
+
+// Ref interface (Minimal - just the container)
+export interface ChartWrapperRef {
+  /** Gets the main container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
 }
 
 // Styled container with configurable height
@@ -40,20 +47,35 @@ const ChartContent = styled.div`
  * A container component that provides consistent styling and layout for charts,
  * especially useful when using GlassDataChart outside of the glass-showcase layout.
  */
-const ChartWrapper: React.FC<ChartWrapperProps> = ({ 
+// Convert component to use forwardRef
+const ChartWrapper = forwardRef<ChartWrapperRef, ChartWrapperProps>(({ 
   children, 
   title,
   height = 'auto',
   className
-}) => {
+}, ref) => { // Add ref parameter
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Use imperative handle is optional here, but good for consistency
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => containerRef.current,
+  }), [containerRef]);
+
   return (
-    <ChartContainer $height={height} className={className}>
+    <ChartContainer 
+      ref={containerRef} // Assign internal ref
+      $height={height} 
+      className={className}
+    >
       {title && <ChartTitle>{title}</ChartTitle>}
       <ChartContent title={title}>
         {children}
       </ChartContent>
     </ChartContainer>
   );
-};
+}); // Close forwardRef
+
+// Add displayName
+ChartWrapper.displayName = 'ChartWrapper';
 
 export default ChartWrapper; 

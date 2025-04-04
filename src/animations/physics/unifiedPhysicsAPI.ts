@@ -13,9 +13,7 @@
 
 import {
   // Spring physics
-  SpringPhysics,
   createSpring,
-  SpringConfig,
   SpringPresets,
   // Physics calculations
   createVector,
@@ -47,11 +45,6 @@ import {
   CollisionResult,
   detectBodyCollision,
   resolveCollisionWithImpulse,
-  createCircleBody,
-  createRectangleBody,
-  createPolygonBody,
-  createPointBody,
-  createBoundaryWalls,
   // Animation renderers
   WaapiRenderer,
   RafRenderer,
@@ -80,15 +73,11 @@ import {
 import {
   domBatcher,
   DomBatcher,
-  DomOperationType,
   BatchPriority,
-  DomTask,
-  DomBatch,
-  DomBatcherOptions
 } from '../performance/DomBatcher';
 
 // Import interpolation functions
-import Easings, { 
+import Easings, {
   EasingFunction,
   InterpolationFunction,
   applyEasing,
@@ -103,20 +92,33 @@ import Easings, {
   materialDesign
 } from './interpolation';
 
+// Re-exporting with potentially clearer names if needed internally or for specific contexts
+export type {
+  InterpolationFunction as InterpolationFunctionFromEasings,
+  applyEasing as applyEasingFromEasings,
+  blendEasings as blendEasingsFromEasings,
+  composeEasings as composeEasingsFromEasings,
+  bezier as bezierFromEasings,
+  createSpringEasing as createSpringEasingFromEasings,
+  steps as stepsFromEasings,
+  hermiteSpline as hermiteSplineFromEasings,
+  harmonicOscillation as harmonicOscillationFromEasings,
+  cssStandard as cssStandardFromEasings,
+  materialDesign as materialDesignFromEasings
+} from './interpolation';
+
 // Import from collision API
 import {
-  getCollisionSystem,
-  resetCollisionSystem,
-  createCollisionCircle,
-  createCollisionRectangle,
-  createCollisionPoint,
-  createCollisionPolygon,
-  createCollisionBoundaries,
   updateCollisionBody,
   removeCollisionBody,
   updateCollisionSystem,
   CollisionMaterials,
-  CollisionOptions
+  CollisionOptions,
+  createCollisionCircle,
+  createCollisionRectangle,
+  createCollisionPoint,
+  createCollisionPolygon,
+  createCollisionBoundaries
 } from './collisionAPI';
 
 import { useInertialMovement } from './useInertialMovement';
@@ -162,6 +164,10 @@ import {
   particleSystem,
   ParticleSystemOptions
 } from './particleSystem';
+
+import { Vector2D as EngineVector2D, PhysicsBodyOptions, PhysicsBodyState } from './engineTypes';
+import { GalileoPhysicsSystem } from './galileoPhysicsSystem';
+import { SpringConfig } from './springPhysics';
 
 // Consolidated API class
 export class GalileoPhysics {

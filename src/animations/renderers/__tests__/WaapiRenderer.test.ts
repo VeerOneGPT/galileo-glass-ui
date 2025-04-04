@@ -5,6 +5,7 @@
  */
 
 import { WaapiRenderer } from '../WaapiRenderer';
+import { waitFor, act } from '@testing-library/react';
 
 // Create mock Animation class
 class MockAnimation {
@@ -38,7 +39,10 @@ class MockAnimation {
 
   cancel() {
     this.playState = 'idle';
-    this.callListeners('cancel', new AnimationPlaybackEvent('cancel', { currentTime: this.currentTime }));
+    // Simulate async event dispatch
+    Promise.resolve().then(() => {
+        this.callListeners('cancel', new AnimationPlaybackEvent('cancel', { currentTime: this.currentTime }));
+    });
   }
 
   reverse() {
@@ -47,7 +51,10 @@ class MockAnimation {
 
   finish() {
     this.playState = 'finished';
-    this.callListeners('finish', new AnimationPlaybackEvent('finish', { currentTime: this.currentTime }));
+     // Simulate async event dispatch
+    Promise.resolve().then(() => {
+        this.callListeners('finish', new AnimationPlaybackEvent('finish', { currentTime: this.currentTime }));
+    });
   }
 
   addEventListener(
@@ -99,7 +106,13 @@ Element.prototype.animate = function(
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
   options: KeyframeAnimationOptions
 ): Animation {
-  return new MockAnimation(this, keyframes, options) as unknown as Animation;
+  const mockAnim = new MockAnimation(this, keyframes, options);
+  // Simulate automatic start event
+  // The renderer handles autoplay logic, the native animate doesn't have autoplay
+  Promise.resolve().then(() => {
+    mockAnim['callListeners']('start', new AnimationPlaybackEvent('start', { currentTime: 0 }));
+  });
+  return mockAnim as unknown as Animation;
 };
 
 describe('WaapiRenderer', () => {
@@ -169,32 +182,31 @@ describe('WaapiRenderer', () => {
       expect(animation).toBeNull();
     });
 
-    it('should trigger onStart callback when animation starts', () => {
+    it('should trigger onStart callback when animation starts', async () => {
       const onStart = jest.fn();
-      
+
       renderer.animate(element, [{ opacity: 0 }, { opacity: 1 }], {
-        onStart
+        onStart,
       });
-      
-      // Manually trigger the 'start' event
-      const animations = Array.from(renderer['animations'].values());
-      const mockAnimation = animations[0] as unknown as MockAnimation;
-      mockAnimation['callListeners']('start', new AnimationPlaybackEvent('start', { currentTime: 0 }));
-      
-      expect(onStart).toHaveBeenCalled();
+
+      // Wait for the async start event simulation (triggered by mock animate)
+      await waitFor(() => expect(onStart).toHaveBeenCalled());
     });
 
-    it('should trigger onFinish callback when animation finishes', () => {
+    it('should trigger onFinish callback when animation finishes', async () => {
       const onFinish = jest.fn();
-      
+
       const { animation } = renderer.animate(element, [{ opacity: 0 }, { opacity: 1 }], {
         onFinish
       });
-      
-      // Manually finish the animation
-      (animation as unknown as MockAnimation).finish();
-      
-      expect(onFinish).toHaveBeenCalled();
+
+      // Manually finish the animation (mock now simulates async dispatch)
+      act(() => {
+        (animation as unknown as MockAnimation).finish();
+      });
+
+      // Wait for the async finish event simulation
+      await waitFor(() => expect(onFinish).toHaveBeenCalled());
     });
 
     it('should pause animation if autoplay is false', () => {
@@ -246,13 +258,20 @@ describe('WaapiRenderer', () => {
       expect((animation as unknown as MockAnimation).playState).toBe('paused');
     });
 
-    it('should cancel an animation by ID', () => {
+    it('should cancel an animation by ID', async () => {
       const { id, animation } = renderer.animate(element, [{ opacity: 0 }, { opacity: 1 }], {});
-      
+      const onCancel = jest.fn();
+      renderer.addEventListener(id, 'cancel', onCancel);
+
       expect((animation as unknown as MockAnimation).playState).toBe('running');
-      
-      renderer.cancel(id);
-      
+
+      act(() => {
+          renderer.cancel(id);
+      });
+
+      // Wait for async cancel event
+      await waitFor(() => expect(onCancel).toHaveBeenCalled());
+
       expect((animation as unknown as MockAnimation).playState).toBe('idle');
       expect(renderer.getAnimation(id)).toBeUndefined();
     });
@@ -316,27 +335,37 @@ describe('WaapiRenderer', () => {
   });
 
   describe('addEventListener() and removeEventListener()', () => {
-    it('should add and remove event listeners', () => {
+    it('should add and remove event listeners', async () => {
       const { id, animation } = renderer.animate(element, [{ opacity: 0 }, { opacity: 1 }], {});
-      
+
       const callback = jest.fn();
-      
+
       renderer.addEventListener(id, 'finish', callback);
-      
-      // Manually finish the animation
-      (animation as unknown as MockAnimation).finish();
-      
-      expect(callback).toHaveBeenCalled();
-      
+
+      // Manually finish the animation (mock now simulates async dispatch)
+      act(() => {
+        (animation as unknown as MockAnimation).finish();
+      });
+
+      // Wait for async finish event
+      await waitFor(() => expect(callback).toHaveBeenCalled());
+
       // Reset the mock function
       callback.mockReset();
-      
+
       // Remove the event listener
       renderer.removeEventListener(id, 'finish', callback);
-      
+
       // Manually finish again
-      (animation as unknown as MockAnimation).finish();
-      
+      act(() => {
+        (animation as unknown as MockAnimation).finish();
+      });
+
+      // Give time for potential async events (though listener is removed)
+      await act(async () => {
+          await new Promise(res => setTimeout(res, 10));
+      });
+
       // Callback should not be called this time
       expect(callback).not.toHaveBeenCalled();
     });

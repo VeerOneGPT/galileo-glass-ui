@@ -63,11 +63,26 @@ export interface BaseAnimationStage { id: string; duration: number;
   onUpdate?: ProgressCallback;
   onComplete?: SequenceIdCallback; // Use SequenceIdCallback for onComplete
 }
-export interface StyleAnimationStage extends BaseAnimationStage { type: 'style'; targets: Element | Element[] | NodeListOf<Element> | string; from: Record<string, unknown>; to: Record<string, unknown>; exclude?: string[]; }
+export interface StyleAnimationStage extends BaseAnimationStage {
+  type: 'style'; 
+  targets: Element | Element[] | NodeListOf<Element> | string; 
+  from?: Record<string, unknown>; // Optional starting styles
+  properties: Record<string, unknown>; // Target styles (CHANGED from 'to')
+  exclude?: string[]; 
+}
 export interface CallbackAnimationStage extends BaseAnimationStage { type: 'callback'; callback: ProgressCallback; } // Use ProgressCallback
 export interface EventAnimationStage extends BaseAnimationStage { type: 'event'; callback: SequenceIdCallback; duration: 0; } // Use SequenceIdCallback
 export interface GroupAnimationStage extends BaseAnimationStage { type: 'group'; children: AnimationStage[]; relationship?: TimingRelationship; relationshipValue?: number; }
-export interface StaggerAnimationStage extends BaseAnimationStage { type: 'stagger'; targets: Element | Element[] | NodeListOf<Element> | string; from: Record<string, unknown>; to: Record<string, unknown>; staggerDelay: number; staggerPattern?: StaggerPattern; staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number; staggerOverlap?: number; }
+export interface StaggerAnimationStage extends BaseAnimationStage { 
+  type: 'stagger'; 
+  targets: Element | Element[] | NodeListOf<Element> | string; 
+  from: Record<string, unknown>; 
+  properties: Record<string, unknown>; // NEW
+  staggerDelay: number; 
+  staggerPattern?: StaggerPattern; 
+  staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number; 
+  staggerOverlap?: number; 
+}
 export type AnimationStage = StyleAnimationStage | CallbackAnimationStage | EventAnimationStage | GroupAnimationStage | StaggerAnimationStage;
 
 export interface AnimationSequenceConfig extends SequenceLifecycle {
@@ -198,7 +213,11 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
     try { // Add try-catch for safety
         switch (stage.type) {
             case 'style': {
-                const styleInterpolator = createPropertyInterpolator((stage as StyleAnimationStage).from, (stage as StyleAnimationStage).to, (stage as StyleAnimationStage).exclude);
+                const styleInterpolator = createPropertyInterpolator(
+                  (stage as StyleAnimationStage).from,
+                  (stage as StyleAnimationStage).properties,
+                  (stage as StyleAnimationStage).exclude
+                );
                 const styles = styleInterpolator(easedProgress);
                 targets.forEach(target => { applyStyles(target, styles); });
                 break;
@@ -219,7 +238,10 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
                         const targetDuration = stage.duration - delay;
                         const targetProgress = targetDuration > 0 ? Math.min(1, targetElapsed / targetDuration) : 1;
                         const easedTargetProgress = resolvedEasingFn(targetProgress); // Apply stage easing to target
-                        const staggerInterpolator = createPropertyInterpolator((stage as StaggerAnimationStage).from, (stage as StaggerAnimationStage).to);
+                        const staggerInterpolator = createPropertyInterpolator(
+                          (stage as StaggerAnimationStage).from, 
+                          (stage as StaggerAnimationStage).properties,
+                        );
                         const staggerStyles = staggerInterpolator(easedTargetProgress);
                         applyStyles(target, staggerStyles);
                     });

@@ -174,7 +174,7 @@ function ImageListComponent(props: ImageListProps, ref: React.ForwardedRef<HTMLU
       type: 'stagger',
       targets: '.galileo-image-list-item', // Target the class name
       from: { opacity: 0, transform: 'translateY(20px)' },
-      to: { opacity: 1, transform: 'translateY(0px)' },
+      properties: { opacity: 1, transform: 'translateY(0px)' },
       duration: 400, 
       staggerDelay: 50,
       easing: 'easeOutCubic',

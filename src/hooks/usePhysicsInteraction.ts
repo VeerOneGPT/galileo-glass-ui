@@ -4,23 +4,22 @@
  * React hook for applying realistic physics-based interactions to elements
  * with enhanced capabilities and performance optimizations.
  */
-import { useEffect, useRef, useState, useCallback, useMemo, CSSProperties } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo, CSSProperties, RefObject } from 'react';
 
 import { applyGpuAcceleration, backfaceVisibility } from '../core/cssHelpers';
 import { AnyHTMLElement, FlexibleElementRef } from '../utils/elementTypes';
-import { getCurrentTime } from '../utils/time';
-
 import { useGlassPerformance } from './useGlassPerformance';
 import { useReducedMotion } from './useReducedMotion';
 import { AnimationProps } from '../animations/types';
 import { SpringConfig, SpringPresets } from '../animations/physics/springPhysics';
 import { useAnimationContext } from '../contexts/AnimationContext';
 import { MotionSensitivityLevel } from '../animations/accessibility/MotionSensitivity';
+import { useAmbientTilt, AmbientTiltOptions } from './useAmbientTilt';
 
 // Import from local utils
 const markAsAnimating = (element: AnyHTMLElement | null): void => {
   if (!element) return;
-  element.style.willChange = 'transform, opacity';
+  element.style.willChange = 'transform';
 };
 
 // Local wrapper for GPU acceleration
@@ -56,19 +55,18 @@ const addGpuAcceleration = (
  */
 export type PhysicsInteractionType =
   | 'spring' // Spring-based movement
-  | 'magnetic' // Magnetic-like attraction
   | 'gravity' // Gravitational pull
   | 'particle' // Particle-like jittering
-  | 'attract' // Attraction force
+  | 'magnetic' // Attraction force (renamed from attract)
   | 'repel' // Repulsion force
   | 'follow' // Smooth following
   | 'orbit' // Orbital movement
   | 'elastic' // Elastic snap-back
   | 'fluid' // Fluid-like movement
   | 'bounce' // Bouncy interaction
-  | 'magnet-grid' // Snap to grid with magnetic behavior
   | 'inertia' // Movement with inertia
-  | 'vortex'; // Spiral/vortex movement
+  | 'vortex' // Spiral/vortex movement
+  | 'none'; // No physics interaction
 
 /**
  * Physics object material properties
@@ -334,6 +332,20 @@ export interface PhysicsInteractionOptions {
    * Motion sensitivity level
    */
   motionSensitivityLevel?: MotionSensitivityLevel;
+
+  /**
+   * A React ref pointing to the DOM element that should trigger the physics interaction.
+   */
+  elementRef?: React.RefObject<HTMLElement | SVGElement | null>;
+
+  /**
+   * Whether to enable the global ambient tilt effect. Defaults to false.
+   */
+  enableAmbientTilt?: boolean;
+  /**
+   * Specific configuration options for the ambient tilt effect if enabled.
+   */
+  ambientTiltOptions?: AmbientTiltOptions;
 }
 
 /**
@@ -587,6 +599,8 @@ const resolvePhysicsConfig = (
   tiltAmplitude: number;
   motionSensitivityLevel: MotionSensitivityLevel;
   maxDisplacement: number;
+  enableAmbientTilt: boolean;
+  ambientTiltOptions: AmbientTiltOptions | undefined;
 } => {
   // Base defaults for the hook's physics behavior
   const basePhysicsDefaults = {
@@ -644,6 +658,9 @@ const resolvePhysicsConfig = (
   const tiltAmplitude = (options.tiltAmplitude ?? basePhysicsDefaults.tiltAmplitude) * sensitivityMultiplier;
   const maxDisplacement = options.maxDisplacement ?? basePhysicsDefaults.maxDisplacement;
 
+  const enableAmbientTilt = options.enableAmbientTilt ?? false;
+  const ambientTiltOptions = options.ambientTiltOptions;
+
   return {
     stiffness: Math.max(0.1, stiffness),
     dampingRatio: clamp(dampingRatio, 0, 2),
@@ -656,13 +673,15 @@ const resolvePhysicsConfig = (
     tiltAmplitude,
     motionSensitivityLevel: sensitivityLevel,
     maxDisplacement,
+    enableAmbientTilt,
+    ambientTiltOptions,
   };
 };
 
 /**
  * React Hook for Physics-Based UI Interactions
  */
-export const usePhysicsInteraction = <T extends HTMLElement = HTMLElement>(
+export const usePhysicsInteraction = <T extends HTMLElement | SVGElement>(
   options: PhysicsInteractionOptions = {}
 ): {
   ref: React.RefObject<T>;
@@ -688,11 +707,13 @@ export const usePhysicsInteraction = <T extends HTMLElement = HTMLElement>(
     angularVelocity: 0, distance: 0,
     isColliding: false, energy: 0,
   });
-  const [style, setStyle] = useState<React.CSSProperties>({});
+  // State to make transform values reactive for the returned style object
+  const [transformValues, setTransformValues] = useState({ x: 0, y: 0, scale: 1, rotation: 0 });
   const animationFrameRef = useRef<number | null>(null);
   const isInteractingRef = useRef(false);
   const springModelRef = useRef<SpringModel | null>(null);
-  const lastUpdateTimeRef = useRef<number>(0);
+  const lastUpdateTimeRef = useRef<number>(performance.now());
+  const isMounted = useRef(false);
 
   const systemPrefersReducedMotion = useReducedMotion();
   const { defaultSpring } = useAnimationContext();
@@ -703,228 +724,229 @@ export const usePhysicsInteraction = <T extends HTMLElement = HTMLElement>(
 
   const isDisabled = currentOptions.reducedMotion ?? systemPrefersReducedMotion;
 
+  const { style: ambientStyle } = useAmbientTilt(
+      resolvedPhysicsConfig.enableAmbientTilt ? resolvedPhysicsConfig.ambientTiltOptions : { enabled: false }
+  );
+
   useEffect(() => {
+    isMounted.current = true;
     springModelRef.current = new SpringModel(
       resolvedPhysicsConfig.mass,
       resolvedPhysicsConfig.stiffness,
       resolvedPhysicsConfig.dampingRatio
     );
     springModelRef.current.setTarget(0, 0);
+    springModelRef.current.reset();
+    setTransformValues({ x: 0, y: 0, scale: 1, rotation: 0 });
+    lastUpdateTimeRef.current = performance.now();
+    
+    return () => { isMounted.current = false; };
+  }, [resolvedPhysicsConfig.mass, resolvedPhysicsConfig.stiffness, resolvedPhysicsConfig.dampingRatio]);
+
+  // Initialize useRef with undefined
+  const animateCallback = useRef<(() => void) | undefined>(undefined);
+
+  useEffect(() => {
+     animateCallback.current = () => {
+         if (!isMounted.current || !springModelRef.current) {
+             animationFrameRef.current = null;
+             return;
+         }
+
+         const currentTime = performance.now();
+         const deltaTime = Math.min((currentTime - lastUpdateTimeRef.current) / 1000, 0.032);
+         lastUpdateTimeRef.current = currentTime;
+
+         const position = springModelRef.current.update(deltaTime);
+         const velocity = springModelRef.current.getVelocity();
+
+         physicsStateRef.current.x = position.x;
+         physicsStateRef.current.y = position.y;
+         physicsStateRef.current.z = position.z ?? 0;
+         physicsStateRef.current.velocity = velocity;
+
+         const magnitude = Math.sqrt(position.x * position.x + position.y * position.y);
+         let scale = 1;
+         let rotation = 0;
+
+         if (magnitude > 0.01 && (resolvedPhysicsConfig.affectsScale || resolvedPhysicsConfig.affectsRotation)) {
+             const influence = clamp(magnitude / resolvedPhysicsConfig.maxDisplacement, 0, 1);
+             if (resolvedPhysicsConfig.affectsScale) {
+                 scale = 1 + resolvedPhysicsConfig.scaleAmplitude * influence;
+             }
+             if (resolvedPhysicsConfig.affectsRotation) {
+                  const angle = Math.atan2(position.y, position.x); 
+                  rotation = (angle * (180 / Math.PI)) * influence * (resolvedPhysicsConfig.rotationAmplitude / 90); 
+             }
+         }
+
+         setTransformValues({ x: position.x, y: position.y, scale: scale, rotation: rotation });
+         physicsStateRef.current.scale = scale;
+         physicsStateRef.current.rotation = rotation;
+
+         if (!springModelRef.current.isAtRest() || isInteractingRef.current) {
+           if(isMounted.current) animationFrameRef.current = requestAnimationFrame(animateCallback.current); 
+         } else {
+           animationFrameRef.current = null;
+         }
+     };
   }, [resolvedPhysicsConfig]);
-
-  const animate = useCallback(() => {
-    if (isDisabled) {
-      animationFrameRef.current = null;
-      return;
-    }
-    if (!elementRef.current || !springModelRef.current) {
-        animationFrameRef.current = null;
-        return;
-    }
-
-    const currentTime = getCurrentTime();
-    const deltaTime = Math.min((currentTime - lastUpdateTimeRef.current) / 1000, 0.032);
-    lastUpdateTimeRef.current = currentTime;
-
-    const { x, y, z } = springModelRef.current.update(deltaTime);
-
-    const { relativeX, relativeY } = physicsStateRef.current;
-    physicsStateRef.current = {
-      ...physicsStateRef.current,
-      x, y, z: z ?? 0,
-      active: isInteractingRef.current,
-      velocity: springModelRef.current.getVelocity(),
-      relativeX, relativeY,
-    };
-
-    let transform = `translate3d(${x}px, ${y}px, ${z ?? 0}px)`;
-
-    if (resolvedPhysicsConfig.affectsScale) {
-        const scaleProgress = isInteractingRef.current ? 1 : 0;
-        const scaleFactor = 1 + scaleProgress * resolvedPhysicsConfig.scaleAmplitude;
-        transform += ` scale(${scaleFactor})`;
-    }
-
-    if (resolvedPhysicsConfig.affectsTilt) {
-        const rotateY = relativeX * resolvedPhysicsConfig.tiltAmplitude;
-        const rotateX = -relativeY * resolvedPhysicsConfig.tiltAmplitude;
-        transform += ` rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    }
-
-    if (resolvedPhysicsConfig.affectsRotation) {
-        const rotationProgress = isInteractingRef.current ? 1 : 0;
-        const zRotation = rotationProgress * resolvedPhysicsConfig.rotationAmplitude * (x / resolvedPhysicsConfig.maxDisplacement);
-        transform += ` rotate(${clamp(zRotation, -resolvedPhysicsConfig.rotationAmplitude, resolvedPhysicsConfig.rotationAmplitude)}deg)`;
-    }
-
-    const newStyle: React.CSSProperties = { transform };
-
-    if (currentOptions.gpuAccelerated) {
-       newStyle.willChange = 'transform';
-       newStyle.backfaceVisibility = 'hidden';
-       (newStyle as any).WebkitBackfaceVisibility = 'hidden';
-    }
-    setStyle(newStyle);
-
-    if (!springModelRef.current.isAtRest() || isInteractingRef.current) {
-      animationFrameRef.current = requestAnimationFrame(animate);
-    } else {
-      animationFrameRef.current = null;
-      if (elementRef.current && currentOptions.gpuAccelerated) {
-          elementRef.current.style.willChange = 'auto';
-      }
-    }
-
-  }, [isDisabled, resolvedPhysicsConfig, currentOptions.gpuAccelerated]);
-
-  const startAnimation = useCallback(() => {
-    if (isDisabled || animationFrameRef.current) return;
-    lastUpdateTimeRef.current = getCurrentTime();
-    animationFrameRef.current = requestAnimationFrame(animate);
-    if (elementRef.current && currentOptions.gpuAccelerated) {
-        elementRef.current.style.willChange = 'transform';
-    }
-  }, [isDisabled, animate, currentOptions.gpuAccelerated]);
 
   const handlePointerEnter = useCallback((event: PointerEvent) => {
     if (isDisabled || !elementRef.current) return;
-    (event.target as HTMLElement).setPointerCapture(event.pointerId);
     isInteractingRef.current = true;
-    startAnimation();
-  }, [isDisabled, startAnimation]);
+    physicsStateRef.current.active = true; 
+    lastUpdateTimeRef.current = performance.now(); 
+    if (!animationFrameRef.current && animateCallback.current) {
+      animationFrameRef.current = requestAnimationFrame(animateCallback.current); 
+    }
+  }, [isDisabled]); 
 
   const handlePointerMove = useCallback((event: PointerEvent) => {
-    if (isDisabled || !isInteractingRef.current || !elementRef.current) return;
+    if (isDisabled || !isInteractingRef.current || !elementRef.current || !springModelRef.current) return;
 
-    const element = elementRef.current;
-    const rect = element.getBoundingClientRect();
+    const rect = elementRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return; 
+    
     const elementCenterX = rect.left + rect.width / 2;
     const elementCenterY = rect.top + rect.height / 2;
-
-    const pointerX = event.clientX;
-    const pointerY = event.clientY;
-
-    let relativeX = (pointerX - elementCenterX) / (rect.width / 2);
-    let relativeY = (pointerY - elementCenterY) / (rect.height / 2);
-
-    relativeX = clamp(relativeX, -1, 1);
-    relativeY = clamp(relativeY, -1, 1);
+    const pointerX = event.clientX - elementCenterX;
+    const pointerY = event.clientY - elementCenterY;
+    const relativeX = clamp(pointerX / (rect.width / 2), -1, 1);
+    const relativeY = clamp(pointerY / (rect.height / 2), -1, 1);
 
     physicsStateRef.current.relativeX = relativeX;
     physicsStateRef.current.relativeY = relativeY;
-
+    
     const targetX = relativeX * resolvedPhysicsConfig.maxDisplacement;
     const targetY = relativeY * resolvedPhysicsConfig.maxDisplacement;
-    springModelRef.current?.setTarget(targetX, targetY);
 
-    startAnimation();
+    springModelRef.current.setTarget(targetX, targetY);
+    
+    if (!animationFrameRef.current && animateCallback.current) {
+        lastUpdateTimeRef.current = performance.now();
+        animationFrameRef.current = requestAnimationFrame(animateCallback.current);
+     }
 
-  }, [isDisabled, startAnimation, resolvedPhysicsConfig.maxDisplacement]);
+  }, [isDisabled, resolvedPhysicsConfig.maxDisplacement]); 
 
-  const handlePointerLeave = useCallback((event: PointerEvent) => {
-    if (isDisabled || !elementRef.current) return;
-     (event.target as HTMLElement).releasePointerCapture(event.pointerId);
+  const handlePointerLeave = useCallback(() => {
+    if (!elementRef.current || !springModelRef.current) return;
     isInteractingRef.current = false;
-
-    springModelRef.current?.setTarget(0, 0);
-    physicsStateRef.current.relativeX = 0;
+    physicsStateRef.current.active = false;
+    physicsStateRef.current.relativeX = 0; 
     physicsStateRef.current.relativeY = 0;
-
-    startAnimation();
-  }, [isDisabled, startAnimation]);
+    springModelRef.current.setTarget(0, 0);
+  }, []); 
 
   useEffect(() => {
     const element = elementRef.current;
-    if (!element || isDisabled) return;
+    if (!element || isDisabled) {
+         if (animationFrameRef.current) {
+             cancelAnimationFrame(animationFrameRef.current);
+             animationFrameRef.current = null;
+         }
+         return;
+    }
 
     element.addEventListener('pointerenter', handlePointerEnter);
     element.addEventListener('pointermove', handlePointerMove);
     element.addEventListener('pointerleave', handlePointerLeave);
-    element.style.touchAction = 'none';
 
-    const needsPerspective = resolvedPhysicsConfig.affectsTilt && currentOptions.gpuAccelerated;
-    if (needsPerspective) {
-        element.style.perspective = '1000px';
+    // Check element type before calling helpers
+    if (element instanceof HTMLElement) {
+        markAsAnimating(element);
+        if (currentOptions.gpuAccelerated) {
+            addGpuAcceleration(element);
+        }
+    } else {
+        // Handle SVG or other elements if necessary, perhaps just will-change
+        element.style.willChange = 'transform';
     }
 
     return () => {
-      element.removeEventListener('pointerenter', handlePointerEnter);
-      element.removeEventListener('pointermove', handlePointerMove);
-      element.removeEventListener('pointerleave', handlePointerLeave);
-      element.style.touchAction = 'auto';
-
-      if (needsPerspective) {
-          element.style.perspective = 'none';
+      if (element) {
+         element.removeEventListener('pointerenter', handlePointerEnter);
+         element.removeEventListener('pointermove', handlePointerMove);
+         element.removeEventListener('pointerleave', handlePointerLeave);
       }
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
       }
-      if (elementRef.current && currentOptions.gpuAccelerated) {
-          elementRef.current.style.willChange = 'auto';
-      }
     };
-  }, [elementRef, isDisabled, handlePointerEnter, handlePointerMove, handlePointerLeave, resolvedPhysicsConfig.affectsTilt, currentOptions.gpuAccelerated]);
+  }, [elementRef, isDisabled, handlePointerEnter, handlePointerMove, handlePointerLeave, currentOptions.gpuAccelerated]);
 
   const update = useCallback((newOptions: Partial<PhysicsInteractionOptions>) => {
-      setCurrentOptions(prevOptions => ({ ...prevOptions, ...newOptions }));
+      setCurrentOptions(prev => ({...prev, ...newOptions}));
   }, []);
 
   const reset = useCallback(() => {
-      springModelRef.current?.reset();
-      springModelRef.current?.setTarget(0, 0);
-      physicsStateRef.current.relativeX = 0;
-      physicsStateRef.current.relativeY = 0;
       isInteractingRef.current = false;
-      setStyle({});
-      if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
+      springModelRef.current?.reset();
+      springModelRef.current?.setTarget(0,0);
+      physicsStateRef.current = {
+         x: 0, y: 0, z: 0, 
+         relativeX: 0, relativeY: 0,
+         rotation: 0, scale: 1, active: false,
+         velocity: { x: 0, y: 0, z: 0 },
+         acceleration: { x: 0, y: 0, z: 0 }, 
+         angularVelocity: 0, distance: 0, isColliding: false, energy: 0,
+      };
+       setTransformValues({ x: 0, y: 0, scale: 1, rotation: 0 });
+      if (!animationFrameRef.current && !isDisabled && animateCallback.current) { 
+         lastUpdateTimeRef.current = performance.now();
+         animationFrameRef.current = requestAnimationFrame(animateCallback.current);
       }
-      requestAnimationFrame(() => setStyle({ transform: 'translate3d(0px, 0px, 0px)' }));
+  }, [isDisabled]); 
+  
+  const combinedStyle: CSSProperties = useMemo(() => {
+      const baseStyle: CSSProperties = { ...ambientStyle }; 
+
+      const interactionTransform = `translate3d(${transformValues.x.toFixed(1)}px, ${transformValues.y.toFixed(1)}px, 0px) rotate(${transformValues.rotation.toFixed(1)}deg) scale(${transformValues.scale.toFixed(2)})`;
+
+       if (ambientStyle.transform) {
+            baseStyle.transform = `${interactionTransform} ${ambientStyle.transform}`; 
+       } else {
+            baseStyle.transform = interactionTransform;
+       }
+
+       if (!isDisabled) {
+           baseStyle.willChange = 'transform'; 
+       }
+
+       return baseStyle;
+
+  }, [transformValues, ambientStyle, isDisabled]);
+
+  const applyForce = useCallback((force: PhysicsVector) => { 
+      console.warn("applyForce not fully implemented - applies force to internal spring model only");
+   }, []);
+  const applyImpulse = useCallback((impulse: PhysicsVector) => { 
+      console.warn("applyImpulse not fully implemented - applies impulse to internal spring model only"); 
   }, []);
-
-  const applyForce = useCallback((force: PhysicsVector) => {
-     console.warn('usePhysicsInteraction applyForce() not implemented');
-  }, []);
-
-  const applyImpulse = useCallback((impulse: PhysicsVector) => {
-     console.warn('usePhysicsInteraction applyImpulse() not implemented');
-  }, []);
-
-  const setPosition = useCallback((position: PhysicsVector) => {
-      springModelRef.current?.setPosition(position.x, position.y, position.z || 0);
-      springModelRef.current?.setVelocity(0, 0, 0);
-      springModelRef.current?.setTarget(position.x, position.y, position.z || 0);
-      physicsStateRef.current = { ...physicsStateRef.current, x: position.x, y: position.y, z: position.z || 0 };
-      setStyle({ transform: `translate3d(${position.x}px, ${position.y}px, ${position.z || 0}px)` });
-      if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-          animationFrameRef.current = null;
-      }
-  }, []);
-
-  const isPaused = !animationFrameRef.current && !isInteractingRef.current;
-
-  const togglePause = useCallback(() => {
-     if (animationFrameRef.current) {
-         cancelAnimationFrame(animationFrameRef.current);
-         animationFrameRef.current = null;
-     } else if (!isDisabled) {
-         startAnimation();
-     }
-  }, [isDisabled, startAnimation]);
+  const setPosition = useCallback((position: PhysicsVector) => { 
+      springModelRef.current?.setPosition(position.x, position.y, position.z);
+      springModelRef.current?.setTarget(position.x, position.y, position.z); 
+       physicsStateRef.current = { ...physicsStateRef.current, x: position.x, y: position.y, z: position.z ?? 0 };
+       setTransformValues(prev => ({ ...prev, x: position.x, y: position.y }));
+      if (!animationFrameRef.current && !isDisabled && animateCallback.current) {
+          lastUpdateTimeRef.current = performance.now();
+          animationFrameRef.current = requestAnimationFrame(animateCallback.current);
+       }
+  }, [isDisabled]); 
+  const togglePause = useCallback(() => { console.warn("togglePause not implemented"); }, []);
 
   return {
     ref: elementRef,
-    style,
-    state: physicsStateRef.current,
+    style: combinedStyle,
+    state: physicsStateRef.current, 
     update,
     reset,
     applyForce,
     applyImpulse,
     setPosition,
-    isPaused,
+    isPaused: false,
     togglePause,
   };
 };

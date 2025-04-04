@@ -1,5 +1,5 @@
 import React, { forwardRef, useRef, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
@@ -214,41 +214,45 @@ const LinearProgressBar = styled.div<{
   /* Indeterminate animation */
   ${props =>
     props.$variant === 'indeterminate' &&
-    `
-    width: auto;
-    animation: ${indeterminateAnimation1} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      right: 0;
-      background-color: ${getColorByName(props.$color)};
-      animation: ${indeterminateAnimation2} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
-    }
-  `}
+    css`
+      width: auto;
+      animation: ${indeterminateAnimation1} 2.1s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background-color: ${getColorByName(props.$color)};
+        animation: ${indeterminateAnimation2} 2.1s cubic-bezier(0.165, 0.84, 0.44, 1) 1.15s infinite;
+      }
+    `}
 
   /* Glass effect styling */
   ${props =>
     props.$glassEffect &&
-    glassSurface({
-      elevation: 1,
-      blurStrength: 'subtle',
-      backgroundOpacity: 'strong',
-      borderOpacity: 'subtle',
-      themeContext: createThemeContext({}),
-    })}
+    css`
+      ${glassSurface({
+        elevation: 1,
+        blurStrength: 'subtle',
+        backgroundOpacity: 'strong',
+        borderOpacity: 'subtle',
+        themeContext: createThemeContext({}),
+      })}
+    `}
   
   /* Glow effect for glass */
   ${props =>
     props.$glassEffect &&
-    glassGlow({
-      intensity: 'low',
-      color: props.$color,
-      themeContext: createThemeContext({}),
-    })}
+    css`
+      ${glassGlow({
+        intensity: 'low',
+        color: props.$color,
+        themeContext: createThemeContext({}),
+      })}
+    `}
 `;
 
 const BufferProgressBar = styled.div<{
@@ -319,16 +323,16 @@ const CircularProgressCircle = styled.circle<{
   /* Indeterminate animation */
   ${props =>
     props.$variant === 'indeterminate' &&
-    `
-    animation: ${circularDashAnimation} 1.5s ease-in-out infinite;
-  `}
+    css`
+      animation: ${circularDashAnimation} 1.5s ease-in-out infinite;
+    `}
 
   /* Glass effect highlight */
   ${props =>
     props.$glassEffect &&
-    `
-    filter: drop-shadow(0 0 2px ${getColorByName(props.$color)});
-  `}
+    css`
+      filter: drop-shadow(0 0 2px ${getColorByName(props.$color)});
+    `}
 `;
 
 const CircularProgressOverlay = styled.div<{

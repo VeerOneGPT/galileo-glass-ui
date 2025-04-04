@@ -10,7 +10,7 @@
 
 // --- Export intended public components --- 
 export { Button, GlassButton, MagneticButton } from './components/Button';
-export { Card } from './components/Card'; // GlassCard is used via Card's 'glass' prop
+export { Card, CardHeader, CardContent, CardActions } from './components/Card'; // Add Card subcomponents
 export { GlassTypography } from './components/Typography';
 export { GlassTabs } from './components/GlassTabs/GlassTabs';
 export { GlassTabBar } from './components/GlassTabBar';
@@ -47,6 +47,11 @@ export { default as ParticleBackground } from './components/backgrounds/Particle
 export { default as VisualFeedback } from './components/VisualFeedback/VisualFeedback';
 export { default as RippleButton } from './components/VisualFeedback/RippleButton';
 export { GlassDataChart as DataChart } from './components/DataChart';
+export { GlassTimeline } from './components/Timeline/GlassTimeline';
+export { GlassDateRangePicker } from './components/DateRangePicker/GlassDateRangePicker';
+export { Tooltip } from './components/Tooltip';
+export { GlassStepper } from './components/GlassStepper';
+export { GlassDataGrid } from './components/GlassDataGrid';
 // Add other components intended for the main export here...
 
 // Explicitly re-export core modules
@@ -82,10 +87,10 @@ export type {
   FilterFunction 
 } from './components/MultiSelect/types';
 
-// Explicitly re-export theme modules
+// Explicitly re-export theme modules (Consolidated from ./theme barrel file)
 export {
   ThemeProvider,
-  GlassThemeProvider,
+//  GlassThemeProvider, // Removed duplicate
   useTheme,
   useColorMode,
   useThemeVariant,
@@ -97,33 +102,115 @@ export {
   spacing,
   shadows,
   borderRadius,
-} from './theme';
+} from './theme'; // Assuming ./theme exports these
 
-// Explicitly re-export animations
+// Export GlassThemeProvider separately if not in ./theme barrel - REMOVED, assuming it's in ./theme export
+// export { GlassThemeProvider } from './theme/GlassThemeProvider'; 
+
+// --- Removed direct theme exports like defaultTheme, themeTypes, createThemeContext ---
+// --- Assuming they are covered by ./theme or other core exports ---
+
+
+// Explicitly re-export animations (Consolidated)
 export { 
   accessibleAnimation, 
   animateWithPhysics, 
   useZSpaceAnimation,
   springAnimation
-} from './animations';
+} from './animations'; // Assuming ./animations barrel exists and exports these
 
-// Explicitly re-export hooks
+// --- Removed direct animation hook exports like useAnimate, useAnimationSequence ---
+
+
+// Explicitly re-export hooks (Consolidated from ./hooks barrel file)
 export { 
   useGlassTheme, 
   usePhysicsInteraction, 
   useOrchestration,
-  useGalileoPhysicsEngine
-} from './hooks';
+  useGalileoPhysicsEngine,
+  usePhysicsConstraint,
+  useBreakpoint,          // Added from later duplicate
+  useResponsiveValue,   // Added from later duplicate
+  // useDebounce,            // Removed - Assuming not exported from ./hooks, potentially in ./utils or internal
+  // useIsomorphicLayoutEffect, // Removed - Assuming not exported from ./hooks, potentially in ./utils or internal
+  // usePrevious,            // Removed - Assuming not exported from ./hooks, potentially in ./utils or internal
+  useReducedMotion        // Added from later duplicate - path corrected
+  // useIntersectionObserver, // Removed - Assuming file doesn't exist or is elsewhere
+  // useGesturePhysics      // Removed - Assuming file doesn't exist or is elsewhere
+} from './hooks'; // Assuming ./hooks barrel exports these
 
-// Re-export physics engine types
+// --- Removed direct hook exports like useGlassTheme, useBreakpoint, etc. ---
+
+
+// Re-export physics engine types (Consolidated from ./animations/physics/engineTypes)
 export type {
-  PhysicsBodyOptions, // Ensure this is explicitly exported
+  PhysicsBodyOptions,
   PhysicsBodyState,
   CollisionEvent,
   Vector2D,
   UnsubscribeFunction,
-  GalileoPhysicsEngineAPI
+  GalileoPhysicsEngineAPI,
+  PhysicsConstraintOptions,
+  DistanceConstraintOptions,
+  SpringConstraintOptions,
+  HingeConstraintOptions
 } from './animations/physics/engineTypes';
+
+// --- Removed duplicate physics type exports ---
+
 
 // Main version (consolidated)
 export const version = '1.0.4'; // Updated package version
+
+// Export physics engine debug utilities (v1.0.14+)
+export {
+  getPhysicsBodyState,
+  verifyPhysicsEngineState,
+  forcePhysicsEngineUpdate,
+  debugPhysicsEngine
+} from './animations/physics/physicsEngineDebug';
+
+// Export ref utilities for proper ref handling (v1.0.14+) (Consolidated)
+export {
+  mergeRefs,
+  mergePhysicsRef,
+  withForwardedRef
+} from './utils/refUtils'; // Assuming ./utils/refUtils barrel exports these
+
+// --- Removed direct ref util exports like mergeRefs ---
+
+
+// Re-export core hooks (REMOVED - consolidated above)
+// export { useGlassTheme } from './hooks/useGlassTheme';
+// export { useBreakpoint } from './hooks/useBreakpoint';
+// export { useResponsiveValue } from './hooks/useResponsiveValue';
+// export { useDebounce } from './hooks/useDebounce';
+// export { useIntersectionObserver } from './hooks/useIntersectionObserver';
+// export { useIsomorphicLayoutEffect } from './hooks/useIsomorphicLayoutEffect';
+// export { usePrevious } from './hooks/usePrevious';
+
+// Re-export animation/physics hooks and types (REMOVED - consolidated above or assumed in ./animations or ./hooks barrels)
+// export { useAnimate, type AnimationControls } from './animations/useAnimate'; // Assumed in ./animations
+// export { useAnimationSequence, type AnimationSequenceConfig, type AnimationStage } from './animations/orchestration/useAnimationSequence'; // Assumed in ./animations
+// export { useAnimationStateMachine, type StateMachineDefinition, type StateMachineControls } from './animations/orchestration/useAnimationStateMachine'; // Assumed in ./animations
+// export { useReducedMotion } from './animations/accessibility/useReducedMotion'; // Assumed in ./hooks
+// export { useGesturePhysics } from './hooks/useGesturePhysics'; // Removed - Assuming non-existent
+// export { usePhysicsInteraction } from './hooks/usePhysicsInteraction'; // Assumed in ./hooks
+// export { useGalileoPhysicsEngine } from './animations/physics/useGalileoPhysicsEngine'; // Assumed in ./hooks
+// export { usePhysicsConstraint } from './hooks/usePhysicsConstraint'; // Assumed in ./hooks
+
+// Export Physics Engine API types (REMOVED - consolidated above)
+// export type { ... } from './animations/physics/engineTypes';
+
+// Export core components (REMOVED wildcard)
+// ... (ensure all components like Button, Card, etc. are exported) ...
+// export * from './components'; // Removed wildcard export
+
+// Export theme related utilities and provider (REMOVED - consolidated above or assumed in barrels)
+// export { GlassThemeProvider } from './theme/GlassThemeProvider'; // Kept separate for clarity if needed
+// export { defaultTheme } from './theme/defaultTheme';
+// export { type GlassTheme } from './theme/themeTypes';
+// export { createThemeContext } from './theme/createThemeContext'; // Assumed in ./core/themeContext
+
+// Export core utilities (REMOVED - consolidated above)
+// export { mergeRefs } from './utils/mergeRefs'; // Assumed in ./utils/refUtils

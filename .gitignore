@@ -67,3 +67,4 @@ test-install/
 
 # GitHub specific files
 .github/
+*storybook.log

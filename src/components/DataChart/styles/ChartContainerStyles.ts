@@ -30,13 +30,12 @@ export const ChartContainer = styled.div<{
     // Apply glass effect based on variant
     switch (props.$glassVariant) {
       case 'clear':
-        return glassSurface({
-          elevation: props.$elevation,
-          blurStrength: props.$blurStrength as any,
-          backgroundOpacity: 'light',
-          borderOpacity: 'subtle',
-          themeContext,
-        });
+        return `
+          background-color: transparent;
+          backdrop-filter: none;
+          border-color: transparent;
+          box-shadow: none;
+        `;
       case 'frosted':
         return glassSurface({
           elevation: props.$elevation,

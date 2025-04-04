@@ -777,30 +777,28 @@ export function detectBodyCollision(bodyA: CollisionBody, bodyB: CollisionBody):
  * Detects collision between two circles
  */
 function detectCircleCircleCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
-  // Ensure shapeData exists and is of the correct type
-  if (bodyA.shape !== CollisionShape.CIRCLE || bodyB.shape !== CollisionShape.CIRCLE || 
-      !bodyA.shapeData || !bodyB.shapeData) {
-    console.error('Invalid shape data for circle-circle collision');
-    return { collision: false, bodyA, bodyB };
+  // Use type guards
+  if (!isCircleData(bodyA.shapeData) || !isCircleData(bodyB.shapeData)) {
+     console.error('Invalid shape data for Circle-Circle collision');
+     return { collision: false, bodyA, bodyB };
   }
-
-  const circleA = bodyA.shapeData as CircleData;
-  const circleB = bodyB.shapeData as CircleData;
+  const circleA = bodyA.shapeData;
+  const circleB = bodyB.shapeData;
   
-  const distanceVector = subtractVectors(bodyB.position, bodyA.position);
-  const distance = vectorMagnitude(distanceVector); // Use magnitude for distance
-  const minDistance = circleA.radius + circleB.radius;
+  const distVec = subtractVectors(bodyB.position, bodyA.position);
+  const distSq = dotProduct(distVec, distVec); // Use dot product for squared distance
+  const radiiSum = circleA.radius + circleB.radius;
+  const radiiSumSq = radiiSum * radiiSum;
   
-  if (distance < minDistance && distance > 1e-6) { // Add small tolerance to avoid division by zero
-    // Calculate collision normal (direction from A to B)
-    const normal = normalizeVector(distanceVector); // Already calculated distanceVector
+  if (distSq < radiiSumSq) {
+    // Collision detected
+    const dist = Math.sqrt(distSq);
+    const normal = dist === 0 ? { x: 1, y: 0 } : normalizeVector(distVec); // Handle circles at same position
+    const penetration = radiiSum - dist;
     
-    // Calculate penetration depth
-    const penetration = minDistance - distance;
-    
-    // Calculate contact point (on the surface of bodyA towards bodyB)
+    // Calculate contact point: on the line connecting centers, at the edge of circle A
     const contactPoint = addVectors(bodyA.position, multiplyVector(normal, circleA.radius));
-    
+
     // Calculate relative velocity
     const relativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
     
@@ -811,27 +809,16 @@ function detectCircleCircleCollision(bodyA: CollisionBody, bodyB: CollisionBody)
       normal,
       contactPoint,
       penetration,
-      relativeVelocity
+      relativeVelocity // Added relative velocity
     };
-  } else if (distance <= 1e-6 && minDistance > 0) {
-      // Handle exact overlap or very close centers
-      // Assume penetration is full radii sum, choose arbitrary normal (e.g., x-axis)
-      return {
-          collision: true,
-          bodyA,
-          bodyB,
-          normal: { x: 1, y: 0 }, // Arbitrary normal
-          contactPoint: bodyA.position, // Contact at center
-          penetration: minDistance,
-          relativeVelocity: subtractVectors(bodyB.velocity, bodyA.velocity)
-      };
+  } else {
+    // No collision
+    return {
+      collision: false,
+      bodyA,
+      bodyB
+    };
   }
-  
-  return {
-    collision: false,
-    bodyA,
-    bodyB
-  };
 }
 
 /**
@@ -926,81 +913,62 @@ function detectRectangleRectangleCollision(bodyA: CollisionBody, bodyB: Collisio
  * Detects collision between a circle and a rectangle
  */
 function detectCircleRectangleCollision(bodyA: CollisionBody, bodyB: CollisionBody): CollisionResult {
-  const circle = bodyA.shapeData as CircleData;
-  const rect = bodyB.shapeData as RectangleData;
-  
-  // Calculate rectangle half-dimensions
+  // Ensure bodyA is circle, bodyB is rectangle
+  if (bodyA.shape !== CollisionShape.CIRCLE || bodyB.shape !== CollisionShape.RECTANGLE) {
+      console.error('Invalid shape order for detectCircleRectangleCollision');
+      return { collision: false, bodyA, bodyB };
+  }
+  // Use type guards
+  if (!isCircleData(bodyA.shapeData) || !isRectangleData(bodyB.shapeData)) {
+     console.error('Invalid shape data for Circle-Rectangle collision');
+     return { collision: false, bodyA, bodyB };
+  }
+  const circle = bodyA.shapeData;
+  const rect = bodyB.shapeData;
+
+  // Find the closest point on the rectangle to the circle's center
+  const circleCenter = bodyA.position;
+  const rectCenter = bodyB.position;
   const halfWidth = rect.width / 2;
   const halfHeight = rect.height / 2;
   
-  // Find the closest point on the rectangle to the circle center
   const closestPoint = {
-    x: Math.max(bodyB.position.x - halfWidth, Math.min(bodyA.position.x, bodyB.position.x + halfWidth)),
-    y: Math.max(bodyB.position.y - halfHeight, Math.min(bodyA.position.y, bodyB.position.y + halfHeight))
+    x: Math.max(rectCenter.x - halfWidth, Math.min(circleCenter.x, rectCenter.x + halfWidth)),
+    y: Math.max(rectCenter.y - halfHeight, Math.min(circleCenter.y, rectCenter.y + halfHeight))
   };
   
-  // Calculate distance between closest point and circle center
-  const distance = vectorDistance(bodyA.position, closestPoint);
+  // Calculate distance between circle center and closest point
+  const distVec = subtractVectors(circleCenter, closestPoint);
+  const distSq = dotProduct(distVec, distVec); // Use dot product for squared distance
+  const radiusSq = circle.radius * circle.radius;
   
-  if (distance < circle.radius) {
-    // Calculate normal (direction from closest point to circle center)
-    let normal = subtractVectors(bodyA.position, closestPoint);
-    
-    // Check if circle center is inside rectangle (edge case)
-    if (vectorMagnitude(normal) < 0.0001) {
-      // Circle center is inside rectangle, find closest edge
-      const dx = Math.min(
-        Math.abs(bodyA.position.x - (bodyB.position.x - halfWidth)),
-        Math.abs(bodyA.position.x - (bodyB.position.x + halfWidth))
-      );
-      const dy = Math.min(
-        Math.abs(bodyA.position.y - (bodyB.position.y - halfHeight)),
-        Math.abs(bodyA.position.y - (bodyB.position.y + halfHeight))
-      );
-      
-      if (dx < dy) {
-        normal = {
-          x: bodyA.position.x < bodyB.position.x ? -1 : 1,
-          y: 0
-        };
-      } else {
-        normal = {
-          x: 0,
-          y: bodyA.position.y < bodyB.position.y ? -1 : 1
-        };
-      }
-    } else {
-      normal = normalizeVector(normal);
-    }
-    
-    // Calculate penetration
-    const penetration = circle.radius - distance;
-    
-    // Calculate contact point
-    const contactPoint = {
-      x: bodyA.position.x - normal.x * circle.radius,
-      y: bodyA.position.y - normal.y * circle.radius
-    };
-    
+  if (distSq < radiusSq) {
+    // Collision detected
+    const dist = Math.sqrt(distSq);
+    const penetration = circle.radius - dist;
+    // Normal points from rectangle (closest point) towards circle center
+    const normal = dist === 0 ? { x: 1, y: 0 } : normalizeVector(distVec); 
+
     // Calculate relative velocity
     const relativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
     
     return {
       collision: true,
-      bodyA,
-      bodyB,
-      normal,
-      contactPoint,
+      bodyA, // Circle
+      bodyB, // Rectangle
+      normal, 
+      contactPoint: closestPoint, // Closest point on rect is contact point
       penetration,
-      relativeVelocity
+      relativeVelocity // Added relative velocity
+    };
+  } else {
+    // No collision
+    return {
+      collision: false,
+      bodyA,
+      bodyB
     };
   }
-  
-  return {
-    collision: false,
-    bodyA,
-    bodyB
-  };
 }
 
 /**
@@ -1226,6 +1194,7 @@ function detectCirclePolygonCollision(bodyA: CollisionBody, bodyB: CollisionBody
   }
   
   if (closestPoint && minDistance <= circle.radius) {
+    // Collision detected based on closest point outside
     // Get collision normal (from polygon to circle)
     const normal = normalizeVector(subtractVectors(bodyA.position, closestPoint));
     
@@ -1261,15 +1230,16 @@ function detectCirclePolygonCollision(bodyA: CollisionBody, bodyB: CollisionBody
 
 /**
  * Resolves a collision by calculating and applying impulses
+ * @returns The magnitude of the normal impulse applied.
  */
-export function resolveCollisionWithImpulse(result: CollisionResult): void {
-  if (!result.collision) return;
+export function resolveCollisionWithImpulse(result: CollisionResult): number { // Return impulse magnitude
+  if (!result.collision) return 0;
   
   const { bodyA, bodyB, normal, penetration } = result;
-  if (!normal) return;
+  if (!normal) return 0;
   
   // Skip collision resolution if either body is static
-  if (bodyA.isStatic && bodyB.isStatic) return;
+  if (bodyA.isStatic && bodyB.isStatic) return 0;
   
   // Get restitution (bounciness) - use highest value from both materials
   const restitutionA = bodyA.material?.restitution ?? 0.2;
@@ -1281,6 +1251,16 @@ export function resolveCollisionWithImpulse(result: CollisionResult): void {
   const frictionB = bodyB.material?.friction ?? 0.1;
   const friction = (frictionA + frictionB) * 0.5; // Average the friction
   
+  // Calculate inverse masses
+  const inverseMassA = (bodyA.isStatic || bodyA.mass === Infinity || bodyA.mass === 0) ? 0 : 1 / bodyA.mass;
+  const inverseMassB = (bodyB.isStatic || bodyB.mass === Infinity || bodyB.mass === 0) ? 0 : 1 / bodyB.mass;
+  const totalInverseMass = inverseMassA + inverseMassB;
+
+  // If both bodies are effectively static, no impulse needed
+  if (totalInverseMass <= 0) {
+      return 0;
+  }
+
   // Calculate relative velocity
   const relativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
   
@@ -1288,66 +1268,55 @@ export function resolveCollisionWithImpulse(result: CollisionResult): void {
   const velocityAlongNormal = dotProduct(relativeVelocity, normal);
   
   // Don't resolve if objects are moving away from each other
-  if (velocityAlongNormal > 0) return;
+  if (velocityAlongNormal > 0) return 0;
   
-  // Calculate impulse scalar
-  const j = -(1 + restitution) * velocityAlongNormal;
-  const totalMass = bodyA.isStatic ? bodyB.mass : (bodyB.isStatic ? bodyA.mass : bodyA.mass + bodyB.mass);
-  const impulseScalar = j / totalMass;
+  // Calculate normal impulse scalar (j)
+  const j = -(1 + restitution) * velocityAlongNormal / totalInverseMass;
   
-  // Apply impulse
-  const impulse = multiplyVector(normal, impulseScalar);
+  // Apply normal impulse
+  const normalImpulseVector = multiplyVector(normal, j);
   
-  // Update velocities
+  // Update velocities based on normal impulse
   if (!bodyA.isStatic) {
-    bodyA.velocity = subtractVectors(bodyA.velocity, multiplyVector(impulse, bodyB.mass / totalMass));
+    bodyA.velocity = subtractVectors(bodyA.velocity, multiplyVector(normalImpulseVector, inverseMassA));
   }
-  
   if (!bodyB.isStatic) {
-    bodyB.velocity = addVectors(bodyB.velocity, multiplyVector(impulse, bodyA.mass / totalMass));
+    bodyB.velocity = addVectors(bodyB.velocity, multiplyVector(normalImpulseVector, inverseMassB));
   }
   
-  // Apply friction force (tangential component)
-  // Calculate tangent vector (perpendicular to normal)
-  const tangent = {
-    x: -normal.y,
-    y: normal.x
-  };
-  
-  // Calculate relative velocity along tangent
-  const velAlongTangent = dotProduct(relativeVelocity, tangent);
-  
-  // Calculate tangential impulse
-  const frictionImpulse = -velAlongTangent * friction;
-  
-  // Apply tangential impulse
-  if (!bodyA.isStatic) {
-    bodyA.velocity = subtractVectors(
-      bodyA.velocity, 
-      multiplyVector(tangent, (frictionImpulse * bodyB.mass) / totalMass)
-    );
+  // --- Apply Friction Impulse ---
+  const updatedRelativeVelocity = subtractVectors(bodyB.velocity, bodyA.velocity);
+  const tangent = { x: -normal.y, y: normal.x };
+  const velAlongTangent = dotProduct(updatedRelativeVelocity, tangent);
+  const jt = -velAlongTangent / totalInverseMass;
+  const maxFrictionImpulse = Math.abs(j * friction);
+  const frictionImpulseScalar = Math.max(-maxFrictionImpulse, Math.min(jt, maxFrictionImpulse));
+
+  // Apply friction impulse only if the scalar is non-negligible
+  if (Math.abs(frictionImpulseScalar) > 1e-6) { // Add a tolerance check
+      const frictionImpulseVector = multiplyVector(tangent, frictionImpulseScalar);
+      
+      if (!bodyA.isStatic) {
+          bodyA.velocity = subtractVectors(bodyA.velocity, multiplyVector(frictionImpulseVector, inverseMassA));
+      }
+      if (!bodyB.isStatic) {
+          bodyB.velocity = addVectors(bodyB.velocity, multiplyVector(frictionImpulseVector, inverseMassB));
+      }
   }
   
-  if (!bodyB.isStatic) {
-    bodyB.velocity = addVectors(
-      bodyB.velocity, 
-      multiplyVector(tangent, (frictionImpulse * bodyA.mass) / totalMass)
-    );
+  // --- Positional Correction --- (Simple separation)
+  // Ensure penetration is a valid number before proceeding
+  if (penetration && typeof penetration === 'number' && !isNaN(penetration) && penetration > 0.01) {
+      const percent = 0.3; // Correction percentage
+      const slop = 0.01; // Allowable penetration
+      const correctionMagnitude = Math.max(penetration - slop, 0) / totalInverseMass * percent;
+      const correctionVector = multiplyVector(normal, correctionMagnitude);
+      
+      bodyA.position = subtractVectors(bodyA.position, multiplyVector(correctionVector, inverseMassA));
+      bodyB.position = addVectors(bodyB.position, multiplyVector(correctionVector, inverseMassB));
   }
-  
-  // Positional correction to prevent sinking (using the penetration depth)
-  // Skip if either body is static
-  if (bodyA.isStatic || bodyB.isStatic) return;
-  
-  const percent = 0.2; // Correction percentage (0.2-0.8)
-  const correction = multiplyVector(normal, penetration! * percent);
-  
-  const massSum = bodyA.mass + bodyB.mass;
-  const correctionA = multiplyVector(correction, bodyB.mass / massSum);
-  const correctionB = multiplyVector(correction, -bodyA.mass / massSum);
-  
-  bodyA.position = subtractVectors(bodyA.position, correctionA);
-  bodyB.position = addVectors(bodyB.position, correctionB);
+
+  return j; // Return the magnitude of the normal impulse
 }
 
 /**
@@ -1484,7 +1453,7 @@ export class SpatialGrid {
   }
 
   /**
-   * Gets potential collision pairs
+   * Gets potential collision pairs (Original Simple Implementation)
    */
   public getPotentialCollisionPairs(): { bodyA: CollisionBody; bodyB: CollisionBody }[] {
     const pairs: { bodyA: CollisionBody; bodyB: CollisionBody }[] = [];
@@ -1725,16 +1694,15 @@ export class CollisionSystem {
     for (const pair of this.collisionPairs) {
       const result = detectBodyCollision(pair.bodyA, pair.bodyB);
       
-      // Create unique ID for this collision pair
       const pairId = pair.bodyA.id < pair.bodyB.id 
         ? `${pair.bodyA.id}-${pair.bodyB.id}` 
         : `${pair.bodyB.id}-${pair.bodyA.id}`;
-      
-      activePairIds.add(pairId);
-      
+        
       if (result.collision) {
+        activePairIds.add(pairId);
+        
         // Resolve the collision
-        resolveCollisionWithImpulse(result);
+        const impulse = resolveCollisionWithImpulse(result);
         collisionResults.push(result);
         
         // Handle collision events
@@ -1750,7 +1718,7 @@ export class CollisionSystem {
               collision: result,
               timestamp: currentTime,
               duration: currentTime - activeCollision.startTime,
-              impulse: this.calculateCollisionImpulse(result)
+              impulse
             });
           } else {
             // New collision
@@ -1767,20 +1735,36 @@ export class CollisionSystem {
               type: CollisionEventType.START,
               collision: result,
               timestamp: currentTime,
-              impulse: this.calculateCollisionImpulse(result)
+              impulse
             });
           }
         }
       }
     }
     
+    // --- Debug Log for END Event --- 
+    const isEndEventTestFrame2 = Array.from(this.activeCollisions.keys()).includes('circle1-circle2');
+    if (isEndEventTestFrame2) {
+      console.log('[End Event Debug] Frame 2 Start');
+      console.log('[End Event Debug] Active Collisions Before Check:', Array.from(this.activeCollisions.keys()));
+      console.log('[End Event Debug] Active Pair IDs This Frame:', Array.from(activePairIds));
+    }
+    // --- End Debug Log ---
+
     // Check for ended collisions
     if (this.eventSubscriptions.length > 0) {
       for (const [pairId, activeCollision] of this.activeCollisions.entries()) {
+        if (isEndEventTestFrame2) { // Log check for the specific pair
+           console.log(`[End Event Debug] Checking pairId: ${pairId}. In activePairIds? ${activePairIds.has(pairId)}`);
+        }
         if (!activePairIds.has(pairId)) {
           // Collision has ended
           endedCollisions.push(pairId);
           
+          if (isEndEventTestFrame2) {
+             console.log(`[End Event Debug] Triggering END for ${pairId}`);
+          }
+
           // Trigger END event
           this.triggerCollisionEvent({
             type: CollisionEventType.END,
@@ -1801,52 +1785,34 @@ export class CollisionSystem {
   }
   
   /**
-   * Calculate the magnitude of collision impulse (approximation)
-   * @param result Collision result
-   * @returns Impulse magnitude
-   */
-  private calculateCollisionImpulse(result: CollisionResult): number {
-    if (!result.relativeVelocity || !result.normal) return 0;
-    
-    // Calculate relative velocity along normal
-    const velocityAlongNormal = dotProduct(result.relativeVelocity, result.normal);
-    
-    // If objects are separating, no impulse
-    if (velocityAlongNormal >= 0) return 0;
-    
-    // Get restitution
-    const restitutionA = result.bodyA.material?.restitution ?? 0.2;
-    const restitutionB = result.bodyB.material?.restitution ?? 0.2;
-    const restitution = Math.max(restitutionA, restitutionB);
-    
-    // Calculate impulse scalar
-    const totalMass = result.bodyA.isStatic 
-      ? result.bodyB.mass 
-      : (result.bodyB.isStatic ? result.bodyA.mass : result.bodyA.mass + result.bodyB.mass);
-    
-    return Math.abs((1 + restitution) * velocityAlongNormal * totalMass);
-  }
-  
-  /**
    * Trigger collision event for subscribers
    */
   private triggerCollisionEvent(event: CollisionEvent): void {
-    for (const subscription of this.eventSubscriptions) {
-      // Skip if event type doesn't match the subscription
-      if (subscription.eventType !== undefined && subscription.eventType !== event.type) {
-        continue;
+    console.log(`[CollisionSystem] Triggering event: ${event.type} for pair ${event.collision.bodyA.id}-${event.collision.bodyB.id}`);
+    
+    this.eventSubscriptions.forEach(sub => {
+      // Check type filter
+      if (sub.eventType && sub.eventType !== event.type) {
+        return;
       }
       
-      // Skip if body ID filter doesn't match
-      if (subscription.bodyId !== undefined && 
-          event.collision.bodyA.id !== subscription.bodyId && 
-          event.collision.bodyB.id !== subscription.bodyId) {
-        continue;
+      // Check body filter
+      if (
+        sub.bodyId !== undefined &&
+        sub.bodyId !== event.collision.bodyA.id &&
+        sub.bodyId !== event.collision.bodyB.id
+      ) {
+        return;
       }
       
-      // Execute callback
-      subscription.callback(event);
-    }
+      // If filters pass, call the callback
+      try {
+        // console.log(`[CollisionSystem] Invoking callback for sub ID: ${sub.id}`); // Optional detailed log
+        sub.callback(event);
+      } catch (error) {
+        console.error('[CollisionSystem] Error in collision event callback:', error);
+      }
+    });
   }
   
   /**

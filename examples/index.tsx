@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PageGlassContainer, FrostedGlass } from 'galileo-glass-ui';
+import { PageGlassContainer, FrostedGlass } from '../src';
 import AdvancedComponentsDemo from './AdvancedComponentsDemo';
 import PhysicsAnimationDemo from './PhysicsAnimationDemo';
 import SpecializedSurfacesDemo from './SpecializedSurfacesDemo';

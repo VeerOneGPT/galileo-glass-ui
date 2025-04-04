@@ -4,7 +4,7 @@
  * A glass-styled timeline component for displaying chronological events
  * with physics-based animations and interactions.
  */
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { format as formatDateFn } from 'date-fns';
 import { useTheme } from 'styled-components';
 
@@ -26,6 +26,7 @@ import {
   type TimelineItem,
   TimelineViewMode,
   ZoomLevel,
+  TimelineRef,
 } from './types';
 
 import {
@@ -61,9 +62,12 @@ import {
 
 /**
  * GlassTimeline Component
+ * 
+ * A glass-styled timeline component for displaying chronological events
+ * with physics-based animations and interactions.
  */
-export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = ({
-  // Main props
+export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<AnimationProps>>(({
+  // Destructure known props
   items = [],
   orientation = 'vertical',
   markerPosition = 'alternate',
@@ -71,8 +75,6 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
   groupByDate = true,
   groupThreshold = 3,
   groups = [],
-  
-  // Styling and visual props
   showAxis = true,
   markers = { 
     show: true, 
@@ -94,8 +96,6 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
   color = 'primary',
   glassMarkers = true,
   glassContent = true,
-  
-  // Timeline controls
   navigation = 'scroll',
   zoomLevel = 'days',
   zoomLevels = ['days', 'weeks', 'months', 'years'],
@@ -104,37 +104,30 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
   activeId,
   filter,
   allowFiltering = true,
-  
-  // Loading props
   loadingPast = false,
   loadingFuture = false,
   hasMorePast = false,
   hasMoreFuture = false,
   onLoadMorePast,
   onLoadMoreFuture,
-  
-  // Event callbacks
   onItemClick,
   onItemSelect,
   onNavigate,
   onZoomChange,
   onFilterChange,
-  
-  // Custom renderers
   renderMarker,
   renderContent,
   renderAxis,
-  
-  // Animation props
   animateOnMount = true,
   animateOnChange = true,
-  
-  // Other props
   id,
   ariaLabel,
   animationConfig,
   disableAnimation,
-}) => {
+  // Collect remaining props to spread
+  ...restProps 
+}, ref) => {
+  
   // Parse initial date
   const parsedInitialDate = useMemo(() => {
     return typeof initialDate === 'string' ? new Date(initialDate) : initialDate;
@@ -148,11 +141,11 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
   const [dateRange, setDateRange] = useState(getDateRangeForView(parsedInitialDate, viewMode, 2));
   
   // Refs
-  const containerRef = useRef<HTMLDivElement>(null);
+  const localContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string | number, HTMLDivElement>>(new Map());
   const isInitialMount = useRef(true);
-  const eventsContainerRef = useRef<HTMLDivElement>(null); // Ref for content wrapper
+  const eventsContainerRef = useRef<HTMLDivElement>(null); 
   
   // Drag State Refs
   const isDragging = useRef(false);
@@ -174,10 +167,9 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
 
   // Create a memoized scroll physics config
   const finalScrollPhysicsConfig = useMemo(() => ({
-    // Default physics configuration for scrolling
-    damping: 0.85, // Damping factor
-    friction: 0.92, // Friction factor
-    mass: 1,       // Mass value
+    damping: 0.85, 
+    friction: 0.92, 
+    mass: 1,       
   }), []);
 
   // --- Initialize Physics Hook for Scrolling ---
@@ -200,15 +192,12 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
     if (physics?.preset && SpringPresets[physics.preset.toUpperCase() as keyof typeof SpringPresets]) {
       config = physics.preset.toUpperCase() as keyof typeof SpringPresets;
     } else if (typeof animationConfig === 'object' && animationConfig !== null) {
-      // Ensure it's a valid SpringConfig partial before assigning
       if ('tension' in animationConfig || 'friction' in animationConfig || 'mass' in animationConfig) {
            config = animationConfig as Partial<SpringConfig>;
       }
     } else if (animation === 'spring') {
-      // Use the name of the default preset or the context default
       config = contextDefaultSpring ?? 'DEFAULT';
     }
-    // If no specific config, it remains undefined, TimelineEvent can use its default
     return config;
   }, [physics?.preset, animationConfig, animation, contextDefaultSpring]); 
 
@@ -231,27 +220,43 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
     let targetX = physicsScrollPosition.x;
     let targetY = physicsScrollPosition.y;
     
-    // Use scrollBounds state directly here
     const currentBounds = scrollBounds; 
 
     if (orientation === 'vertical') {
       const containerHeight = container.clientHeight;
       const scrollHeight = container.scrollHeight;
       const targetScrollTop = (position / 100) * scrollHeight - containerHeight / 2;
-      // Clamp targetY using bounds
       targetY = clamp(-targetScrollTop, currentBounds.min, currentBounds.max); 
     } else {
        const containerWidth = container.clientWidth;
        const scrollWidth = container.scrollWidth;
        const targetScrollLeft = (position / 100) * scrollWidth - containerWidth / 2;
-       // Clamp targetX using bounds
        targetX = clamp(-targetScrollLeft, currentBounds.min, currentBounds.max);
     }
     
-    // Use the physics setter
     setPhysicsScrollPosition({ x: targetX, y: targetY }, smooth ? undefined : { x: 0, y: 0 });
 
   }, [calculateItemPosition, orientation, setPhysicsScrollPosition, physicsScrollPosition, scrollBounds]);
+
+  // Expose methods via imperative handle (using localContainerRef internally)
+  useImperativeHandle(ref, () => ({
+    scrollToDate: (date: Date, smooth = true) => scrollToDate(date, smooth),
+    scrollToItem: (itemId: string | number, smooth = true) => {
+      const item = items.find(item => item.id === itemId);
+      if (item) {
+        scrollToDate(parseDate(item.date), smooth);
+      }
+    },
+    getContainerElement: () => localContainerRef.current,
+    getCurrentDate: () => currentDate,
+    selectItem: (itemId: string | number) => {
+      setSelectedId(itemId);
+      const item = items.find(item => item.id === itemId);
+      if (item) {
+        scrollToDate(parseDate(item.date));
+      }
+    }
+  }), [ref, scrollToDate, currentDate, items, setSelectedId]);
 
   // Sync selectedId with activeId from props
   useEffect(() => {
@@ -758,7 +763,6 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
         renderContent={renderContent}
         renderMarker={renderMarker}
         density={density}
-        // Pass down the static props from state for this specific item
         itemPhysicsProps={itemPhysicsProps[item.id.toString()] || { translateX: 0, translateY: 0, scale: 1, opacity: 1 }}
         finalInteractionConfig={finalInteractionConfig}
         formatDate={formatDate}
@@ -768,119 +772,116 @@ export const GlassTimeline: React.FC<TimelineProps & Partial<AnimationProps>> = 
         calculateItemPosition={calculateItemPosition}
         getEventSide={getEventSide}
         selectedId={selectedId}
+        groupedItems={null}
         glassMarkers={glassMarkers}
         format={formatDateFn}
       />
     ));
   };
   
-  // Empty state when no items are available
   const renderEmptyState = () => {
     return (
       <EmptyStateMessage>
-        <div className="icon">📅</div>
-        <div className="title">No events found</div>
-        <div className="message">There are no events to display in the current timeline view.</div>
+        No timeline events to display
       </EmptyStateMessage>
     );
   };
   
   return (
     <TimelineContainer
-      ref={containerRef}
+      ref={localContainerRef}
       $orientation={orientation}
-      $width={width}
-      $height={height}
-      $glassVariant={glassVariant}
-      $blurStrength={blurStrength}
-      $color={color}
-      className={className}
-      id={id}
-      aria-label={ariaLabel || 'Timeline'}
-      onWheel={handleWheel}
+      className={`glass-timeline ${className || ''}`}
+      style={{ width, height }}
+      {...restProps}
     >
-      {/* Navigation controls */}
-      {navigation === 'button' && (
+      {/* Timeline Controls */}
+      {navigation && navigation !== 'none' && (
         <TimelineControls
           orientation={orientation}
-          position={orientation === 'vertical' ? 'left' : 'top'}
-          color={color}
-          glassVariant={glassVariant}
-          blurStrength={blurStrength}
-          zoomLevels={zoomLevels}
+          position={'top'}
           currentZoomLevel={currentZoomLevel}
+          zoomLevels={zoomLevels}
           goToPrevious={goToPrevious}
           goToNext={goToNext}
           goToToday={goToToday}
           zoomIn={zoomIn}
           zoomOut={zoomOut}
+          color={color}
+          glassVariant={glassVariant}
+          blurStrength={blurStrength}
         />
       )}
       
-      {/* Main timeline scroll container */}
+      {/* Timeline body with physics scrolling */}
       <TimelineScrollContainer
         ref={scrollContainerRef}
         $orientation={orientation}
         $scrollX={physicsScrollPosition.x}
         $scrollY={physicsScrollPosition.y}
+        onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUpOrLeave}
         onPointerLeave={handlePointerUpOrLeave}
+        style={{
+          transform: `translate3d(${physicsScrollPosition.x}px, ${physicsScrollPosition.y}px, 0px)`
+        }}
+        tabIndex={0}
       >
-        {/* Loading indicator for past events */}
-        {loadingPast && (
-          <LoadingIndicator>
-            <div className="spinner" />
-            <span>Loading earlier events...</span>
-          </LoadingIndicator>
-        )}
-        
-        {/* Wrap TimelineEvents in the ref container */}
-        <div ref={eventsContainerRef}>
-          <TimelineEvents
+        {/* Timeline Axis */}
+        {showAxis && (
+          <TimelineAxis
             $orientation={orientation}
             $markerPosition={markerPosition}
-            $density={density}
+            $color={color}
+            $height={40}
+            $glassVariant={glassVariant}
+            $blurStrength={blurStrength}
           >
-            {/* Timeline axis */}
-            {showAxis && (
-              <TimelineAxis
-                $orientation={orientation}
-                $height={orientation === 'horizontal' ? 50 : 0}
-                $glassVariant={glassVariant}
-                $blurStrength={blurStrength}
-              />
-            )}
-            
-            {/* Time markers */}
-            {markers.show && timeMarkers.length > 0 && (
-              <TimelineMarkers
-                markers={markers}
-                timeMarkers={timeMarkers}
-                orientation={orientation}
-                markerHeight={50}
-                calculateItemPosition={calculateItemPosition}
-                formatMarkerLabel={formatMarkerLabel}
-                color={color}
-              />
-            )}
-            
-            {/* Events */}
-            {filteredItems.length === 0 ? renderEmptyState() : renderEvents()}
-          </TimelineEvents>
-        </div>
-        
-        {/* Loading indicator for future events */}
-        {loadingFuture && (
-          <LoadingIndicator>
-            <div className="spinner" />
-            <span>Loading more events...</span>
-          </LoadingIndicator>
+            {renderAxis ? renderAxis(currentViewMode, currentZoomLevel) : formatDate(new Date(), currentViewMode, currentZoomLevel)}
+          </TimelineAxis>
         )}
+        
+        {/* Timeline Markers */}
+        {markers.show && (
+          <TimelineMarkers
+            markers={markers}
+            timeMarkers={timeMarkers}
+            orientation={orientation}
+            markerHeight={40}
+            calculateItemPosition={calculateItemPosition}
+            formatMarkerLabel={formatMarkerLabel}
+            color={color}
+          />
+        )}
+        
+        {/* Timeline Events */}
+        <TimelineEvents
+          ref={eventsContainerRef}
+          $orientation={orientation}
+          $markerPosition={markerPosition}
+          $density={density}
+        >
+          {loadingPast && (
+            <LoadingIndicator $position="start" $orientation={orientation}>
+              Loading past events...
+            </LoadingIndicator>
+          )} 
+          {filteredItems.length === 0 && !loadingPast && !loadingFuture && renderEmptyState()}
+          {renderEvents()}
+          {loadingFuture && (
+            <LoadingIndicator $position="end" $orientation={orientation}>
+              Loading future events...
+            </LoadingIndicator>
+          )}
+        </TimelineEvents>
       </TimelineScrollContainer>
     </TimelineContainer>
   );
-};
+});
+
+// Set displayName for better debugging
+GlassTimeline.displayName = "GlassTimeline";
 
 export default GlassTimeline;

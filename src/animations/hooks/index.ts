@@ -6,7 +6,8 @@
 
 // React hooks for interactive animations
 export {
-  default as useMouseCursorEffect,
+  useMouseCursorEffect as default,
+  useMouseCursorEffect,
   type MouseCursorEffectOptions,
   type CursorEffectType,
 } from './useMouseCursorEffect';

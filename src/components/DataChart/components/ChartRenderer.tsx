@@ -4,7 +4,7 @@
  * Handles the rendering of different chart types with physics-based animations,
  * adaptive quality settings, and specialized rendering logic per chart type.
  */
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { Chart as ChartJS, ChartOptions, ChartType } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { ChartWrapper } from '../styles/ChartContainerStyles';
@@ -16,6 +16,10 @@ import {
   pathAnimationPlugin,
   createAnimationOptions
 } from '../utils';
+import { PhysicsInteractionOptions, usePhysicsInteraction } from '../../../hooks/usePhysicsInteraction';
+// import { InteractionMode } from '../types'; // Commenting out as path is unclear
+// import { getTooltipClassNames, createTooltip } from './tooltipUtils'; // Commenting out as path is unclear
+// import { useChartZoom } from '../hooks/useChartZoom'; // Commenting out as path is unclear
 
 export interface ChartRendererProps {
   /** Chart type/variant */
@@ -46,6 +50,16 @@ export interface ChartRendererProps {
   onChartLeave?: () => void;
   /** Ref callback for the chart */
   chartRefCallback?: (chart: any) => void;
+  /** The glass variant used for the container */
+  glassVariant?: 'clear' | 'frosted' | 'tinted' | 'luminous';
+  /** Optional function to get physics interaction options per element */
+  getElementPhysicsOptions?: (
+    datasetIndex: number,
+    dataIndex: number,
+    chartType: ChartVariant
+  ) => Partial<PhysicsInteractionOptions> | null;
+  /** Optional map containing current physics state for elements (e.g., scale, offset) */
+  elementPhysicsState?: Map<string, { scale?: number; xOffset?: number; yOffset?: number }>;
 }
 
 /**
@@ -68,7 +82,9 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
   onDataPointClick,
   onChartHover,
   onChartLeave,
-  chartRefCallback
+  chartRefCallback,
+  glassVariant,
+  getElementPhysicsOptions
 }) => {
   // Local chart reference
   const chartRef = useRef<any>(null);
@@ -97,6 +113,9 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
       convertToChartJsDatasetWithEffects(dataset, index, chartType, palette, animation)
     )
   };
+  
+  // Determine text color based on glassVariant
+  const textColor = glassVariant === 'clear' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.7)';
   
   // Configure chart options based on chart type and settings
   const chartOptions: any = {
@@ -141,7 +160,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
               // Use setDash in the beforeDraw callback instead of borderDash
             },
             ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: textColor,
               padding: 5,
               maxRotation: 45,
               minRotation: 0,
@@ -150,7 +169,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
             title: {
               display: !!axis.xTitle,
               text: axis.xTitle || '',
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: textColor,
               font: {
                 weight: 'normal',
                 size: 12,
@@ -168,14 +187,14 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
               // Use setDash in the beforeDraw callback instead of borderDash
             },
             ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: textColor,
               padding: 8,
               count: axis.yTicksCount,
             },
             title: {
               display: !!axis.yTitle,
               text: axis.yTitle || '',
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: textColor,
               font: {
                 weight: 'normal',
                 size: 12,
@@ -192,7 +211,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
                 display: false,
               },
               ticks: {
-                color: 'rgba(255, 255, 255, 0.7)',
+                color: textColor,
                 padding: 8,
               }
             }
@@ -266,6 +285,51 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     }
   }, [chartRefCallback]);
   
+  // --- BEGIN Event Handling for Per-Element Physics ---
+  const [hoveredElement, setHoveredElement] = useState<{ datasetIndex: number; dataIndex: number } | null>(null);
+
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!chartRef.current) {
+      setHoveredElement(null);
+      if (onChartHover) onChartHover(event); // Propagate original event
+      return;
+    }
+
+    const chart = chartRef.current;
+    const points = chart.getElementsAtEventForMode(
+      event.nativeEvent,
+      'nearest',
+      { intersect: true }, // Use intersect: true for more precise element detection
+      false
+    );
+
+    let currentHover: { datasetIndex: number; dataIndex: number } | null = null;
+    if (points.length > 0) {
+      const firstPoint = points[0];
+      currentHover = { datasetIndex: firstPoint.datasetIndex, dataIndex: firstPoint.index };
+    }
+
+    if (currentHover?.datasetIndex !== hoveredElement?.datasetIndex || currentHover?.dataIndex !== hoveredElement?.dataIndex) {
+      setHoveredElement(currentHover);
+
+      // TODO: Logic to update physics state map (elementPhysicsState) based on:
+      // 1. hoveredElement (the element pointer is now over)
+      // 2. getElementPhysicsOptions(hoveredElement.datasetIndex, hoveredElement.dataIndex, chartType)
+      // This state update would trigger the external physics simulation.
+    }
+
+    // Propagate original event if needed
+    if (onChartHover) onChartHover(event);
+
+  }, [chartRef, hoveredElement, onChartHover, chartType, getElementPhysicsOptions]); // Added deps
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredElement(null);
+    // TODO: Logic to reset physics state for the previously hovered element.
+    if (onChartLeave) onChartLeave(); // Propagate original event
+  }, [onChartLeave]);
+  // --- END Event Handling for Per-Element Physics ---
+  
   // Handle data point click
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!chartRef.current || !onDataPointClick) return;
@@ -286,7 +350,21 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
       onDataPointClick(datasetIndex, dataIndex);
     }
   };
-  
+
+  // --- BEGIN Custom Drawing Plugin Placeholder ---
+  const perElementPhysicsPlugin = {
+    id: 'perElementPhysicsPlugin',
+    afterDraw: (chart: any) => {
+      // TODO: Implement custom drawing logic here.
+      // 1. Get the physics state for each element from `elementPhysicsState` prop.
+      // 2. If an element has active physics state (e.g., scale > 1),
+      //    redraw that specific element (bar, point, arc) using chart.ctx
+      //    with the modified properties (scale, offset).
+      // 3. Need access to element metadata (position, size) from chart instance.
+    }
+  };
+  // --- END Custom Drawing Plugin Placeholder ---
+
   return (
     <ChartWrapper 
       style={enablePhysicsAnimation ? {
@@ -301,9 +379,9 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         options={chartOptions}
         ref={handleChartRef}
         onClick={onDataPointClick ? handleClick : undefined}
-        onMouseMove={onChartHover}
-        onMouseLeave={onChartLeave}
-        plugins={[pathAnimationPlugin, gridStylePlugin]}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        plugins={[pathAnimationPlugin, gridStylePlugin, perElementPhysicsPlugin]}
       />
     </ChartWrapper>
   );

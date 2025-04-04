@@ -524,38 +524,81 @@ import { FormatBoldIcon, FormatItalicIcon, FormatUnderlinedIcon } from './icons'
 The Rating component provides an intuitive interface for inputting and displaying ratings.
 
 ```tsx
-import { Rating } from 'galileo-glass-ui';
+import { Rating } from '@veerone/galileo-glass-ui/components';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import React, { useState } from 'react';
 
+function MyRating() {
+  const [value, setValue] = useState<number | null>(2.5);
+
+  const handleChange = (
+    event: React.SyntheticEvent,
+    newValue: number | null,
+  ) => {
+    setValue(newValue);
+  };
+
+  return (
 <Rating
   name="simple-rating"
   value={value}
   onChange={handleChange}
   precision={0.5}
   size="large"
-  icon={<StarIcon />}
-  emptyIcon={<StarBorderIcon />}
+      filledIcon={<StarIcon fontSize="inherit" />}
+      emptyIcon={<StarBorderIcon fontSize="inherit" />}
   readOnly={false}
   disabled={false}
-  highlightSelectedOnly={false}
+      showValue
 />
+  );
+}
 ```
 
 #### Key Features
 
-- **Precision**: Supports fractional ratings
-- **Custom Icons**: Customizable icons for rated/unrated states
-- **Size Variants**: Multiple size options
-- **Hover Feedback**: Interactive hover preview
-- **Accessibility**: Full keyboard and screen reader support
-- **Read-Only & Disabled**: Support for different interaction states
+- **Precision**: Supports fractional ratings (e.g., half stars) via `precision` prop.
+- **Custom Icons**: Customizable icons for rated (`filledIcon`), unrated (`emptyIcon`), and highlighted (`highlightedIcon`) states.
+- **Size Variants**: `size` prop (`small`, `medium`, `large`).
+- **Hover Feedback**: Interactive hover preview (highlights potential rating).
+- **Accessibility**: Full keyboard and screen reader support via radio inputs.
+- **Read-Only & Disabled**: Support for different interaction states (`readOnly`, `disabled`).
+- **Value Label**: Optionally display the numeric value (`showValue`).
 
 #### Glass Specific Features
 
-- Interactive glass glow effects during hover/selection
-- Physics-based animations for selection feedback
-- Z-space elevation for selected rating items
-- Particle effects for rating confirmation (optional)
-- Contextual lighting based on rating value
+- Interactive glass glow effects during hover/selection (`GlassRating`).
+- Physics-based animations for selection feedback.
+- Z-space elevation for selected rating items.
+
+#### Props (`RatingProps`)
+
+| Prop              | Type                                         | Default        | Description                                                                                              |
+| :---------------- | :------------------------------------------- | :------------- | :------------------------------------------------------------------------------------------------------- |
+| `value`           | `number`                                     | `undefined`    | Controlled value of the rating. Use `null` for empty.                                                      |
+| `defaultValue`    | `number`                                     | `0`            | Initial value for uncontrolled state.                                                                      |
+| `max`             | `number`                                     | `5`            | Maximum rating value (number of icons).                                                                    |
+| `precision`       | `number`                                     | `1`            | The minimum granularity change allowed (e.g., `0.5` for half ratings, `1` for whole).                      |
+| `readOnly`        | `boolean`                                    | `false`        | If true, the rating is displayed but cannot be changed.                                                    |
+| `disabled`        | `boolean`                                    | `false`        | If true, the rating is disabled and cannot be interacted with.                                             |
+| `onChange`        | `(event, value: number \| null) => void`      | `undefined`    | Callback fired when the value changes. Receives `null` if cleared.                                         |
+| `onClick`         | `(event, value: number) => void`           | `undefined`    | Callback fired when an icon is clicked.                                                                    |
+| `onHover`         | `(event, value: number) => void`           | `undefined`    | Callback fired when the mouse hovers over a rating value. `-1` indicates hover left the component.           |
+| `label`           | `string`                                     | `undefined`    | Label text associated with the rating (used with `showLabel`).                                             |
+| `size`            | `'small' \| 'medium' \| 'large'`              | `'medium'`     | Size of the rating icons.                                                                                  |
+| `emptyIcon`       | `React.ReactNode`                            | `<StarBorderIcon/>` | Icon for unselected/empty state.                                                                           |
+| `filledIcon`      | `React.ReactNode`                            | `<StarIcon/>`    | Icon for selected/filled state.                                                                            |
+| `highlightedIcon` | `React.ReactNode`                            | `filledIcon`   | Icon used when hovering or focusing (defaults to `filledIcon`).                                            |
+| `name`            | `string`                                     | `undefined`    | `name` attribute applied to the underlying radio inputs (useful for forms).                              |
+| `showLabel`       | `boolean`                                    | `false`        | If true, displays the `label` text alongside the rating.                                                   |
+| `showValue`       | `boolean`                                    | `false`        | If true, displays the numeric `value` alongside the rating.                                                |
+| `glass`           | `boolean`                                    | `false`        | Applies glass styling (internal prop, use `GlassRating`).                                                  |
+| `color`           | `'default' \| 'primary' \| ...`                | `'default'`    | Color theme for filled icons (default is gold-like).                                                     |
+| `className`       | `string`                                     | `undefined`    | Additional CSS class name(s).                                                                              |
+| `style`           | `React.CSSProperties`                        | `undefined`    | Inline styles.                                                                                             |
+| `animationConfig` | `Partial<SpringConfig> \| SpringPresetName`    | Internal       | Inherited. Configures interaction animations.                                                              |
+| `disableAnimation`| `boolean`                                    | `false`        | Inherited. Disables interaction animations if true.                                                        |
 
 ---
 
@@ -566,115 +609,312 @@ import { Rating } from 'galileo-glass-ui';
 The ImageList component displays a collection of images in a grid with various layouts and aspect ratio options.
 
 ```tsx
+import React from 'react';
 import { 
   ImageList, 
   ImageListItem, 
   ImageListItemBar 
-} from 'galileo-glass-ui';
+} from '@veerone/galileo-glass-ui/components';
+import InfoIcon from '@mui/icons-material/Info';
+import IconButton from '@mui/material/IconButton';
 
+const items = [
+  { id: '1', img: '/path/to/image1.jpg', title: 'Breakfast', author: 'author1' },
+  { id: '2', img: '/path/to/image2.jpg', title: 'Burger', author: 'author2', rows: 2, cols: 2 },
+  { id: '3', img: '/path/to/image3.jpg', title: 'Camera', author: 'author3' },
+];
+
+function MyImageList() {
+  return (
 <ImageList 
   variant="masonry" 
   cols={3} 
   gap={8}
+      glass
 >
   {items.map((item) => (
-    <ImageListItem key={item.id}>
+        <ImageListItem 
+          key={item.id} 
+          cols={item.cols || 1} 
+          rows={item.rows || 1}
+          glass
+          rounded
+          elevation={1}
+          hoverOverlay
+        >
       <img
         src={item.img}
         alt={item.title}
         loading="lazy"
+            style={{ display: 'block', width: '100%', height: 'auto' }}
       />
       <ImageListItemBar
         title={item.title}
-        subtitle={item.author}
+            subtitle={<span>by: {item.author}</span>}
+            position="bottom"
+            actionPosition="right"
+            glass
         actionIcon={
-          <IconButton>
+              <IconButton aria-label={`info about ${item.title}`} sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
             <InfoIcon />
           </IconButton>
         }
+            showOnHover
       />
     </ImageListItem>
   ))}
 </ImageList>
+  );
+}
 ```
 
 #### Key Features
 
-- **Multiple Layouts**: Standard, masonry, and quilted layouts
-- **Responsive Columns**: Adaptive column count
-- **Image Bars**: Title bars with customizable actions
-- **Aspect Ratio Control**: Maintain image aspect ratios
-- **Lazy Loading**: Built-in support for lazy loading
-- **Custom Item Spans**: Control item spans in quilted layout
+- **Multiple Layouts**: Standard, masonry, quilted, and woven layouts (`variant`).
+- **Responsive Columns**: Adaptive column count (`cols`).
+- **Image Bars**: Title bars (`ImageListItemBar`) with customizable actions (`actionIcon`).
+- **Aspect Ratio Control**: Items fill their grid cells, `img` tags control aspect ratio.
+- **Lazy Loading**: Standard browser `loading="lazy"` attribute.
+- **Custom Item Spans**: Control item spans in quilted/standard layouts (`cols`, `rows` on `ImageListItem`).
 
 #### Glass Specific Features
 
-- Glass morphism styling for image item bars
-- Interactive glass hover effects
-- Z-space layering for title bars
-- Orchestrated loading animations
-- Contextual glass effects based on image content
+- **Glass Styling**: Optional glass effects on the container (`ImageList`), items (`ImageListItem`), and bars (`ImageListItemBar`) via the `glass` prop.
+- **Interactive Hover Effects**: Built-in hover scale animation and optional overlay (`hoverOverlay` on `ImageListItem`). Physics-based animations enhance the effect.
+- **Z-space Layering**: Title bars are layered above images.
+- **Orchestrated Loading Animations**: Optional entrance animations (`enableEntranceAnimation` on `ImageList`).
+
+#### Props (`ImageListProps`)
+
+| Prop                      | Type                                                  | Default        | Description                                                                                             |
+| :------------------------ | :---------------------------------------------------- | :------------- | :------------------------------------------------------------------------------------------------------ |
+| `children`                | `React.ReactNode`                                     | `undefined`    | The content of the component, typically `ImageListItem` components.                                       |
+| `className`               | `string`                                              | `undefined`    | Override or extend the styles applied to the component.                                                   |
+| `style`                   | `React.CSSProperties`                                 | `undefined`    | CSS styles applied to the root element.                                                                   |
+| `cols`                    | `number \| { xs?, sm?, md?, lg?, xl? }`                | `2`            | Number of columns in the grid, or a responsive object.                                                    |
+| `gap`                     | `number`                                              | `4`            | The gap between items in the grid (in px).                                                              |
+| `rowHeight`               | `number \| 'auto'`                                   | `'auto'`       | Height of the grid rows (in px). 'auto' adjusts to content, primarily for `standard`/`woven`.           |
+| `variant`                 | `'standard' \| 'quilted' \| 'masonry' \| 'woven'`      | `'standard'`   | The layout variant to use.                                                                                |
+| `glass`                   | `boolean`                                             | `false`        | If true, applies glass morphism effect to the container background.                                       |
+| `rounded`                 | `boolean`                                             | `false`        | If true, the container will have rounded corners.                                                         |
+| `variableSize`            | `boolean`                                             | `false`        | **(Internal/Context)** If true, allows items to span multiple columns/rows (`cols`/`rows` props on items). |
+| `enableEntranceAnimation` | `boolean`                                             | `false`        | If true, enables a staggered entrance animation for items using physics.                                |
+| `animationConfig`         | `Partial<SpringConfig> \| SpringPresetName`            | `'DEFAULT'`    | Inherited. Configures the `spring` item animations (entrance, hover).                                 |
+| `disableAnimation`        | `boolean`                                             | `false`        | Inherited. Disables all animations if true.                                                             |
+| `motionSensitivity`       | `MotionSensitivityLevel`                              | `undefined`    | Inherited. Can influence animation intensity.                                                           |
+| *...rest*                 | `HTMLAttributes<HTMLUListElement>`                    | -              | Standard HTML attributes for the root `ul` element.                                                       |
+
+#### Props (`ImageListItemProps`)
+
+| Prop              | Type                                         | Default     | Description                                                                                             |
+| :---------------- | :------------------------------------------- | :---------- | :------------------------------------------------------------------------------------------------------ |
+| `children`        | `React.ReactNode`                            | `undefined` | The content of the component, usually an `img` or `picture` tag, and optionally an `ImageListItemBar`. |
+| `className`       | `string`                                     | `undefined` | Override or extend the styles applied to the component.                                                   |
+| `style`           | `React.CSSProperties`                        | `undefined` | CSS styles applied to the root `li` element.                                                              |
+| `cols`            | `number`                                     | `1`         | Number of grid columns the item should span (for `standard`, `quilted`, `woven` variants).              |
+| `rows`            | `number`                                     | `1`         | Number of grid rows the item should span (for `standard`, `quilted`, `woven` variants).                 |
+| `glass`           | `boolean`                                    | `false`     | If true, applies glass morphism effect to the item background.                                          |
+| `hoverOverlay`    | `boolean`                                    | `false`     | If true, the item will have a dark overlay on hover/focus.                                              |
+| `elevation`       | `0 \| 1 \| 2 \| 3 \| 4 \| 5`                  | `0`         | Applies a box shadow effect simulating elevation (ignored if `glass` is true).                            |
+| `rounded`         | `boolean`                                    | `false`     | If true, the item will have rounded corners.                                                            |
+| `alt`             | `string`                                     | `undefined` | Passed to the underlying `img` element if `src` is provided directly on `ImageListItem`.                |
+| `src`             | `string`                                     | `undefined` | Shortcut to render an `img` element directly within the item. Use `children` for more complex content.    |
+| `srcSet`          | `string`                                     | `undefined` | Passed to the underlying `img` element if `src` is provided.                                            |
+| `animationConfig` | `Partial<SpringConfig> \| SpringPresetName`    | Inherited   | Overrides the `ImageList` context animation config for this specific item.                                |
+| `disableAnimation`| `boolean`                                    | Inherited   | Overrides the `ImageList` context disable animation setting.                                            |
+| `motionSensitivity`| `MotionSensitivityLevel`                   | Inherited   | Overrides the `ImageList` context motion sensitivity setting.                                           |
+| *...rest*         | `LiHTMLAttributes<HTMLLIElement>`             | -           | Standard HTML attributes for the root `li` element.                                                       |
+
+#### Props (`ImageListItemBarProps`)
+
+| Prop             | Type                      | Default        | Description                                                                                             |
+| :--------------- | :------------------------ | :------------- | :------------------------------------------------------------------------------------------------------ |
+| `children`       | `React.ReactNode`         | `undefined`    | Additional content placed inside the bar (rarely used).                                                   |
+| `className`      | `string`                  | `undefined`    | Override or extend the styles applied to the component.                                                   |
+| `style`          | `React.CSSProperties`     | `undefined`    | CSS styles applied to the root `div` element.                                                             |
+| `title`          | `React.ReactNode`         | `undefined`    | The main title text or node to display.                                                                   |
+| `subtitle`       | `React.ReactNode`         | `undefined`    | The subtitle text or node displayed below the title.                                                      |
+| `position`       | `'top' \| 'bottom' \| 'below'` | `'bottom'`     | Position of the title bar relative to the image (`'below'` renders outside the item container).           |
+| `glass`          | `boolean`                 | `false`        | If true, applies glass morphism effect to the bar background.                                             |
+| `actionIcon`     | `React.ReactNode`         | `undefined`    | An icon or button element displayed at the end (or start if `actionPosition` is 'left').                  |
+| `actionPosition` | `'left' \| 'right'`        | `'right'`      | Position of the `actionIcon`.                                                                             |
+| `showOnHover`    | `boolean`                 | `false`        | If true, the bar fades in only when the parent `ImageListItem` is hovered or focused.                    |
+| *...rest*        | `HTMLAttributes<HTMLDivElement>` | -              | Standard HTML attributes for the root `div` element.                                                        |
 
 ---
 
 ### KPI Cards
 
-The KPI Cards provide specialized components for displaying key performance indicators with rich visualization and interaction.
+The KPI Cards provide specialized components for displaying key performance indicators with rich visualization and interaction. There are three main variants:
+
+*   **`KpiCard`:** Displays a primary value, optional icon, subtitle, and a change indicator with period.
+*   **`PerformanceMetricCard`:** Focuses on metrics with targets, showing progress indicators (linear, circular, gauge) and status.
+*   **`InteractiveKpiCard`:** Includes a mini chart (line, bar, area, sparkline) for visualizing data trends.
 
 ```tsx
+import React from 'react';
 import { 
   KpiCard, 
   PerformanceMetricCard, 
   InteractiveKpiCard 
-} from 'galileo-glass-ui';
+} from '@veerone/galileo-glass-ui/components'; // Corrected import path
+import TrendingUpIcon from '@mui/icons-material/TrendingUp'; // Example Icons
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import SpeedIcon from '@mui/icons-material/Speed';
 
+// --- Example for KpiCard --- 
+function BasicKpi() {
+  return (
 <KpiCard
   title="Total Revenue"
-  value="$1,234,567"
-  trend={+12.3}
-  trendLabel="vs Last Month"
-  icon={<RevenueIcon />}
-  chart={<SparklineChart data={revenueData} />}
-/>
+      value={1234567}
+      valueFormat="$0,0.00" // Example formatting
+      prefix="$"
+      unit="USD"
+      change={0.123} // Represents +12.3%
+      changeFormat="+0.0%" // Format for change display
+      positiveIsGood={true}
+      period="vs Last Month"
+      icon={<TrendingUpIcon />}
+      glass={true}
+      color="success"
+    />
+  );
+}
 
+// --- Example for PerformanceMetricCard --- 
+function PerformanceKpi() {
+  return (
 <PerformanceMetricCard
   title="System Performance"
-  value={89}
-  maxValue={100}
-  status="healthy"
-  details={[
-    { label: "CPU", value: "23%" },
-    { label: "Memory", value: "45%" },
-    { label: "Disk", value: "32%" }
-  ]}
-/>
+      value={89} // Current value
+      target={95} // Target value
+      min={0}    // Min possible value
+      max={100}  // Max possible value
+      unit="%"
+      higherIsBetter={true}
+      status="warning" // Explicit status, or calculated if 'neutral'
+      showProgress={true}
+      progressType="gauge" // 'linear', 'circular', 'gauge'
+      icon={<SpeedIcon />}
+      period="Real-time"
+      glass={true}
+      highlight={false} // Optional pulse animation
+      footer={<div>CPU: 23% | Mem: 45%</div>} // Use footer or children for details
+    />
+  );
+}
 
+// --- Example for InteractiveKpiCard --- 
+const sampleChartData = [10, 15, 13, 18, 20, 25, 22];
+
+function InteractiveKpi() {
+  return (
 <InteractiveKpiCard
   title="User Engagement"
-  value="78%"
-  trend={+5.2}
-  detailMetrics={engagementMetrics}
-  onExpand={handleExpandDetails}
-  expanded={isExpanded}
-/>
-```
+      value={78}
+      valueFormat="0%" // Format as percentage
+      unit="%"
+      change={0.052} // Represents +5.2%
+      positiveIsGood={true}
+      period="Weekly Trend"
+      icon={<ShowChartIcon />}
+      chartData={sampleChartData}
+      chartType="sparkline" // 'line', 'bar', 'area', 'sparkline'
+      showTooltip={true}
+      glass={true}
+      interactive={true} // Enable hover effects
+      animateOnHover={true}
+    />
+  );
+}
 
 #### Key Features
 
-- **Trend Indicators**: Visual indicators for performance trends
-- **Embedded Charts**: Support for inline sparklines or charts
-- **Status Visualization**: Color-coded status indicators
-- **Drill-Down Details**: Expandable detailed metrics
-- **Interactive States**: Support for expandable detailed views
-- **Data Comparison**: Built-in comparison visualizations
+- **Trend Indicators**: Visual indicators for performance trends (`change`, `positiveIsGood` on `KpiCard`, `InteractiveKpiCard`).
+- **Embedded Charts**: Support for inline charts (`chartData`, `chartType` on `InteractiveKpiCard`).
+- **Status Visualization**: Color-coded status indicators (`status` on `PerformanceMetricCard`, or based on `change`).
+- **Progress Indicators**: Visual progress towards a target (`showProgress`, `progressType` on `PerformanceMetricCard`).
+- **Interactive States**: Hover effects and tooltips (`interactive`, `showTooltip` on `InteractiveKpiCard`).
+- **Formatting**: Customizable value and change formatting (`valueFormat`, `changeFormat`).
 
 #### Glass Specific Features
 
-- Glass morphism styling with depth-based information hierarchy
-- Z-space animations for detail expansion
-- Contextual glass effects based on KPI status
-- Interactive physics animations for user engagement
-- Glass surface transitions between states
+- **Glass Styling**: Optional glass effects on cards via the `glass` prop.
+- **Depth & Hierarchy**: Uses dimensional glass for clear information structure.
+- **Z-space Animations**: Subtle depth animations on hover or interaction (if enabled by props/theme).
+- **Contextual Effects**: Glass appearance can subtly change based on status or theme color.
+- **Physics Animations**: Interactive elements may use physics for feedback (e.g., hover scale).
+
+#### Props (`KpiCardBaseProps` - Common to all variants)
+
+| Prop           | Type                                                                     | Default      | Description                                                                   |
+| :------------- | :----------------------------------------------------------------------- | :----------- | :---------------------------------------------------------------------------- |
+| `title`        | `string`                                                                 | -            | **Required.** The title of the KPI card.                                        |
+| `value`        | `number \| string`                                                   | -            | **Required.** The main value to display.                                      |
+| `subtitle`     | `string`                                                                 | `undefined`  | Optional subtitle or description.                                               |
+| `icon`         | `React.ReactNode`                                                        | `undefined`  | Optional icon displayed prominently.                                          |
+| `className`    | `string`                                                                 | `undefined`  | Additional CSS class name(s).                                                 |
+| `style`        | `React.CSSProperties`                                                    | `undefined`  | Inline styles for the root card element.                                      |
+| `glass`        | `boolean`                                                                | `false`      | If true, applies glass morphism effect.                                       |
+| `color`        | `'default' \| 'primary' \| 'secondary' \| ... \| string`                | `'default'`  | Color theme influencing text, borders, or accents.                            |
+| `size`         | `'small' \| 'medium' \| 'large'`                                       | `'medium'`   | Controls the overall size and padding of the card.                            |
+| `fullWidth`    | `boolean`                                                                | `false`      | If true, the card takes the full width of its container.                      |
+| `elevation`    | `0 \| 1 \| 2 \| 3 \| 4 \| 5`                                       | `2`          | Shadow elevation level (ignored if `glass` is true).                          |
+| `borderRadius` | `number \| string`                                                 | `12`         | Corner radius of the card.                                                    |
+| `hover`        | `boolean`                                                                | `true`       | If true, applies a hover effect (e.g., slight lift).                          |
+| `onClick`      | `(event: React.MouseEvent<HTMLDivElement>) => void`                     | `undefined`  | Callback fired when the card is clicked. Makes the card focusable.           |
+| `align`        | `'left' \| 'center' \| 'right'`                                        | `'left'`     | Text alignment of the content.                                                |
+| `footer`       | `React.ReactNode`                                                        | `undefined`  | Optional content rendered in a distinct footer section.                       |
+| `children`     | `React.ReactNode`                                                        | `undefined`  | Optional content rendered at the bottom, within the main content area.        |
+| *...rest*      | `HTMLAttributes<HTMLDivElement>`                                         | -            | Standard HTML attributes.                                                     |
+
+#### Props (`KpiCardProps` - Extends `KpiCardBaseProps`, `AnimationProps`)
+
+| Prop             | Type     | Default        | Description                                                                   |
+| :--------------- | :------- | :------------- | :---------------------------------------------------------------------------- |
+| `valueFormat`    | `string` | `undefined`    | Format string for the `value` (e.g., `"0,0.00"`, `"0.0%"`).                   |
+| `unit`           | `string` | `undefined`    | Unit label displayed after the `value`.                                         |
+| `change`         | `number` | `undefined`    | Numeric value representing change (e.g., `0.12` for 12%).                     |
+| `changeFormat`   | `string` | `"+0.0%"`      | Format string for the `change` value.                                         |
+| `positiveIsGood` | `boolean`| `true`         | If true, positive `change` is styled as good (e.g., green), negative as bad. |
+| `period`         | `string` | `undefined`    | Text label describing the time period for the `change` (e.g., "vs Last Month"). |
+| `prefix`         | `string` | `undefined`    | Prefix string displayed before the `value` (e.g., "$").                        |
+
+#### Props (`PerformanceMetricCardProps` - Extends `KpiCardBaseProps`, `AnimationProps`)
+
+| Prop             | Type                                     | Default        | Description                                                                   |
+| :--------------- | :--------------------------------------- | :------------- | :---------------------------------------------------------------------------- |
+| `value`          | `number`                                 | -              | **Required.** Current numeric value of the metric.                            |
+| `target`         | `number`                                 | -              | **Required.** The target value for the metric.                                |
+| `min`            | `number`                                 | `0`            | Minimum possible value (used for progress calculation).                       |
+| `max`            | `number`                                 | Calculated     | Maximum possible value (used for progress calculation, defaults based on value/target). |
+| `higherIsBetter` | `boolean`                                | `true`         | If true, values closer to `max` are better. If false, values closer to `min`. |
+| `valueFormat`    | `string`                                 | `undefined`    | Format string for the `value` and `target`.                                   |
+| `unit`           | `string`                                 | `undefined`    | Unit label displayed after the `value` and `target`.                            |
+| `showProgress`   | `boolean`                                | `true`         | If true, displays a progress indicator.                                       |
+| `progressType`   | `'linear' \| 'circular' \| 'gauge'`        | `'linear'`     | Type of progress indicator to display.                                        |
+| `status`         | `'success' \| 'warning' \| ... \| 'neutral'` | `'neutral'`    | Explicit status indicator. If 'neutral', status is calculated based on value/target. |
+| `period`         | `string`                                 | `undefined`    | Text label describing the time period for the data.                           |
+| `highlight`      | `boolean`                                | `false`        | If true, applies a subtle pulse animation to draw attention.                  |
+
+#### Props (`InteractiveKpiCardProps` - Extends `KpiCardBaseProps`, `AnimationProps`)
+
+| Prop             | Type                                                      | Default        | Description                                                                   |
+| :--------------- | :-------------------------------------------------------- | :------------- | :---------------------------------------------------------------------------- |
+| `chartData`      | `Array<number \| { x: number \| string; y: number }>`    | `[]`           | Data points for the mini chart. Can be numbers (index as x) or {x, y} objects. |
+| `chartType`      | `'line' \| 'bar' \| 'area' \| 'sparkline'`            | `'line'`       | Type of mini chart to render.                                                 |
+| `animationDuration`| `number`                                                  | `500`          | Duration (ms) for chart animations (if applicable).                           |
+| `zoomable`       | `boolean`                                                 | `false`        | **(Not Implemented)** If true, enables zooming on the chart.                  |
+| `showTooltip`    | `boolean`                                                 | `true`         | If true, shows a tooltip with the data point value on chart hover.            |
+| `valueFormat`    | `string`                                                  | `undefined`    | Format string for the main `value` and tooltip values.                      |
+| `unit`           | `string`                                                  | `undefined`    | Unit label displayed after the `value` and in tooltips.                       |
+| `change`         | `number`                                                  | `undefined`    | Numeric value representing change (e.g., `0.12` for 12%).                     |
+| `changeFormat`   | `string`                                                  | `"+0.0%"`      | Format string for the `change` value.                                         |
+| `positiveIsGood` | `boolean`                                                 | `true`         | If true, positive `change` is styled as good (e.g., green), negative as bad. |
+| `period`         | `string`                                                  | `undefined`    | Text label describing the time period for the `change` (e.g., "Weekly Trend"). |
+| `interactive`    | `boolean`                                                 | `true`         | If true, enables hover effects (like breathing animation) on the card.        |
+| `animateOnHover` | `boolean`                                                 | `true`         | If true, the chart may animate subtly when the card is hovered.             |
 
 ---
 
@@ -682,239 +922,221 @@ import {
 
 ### GlassNavigation
 
-The GlassNavigation component provides a flexible navigation system with glass morphism styling.
+The GlassNavigation component provides a flexible navigation system with glass morphism styling, suitable for top, bottom, left, or right placement.
 
 ```tsx
-import { GlassNavigation } from 'galileo-glass-ui';
+import React, { useState } from 'react';
+import { GlassNavigation, NavigationItem } from '@veerone/galileo-glass-ui/components'; // Corrected import path
+import { Home as HomeIcon, BarChart as BarChartIcon, Assessment as ReportsIcon } from '@mui/icons-material'; // Example Icons
 
-<GlassNavigation
-  items={[
-    { label: 'Home', icon: <HomeIcon />, path: '/' },
-    { label: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { 
+const navItems: NavigationItem[] = [
+  { id: 'home', label: 'Home', icon: <HomeIcon />, href: '/' },
+  { id: 'dashboard', label: 'Dashboard', icon: <BarChartIcon />, href: '/dashboard' },
+  {
+    id: 'reports',
       label: 'Reports', 
       icon: <ReportsIcon />, 
-      path: '/reports',
       children: [
-        { label: 'Annual', path: '/reports/annual' },
-        { label: 'Monthly', path: '/reports/monthly' }
-      ]
-    }
-  ]}
-  activePath={currentPath}
-  onNavigate={handleNavigation}
-  variant="horizontal"
-  expandableOnHover={true}
-/>
+      { id: 'reports-annual', label: 'Annual', href: '/reports/annual' },
+      { id: 'reports-monthly', label: 'Monthly', href: '/reports/monthly' },
+    ],
+  },
+  { id: 'disabled', label: 'Disabled', href:'/disabled', disabled: true },
+];
+
+function HorizontalNav() {
+  const [active, setActive] = useState('dashboard');
+
+  const handleClick = (id: string) => {
+    console.log(`Item clicked: ${id}`);
+    setActive(id);
+    // Add actual routing logic here if needed based on the item's href or id
+  };
+
+  return (
+    <GlassNavigation
+      items={navItems}
+      activeItem={active} // Use activeItem with the item's id
+      onItemClick={handleClick} // Use onItemClick callback
+      position="top" // 'top' or 'bottom' for horizontal layout
+      variant="standard" // 'standard', 'minimal', 'prominent'
+      glassIntensity={0.8}
+      logo={<span>MyApp</span>} // Example logo
+      actions={<span>Actions</span>} // Example actions
+      sticky={true}
+    />
+  );
+}
+
+function VerticalNav() {
+  const [active, setActive] = useState('home');
+
+  const handleClick = (id: string) => {
+    console.log(`Item clicked: ${id}`);
+    setActive(id);
+  };
+
+  return (
+    <div style={{ height: '400px' }}> {/* Container for vertical nav */} 
+      <GlassNavigation
+        items={navItems}
+        activeItem={active}
+        onItemClick={handleClick}
+        position="left" // 'left' or 'right' for vertical layout
+        variant="prominent"
+        width={220} // Custom width for vertical nav
+        collapsible={true} // Make it collapsible
+        logo={<span>Vertical</span>}
+      />
+    </div>
+  );
+}
+
 ```
 
 #### Key Features
 
-- **Hierarchical Navigation**: Support for nested navigation items
-- **Multiple Variants**: Horizontal, vertical, and compact layouts
-- **Active State Tracking**: Visual indication of current location
-- **Icon Support**: Comprehensive icon integration
-- **Responsive Behavior**: Adaptive layout based on screen size
-- **Accessibility**: Full keyboard and screen reader support
+- **Hierarchical Navigation**: Supports nested items via the `children` property in `NavigationItem`.
+- **Layout & Style Variants**: 
+    - `position` (`'top'`, `'bottom'`, `'left'`, `'right'`) controls orientation and placement.
+    - `variant` (`'standard'`, `'minimal'`, `'prominent'`) adjusts visual style and density.
+    - `compact` reduces padding.
+    - `collapsible` (for `left`/`right` position) allows collapsing to icons only.
+- **Active State Tracking**: Visual indication using the `activeItem` prop (expects item `id`).
+- **Icon Support**: Integrates icons via the `icon` property in `NavigationItem`.
+- **Basic Responsiveness**: A mobile menu toggle appears at smaller screen widths, but full responsive behavior (like drawers) requires the `ResponsiveNavigation` wrapper component.
+- **Accessibility**: Includes features like keyboard navigation support and ARIA attributes.
 
 #### Glass Specific Features
 
-- Glass surface styling with proper depth hierarchy
-- Z-space transitions for navigation expansion
-- Interactive glass effects for hover and active states
-- Physics-based animations for selection indicator
-- Gesture-responsive feedback with haptic-like effects
+- Configurable glass surface styling (`glassIntensity`).
+- Physics-based animation for the active item indicator.
+- Optional glow effects (`prominent` variant).
+- Smooth animations for expanding/collapsing children and side navigation.
+
+#### Props (`GlassNavigationProps`)
+
+| Prop                   | Type                                                                     | Default         | Description                                                                               |
+| :--------------------- | :----------------------------------------------------------------------- | :-------------- | :---------------------------------------------------------------------------------------- |
+| `items`                | `NavigationItem[]`                                                       | `[]`            | **Required.** Array of navigation items to display.                                     |
+| `activeItem`           | `string`                                                                 | `undefined`     | The `id` of the currently active navigation item.                                       |
+| `onItemClick`          | `(id: string) => void`                                                 | `undefined`     | Callback fired when a navigation item is clicked, receiving the item's `id`.            |
+| `onMenuToggle`         | `(isOpen: boolean) => void`                                            | `undefined`     | Callback fired when the mobile menu is toggled (primarily for `ResponsiveNavigation`).    |
+| `position`             | `'top' \| 'left' \| 'right' \| 'bottom'`                                   | `'top'`         | Position and orientation of the navigation bar.                                         |
+| `variant`              | `'standard' \| 'minimal' \| 'prominent'`                                | `'standard'`    | Visual style variant affecting appearance and density.                                  |
+| `logo`                 | `React.ReactNode`                                                        | `undefined`     | Custom logo or brand element displayed at the start (or top for vertical).            |
+| `actions`              | `React.ReactNode`                                                        | `undefined`     | Custom elements (e.g., buttons, profile) displayed at the end (or bottom).              |
+| `showDivider`          | `boolean`                                                                | `false`         | Whether to show a divider line between nav items and actions.                           |
+| `glassIntensity`       | `number` (0-1)                                                           | `0.7`           | Opacity/intensity of the glass background effect.                                       |
+| `sticky`               | `boolean`                                                                | `false`         | If true, the navigation bar sticks to its position during scroll.                       |
+| `maxWidth`             | `string \| number`                                                 | `undefined`     | Maximum width for the navigation container (useful for centered top/bottom nav).    |
+| `compact`              | `boolean`                                                                | `false`         | If true, uses reduced padding for a more compact look.                                |
+| `centered`             | `boolean`                                                                | `false`         | If true, centers the navigation items within the container (for top/bottom).          |
+| `zIndex`               | `number`                                                                 | `100`           | Custom CSS z-index for the navigation bar.                                            |
+| `width`                | `string \| number`                                                 | `'240px'`       | Width for vertical navigation (`left` or `right` position).                             |
+| `initialExpandedItems` | `string[]`                                                               | `[]`            | Array of item `id`s that should be initially expanded if they have children.          |
+| `collapsible`          | `boolean`                                                                | `false`         | If true (for `left`/`right` position), adds a button to collapse/expand the sidebar. |
+| `initialCollapsed`     | `boolean`                                                                | `false`         | Initial collapsed state if `collapsible` is true.                                     |
+| `className`            | `string`                                                                 | `undefined`     | Additional CSS class name(s).                                                             |
+| `style`                | `React.CSSProperties`                                                    | `undefined`     | Inline styles for the root element.                                                     |
+| `theme`                | `DefaultTheme`                                                           | Theme Context   | Styled-components theme object.                                                         |
+
+#### Item Structure (`NavigationItem`)
+
+| Prop            | Type               | Default     | Description                                                                      |
+| :-------------- | :----------------- | :---------- | :------------------------------------------------------------------------------- |
+| `id`            | `string`           | -           | **Required.** Unique identifier for the item. Used for `activeItem` and `onItemClick`. |
+| `label`         | `string`           | -           | **Required.** The text label displayed for the item.                           |
+| `href`          | `string`           | `undefined` | URL target for the item. If provided, renders as an anchor `<a>` tag.          |
+| `icon`          | `React.ReactNode`  | `undefined` | Optional icon displayed before the label.                                        |
+| `active`        | `boolean`          | `undefined` | Explicitly mark item as active (overrides `activeItem` prop if set).           |
+| `disabled`      | `boolean`          | `false`     | If true, dims the item and disables interaction.                               |
+| `children`      | `NavigationItem[]` | `undefined` | Array of nested navigation items for creating submenus.                        |
+| `badge`         | `string \| number` | `undefined` | Content for a small badge displayed next to the label (e.g., notification count). |
+| `onClick`       | `() => void`       | `undefined` | Custom click handler. Called *before* the main `onItemClick` prop.               |
+| `external`      | `boolean`          | `false`     | If true and `href` is set, adds `target="_blank" rel="noopener noreferrer"`.  |
+| `className`     | `string`           | `undefined` | Additional CSS class name for the list item element.                             |
+| `tooltip`       | `string`           | `undefined` | Tooltip text displayed on hover (especially useful when `collapsible` is true). |
+| `customElement` | `React.ReactNode`  | `undefined` | Render a completely custom element instead of the default item structure.        |
 
 ---
 
 ### ResponsiveNavigation
 
-The ResponsiveNavigation component automatically adapts its presentation based on screen size.
+The ResponsiveNavigation component provides a container that automatically switches between a desktop navigation view (using `GlassNavigation`) and a mobile view (typically a drawer containing `GlassNavigation`) based on screen width.
+
+**Note:** This component primarily handles the responsive layout switching. Props for the actual navigation items (`items`), active state tracking (e.g., `activeItem`), and navigation callbacks (`onItemClick`) should be passed through; they will be received by the underlying `GlassNavigation` component it renders.
 
 ```tsx
-import { ResponsiveNavigation } from 'galileo-glass-ui';
+import React, { useState } from 'react';
+import { ResponsiveNavigation, NavigationItem } from '@veerone/galileo-glass-ui/components'; // Corrected import path
+import { Home as HomeIcon, BarChart as BarChartIcon, Settings as SettingsIcon } from '@mui/icons-material'; // Example icons
 
-<ResponsiveNavigation
-  items={navigationItems}
-  activePath={currentPath}
-  onNavigate={handleNavigation}
-  logo={<Logo />}
-  title="Application Name"
-  breakpoint="md"
-  mobileVariant="drawer"
-  desktopVariant="horizontal"
-  userMenu={<UserProfileMenu />}
-/>
+const navigationItems: NavigationItem[] = [
+    { id: 'home', label: 'Home', icon: <HomeIcon />, href: '/' }, // Use href for links
+    { id: 'dashboard', label: 'Dashboard', icon: <BarChartIcon />, href: '/dashboard' },
+    { id: 'settings', label: 'Settings', icon: <SettingsIcon />, href: '/settings' },
+];
+const MyLogo = () => <span style={{ fontWeight: 'bold' }}>MyApp</span>; // Placeholder
+
+function AppNavigation() {
+  // State should hold the ID of the active item
+  const [activeItemId, setActiveItemId] = useState('home'); 
+
+  const handleNavigate = (itemId: string) => {
+    // Find the item by ID if needed, e.g., for routing
+    const item = navigationItems.find(item => item.id === itemId);
+    console.log('Navigating based on item ID:', itemId, '(Path:', item?.href, ')');
+    setActiveItemId(itemId);
+    // Add actual routing logic here using item?.href or itemId
+  };
+
+  return (
+    <ResponsiveNavigation
+      items={navigationItems}
+      logo={<MyLogo />}
+      mobileBreakpoint="md" // Breakpoint to switch to mobile view (e.g., 960px)
+      useDrawer={true} // Use a drawer for mobile menu
+      mobileMenuPosition="left" // Drawer opens from left
+      activeItem={activeItemId} // Pass the active item ID 
+      onItemClick={handleNavigate} // Handle navigation clicks
+      // Optional: Control mobile drawer state externally
+      // drawerOpen={isMobileMenuOpen}
+      // onMenuToggle={setIsMobileMenuOpen}
+      // You can also pass other GlassNavigation props like variant for desktop
+      variant="standard"
+    />
+  );
+}
 ```
 
-#### Key Features
+#### Key Props (`ResponsiveNavigationProps`)
 
-- **Adaptive Layout**: Automatically switches between layouts based on screen size
-- **Multiple Mobile Variants**: Drawer, bottom bar, or dropdown options
-- **Header Integration**: Optional app bar integration
-- **Custom Breakpoints**: Configurable responsive breakpoints
-- **Animation Control**: Customizable transition animations
-- **Deep linking**: Support for deep linking and route matching
+| Prop                     | Type                                         | Default        | Description                                                                                                      |
+|--------------------------|----------------------------------------------|----------------|------------------------------------------------------------------------------------------------------------------|
+| `items`                  | `NavigationItem[]`                           | `[]`           | **Required.** Array of navigation items passed to the underlying `GlassNavigation`.                              |
+| `logo`                   | `React.ReactNode`                            | `undefined`    | Optional logo component displayed in the navigation bar.                                                       |
+| `mobileBreakpoint`       | `number \| 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl'` | `'md'`         | The screen width (px or breakpoint key) at which the layout switches to mobile view.                               |
+| `useDrawer`              | `boolean`                                    | `true`         | If `true`, uses a slide-in `Drawer` for the mobile menu. If `false`, renders navigation inline (less common). |
+| `drawerWidth`            | `number \| string`                           | `280`          | Width of the mobile menu drawer.                                                                               |
+| `mobileMenuPosition`     | `'left' \| 'right'`                         | `'left'`       | Side from which the mobile drawer opens.                                                                       |
+| `drawerWithHeader`       | `boolean`                                    | `true`         | If `true` and `useDrawer` is `true`, adds a header with title and close button to the mobile drawer.           |
+| `mobileMenuLabel`        | `string`                                     | `'Menu'`       | Text label for the mobile menu button and drawer header.                                                       |
+| `menuIcon`               | `React.ReactNode`                            | `undefined`    | Custom icon for the mobile menu toggle button. Defaults to a menu/close icon.                                |
+| `showLogoInMobile`       | `boolean`                                    | `true`         | If `true`, displays the `logo` in the mobile menu bar.                                                         |
+| `useMinimalBefore`       | `boolean`                                    | `false`        | If `true`, applies a minimal style (hiding labels) to desktop navigation just before the mobile breakpoint. |
+| `glassIntensity`         | `number` (0-1)                               | `0.7`          | Controls the intensity/opacity of the glass effect (passed to underlying `GlassNavigation`).                 |
+| `onMenuToggle`           | `(isOpen: boolean) => void`                | `undefined`    | Callback fired when the mobile menu drawer is opened or closed (useful for external state control).            |
+| *...rest (`GlassNavigationProps`)* |                                              |                | All other props are passed down to the underlying `GlassNavigation` component (e.g., `activeItem`, `onItemClick`, `variant` for desktop, etc.). |
 
-#### Glass Specific Features
+**Note:** Pass the `id` of the active navigation item to the `activeItem` prop for highlighting. The `onItemClick` handler receives the `id` of the clicked `NavigationItem`.
 
-- Context-aware glass effects based on background content
-- Smooth glass transitions between layout variants
-- Z-space layering for proper depth perception
-- Physical animation patterns for layout transitions
-- Atmospheric background effects integration
+#### Behavior
 
----
-
-### PageTransition
-
-The PageTransition component provides smooth, animated transitions between pages or views.
-
-```tsx
-import { PageTransition } from 'galileo-glass-ui';
-
-<PageTransition
-  animationType="slide"
-  direction="left"
-  duration={300}
-  easing="easeInOut"
-  keepMounted={false}
->
-  {currentView}
-</PageTransition>
-```
-
-#### Key Features
-
-- **Multiple Animations**: Slide, fade, zoom, and custom transition types
-- **Directional Control**: Support for different transition directions
-- **Timing Customization**: Configurable duration and easing
-- **Content Preservation**: Option to keep previous view mounted
-- **Nested Transitions**: Support for nested transition hierarchies
-- **Route Integration**: Easy integration with routing libraries
-
-#### Glass Specific Features
-
-- Physics-based transitions with spring animation
-- Z-space depth transitions between pages
-- Atmospheric fog effects during transitions
-- Glass parallax effects for enhanced depth perception
-- Gesture-driven transition control
-
----
-
-### ZSpaceAppLayout
-
-The ZSpaceAppLayout component provides a sophisticated layout system with z-axis depth and parallax effects.
-
-```tsx
-import { 
-  ZSpaceAppLayout, 
-  ZSpaceLayer 
-} from 'galileo-glass-ui';
-
-<ZSpaceAppLayout
-  backgroundLayer={<AtmosphericBackground />}
-  navLayer={<MainNavigation />}
-  contentLayer={<PageContent />}
-  overlayLayer={<Notifications />}
-  depth={3}
-  parallaxIntensity={0.2}
-  mouseParallax={true}
-  scrollParallax={true}
->
-  <ZSpaceLayer name="widget" depth={2}>
-    <DashboardWidgets />
-  </ZSpaceLayer>
-  
-  <ZSpaceLayer name="modal" depth={4}>
-    {modalContent}
-  </ZSpaceLayer>
-</ZSpaceAppLayout>
-```
-
-#### Key Features
-
-- **Layered Architecture**: Built-in layers with configurable depth
-- **Parallax Effects**: Mouse and scroll-based parallax
-- **Custom Layers**: Support for custom layer definition
-- **Layer Management**: Programmatic layer control
-- **Animation System**: Built-in animation capabilities
-- **Responsive Behavior**: Adaptive depth behavior for different devices
-
-#### Glass Specific Features
-
-- True z-space depth rendering with accurate lighting
-- Atmospheric effects between layers (fog, particles)
-- Glass surfaces with proper depth-based transparency
-- Physics-based layer transitions
-- Dimensional glass effects with realistic depth cues
-
----
-
-## Feedback Components
-
-### Visual Feedback System
-
-The Visual Feedback components provide a comprehensive system for giving users feedback about their interactions.
-
-```tsx
-import { 
-  VisualFeedback, 
-  RippleButton, 
-  FocusIndicator, 
-  StateIndicator 
-} from 'galileo-glass-ui';
-
-<VisualFeedback
-  type="success"
-  message="Operation completed successfully"
-  icon={<CheckIcon />}
-  autoHide={5000}
-/>
-
-<RippleButton 
-  onClick={handleClick}
-  rippleColor="rgba(255, 255, 255, 0.3)"
-  rippleOrigin="center"
->
-  Click Me
-</RippleButton>
-
-<FocusIndicator
-  visible={isFocused}
-  color="primary"
-  borderRadius={8}
-  intensity="medium"
->
-  {children}
-</FocusIndicator>
-
-<StateIndicator
-  state="loading"
-  fallback={<LoadingSpinner />}
-  transition="fade"
->
-  {content}
-</StateIndicator>
-```
-
-#### Key Features
-
-- **Multiple Feedback Types**: Success, error, warning, info states
-- **Interactive Ripples**: Configurable ripple effects
-- **Focus Visualization**: Enhanced focus indicators
-- **State Management**: Visual state representation
-- **Transition Effects**: Smooth state transitions
-- **Timing Control**: Configurable display duration
-
-#### Glass Specific Features
-
-- Glass morphism styling for feedback containers
-- Physics-based ripple animations
-- Z-space elevation for focused elements
-- Particle effects for state transitions
-- Contextual glass effects based on feedback type
+- Below the `mobileBreakpoint`, it renders a `MobileMenuBar` with a toggle button (`menuIcon` or default) and optionally the `logo`.
+- Clicking the toggle button opens/closes a `Drawer` (if `useDrawer` is true) containing the `GlassNavigation` component styled for vertical mobile layout.
+- Above the `mobileBreakpoint`, it renders the `GlassNavigation` component directly, typically in a horizontal layout (controlled by the `variant` prop passed in `...rest`).
+- The `useMinimalBefore` prop provides an intermediate step for larger tablets, shrinking the desktop nav before switching to the mobile drawer.
 
 ---
 
@@ -991,7 +1213,7 @@ import {
   GlassThemeSwitcher, 
   GlassThemeDemo, 
   ThemedGlassComponents 
-} from 'galileo-glass-ui';
+} from '@veerone/galileo-glass-ui/components'; // Corrected import path
 
 <GlassThemeSwitcher
   themes={['nebula', 'cosmic', 'aurora', 'frost', 'celestial']}
@@ -1046,7 +1268,7 @@ The Performance components provide utilities for monitoring and optimizing appli
 import { 
   PerformanceMonitor, 
   OptimizedGlassContainer 
-} from 'galileo-glass-ui';
+} from '@veerone/galileo-glass-ui/components'; // Corrected import path
 
 <PerformanceMonitor
   metrics={['fps', 'memory', 'renderTime']}
@@ -1660,3 +1882,216 @@ For more detailed examples and complete code samples, refer to the Galileo Glass
 ---
 
 *Galileo Glass UI v1.0 • March 2025*
+
+---
+
+### PageTransition
+
+The PageTransition component provides smooth, animated transitions between pages or views, utilizing CSS or physics-based animations.
+
+```tsx
+import React, { useState, useEffect } from 'react';
+import { PageTransition } from '@veerone/galileo-glass-ui/components'; // Corrected import path
+import { Box, Typography, Button } from '@veerone/galileo-glass-ui/components'; // Example content components
+
+const View1 = () => <Box p={2} bgcolor="rgba(0, 100, 255, 0.2)"><Typography>View One</Typography></Box>;
+const View2 = () => <Box p={2} bgcolor="rgba(255, 100, 0, 0.2)"><Typography>View Two</Typography></Box>;
+const View3 = () => <Box p={2} bgcolor="rgba(100, 255, 0, 0.2)"><Typography>View Three (Physics)</Typography></Box>;
+
+function AppWithTransitions() {
+  const [currentViewKey, setCurrentViewKey] = useState('view1');
+
+  const renderView = () => {
+    switch (currentViewKey) {
+      case 'view1': return <View1 />;
+      case 'view2': return <View2 />;
+      case 'view3': return <View3 />;
+      default: return <View1 />;
+    }
+  };
+
+  return (
+    <div>
+      <Box display="flex" gap={1} mb={2}>
+        <Button onClick={() => setCurrentViewKey('view1')}>View 1 (Slide)</Button>
+        <Button onClick={() => setCurrentViewKey('view2')}>View 2 (Fade)</Button>
+        <Button onClick={() => setCurrentViewKey('view3')}>View 3 (Physics)</Button>
+      </Box>
+
+      <PageTransition
+        mode={currentViewKey === 'view3' ? 'physics' : (currentViewKey === 'view2' ? 'fade' : 'slide')}
+        direction={currentViewKey === 'view1' ? 'left' : 'right'} // Example direction logic
+        duration={currentViewKey === 'view3' ? undefined : 400} // Duration relevant for CSS modes
+        locationKey={currentViewKey} // Unique key triggers the transition
+        physicsConfig={{ tension: 190, friction: 22 }} // Example physics config
+        style={{ position: 'relative', height: '100px' }} // Ensure container has dimensions
+      >
+        {renderView()}
+      </PageTransition>
+    </div>
+  );
+}
+```
+
+#### Key Features
+
+- **Multiple Animation Modes**: 
+    - CSS-based: `'fade'`, `'slide'`, `'zoom'`, `'flip'`, `'glass-fade'`, `'glass-reveal'`.
+    - Physics-based: `'physics'`, `'zSpace'` (adds `translateZ`).
+- **Directional Control**: `direction` (`'up'`, `'down'`, `'left'`, `'right'`) for `slide`, `physics`, `zSpace` modes.
+- **Timing & Physics Customization**: 
+    - `duration` for CSS modes.
+    - `physicsConfig` for detailed spring physics tuning (tension, friction, etc.) in physics modes.
+- **Key-Based Trigger**: Transitions occur when the `locationKey` prop changes.
+- **Callbacks**: `onStart` and `onComplete` callbacks for transition lifecycle.
+- **Reduced Motion**: Respects user preference via `respectReducedMotion` prop.
+
+#### Glass Specific Features
+
+- **Physics Transitions**: Smooth, natural motion using the `physics` or `zSpace` modes.
+- **Z-Space Transitions**: Creates depth effects by animating `translateZ` in `zSpace` mode.
+- **Glass Effect Modes**: `'glass-fade'` and `'glass-reveal'` provide transitions integrated with glass surface effects.
+
+#### Props (`PageTransitionProps` - Extends `AnimationProps`)
+
+| Prop                     | Type                                                      | Default        | Description                                                                                                                                    |
+| :----------------------- | :-------------------------------------------------------- | :------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
+| `children`               | `React.ReactNode`                                         | `undefined`    | The content to be rendered within the transition container.                                                                                      |
+| `mode`                   | `'fade' \| ... \| 'physics' \| 'zSpace'`             | `'fade'`       | The type of animation to use for transitions.                                                                                                  |
+| `locationKey`            | `string \| number`                                      | `undefined`    | A unique key representing the current view/page. Changing this key triggers the transition.                                                    |
+| `duration`               | `number`                                                  | `300`          | Duration in milliseconds for CSS-based animation modes (`fade`, `slide`, etc.). Ignored for `physics`/`zSpace`.                               |
+| `direction`              | `'up' \| 'down' \| 'left' \| 'right'`                   | `'right'`      | Direction for `slide`, `physics`, and `zSpace` animations.                                                                                   |
+| `physicsConfig`          | `Partial<SpringConfig> \| keyof typeof SpringPresets` | `undefined`    | Configuration for physics-based animations (`physics`, `zSpace`). Overrides context/`animationConfig`. See `SpringConfig` for options.           |
+| `perspective`            | `number`                                                  | `1200`         | CSS `perspective` value (in pixels) applied for `flip` and `zSpace` modes.                                                                     |
+| `glassTransitionIntensity` | `number` (0-1)                                            | `0.5`          | Intensity factor for `glass-fade` and `glass-reveal` modes.                                                                                    |
+| `onStart`                | `() => void`                                              | `undefined`    | Callback fired when a transition starts (exit or enter).                                                                                       |
+| `onComplete`             | `() => void`                                              | `undefined`    | Callback fired when an enter transition completes.                                                                                             |
+| `disabled`               | `boolean`                                                 | `false`        | If true, disables transitions entirely.                                                                                                        |
+| `respectReducedMotion`   | `boolean`                                                 | `true`         | If true, uses simple fade transitions if the user prefers reduced motion. Overridden by `disableAnimation` prop.                           |
+| `className`              | `string`                                                  | `undefined`    | Additional CSS class name(s).                                                                                                                  |
+| `style`                  | `React.CSSProperties`                                     | `undefined`    | Inline styles for the root container.                                                                                                          |
+| `animationConfig`        | `AnimationConfig`                                         | From Context   | General animation configuration (can be Spring config) from `AnimationProps`. `physicsConfig` takes precedence for physics modes.           |
+| `disableAnimation`       | `boolean`                                                 | From Context   | Disables animation, overriding `respectReducedMotion`. From `AnimationProps`.                                                                  |
+| `motionSensitivity`      | `MotionSensitivity`                                       | From Context   | Controls sensitivity for interactive motion. From `AnimationProps`. (Less relevant here).                                                          |
+
+---
+
+### ZSpaceAppLayout
+
+The ZSpaceAppLayout component provides a layout structure that utilizes Z-Space depth perception for a more immersive user experience.
+
+```tsx
+import React, { useState } from 'react';
+import { ZSpaceAppLayout, ZSpaceLayer } from '@veerone/galileo-glass-ui/components'; // Corrected import path
+import { Home as HomeIcon, BarChart as BarChartIcon, Assessment as ReportsIcon } from '@mui/icons-material'; // Example Icons
+
+const navItems = [
+  { id: 'home', label: 'Home', icon: <HomeIcon />, href: '/' },
+  { id: 'dashboard', label: 'Dashboard', icon: <BarChartIcon />, href: '/dashboard' },
+  {
+    id: 'reports',
+    label: 'Reports',
+    icon: <ReportsIcon />,
+    children: [
+      { id: 'reports-annual', label: 'Annual', href: '/reports/annual' },
+      { id: 'reports-monthly', label: 'Monthly', href: '/reports/monthly' },
+    ],
+  },
+  { id: 'disabled', label: 'Disabled', href:'/disabled', disabled: true },
+];
+
+function AppLayout() {
+  const [activeItemId, setActiveItemId] = useState('home');
+
+  const handleNavigate = (itemId) => {
+    // Implement navigation logic based on itemId
+    console.log('Navigating to:', itemId);
+    setActiveItemId(itemId);
+  };
+
+  return (
+    <ZSpaceAppLayout
+      navItems={navItems}
+      activeItemId={activeItemId}
+      onItemClick={handleNavigate}
+      glassIntensity={0.8}
+      logo={<span>MyApp</span>}
+      actions={<span>Actions</span>}
+      sticky={true}
+      maxWidth="1200px"
+      compact={true}
+      centered={true}
+      zIndex={100}
+      width="240px"
+      initialExpandedItems={['home', 'dashboard']}
+      collapsible={true}
+      initialCollapsed={false}
+      className="app-layout"
+      style={{ height: '100vh' }}
+    >
+      {/* Add your content components here */}
+    </ZSpaceAppLayout>
+  );
+}
+```
+
+#### Key Features
+
+- **Hierarchical Navigation**: Supports nested items via the `children` property in `NavigationItem`.
+- **Layout & Style Variants**: 
+    - `position` (`'top'`, `'bottom'`, `'left'`, `'right'`) controls orientation and placement.
+    - `variant` (`'standard'`, `'minimal'`, `'prominent'`) adjusts visual style and density.
+    - `compact` reduces padding.
+    - `collapsible` (for `left`/`right` position) allows collapsing to icons only.
+- **Active State Tracking**: Visual indication using the `activeItem` prop (expects item `id`).
+- **Icon Support**: Integrates icons via the `icon` property in `NavigationItem`.
+- **Basic Responsiveness**: A mobile menu toggle appears at smaller screen widths, but full responsive behavior (like drawers) requires the `ResponsiveNavigation` wrapper component.
+- **Accessibility**: Includes features like keyboard navigation support and ARIA attributes.
+
+#### Glass Specific Features
+
+- Configurable glass surface styling (`glassIntensity`).
+- Physics-based animation for the active item indicator.
+- Optional glow effects (`prominent` variant).
+- Smooth animations for expanding/collapsing children and side navigation.
+
+#### Props (`ZSpaceAppLayoutProps`)
+
+| Prop                   | Type                                                                     | Default         | Description                                                                               |
+| :--------------------- | :----------------------------------------------------------------------- | :-------------- | :---------------------------------------------------------------------------------------- |
+| `navItems`             | `NavigationItem[]`                                                       | `[]`            | **Required.** Array of navigation items to display.                                     |
+| `activeItemId`         | `string`                                                                 | `undefined`     | The `id` of the currently active navigation item.                                       |
+| `onItemClick`          | `(id: string) => void`                                                 | `undefined`     | Callback fired when a navigation item is clicked, receiving the item's `id`.            |
+| `glassIntensity`       | `number` (0-1)                                                           | `0.7`           | Opacity/intensity of the glass background effect.                                       |
+| `logo`                 | `React.ReactNode`                                                        | `undefined`     | Custom logo or brand element displayed at the start (or top for vertical).            |
+| `actions`              | `React.ReactNode`                                                        | `undefined`     | Custom elements (e.g., buttons, profile) displayed at the end (or bottom).              |
+| `sticky`               | `boolean`                                                                | `false`         | If true, the navigation bar sticks to its position during scroll.                       |
+| `maxWidth`             | `string \| number`                                                 | `'1200px'`      | Maximum width for the navigation container (useful for centered top/bottom nav).    |
+| `compact`              | `boolean`                                                                | `true`          | If true, uses reduced padding for a more compact look.                                |
+| `centered`             | `boolean`                                                                | `true`          | If true, centers the navigation items within the container (for top/bottom).          |
+| `zIndex`               | `number`                                                                 | `100`           | Custom CSS z-index for the navigation bar.                                            |
+| `width`                | `string \| number`                                                 | `'240px'`       | Width for vertical navigation (`left` or `right` position).                             |
+| `initialExpandedItems` | `string[]`                                                               | `[]`            | Array of item `id`s that should be initially expanded if they have children.          |
+| `collapsible`          | `boolean`                                                                | `true`          | If true (for `left`/`right` position), adds a button to collapse/expand the sidebar. |
+| `initialCollapsed`     | `boolean`                                                                | `false`         | Initial collapsed state if `collapsible` is true.                                     |
+| `className`            | `string`                                                                 | `undefined`     | Additional CSS class name(s).                                                             |
+| `style`                | `React.CSSProperties`                                                    | `undefined`     | Inline styles for the root element.                                                     |
+| `theme`                | `DefaultTheme`                                                           | Theme Context   | Styled-components theme object.                                                         |
+
+#### Item Structure (`NavigationItem`)
+
+| Prop            | Type               | Default     | Description                                                                      |
+| :-------------- | :----------------- | :---------- | :------------------------------------------------------------------------------- |
+| `id`            | `string`           | -           | **Required.** Unique identifier for the item. Used for `activeItem` and `onItemClick`. |
+| `label`         | `string`           | -           | **Required.** The text label displayed for the item.                           |
+| `href`          | `string`           | `undefined` | URL target for the item. If provided, renders as an anchor `<a>` tag.          |
+| `icon`          | `React.ReactNode`  | `undefined` | Optional icon displayed before the label.                                        |
+| `active`        | `boolean`          | `undefined` | Explicitly mark item as active (overrides `activeItem` prop if set).           |
+| `disabled`      | `boolean`          | `false`     | If true, dims the item and disables interaction.                               |
+| `children`      | `NavigationItem[]` | `undefined` | Array of nested navigation items for creating submenus.                        |
+| `badge`         | `string \| number` | `undefined` | Content for a small badge displayed next to the label (e.g., notification count). |
+| `onClick`       | `() => void`       | `undefined` | Custom click handler. Called *before* the main `onItemClick` prop.               |
+| `external`      | `boolean`          | `false`     | If true and `href` is set, adds `target="_blank" rel="noopener noreferrer"`.  |
+| `className`     | `string`           | `undefined` | Additional CSS class name for the list item element.                             |
+| `tooltip`       | `string`           | `undefined` | Tooltip text displayed on hover (especially useful when `collapsible` is true). |
+| `customElement` | `React.ReactNode`  | `undefined` | Render a completely custom element instead of the default item structure.        |

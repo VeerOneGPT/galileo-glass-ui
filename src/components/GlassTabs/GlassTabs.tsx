@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { glassSurface } from "../../core/mixins/glassSurface";
 import { createThemeContext } from "../../core/themeContext";
-import { useGlassTheme } from "../../hooks/useGlassTheme";
 import { useAccessibilitySettings } from "../../hooks/useAccessibilitySettings";
+import { usePhysicsAnimation, PhysicsAnimationProps } from "../../components/DataChart/hooks/usePhysicsAnimation";
 
 // Animations
 const slideIn = keyframes`
@@ -135,15 +135,15 @@ const TabPanel = styled.div<{ $isActive: boolean }>`
 `;
 
 // Indicator for active tab (animated)
-const ActiveIndicator = styled.div<{ $left: number; $width: number }>`
+const ActiveIndicator = styled.div<{ style?: React.CSSProperties }>`
   position: absolute;
   bottom: 4px;
   height: 3px;
   background: rgba(var(--glass-primary-rgb), 0.8);
   border-radius: 1.5px;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  left: ${props => props.$left}px;
-  width: ${props => props.$width}px;
+  left: ${props => props.style?.left};
+  width: ${props => props.style?.width};
+  transform: ${props => props.style?.transform};
   box-shadow: 0 0 8px rgba(var(--glass-primary-rgb), 0.6);
   opacity: 0.8;
 `;
@@ -163,6 +163,20 @@ export interface GlassTabsProps {
   onChange?: (tabId: string) => void;
   /** Additional className */
   className?: string;
+  /** Physics configuration for the active indicator animation */
+  physics?: Partial<PhysicsAnimationProps>;
+}
+
+// Ref interface
+export interface GlassTabsRef {
+  /** Gets the main tabs container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
+  /** Gets the tab list container DOM element */
+  getTabListElement: () => HTMLDivElement | null;
+  /** Programmatically sets the active tab */
+  setActiveTab: (tabId: string) => void;
+  /** Gets the ID of the currently active tab */
+  getActiveTab: () => string;
 }
 
 /**
@@ -171,31 +185,63 @@ export interface GlassTabsProps {
  * A tabbed interface with glass styling and animated indicator.
  * Features interactive hover effects and smooth transitions.
  */
-export const GlassTabs: React.FC<GlassTabsProps> = ({ 
+// Convert component to use forwardRef
+export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({ 
   tabs, 
   defaultTab, 
   onChange,
-  className = ''
-}) => {
+  className = '',
+  physics
+}, ref) => { // Add ref parameter
   const [activeTab, setActiveTab] = useState(defaultTab || (tabs.length > 0 ? tabs[0].id : ''));
   const { isReducedMotion } = useAccessibilitySettings();
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const listRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for the root container
   
-  // Update indicator position when active tab changes
+  // State to hold the target indicator style
+  const [targetIndicatorStyle, setTargetIndicatorStyle] = useState({ left: 0, width: 0 });
+
+  // --- Refactored Physics Animation for Indicator ---
+  const physicsConfig: Partial<PhysicsAnimationProps> = {
+    stiffness: physics?.stiffness ?? 500, // Map from potential tension/friction if needed, or use direct props
+    damping: physics?.damping ?? 25,    // Map from potential tension/friction if needed, or use direct props
+    mass: physics?.mass ?? 1,
+    respectReducedMotion: true, // Ensure it respects reduced motion
+    ...physics // Spread remaining valid props
+  };
+
+  // Animate 'left' property using usePhysicsAnimation
+  const { value: animatedLeft, start: startLeft } = usePhysicsAnimation(physicsConfig);
+  
+  // Animate 'width' property using usePhysicsAnimation
+  const { value: animatedWidth, start: startWidth } = usePhysicsAnimation(physicsConfig);
+  // --- End Refactored Physics Animation ---
+
+  // Update target indicator style state AND trigger animations
   useEffect(() => {
     const activeTabElement = tabRefs.current.get(activeTab);
     if (activeTabElement && listRef.current) {
       const listRect = listRef.current.getBoundingClientRect();
       const tabRect = activeTabElement.getBoundingClientRect();
+            
+      const targetLeft = tabRect.left - listRect.left + 4;
+      const targetWidth = tabRect.width - 8;
       
-      setIndicatorStyle({
-        left: tabRect.left - listRect.left + 4, // 4px for padding
-        width: tabRect.width - 8 // 8px for padding on both sides
+      // Update the target indicator style state
+      setTargetIndicatorStyle({ 
+        left: targetLeft < 0 ? 0 : targetLeft,
+        width: targetWidth < 0 ? 0 : targetWidth
       });
+
+      // Only trigger animations if not reduced motion
+      if (!isReducedMotion) {
+        // Trigger the animations with the new target values using start()
+        startLeft(targetLeft < 0 ? 0 : targetLeft);
+        startWidth(targetWidth < 0 ? 0 : targetWidth);
+      }
     }
-  }, [activeTab, tabs]);
+  }, [activeTab, tabs, startLeft, startWidth, isReducedMotion]); // Include isReducedMotion in dependencies
   
   // Handle tab change
   const handleTabChange = (tabId: string) => {
@@ -225,15 +271,33 @@ export const GlassTabs: React.FC<GlassTabsProps> = ({
     }
   };
   
-  // Register tab ref
+  // --- Imperative Handle (Moved After Handlers) ---
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => containerRef.current,
+    getTabListElement: () => listRef.current,
+    setActiveTab: (tabId) => {
+      if (tabs.some(tab => tab.id === tabId)) {
+        handleTabChange(tabId);
+      }
+    },
+    getActiveTab: () => activeTab,
+  }), [activeTab, tabs]); // Simplify dependencies to avoid unnecessary updates
+  
+  // Register tab ref - modify to prevent unnecessary updates
   const registerTabRef = (tabId: string, ref: HTMLButtonElement | null) => {
-    if (ref) {
-      tabRefs.current.set(tabId, ref);
+    // Use setTimeout to update refs outside of render cycle
+    if (ref && tabRefs.current.get(tabId) !== ref) {
+      setTimeout(() => {
+        tabRefs.current.set(tabId, ref);
+      }, 0);
     }
   };
   
   return (
-    <TabsContainer className={`glass-tabs ${className}`}>
+    <TabsContainer 
+      ref={containerRef} // Assign ref to root container
+      className={`glass-tabs ${className}`}
+    >
       <TabList role="tablist" ref={listRef}>
         {tabs.map((tab, index) => (
           <TabButton
@@ -251,8 +315,15 @@ export const GlassTabs: React.FC<GlassTabsProps> = ({
             {tab.label}
           </TabButton>
         ))}
-        {!isReducedMotion && (
-          <ActiveIndicator $left={indicatorStyle.left} $width={indicatorStyle.width} />
+        {!isReducedMotion && targetIndicatorStyle.width > 0 && (
+          <ActiveIndicator 
+             style={{
+                left: `${animatedLeft}px`,
+                width: `${animatedWidth}px`,
+                // Use transform to move to GPU for better performance
+                transform: 'translateZ(0)',
+             }}
+           />
         )}
       </TabList>
       
@@ -270,6 +341,9 @@ export const GlassTabs: React.FC<GlassTabsProps> = ({
       ))}
     </TabsContainer>
   );
-};
+}); // Close forwardRef
+
+// Add displayName
+GlassTabs.displayName = 'GlassTabs';
 
 export default GlassTabs; 

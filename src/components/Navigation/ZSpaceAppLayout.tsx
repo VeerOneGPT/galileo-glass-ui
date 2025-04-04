@@ -1,9 +1,8 @@
 import React, { forwardRef, useState, useCallback, useEffect } from 'react';
-import styled from 'styled-components';
+import styled, { useTheme } from 'styled-components';
 
 import { glassBorder } from '../../core/mixins/glassBorder';
 import { glassSurface } from '../../core/mixins/glassSurface';
-import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
 import { Box } from '../Box';
@@ -35,7 +34,6 @@ const ZSpaceProvider = ({
 };
 
 const LayoutContainer = styled.div<{
-  $glassIntensity: number;
   $enableZSpaceAnimations: boolean;
 }>`
   display: flex;
@@ -46,25 +44,15 @@ const LayoutContainer = styled.div<{
   perspective: ${({ $enableZSpaceAnimations }) => ($enableZSpaceAnimations ? '1200px' : 'none')};
   transform-style: ${({ $enableZSpaceAnimations }) =>
     $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
-
-  ${({ theme, $glassIntensity }) => {
-    if ($glassIntensity > 0) {
-      const themeContext = createThemeContext(theme);
-      return glassSurface({
-        elevation: 'low',
-        backgroundOpacity: 0.2,
-        blurStrength: '5px',
-        themeContext,
-      });
-    }
-    return '';
-  }}
+  
+  // Placeholder background
+  background-color: ${props => props.theme.colors?.background?.default || '#fff'};
 `;
 
 const HeaderContainer = styled.header<{
   $height: string | number;
   $fixed: boolean;
-  $glassIntensity: number;
+  $enableZSpaceAnimations: boolean;
 }>`
   width: 100%;
   height: ${({ $height }) => (typeof $height === 'number' ? `${$height}px` : $height)};
@@ -75,35 +63,18 @@ const HeaderContainer = styled.header<{
   left: 0;
   right: 0;
   z-index: 30;
-
-  ${({ theme, $glassIntensity }) => {
-    if ($glassIntensity > 0) {
-      const themeContext = createThemeContext(theme);
-      return glassSurface({
-        elevation: 'medium',
-        backgroundOpacity: 0.6,
-        blurStrength: '10px',
-        themeContext,
-      });
-    }
-    return '';
-  }}
-
-  ${({ theme }) => {
-    const themeContext = createThemeContext(theme);
-    return glassBorder({
-      width: '0 0 1px 0',
-      opacity: 0.3,
-      themeContext,
-    });
-  }}
+  transform-style: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
+  
+  // Placeholder background and border
+  background-color: ${props => props.theme.colors?.background?.level1 || '#f8f8f8'};
+  border-bottom: 1px solid ${props => props.theme.colors?.divider || '#ddd'};
 `;
 
 const SidebarContainer = styled.aside<{
   $width: string | number;
   $fixed: boolean;
   $collapsed: boolean;
-  $glassIntensity: number;
   $enableZSpaceAnimations: boolean;
 }>`
   width: ${({ $width, $collapsed }) =>
@@ -118,28 +89,10 @@ const SidebarContainer = styled.aside<{
   overflow: hidden;
   transform-style: ${({ $enableZSpaceAnimations }) =>
     $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
-
-  ${({ theme, $glassIntensity }) => {
-    if ($glassIntensity > 0) {
-      const themeContext = createThemeContext(theme);
-      return glassSurface({
-        elevation: 'medium',
-        backgroundOpacity: 0.5,
-        blurStrength: '8px',
-        themeContext,
-      });
-    }
-    return '';
-  }}
-
-  ${({ theme }) => {
-    const themeContext = createThemeContext(theme);
-    return glassBorder({
-      width: '0 1px 0 0',
-      opacity: 0.3,
-      themeContext,
-    });
-  }}
+  
+  // Placeholder background and border
+  background-color: ${props => props.theme.colors?.background?.level1 || '#f8f8f8'};
+  border-right: 1px solid ${props => props.theme.colors?.divider || '#ddd'};
 `;
 
 const ContentContainer = styled.main<{
@@ -200,7 +153,7 @@ const ContentContainer = styled.main<{
 const FooterContainer = styled.footer<{
   $height: string | number;
   $fixed: boolean;
-  $glassIntensity: number;
+  $enableZSpaceAnimations: boolean;
 }>`
   width: 100%;
   height: ${({ $height }) => (typeof $height === 'number' ? `${$height}px` : $height)};
@@ -211,28 +164,12 @@ const FooterContainer = styled.footer<{
   left: 0;
   right: 0;
   z-index: 30;
-
-  ${({ theme, $glassIntensity }) => {
-    if ($glassIntensity > 0) {
-      const themeContext = createThemeContext(theme);
-      return glassSurface({
-        elevation: 'medium',
-        backgroundOpacity: 0.6,
-        blurStrength: '8px',
-        themeContext,
-      });
-    }
-    return '';
-  }}
-
-  ${({ theme }) => {
-    const themeContext = createThemeContext(theme);
-    return glassBorder({
-      width: '1px 0 0 0',
-      opacity: 0.3,
-      themeContext,
-    });
-  }}
+  transform-style: ${({ $enableZSpaceAnimations }) =>
+    $enableZSpaceAnimations ? 'preserve-3d' : 'flat'};
+  
+  // Placeholder background and border
+  background-color: ${props => props.theme.colors?.background?.level1 || '#f8f8f8'};
+  border-top: 1px solid ${props => props.theme.colors?.divider || '#ddd'};
 `;
 
 const BackgroundWrapper = styled.div<{
@@ -271,12 +208,31 @@ const SidebarToggleButton = styled.button`
   }
 `;
 
+// Helper to resolve breakpoint prop to pixel value
+const resolveBreakpoint = (breakpoint: ZSpaceAppLayoutProps['sidebarBreakpoint'], theme: any): number => {
+  if (typeof breakpoint === 'number') return breakpoint;
+
+  // Use theme breakpoints if available, otherwise fallback
+  const bpValues = theme?.breakpoints?.values || {
+    xs: 0,
+    sm: 600,
+    md: 960,
+    lg: 1280,
+    xl: 1920,
+  };
+
+  return bpValues[breakpoint || 'md'] ?? 960; // Default to md (960px)
+};
+
 /**
  * Layout component with Z-space effects for creating 3D-like app layouts
  */
 export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
   (
-    {
+    { ...props },
+    ref
+  ) => {
+    const {
       children,
       navigation,
       sidebar,
@@ -289,6 +245,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
       headerHeight = '64px',
       footerHeight = '56px',
       initialSidebarCollapsed = false,
+      sidebarBreakpoint = 'md', // Default breakpoint prop
       className,
       style,
       zLayers = {
@@ -303,18 +260,21 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
       maxContentWidth,
       contentPadding = '1.5rem',
       backgroundComponent,
-      useGlassEffects = true,
-      glassIntensity = 0.7,
       sidebarToggle,
       enableZSpaceAnimations = true,
       zSpaceAnimationIntensity = 0.5,
       ...rest
-    }: ZSpaceAppLayoutProps,
-    ref
-  ) => {
+    } = props;
+    
+    const theme = useTheme(); // Get theme for breakpoint resolution
     const [sidebarCollapsed, setSidebarCollapsed] = useState(initialSidebarCollapsed);
     const prefersReducedMotion = useReducedMotion();
-    const zSpaceAnimation = useZSpaceAnimation({
+    
+    const {
+      ref: contentRef,
+      containerStyle: zSpaceContainerStyle,
+      elementStyle: zSpaceContentStyle
+    } = useZSpaceAnimation({
       intensity: zSpaceAnimationIntensity,
       enabled: enableZSpaceAnimations && !prefersReducedMotion,
     });
@@ -325,21 +285,28 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
 
     // Adjust layout when window is resized
     useEffect(() => {
+      // Resolve breakpoint value using theme
+      const resolvedBp = resolveBreakpoint(sidebarBreakpoint, theme);
+      
       const handleResize = () => {
-        if (window.innerWidth < 768 && !sidebarCollapsed) {
+         // Collapse if below resolved breakpoint AND not already collapsed
+        if (window.innerWidth < resolvedBp && !sidebarCollapsed) {
           setSidebarCollapsed(true);
-        }
+        } 
+        // Optional: Expand if above breakpoint AND was collapsed due to resize?
+        // else if (window.innerWidth >= resolvedBp && sidebarCollapsed && /* condition to check if collapse was automatic */ ) {
+        //    setSidebarCollapsed(false);
+        // } 
       };
 
       window.addEventListener('resize', handleResize);
-
-      // Initial check
-      handleResize();
+      handleResize(); // Initial check
 
       return () => {
         window.removeEventListener('resize', handleResize);
       };
-    }, [sidebarCollapsed]);
+    // Add sidebarBreakpoint and theme to dependencies
+    }, [sidebarCollapsed, sidebarBreakpoint, theme]); 
 
     // Default sidebar toggle if none provided
     const defaultSidebarToggle = (
@@ -351,22 +318,24 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
       </SidebarToggleButton>
     );
 
+    // Calculate actual enabled state once
+    const isZSpaceEnabled = enableZSpaceAnimations && !prefersReducedMotion;
+
     return (
       <LayoutContainer
         ref={ref}
         className={className}
         style={{
           ...style,
-          ...zSpaceAnimation.containerStyle,
+          ...zSpaceContainerStyle,
         }}
-        $glassIntensity={useGlassEffects ? glassIntensity : 0}
-        $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}
+        $enableZSpaceAnimations={isZSpaceEnabled}
         {...rest}
       >
         {/* Background layer */}
         {backgroundComponent && (
           <BackgroundWrapper
-            $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}
+            $enableZSpaceAnimations={isZSpaceEnabled}
           >
             <ZSpaceProvider zIndex={zLayers.background}>{backgroundComponent}</ZSpaceProvider>
           </BackgroundWrapper>
@@ -378,7 +347,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             <HeaderContainer
               $height={headerHeight}
               $fixed={fixedHeader}
-              $glassIntensity={useGlassEffects ? glassIntensity : 0}
+              $enableZSpaceAnimations={isZSpaceEnabled}
             >
               {header}
             </HeaderContainer>
@@ -392,8 +361,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
               $width={sidebarWidth}
               $fixed={fixedSidebar}
               $collapsed={sidebarCollapsed}
-              $glassIntensity={useGlassEffects ? glassIntensity : 0}
-              $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}
+              $enableZSpaceAnimations={isZSpaceEnabled}
             >
               {sidebar}
               {sidebarToggle || defaultSidebarToggle}
@@ -404,6 +372,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
         {/* Main content */}
         <ZSpaceProvider zIndex={zLayers.content}>
           <ContentContainer
+            ref={contentRef}
             $hasSidebar={!!sidebar}
             $sidebarWidth={sidebarWidth}
             $hasFixedSidebar={!!sidebar && fixedSidebar}
@@ -414,8 +383,8 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             $maxWidth={maxContentWidth}
             $padding={contentPadding}
             $sidebarCollapsed={sidebarCollapsed}
-            $enableZSpaceAnimations={enableZSpaceAnimations && !prefersReducedMotion}
-            style={zSpaceAnimation.elementStyle}
+            $enableZSpaceAnimations={isZSpaceEnabled}
+            style={zSpaceContentStyle}
           >
             {children}
           </ContentContainer>
@@ -427,7 +396,7 @@ export const ZSpaceAppLayout = forwardRef<HTMLDivElement, ZSpaceAppLayoutProps>(
             <FooterContainer
               $height={footerHeight}
               $fixed={fixedFooter}
-              $glassIntensity={useGlassEffects ? glassIntensity : 0}
+              $enableZSpaceAnimations={isZSpaceEnabled}
             >
               {footer}
             </FooterContainer>

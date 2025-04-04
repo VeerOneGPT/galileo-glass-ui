@@ -81,7 +81,6 @@ import {
 
 // Import types from the types directory
 import {
-  ChartVariant,
   // DataPoint, // unused
   // ChartDataset // unused
 } from './types/ChartTypes';
@@ -114,6 +113,15 @@ import {
   // hexToRgb, // unused
   // generateColors // unused
 } from './utils/ChartDataUtils';
+
+// Import our new physics interaction hook
+import { useChartPhysicsInteraction } from './hooks';
+
+// Import the new plugin
+import { GalileoElementInteractionPlugin } from './plugins/GalileoElementInteractionPlugin';
+
+// Import GetElementPhysicsOptions and ChartVariant
+import { GetElementPhysicsOptions, ChartVariant } from './types/ChartProps';
 
 // Register required Chart.js components
 ChartJS.register(
@@ -179,6 +187,8 @@ const pathAnimationPlugin: Plugin<ChartType> = {
 
 // Register the custom plugin
 ChartJS.register(pathAnimationPlugin);
+// Register our interaction plugin
+ChartJS.register(GalileoElementInteractionPlugin);
 
 // Adjust Chart.js defaults for better glass UI compatibility
 defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
@@ -209,12 +219,155 @@ interface HoveredPointValue {
   value?: number | null;
   color?: string | null;
   extra?: Record<string, unknown> | null; // Use unknown for potentially varied extra data
+  formatType?: 'number' | 'currency' | 'percentage' | 'units';
+  formatOptions?: {
+    decimals?: number;
+    currencySymbol?: string;
+    locale?: string;
+    compact?: boolean;
+    showPlus?: boolean;
+    suffix?: string;
+    prefix?: string;
+  };
 }
+
+// Define our custom icon components
+const ZoomInIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+  </svg>
+);
+
+const ZoomOutIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 13H5v-2h14v2z" />
+  </svg>
+);
+
+const RefreshIcon = ({ size = 24 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.65 6.35C16.2 4.9 14.2 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 10h7V3l-2.35 3.35z" />
+  </svg>
+);
+
+// Define a Button component so we don't need to import
+const GlassButton = ({ 
+  children, 
+  variant, 
+  size, 
+  onClick, 
+  glass,
+  'aria-label': ariaLabel
+}: { 
+  children: React.ReactNode, 
+  variant?: string,
+  size?: string,
+  onClick?: () => void,
+  glass?: string,
+  'aria-label'?: string
+}) => {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      style={{
+        background: 'rgba(255, 255, 255, 0.1)',
+        border: 'none',
+        borderRadius: '4px',
+        padding: size === 'sm' ? '4px' : '8px',
+        color: 'white',
+        cursor: 'pointer',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.2s',
+      }}
+    >
+      {children}
+    </button>
+  );
+};
+
+// Define a ZoomControls component for displaying zoom UI
+interface ZoomControlsProps {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onReset: () => void;
+  zoomLevel: number;
+  $variant?: 'clear' | 'frosted' | 'tinted' | 'luminous';
+}
+
+const ZoomControls: React.FC<ZoomControlsProps> = ({
+  onZoomIn,
+  onZoomOut,
+  onReset,
+  zoomLevel,
+  $variant = 'frosted'
+}) => {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        right: '10px',
+        top: '10px',
+        display: 'flex',
+        gap: '5px',
+        alignItems: 'center',
+        padding: '4px',
+        borderRadius: '4px',
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 5,
+      }}
+    >
+      <GlassButton
+        variant="icon"
+        size="sm"
+        onClick={onZoomIn}
+        aria-label="Zoom in"
+        glass={$variant}
+      >
+        <ZoomInIcon size={16} />
+      </GlassButton>
+      
+      <span style={{ 
+        color: 'rgba(255, 255, 255, 0.9)',
+        fontSize: '12px',
+        padding: '0 8px',
+        minWidth: '40px',
+        textAlign: 'center'
+      }}>
+        {Math.round(zoomLevel * 100)}%
+      </span>
+      
+      <GlassButton
+        variant="icon"
+        size="sm"
+        onClick={onZoomOut}
+        aria-label="Zoom out"
+        glass={$variant}
+      >
+        <ZoomOutIcon size={16} />
+      </GlassButton>
+      
+      <GlassButton
+        variant="icon"
+        size="sm"
+        onClick={onReset}
+        aria-label="Reset zoom"
+        glass={$variant}
+      >
+        <RefreshIcon size={16} />
+      </GlassButton>
+    </div>
+  );
+};
 
 /**
  * GlassDataChart Component
  */
-export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChartProps>((props, /* ref */) => {
+export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChartProps>((props, ref) => {
   const {
     title,
     subtitle,
@@ -236,11 +389,22 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     },
     interaction = {
       zoomPanEnabled: false,
+      zoomMode: 'xy', // Ensure default matches type ('x' | 'y' | 'xy')
       physicsHoverEffects: true,
       hoverSpeed: 150,
       showTooltips: true,
       tooltipStyle: 'frosted',
       tooltipFollowCursor: false,
+      // Add the physics sub-object with defaults to match the updated type
+      physics: {
+        tension: 300, // Default tension for zoom/pan physics
+        friction: 30, // Default friction
+        mass: 1,
+        minZoom: 0.5,
+        maxZoom: 5,
+        wheelSensitivity: 0.1,
+        inertiaDuration: 500,
+      }
     },
     legend = {
       show: true,
@@ -280,6 +444,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     onDataPointClick,
     onSelectionChange,
     onTypeChange,
+    onZoomPan,
     exportOptions = {
       filename: 'chart',
       quality: 0.9,
@@ -291,6 +456,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     renderExportButton,
     kpi,
     useAdaptiveQuality = true,
+    getElementPhysicsOptions,
   } = props;
   
   // Hooks
@@ -325,6 +491,30 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     respectReducedMotion: true
   });
   
+  // Extract physics properties that are supported by the hook
+  const physicsConfig = {
+    tension: interaction.physics?.tension || qualityPhysicsParams.stiffness,
+    friction: interaction.physics?.friction || (qualityPhysicsParams.dampingRatio * 2 * Math.sqrt(qualityPhysicsParams.stiffness * qualityPhysicsParams.mass)),
+    mass: interaction.physics?.mass || qualityPhysicsParams.mass,
+  };
+  
+  // Use our physics interaction hook for zoom/pan functionality
+  const { 
+    isPanning,
+    zoomLevel,
+    applyZoom,
+    resetZoom
+  } = useChartPhysicsInteraction(chartRef, {
+    enabled: interaction.zoomPanEnabled || false,
+    mode: interaction.zoomMode || 'xy',
+    physics: physicsConfig, // Pass the resolved physics config
+    minZoom: interaction.physics?.minZoom || 0.5,
+    maxZoom: interaction.physics?.maxZoom || 5,
+    wheelSensitivity: interaction.physics?.wheelSensitivity || 0.1,
+    inertiaDuration: interaction.physics?.inertiaDuration || 500,
+    respectReducedMotion: true
+  });
+  
   // State
   const [chartType, setChartType] = useState<ChartVariant>(variant);
   const [selectedDataset, setSelectedDataset] = useState<number | null>(
@@ -340,6 +530,11 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     y: number;
     value: HoveredPointValue | null;
   } | null>(null);
+  
+  // Placeholder for internal element animation state (managed by React)
+  // The plugin will read targets from this or similar structure
+  const [elementAnimationTargets, setElementAnimationTargets] = useState<Map<string, any>>(new Map());
+  // Key: `datasetIndex_dataIndex`, Value: { targetScale: 1, targetOpacity: 1, ... }
   
   // Determine if we're using physics-based animations
   const enablePhysicsAnimation = animation.physicsEnabled && !isReducedMotion;
@@ -426,7 +621,8 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   // Use the enhanced dataset conversion in the chartData
   const chartData = {
     datasets: datasets.map((dataset, i) => {
-      const baseDataset = convertToChartJsDatasetWithEffects(dataset, i, getChartJsType(), palette, animation);
+      // Pass the original component variant state (chartType) to the conversion function
+      const baseDataset = convertToChartJsDatasetWithEffects(dataset, i, chartType, palette, animation);
       
       // Store format information in the dataset's custom properties
       return {
@@ -441,180 +637,27 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       : undefined,
   };
   
-  // Configure chart options
-  const chartOptions: ChartOptions<ChartType> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: enablePhysicsAnimation 
-      ? {
-          duration: isReducedMotion ? 0 : animation.duration,
-          delay: (context) => {
-            // Enhanced staggered delay for more natural animation
-            if (animation.staggerDelay && context.datasetIndex !== undefined) {
-              return context.datasetIndex * (animation.staggerDelay || 0) + (context.dataIndex || 0) * 20;
-            }
-            return 0;
-          },
-          // Add easing based on physics principles
-          easing: 'easeOutExpo',
-        }
-      : {
-          duration: isReducedMotion ? 0 : animation.duration,
-          easing: animation.easing || 'easeOutQuart',
-          delay: (context) => {
-            // Add staggered delay if specified
-            if (animation.staggerDelay && context.datasetIndex !== undefined) {
-              return context.datasetIndex * (animation.staggerDelay || 0);
-            }
-            return 0;
-          }
-        },
-    layout: {
-      padding: {
-        top: 10,
-        right: 10,
-        bottom: 10,
-        left: 10
-      }
-    },
-    plugins: {
-      legend: {
-        display: false, // We'll create our own custom legend
-      },
-      tooltip: {
-        enabled: false, // We'll create our own custom tooltip
-      },
-      // Use custom animation for path effects
-      // Note: Chart.js options type doesn't include custom plugins, but they work at runtime
-      ...(enablePhysicsAnimation && (chartType === 'line' || chartType === 'area') ? {
-        // @ts-ignore - Custom plugin configuration
-        pathAnimation: { enabled: true }
-      } : {})
-    },
-    
-    // Simplify scales configuration to make it compatible with Chart.js types
-    scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' && chartType !== 'polarArea'
-      ? {
-          x: {
-            display: axis.showXLabels,
-            grid: {
-              display: axis.showXGrid,
-              color: axis.gridColor,
-            },
-            ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
-              padding: 8,
-              maxRotation: 0,
-              count: axis.xTicksCount,
-            },
-            title: {
-              display: !!axis.xTitle,
-              text: axis.xTitle || '',
-              color: 'rgba(255, 255, 255, 0.7)',
-              font: {
-                weight: 'normal',
-                size: 12,
-              },
-              padding: { top: 10 }
-            }
-          },
-          y: {
-            display: axis.showYLabels,
-            position: 'left',
-            grid: {
-              display: axis.showYGrid,
-              color: axis.gridColor,
-            },
-            ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
-              padding: 8,
-              count: axis.yTicksCount,
-            },
-            title: {
-              display: !!axis.yTitle,
-              text: axis.yTitle || '',
-              color: 'rgba(255, 255, 255, 0.7)',
-              font: {
-                weight: 'normal',
-                size: 12,
-              },
-              padding: { bottom: 10 }
-            }
-          },
-          // Add right y-axis if any dataset uses it
-          ...(datasets.some(d => d.useRightYAxis) ? {
-            y1: {
-              display: axis.showYLabels,
-              position: 'right',
-              grid: {
-                display: false,
-              },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.7)',
-                padding: 8,
-              }
-            }
-          } : {})
-        }
-      : undefined,
-    // Different options based on chart type
-    ...(chartType === 'pie' || chartType === 'doughnut' ? {
-      cutout: chartType === 'doughnut' ? '50%' : undefined,
-    } : {}),
-    // Handle hover interactions
-    hover: {
-      mode: 'nearest',
-      intersect: false,
-    },
-    elements: {
-      // Customize line elements
-      line: {
-        borderWidth: 2,
-        tension: 0.4, // Smooth curve
-      },
-      // Customize point elements
-      point: {
-        hitRadius: 8,
-        hoverRadius: 6,
-        hoverBorderWidth: 2,
-      },
-      // Customize bar elements
-      bar: {
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      // Customize arc elements (pie/doughnut)
-      arc: {
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-      }
-    },
-    // Enable interaction options
-    ...(interaction.zoomPanEnabled ? {
-      zoom: {
-        pan: {
-          enabled: true,
-          mode: interaction.zoomMode,
-        },
-        zoom: {
-          wheel: {
-            enabled: true,
-          },
-          pinch: {
-            enabled: true,
-          },
-          mode: interaction.zoomMode,
-        }
-      }
-    } : {})
-  };
+  // Zoom in function
+  const handleZoomIn = useCallback(() => {
+    applyZoom(zoomLevel * 1.2);
+  }, [applyZoom, zoomLevel]);
+  
+  // Zoom out function
+  const handleZoomOut = useCallback(() => {
+    applyZoom(zoomLevel * 0.8);
+  }, [applyZoom, zoomLevel]);
+  
+  // Handle zoom changed callback
+  const handleZoomChanged = useCallback(() => {
+    if (onZoomPan && chartRef.current) {
+      onZoomPan(chartRef.current);
+    }
+  }, [onZoomPan]);
   
   // Handle chart type change
   const handleTypeChange = (type: ChartVariant) => {
     setChartType(type);
-    if (onTypeChange) {
-      onTypeChange(type);
-    }
+    onTypeChange?.(type);
   };
   
   // Handle legend item click
@@ -676,7 +719,26 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       const dataset = datasets[datasetIndex];
       const dataPoint = dataset.data[dataIndex];
       
-      // Apply oscillation if physics enabled
+      // --- Trigger Element Click Animation State Update ---
+      if (getElementPhysicsOptions) {
+        const physicsOptions = getElementPhysicsOptions(dataPoint, datasetIndex, dataIndex, chartType);
+        if (physicsOptions?.clickEffect) {
+          const key = `${datasetIndex}_${dataIndex}`;
+          setElementAnimationTargets(prev => 
+            new Map(prev).set(key, { 
+              ...prev.get(key),
+              targetScale: physicsOptions.clickEffect?.scale ?? 1, 
+              targetOpacity: physicsOptions.clickEffect?.opacity ?? 1,
+              // Add other effects
+            })
+          );
+          // TODO: Need a mechanism to reset the click effect after a duration?
+          console.log(`[Chart Interaction] Set CLICK target for ${key}:`, physicsOptions.clickEffect);
+        }
+      }
+      // --- End Trigger ---
+      
+      // Apply oscillation if physics enabled (This is separate chart-wide effect)
       if (interaction.physicsHoverEffects && !isReducedMotion) {
         applyOscillation(0.5);
       }
@@ -705,7 +767,11 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   
   // Handle chart hover for tooltips
   const handleChartHover = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!chartRef.current || !interaction.showTooltips) return;
+    if (!chartRef.current) return;
+    
+    // Clear previous hover animation targets first
+    // TODO: Make this more efficient - only clear targets that are no longer hovered
+    const previousHoveredKey = hoveredPoint ? `${hoveredPoint.datasetIndex}_${hoveredPoint.dataIndex}` : null;
     
     const chart = chartRef.current;
     const points = chart.getElementsAtEventForMode(
@@ -715,34 +781,92 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       false
     );
     
+    let currentHoveredKey: string | null = null;
+    
     if (points.length > 0) {
       const firstPoint = points[0];
       const datasetIndex = firstPoint.datasetIndex;
       const dataIndex = firstPoint.index;
-      const dataset = datasets[datasetIndex];
-      const dataPoint = dataset.data[dataIndex];
+      currentHoveredKey = `${datasetIndex}_${dataIndex}`;
       
-      setHoveredPoint({
-        datasetIndex,
-        dataIndex,
-        x: event.clientX,
-        y: event.clientY,
-        value: {
-          dataset: dataset.label,
-          label: dataPoint.label || dataPoint.x,
-          value: dataPoint.y,
-          color: dataset.style?.lineColor || palette[datasetIndex % palette.length],
-          extra: dataPoint.extra,
-        }
-      });
+      // --- Trigger Element Hover Animation State Update ---
+      if (getElementPhysicsOptions) {
+          const dataset = datasets[datasetIndex];
+          const dataPoint = dataset.data[dataIndex];
+          const physicsOptions = getElementPhysicsOptions(dataPoint, datasetIndex, dataIndex, chartType);
+          if (physicsOptions?.hoverEffect) {
+            setElementAnimationTargets(prev => 
+              new Map(prev).set(currentHoveredKey!, { // Use non-null assertion as key is set
+                ...prev.get(currentHoveredKey!), 
+                targetScale: physicsOptions.hoverEffect?.scale ?? 1,
+                targetOpacity: physicsOptions.hoverEffect?.opacity ?? 1,
+                // Add other effects
+              })
+            );
+            console.log(`[Chart Interaction] Set HOVER target for ${currentHoveredKey}:`, physicsOptions.hoverEffect);
+          }
+      }
+      // --- End Trigger ---
+      
+      // Update tooltip state
+      if (interaction.showTooltips) {
+          const dataset = datasets[datasetIndex];
+          const dataPoint = dataset.data[dataIndex];
+          setHoveredPoint({
+            datasetIndex,
+            dataIndex,
+            x: event.clientX,
+            y: event.clientY,
+            value: {
+              dataset: dataset.label,
+              label: dataPoint.label || dataPoint.x,
+              value: dataPoint.y,
+              color: dataset.style?.lineColor || palette[datasetIndex % palette.length],
+              extra: dataPoint.extra,
+              formatType: dataPoint.formatType,
+              formatOptions: dataPoint.formatOptions,
+            }
+          });
+      }
     } else {
       setHoveredPoint(null);
+    }
+    
+    // Reset animation targets for previously hovered element if it's different
+    if (previousHoveredKey && previousHoveredKey !== currentHoveredKey) {
+         setElementAnimationTargets(prev => 
+            new Map(prev).set(previousHoveredKey, { 
+              ...prev.get(previousHoveredKey),
+              targetScale: 1, 
+              targetOpacity: 1,
+              // Reset other effects
+            })
+          );
+          console.log(`[Chart Interaction] Reset HOVER target for ${previousHoveredKey}`);
     }
   };
   
   // Handle chart hover leave
   const handleChartLeave = () => {
     setHoveredPoint(null);
+    // Reset all hover targets on leave
+    // TODO: This might be inefficient if many elements were targeted.
+    // Consider iterating only through keys that had non-default targets.
+    let resetOccurred = false;
+    setElementAnimationTargets(prev => {
+        const next = new Map(prev);
+        for (const key of next.keys()) {
+            const current = next.get(key);
+            if (current?.targetScale !== 1 || current?.targetOpacity !== 1) {
+                next.set(key, { ...current, targetScale: 1, targetOpacity: 1 });
+                resetOccurred = true; // Mark that at least one reset happened
+            }
+        }
+        return next;
+    });
+    if (resetOccurred) {
+        console.log('[Chart Interaction] Reset ALL HOVER targets on leave');
+    }
   };
   
   // Handle enhanced chart export
@@ -851,10 +975,12 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     document.body.removeChild(link);
   }, [chartRef, containerRef, chartType, title, subtitle, exportOptions, kpi]);
   
-  // Chart reference callback for getting chart instance
-  const chartRefCallback = useCallback((chart: ChartJS | null) => {
-    chartRef.current = chart;
-  }, []);
+  // Chart reference callback
+  const chartRefCallback = useCallback((instance: ChartJS | null) => {
+    chartRef.current = instance;
+    // Trigger zoom changed callback when chart is created/updated
+    handleZoomChanged();
+  }, [handleZoomChanged]);
   
   // Available chart types for switching
   const availableTypes: ChartVariant[] = ['line', 'bar', 'area'];
@@ -873,63 +999,189 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     availableTypes.push('pie', 'doughnut');
   }
   
-  // Enhanced implementation of custom tooltips
-  const renderCustomTooltip = useCallback(() => {
-    if (!hoveredPoint || !interaction.showTooltips) return null;
-
-    // Get the data point's format type and options
-    const currentDataset = datasets[hoveredPoint.datasetIndex] || datasets[0];
-    const currentDataPoint = currentDataset?.data[hoveredPoint.dataIndex] || { x: '', y: null };
+  // Configure chart options
+  const chartOptions: ChartOptions<ChartType> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: enablePhysicsAnimation 
+      ? {
+          duration: isReducedMotion ? 0 : animation.duration,
+          delay: (context) => {
+            // Enhanced staggered delay for more natural animation
+            if (animation.staggerDelay && context.datasetIndex !== undefined) {
+              return context.datasetIndex * (animation.staggerDelay || 0) + (context.dataIndex || 0) * 20;
+            }
+            return 0;
+          },
+          // Add easing based on physics principles
+          easing: 'easeOutExpo',
+        }
+      : {
+          duration: isReducedMotion ? 0 : animation.duration,
+          easing: animation.easing || 'easeOutQuart',
+          delay: (context) => {
+            // Add staggered delay if specified
+            if (animation.staggerDelay && context.datasetIndex !== undefined) {
+              return context.datasetIndex * (animation.staggerDelay || 0);
+            }
+            return 0;
+          }
+        },
+    layout: {
+      padding: {
+        top: 10,
+        right: 10,
+        bottom: 10,
+        left: 10
+      }
+    },
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        enabled: false,
+      },
+      // Use custom animation for path effects
+      // Note: Chart.js options type doesn't include custom plugins, but they work at runtime
+      ...(enablePhysicsAnimation && (chartType === 'line' || chartType === 'area') ? {
+        // @ts-ignore - Custom plugin configuration
+        pathAnimation: { enabled: true }
+      } : {}),
+      // Pass getElementPhysicsOptions AND current chartType to our custom plugin
+      // @ts-ignore - Ignore TS error for custom plugin namespace
+      galileoElementInteraction: {
+        getElementPhysicsOptions, // Pass the function prop
+        chartType, // Pass the current chartType state
+      }
+    },
     
-    // Determine the format type with fallbacks
-    const formatType = currentDataPoint.formatType || currentDataset.formatType || 'number';
-    
-    // Merge format options with fallbacks
-    const formatOptions = {
-      ...(currentDataset.formatOptions || {}),
-      ...(currentDataPoint.formatOptions || {}),
-    };
-    
-    // Format the value based on type - with safe default
-    const value = hoveredPoint.value?.value ?? 0;
-    const formattedValue = formatValue(
-      value,
-      formatType,
-      formatOptions
-    );
-
-    // Ensure position values are numbers with defaults
-    const xPos = hoveredPoint.x ?? 0;
-    const yPos = hoveredPoint.y ?? 0;
-
-    // Use the new enhanced dynamic tooltip with quality tier
-    return (
-      <DynamicTooltip
-        $color={color}
-        $quality={activeQuality}
-        style={{ left: `${xPos}px`, top: `${yPos - 10}px` }}
-      >
-        <TooltipHeader $color={hoveredPoint.value?.color || '#FFFFFF'}>
-          {hoveredPoint.value?.dataset || 'Data'}
-        </TooltipHeader>
-        
-        <TooltipRow>
-          <TooltipLabel>{typeof hoveredPoint.value?.label === 'string' 
-            ? hoveredPoint.value.label 
-            : 'Value'}: </TooltipLabel>
-          <TooltipValue $highlighted>{formattedValue}</TooltipValue>
-        </TooltipRow>
-        
-        {hoveredPoint.value?.extra && Object.entries(hoveredPoint.value.extra).map(([key, value]) => (
-          <TooltipRow key={key}>
-            <TooltipLabel>{key}:</TooltipLabel>
-            <TooltipValue>{String(value)}</TooltipValue>
-          </TooltipRow>
-        ))}
-      </DynamicTooltip>
-    );
-  }, [hoveredPoint, interaction.showTooltips, datasets, color, activeQuality]);
+    // Simplify scales configuration to make it compatible with Chart.js types
+    scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' && chartType !== 'polarArea'
+      ? {
+          x: {
+            display: axis.showXLabels,
+            grid: {
+              display: axis.showXGrid,
+              color: axis.gridColor,
+            },
+            ticks: {
+              color: 'rgba(255, 255, 255, 0.7)',
+              padding: 8,
+              maxRotation: 0,
+              count: axis.xTicksCount,
+            },
+            title: {
+              display: !!axis.xTitle,
+              text: axis.xTitle || '',
+              color: 'rgba(255, 255, 255, 0.7)',
+              font: {
+                weight: 'normal',
+                size: 12,
+              },
+              padding: { top: 10 }
+            }
+          },
+          y: {
+            display: axis.showYLabels,
+            position: 'left',
+            grid: {
+              display: axis.showYGrid,
+              color: axis.gridColor,
+            },
+            ticks: {
+              color: 'rgba(255, 255, 255, 0.7)',
+              padding: 8,
+              count: axis.yTicksCount,
+            },
+            title: {
+              display: !!axis.yTitle,
+              text: axis.yTitle || '',
+              color: 'rgba(255, 255, 255, 0.7)',
+              font: {
+                weight: 'normal',
+                size: 12,
+              },
+              padding: { bottom: 10 }
+            }
+          },
+          // Add right y-axis if any dataset uses it
+          ...(datasets.some(d => d.useRightYAxis) ? {
+            y1: {
+              display: axis.showYLabels,
+              position: 'right',
+              grid: {
+                display: false,
+              },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)',
+                padding: 8,
+              }
+            }
+          } : {})
+        }
+      : undefined,
+    // Different options based on chart type
+    ...(chartType === 'pie' || chartType === 'doughnut' ? {
+      cutout: chartType === 'doughnut' ? '50%' : undefined,
+    } : {}),
+    // Handle hover interactions
+    hover: {
+      mode: 'nearest',
+      intersect: false,
+    },
+    elements: {
+      // Customize line elements
+      line: {
+        borderWidth: 2,
+        tension: 0.4, // Smooth curve
+      },
+      // Customize point elements
+      point: {
+        hitRadius: 8,
+        hoverRadius: 6,
+        hoverBorderWidth: 2,
+      },
+      // Customize bar elements
+      bar: {
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+      // Customize arc elements (pie/doughnut)
+      arc: {
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+      }
+    }
+  };
   
+  // Expose imperative methods via ref
+  React.useImperativeHandle(ref, () => ({
+    getChartInstance: () => chartRef.current,
+    exportChart: (format: string = 'image/png', quality?: number) => {
+      return chartRef.current?.toBase64Image(format, quality);
+    },
+    updateChart: (config?: any) => {
+      chartRef.current?.update(config);
+    },
+    getContainerElement: () => containerRef.current,
+    switchChartType: (type: ChartVariant) => {
+      handleTypeChange(type); // Call the internal handler
+    },
+    // Temporarily comment out plugin interactions to resolve type errors
+    /*
+    setHoveredElement: (datasetIndex: number | null, index: number | null) => {
+      // Accessing plugins directly might be incorrect based on types
+      const plugin = chartRef.current?.plugins.find(p => p.id === GalileoElementInteractionPlugin.id) as typeof GalileoElementInteractionPlugin | undefined;
+      plugin?.setExternalHover?.(chartRef.current, datasetIndex, index);
+    },
+    clearHoveredElement: () => {
+       const plugin = chartRef.current?.plugins.find(p => p.id === GalileoElementInteractionPlugin.id) as typeof GalileoElementInteractionPlugin | undefined;
+       plugin?.clearExternalHover?.(chartRef.current);
+    }
+    */
+  }), [chartRef, handleTypeChange]); // Add handleTypeChange to dependencies
+
   return (
     <ChartContainer
       ref={containerRef}
@@ -1041,6 +1293,16 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
           transition: `transform ${animation.duration ?? 0}ms, opacity ${animation.duration ?? 0}ms`
         } : undefined}
       >
+        {interaction.zoomPanEnabled && (
+          <ZoomControls 
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onReset={resetZoom}
+            zoomLevel={zoomLevel}
+            $variant={glassVariant}
+          />
+        )}
+        
         <Chart
           type={getChartJsType()}
           data={chartData}
@@ -1091,7 +1353,37 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       )}
       
       {/* Custom SVG Tooltip (replacing the component tooltip) */}
-      {interaction.tooltipStyle === 'dynamic' ? renderCustomTooltip() : (
+      {interaction.tooltipStyle === 'dynamic' ? (
+        hoveredPoint && interaction.showTooltips && (
+          <DynamicTooltip
+            $color={color}
+            $quality={activeQuality}
+            style={{ left: `${hoveredPoint.x ?? 0}px`, top: `${hoveredPoint.y ?? 0}px` }}
+          >
+            <TooltipHeader $color={hoveredPoint.value?.color || '#FFFFFF'}>
+              {hoveredPoint.value?.dataset || 'Data'}
+            </TooltipHeader>
+            
+            <TooltipRow>
+              <TooltipLabel>{typeof hoveredPoint.value?.label === 'string' 
+                ? hoveredPoint.value.label 
+                : 'Value'}: </TooltipLabel>
+              <TooltipValue $highlighted>{formatValue(
+                hoveredPoint.value?.value ?? 0,
+                hoveredPoint.value?.formatType || 'number',
+                hoveredPoint.value?.formatOptions || {}
+              )}</TooltipValue>
+            </TooltipRow>
+            
+            {hoveredPoint.value?.extra && Object.entries(hoveredPoint.value.extra).map(([key, value]) => (
+              <TooltipRow key={key}>
+                <TooltipLabel>{key}:</TooltipLabel>
+                <TooltipValue>{String(value)}</TooltipValue>
+              </TooltipRow>
+            ))}
+          </DynamicTooltip>
+        )
+      ) : (
         hoveredPoint && interaction.showTooltips && (
           <GlassTooltip
             title={

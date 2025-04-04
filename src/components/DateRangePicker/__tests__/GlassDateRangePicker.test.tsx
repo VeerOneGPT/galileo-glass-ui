@@ -5,12 +5,34 @@
  * with different props and handles user interactions properly.
  */
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
-import 'jest-styled-components';
-import { ThemeProvider } from '../../../theme';
-import { GlassDateRangePicker } from '../GlassDateRangePicker';
+import { render, screen, fireEvent, waitFor } from '../../../test/utils/test-utils';
+import { within } from '@testing-library/dom';
+import { GlassDateRangePicker, GlassDateRangePickerRef } from '../GlassDateRangePicker';
 import { GlassLocalizationProvider } from '../../DatePicker/GlassLocalizationProvider';
 import { createDateFnsAdapter } from '../../DatePicker/adapters/dateFnsAdapter';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFnsV3';
+import { AnimationProvider } from '../../../contexts/AnimationContext';
+import 'jest-styled-components';
+
+// --- Mocking the date adapter --- 
+jest.mock('../../DatePicker/adapters/dateFnsAdapter', () => ({
+  createDateFnsAdapter: jest.fn(() => ({
+    locale: 'en-US',
+    format: jest.fn((date, formatString) => date ? `${formatString}-${date.toISOString()}` : ''), // Basic mock
+    parse: jest.fn((value) => value ? new Date(value) : null), // Basic mock
+    isValid: jest.fn((date) => date instanceof Date && !isNaN(date.getTime())), // Basic mock
+    isSameDay: jest.fn((date1, date2) => date1?.toDateString() === date2?.toDateString()), // Basic mock
+    getMonthData: jest.fn(() => []), // Crucial: Mock getMonthData
+    // Add other functions if needed by the component, mocking basic behavior
+    addDays: jest.fn((date, amount) => { const newDate = new Date(date); newDate.setDate(date.getDate() + amount); return newDate; }),
+    isToday: jest.fn((date) => new Date().toDateString() === date?.toDateString()),
+    isSameMonth: jest.fn((date1, date2) => date1?.getMonth() === date2?.getMonth() && date1?.getFullYear() === date2?.getFullYear()),
+    getDaysInMonth: jest.fn(() => 30),
+    getWeekdays: jest.fn(() => ['S', 'M', 'T', 'W', 'T', 'F', 'S']),
+    getMonthNames: jest.fn(() => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'])
+  }))
+}));
 
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
@@ -22,13 +44,21 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 // Helper function to render with providers
 const renderWithProviders = (ui: React.ReactElement) => {
   return render(
-    <ThemeProvider>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
       <GlassLocalizationProvider adapter={createDateFnsAdapter()}>
         {ui}
       </GlassLocalizationProvider>
-    </ThemeProvider>
+    </LocalizationProvider>
   );
 };
+
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <LocalizationProvider dateAdapter={AdapterDateFns}>
+    <GlassLocalizationProvider adapter={createDateFnsAdapter()}>
+      {children}
+    </GlassLocalizationProvider>
+  </LocalizationProvider>
+);
 
 describe('GlassDateRangePicker Component', () => {
   beforeEach(() => {
@@ -195,6 +225,9 @@ describe('GlassDateRangePicker Component', () => {
     // Toggle comparison mode
     fireEvent.click(screen.getByText(/comparison/i));
     
+    // Debug to see comparison inputs
+    screen.debug();
+
     // Comparison inputs should appear
     expect(screen.getAllByRole('textbox').length).toBeGreaterThan(1);
   });
@@ -238,7 +271,7 @@ describe('GlassDateRangePicker Component', () => {
     expect(screen.queryByTestId('date-range-calendar')).not.toBeInTheDocument();
   });
 
-  it('applies animation when animation prop is provided', () => {
+  it('applies animation when animation prop is provided', async () => {
     renderWithProviders(
       <GlassDateRangePicker 
         value={{
@@ -254,9 +287,14 @@ describe('GlassDateRangePicker Component', () => {
     // Open calendar
     fireEvent.click(screen.getByRole('textbox'));
     
-    // Animation should be enabled (adjust assertion based on implementation)
-    const calendar = screen.getByTestId('date-range-calendar');
-    expect(calendar).toHaveAttribute('data-animate', 'true');
+    // Wrap assertions in waitFor
+    await waitFor(() => {
+      // Animation should be enabled (adjust assertion based on implementation)
+      // Query by role for the dialog, then find header within it
+      const calendarDialog = screen.getByRole('dialog', { name: /date range selection calendar/i });
+      const header = within(calendarDialog).getByText(/select date range/i).closest('div'); // Find header by title
+      expect(header).toHaveAttribute('data-animate', 'true');
+    });
   });
 
   it('allows selecting time when showTime is true', () => {
@@ -277,5 +315,28 @@ describe('GlassDateRangePicker Component', () => {
     // Time inputs should be visible
     const timeInputs = screen.getAllByRole('textbox', { name: /time/i });
     expect(timeInputs.length).toBeGreaterThan(0);
+  });
+
+  test('renders correctly', () => {
+    render(
+      <TestWrapper>
+        <GlassDateRangePicker label="Date Range" />
+      </TestWrapper>
+    );
+    expect(screen.getByRole('textbox', { name: /start date/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /end date/i })).toBeInTheDocument();
+  });
+
+  test('forwards ref correctly with imperative handle methods', () => {
+    const ref = React.createRef<GlassDateRangePickerRef>();
+    render(
+      <TestWrapper>
+        <GlassDateRangePicker ref={ref} label="Date Range" />
+      </TestWrapper>
+    );
+    expect(ref.current).toBeDefined();
+    expect(typeof ref.current?.openPicker).toBe('function');
+    expect(typeof ref.current?.closePicker).toBe('function');
+    expect(typeof ref.current?.getSelectedRange).toBe('function');
   });
 });

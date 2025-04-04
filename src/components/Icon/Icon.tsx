@@ -4,7 +4,7 @@
  * A component for displaying icons with glass effects
  */
 import React, { forwardRef } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { cssWithKebabProps } from '../../core/cssUtils';
 
@@ -222,77 +222,77 @@ const IconRoot = styled.span<IconProps & { theme: any }>`
       /* Glow effect */
       ${
         props.glowEffect
-          ? `
-        @keyframes glow {
-          0%, 100% {
-            filter: drop-shadow(0 0 2px ${color}) drop-shadow(0 0 4px ${color}40);
-          }
-          50% {
-            filter: drop-shadow(0 0 4px ${color}) drop-shadow(0 0 8px ${color}80);
-          }
-        }
-        
-        & > svg {
-          animation: glow 2s ease-in-out infinite;
-        }
-      `
+          ? css`
+            @keyframes glow {
+              0%, 100% {
+                filter: drop-shadow(0 0 2px ${color}) drop-shadow(0 0 4px ${color}40);
+              }
+              50% {
+                filter: drop-shadow(0 0 4px ${color}) drop-shadow(0 0 8px ${color}80);
+              }
+            }
+            
+            & > svg {
+              animation: glow 2s ease-in-out infinite;
+            }
+          `
           : ''
       }
       
       /* Spin animation */
       ${
         props.spin
-          ? `
-        @keyframes spin {
-          0% {
-            transform: ${transform} rotate(0deg);
-          }
-          100% {
-            transform: ${transform} rotate(360deg);
-          }
-        }
-        
-        animation: spin 1.5s linear infinite;
-      `
+          ? css`
+            @keyframes spin {
+              0% {
+                transform: ${transform} rotate(0deg);
+              }
+              100% {
+                transform: ${transform} rotate(360deg);
+              }
+            }
+            
+            animation: spin 1.5s linear infinite;
+          `
           : ''
       }
       
       /* Pulse animation */
       ${
         props.pulse
-          ? `
-        @keyframes pulse {
-          0%, 100% {
-            transform: ${transform} scale(1);
-            opacity: 1;
-          }
-          50% {
-            transform: ${transform} scale(1.1);
-            opacity: 0.8;
-          }
-        }
-        
-        animation: pulse 1.5s ease-in-out infinite;
-      `
+          ? css`
+            @keyframes pulse {
+              0%, 100% {
+                transform: ${transform} scale(1);
+                opacity: 1;
+              }
+              50% {
+                transform: ${transform} scale(1.1);
+                opacity: 0.8;
+              }
+            }
+            
+            animation: pulse 1.5s ease-in-out infinite;
+          `
           : ''
       }
       
       /* Hover effect */
       ${
         props.hoverEffect
-          ? `
-        transition: transform 0.2s ease, filter 0.2s ease;
-        cursor: pointer;
-        
-        &:hover {
-          transform: ${transform} scale(1.1);
-          filter: brightness(1.2);
-        }
-        
-        &:active {
-          transform: ${transform} scale(0.95);
-        }
-      `
+          ? css`
+            transition: transform 0.2s ease, filter 0.2s ease;
+            cursor: pointer;
+            
+            &:hover {
+              transform: ${transform} scale(1.1);
+              filter: brightness(1.2);
+            }
+            
+            &:active {
+              transform: ${transform} scale(0.95);
+            }
+          `
           : ''
       }
     `;

@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react-hooks';
 import useDynamicResolutionScaling, { ResolutionScalingConfig } from '../dynamicResolutionScaling';
 import { QualityTier } from '../types';
 import { PhysicsSettings } from '../physicsSettings';
+import { waitFor } from '@testing-library/react';
 
 // Mock the useQualityTier hook
 jest.mock('../useQualityTier', () => {
@@ -133,7 +134,7 @@ describe('useDynamicResolutionScaling', () => {
     expect(updatedSettings.gravity).toEqual(settings.gravity);
   });
   
-  test('should decrease resolution when FPS is too low', () => {
+  test('should decrease resolution when FPS is too low', async () => {
     // Mock performance now to advance time
     let currentTime = 1000;
     jest.spyOn(performance, 'now').mockImplementation(() => currentTime);
@@ -147,22 +148,25 @@ describe('useDynamicResolutionScaling', () => {
     });
     
     const { result, rerender } = renderHook(() => useDynamicResolutionScaling({
-      // Use shorter update interval for testing
       updateInterval: 100
     }));
     
     // Initial resolution should be 1.0 for MEDIUM tier
     expect(result.current.resolution).toBe(1.0);
     
-    // Advance time to trigger update
-    currentTime += 200;
-    rerender();
+    // Advance time beyond update interval and rerender
+    await act(async () => {
+        currentTime += 200;
+        rerender();
+        // Wait briefly for potential async updates within the hook
+        await waitFor(() => expect(result.current.resolution).not.toBe(1.0), { timeout: 50 });
+    });
     
     // Resolution should decrease
     expect(result.current.resolution).toBeLessThan(1.0);
   });
   
-  test('should increase resolution when FPS is high', () => {
+  test('should increase resolution when FPS is high', async () => {
     // Mock performance now to advance time
     let currentTime = 1000;
     jest.spyOn(performance, 'now').mockImplementation(() => currentTime);
@@ -176,18 +180,20 @@ describe('useDynamicResolutionScaling', () => {
     });
     
     const { result, rerender } = renderHook(() => useDynamicResolutionScaling({
-      // Use shorter update interval for testing
       updateInterval: 100,
-      // Start with lower resolution
       initialResolution: 0.7
     }));
     
     // Initial resolution should be 0.7 (custom)
     expect(result.current.resolution).toBe(0.7);
     
-    // Advance time to trigger update
-    currentTime += 200;
-    rerender();
+    // Advance time beyond update interval and rerender
+    await act(async () => {
+        currentTime += 200;
+        rerender();
+        // Wait briefly for potential async updates within the hook
+        await waitFor(() => expect(result.current.resolution).not.toBe(0.7), { timeout: 50 });
+    });
     
     // Resolution should increase
     expect(result.current.resolution).toBeGreaterThan(0.7);

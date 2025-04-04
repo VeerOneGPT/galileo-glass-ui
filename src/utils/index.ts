@@ -15,3 +15,8 @@ export * from './elementTypes';
 export * from './themeHelpers';
 export * from './fallback/strategies';
 export { default as withFallbackStrategies } from './fallback/withFallbackStrategies';
+
+// Export ref utilities
+export * from './refUtils';
+
+// Add other utility exports as needed

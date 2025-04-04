@@ -4,7 +4,7 @@
  * A specialized component for displaying Key Performance Indicators (KPIs)
  * with glass styling and trend indicators.
  */
-import React from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import {
   KpiContainer,
   KpiTitle,
@@ -40,12 +40,18 @@ export interface KpiChartProps {
   isReducedMotion?: boolean;
 }
 
+// Ref interface
+export interface KpiChartRef {
+  /** Gets the main container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
+}
+
 /**
  * KpiChart Component
  * 
  * Displays a key performance indicator with animated value and trend indicator
  */
-export const KpiChart: React.FC<KpiChartProps> = ({
+export const KpiChart = forwardRef<KpiChartRef, KpiChartProps>(({
   kpi,
   animation = {
     enabled: true,
@@ -59,7 +65,14 @@ export const KpiChart: React.FC<KpiChartProps> = ({
   compact = false,
   color = 'primary',
   isReducedMotion = false
-}) => {
+}, ref) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // --- Imperative Handle ---
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => containerRef.current,
+  }), [containerRef]);
+
   // Configure physics animation based on props and quality tier
   const stiffness = animation.stiffness || 170;
   const mass = animation.mass || 1;
@@ -113,6 +126,7 @@ export const KpiChart: React.FC<KpiChartProps> = ({
   
   return (
     <KpiContainer 
+      ref={containerRef}
       $compact={compact || kpi.compact}
       className={className}
       style={animation.enabled && !isReducedMotion ? {
@@ -130,6 +144,8 @@ export const KpiChart: React.FC<KpiChartProps> = ({
       )}
     </KpiContainer>
   );
-};
+});
+
+KpiChart.displayName = 'KpiChart';
 
 export default KpiChart; 

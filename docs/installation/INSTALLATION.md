@@ -70,15 +70,17 @@ npm install react react-dom styled-components
 
 We use a modular approach where specialized features only require dependencies when you actually use them:
 
+# Note: Components dealing with dates and times (like GlassDateRangePicker, GlassDatePicker) 
+# rely on the GlassLocalizationProvider and require a date utility library.
+# Please install one (e.g., date-fns or dayjs) if using these components.
+# Example: npm install date-fns
+
 ```bash
-# Only if using chart components (BarChart, LineChart, PieChart, etc.)
+# Only if using chart components (e.g., GlassDataChart)
 npm install chart.js react-chartjs-2
 
-# Only if using virtualized lists for large datasets
-npm install react-virtual
-
-# Only if using advanced data grids
-npm install react-window
+# Only if using virtualized lists/grids for large datasets
+npm install react-window # or react-virtuoso
 ```
 
 This keeps your bundle size smaller by only including what you need!

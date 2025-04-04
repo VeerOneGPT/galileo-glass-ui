@@ -1,32 +1,40 @@
 import React from 'react';
 import { render, act } from '@testing-library/react';
 import { useGestureAnimation, GestureAnimationPresets } from '../useGestureAnimation';
-import { GestureAnimation } from '../../animations/physics/gestures/GestureAnimation';
+import { GestureAnimation, GestureAnimationConfig } from '../../animations/physics/gestures/GestureAnimation';
 import { GestureType } from '../../animations/physics/gestures/GestureDetector';
 import * as reducedMotionHook from '../useReducedMotion';
 
-// Mock the GestureAnimation class
+// --- Revised Mock for GestureAnimation ---
+let lastMockGestureAnimationInstance: any = null;
+
 jest.mock('../../animations/physics/gestures/GestureAnimation', () => {
-  return {
-    GestureAnimation: jest.fn().mockImplementation(() => ({
+  const originalModule = jest.requireActual('../../animations/physics/gestures/GestureAnimation');
+  
+  // The object representing the mock instance
+  const mockInstance = {
       getTransform: jest.fn().mockReturnValue({
-        translateX: 0,
-        translateY: 0,
-        scale: 1,
-        rotation: 0,
-        velocity: { x: 0, y: 0 }
+        translateX: 0, translateY: 0, scale: 1, rotation: 0, velocity: { x: 0, y: 0 }
       }),
       setTransform: jest.fn(),
       animateTo: jest.fn(),
       reset: jest.fn(),
       destroy: jest.fn()
-    })),
-    GestureAnimationPreset: {
-      SPRING_BOUNCE: 'springBounce',
-      INERTIAL_SLIDE: 'inertialSlide'
-    }
+  };
+
+  return {
+    // Mock the constructor to return our mock instance and capture it
+    GestureAnimation: jest.fn().mockImplementation((config) => { 
+        lastMockGestureAnimationInstance = mockInstance; 
+        // Simulate initial transform callback if needed
+        config?.onTransformChange?.({ translateX: 0, translateY: 0, scale: 1, rotation: 0, velocity: { x: 0, y: 0 } });
+        return mockInstance; 
+    }),
+    // Access the *real* enum from the required module
+    GestureAnimationPreset: originalModule.GestureAnimationPreset 
   };
 });
+// --- End Mock ---
 
 // Mock useReducedMotion hook
 jest.spyOn(reducedMotionHook, 'useReducedMotion').mockReturnValue(false);
@@ -34,6 +42,9 @@ jest.spyOn(reducedMotionHook, 'useReducedMotion').mockReturnValue(false);
 describe('useGestureAnimation', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    lastMockGestureAnimationInstance = null; 
+    // Reset the mock constructor's calls if needed
+    (jest.requireMock('../../animations/physics/gestures/GestureAnimation').GestureAnimation as jest.Mock).mockClear();
   });
   
   // Test component that uses the hook
@@ -142,25 +153,20 @@ describe('useGestureAnimation', () => {
   
   test('should clean up GestureAnimation on unmount', () => {
     const { unmount } = render(<TestComponent />);
-    
-    const mockGestureAnimation = (GestureAnimation as jest.Mock).mock.instances[0];
-    
+    expect(lastMockGestureAnimationInstance).toBeDefined();
+    const mockInstance = lastMockGestureAnimationInstance;
     unmount();
-    
-    expect(mockGestureAnimation.destroy).toHaveBeenCalledTimes(1);
+    expect(mockInstance.destroy).toHaveBeenCalledTimes(1);
   });
   
   test('should call setTransform method on GestureAnimation instance', () => {
     const { getByTestId } = render(<TestComponent />);
-    
-    const mockGestureAnimation = (GestureAnimation as jest.Mock).mock.instances[0];
-    
-    // Click button to call setTransform
+    expect(lastMockGestureAnimationInstance).toBeDefined();
+    const mockInstance = lastMockGestureAnimationInstance;
     act(() => {
       getByTestId('set-transform-btn').click();
     });
-    
-    expect(mockGestureAnimation.setTransform).toHaveBeenCalledWith({
+    expect(mockInstance.setTransform).toHaveBeenCalledWith({
       translateX: 100,
       translateY: 50
     });
@@ -168,15 +174,12 @@ describe('useGestureAnimation', () => {
   
   test('should call animateTo method on GestureAnimation instance', () => {
     const { getByTestId } = render(<TestComponent />);
-    
-    const mockGestureAnimation = (GestureAnimation as jest.Mock).mock.instances[0];
-    
-    // Click button to call animateTo
+    expect(lastMockGestureAnimationInstance).toBeDefined();
+    const mockInstance = lastMockGestureAnimationInstance;
     act(() => {
       getByTestId('animate-to-btn').click();
     });
-    
-    expect(mockGestureAnimation.animateTo).toHaveBeenCalledWith({
+    expect(mockInstance.animateTo).toHaveBeenCalledWith({
       translateX: 200,
       translateY: 100
     });
@@ -184,15 +187,12 @@ describe('useGestureAnimation', () => {
   
   test('should call reset method on GestureAnimation instance', () => {
     const { getByTestId } = render(<TestComponent />);
-    
-    const mockGestureAnimation = (GestureAnimation as jest.Mock).mock.instances[0];
-    
-    // Click button to call reset
+    expect(lastMockGestureAnimationInstance).toBeDefined();
+    const mockInstance = lastMockGestureAnimationInstance;
     act(() => {
       getByTestId('reset-btn').click();
     });
-    
-    expect(mockGestureAnimation.reset).toHaveBeenCalledTimes(1);
+    expect(mockInstance.reset).toHaveBeenCalledTimes(1);
   });
   
   test('should apply preset configuration when specified', () => {

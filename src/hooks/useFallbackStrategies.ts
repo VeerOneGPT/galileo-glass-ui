@@ -218,7 +218,11 @@ export const useFallbackStrategies = (options: FallbackOptions = {}): FallbackSt
   );
   
   const getVirtualizationConfigFn = React.useCallback(
-    (itemCount: number) => getVirtualizationConfig(itemCount),
+    (itemCount: number | undefined | null) => {
+      // Add safeguard for invalid itemCount
+      const safeItemCount = (typeof itemCount === 'number' && !isNaN(itemCount)) ? itemCount : 0;
+      return getVirtualizationConfig(safeItemCount);
+    },
     []
   );
   

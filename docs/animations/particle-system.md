@@ -81,7 +81,7 @@ interface ParticleSystemOptions {
 ```tsx
 import React, { useEffect } from 'react';
 import { useParticleSystem } from 'galileo-glass-ui';
-import { Box } from '@mui/material';
+import { GlassBox } from 'galileo-glass-ui/components';
 
 function InteractiveParticles() {
   const { containerRef, emitParticles } = useParticleSystem({
@@ -98,10 +98,10 @@ function InteractiveParticles() {
   };
 
   return (
-    <Box
+    <GlassBox
       ref={containerRef} // Particles render inside this box
       onClick={handleClick}
-      sx={{
+      style={{
         width: '100%',
         height: 300,
         border: '1px solid grey',
@@ -114,7 +114,7 @@ function InteractiveParticles() {
       }}
     >
       Click Me!
-    </Box>
+    </GlassBox>
   );
 }
 ```

@@ -126,9 +126,7 @@ You can also provide a custom `SpringConfig` object (e.g., `{ tension: 200, fric
 ```tsx
 // src/App.tsx (or equivalent top-level component)
 import React from 'react';
-import { ThemeProvider } from '@mui/material/styles';
-import { AnimationProvider } from 'galileo-glass-ui';
-import { theme } from './theme'; // Your application theme
+import { ThemeProvider, AnimationProvider } from 'galileo-glass-ui'; // Import Galileo ThemeProvider
 import MyMainLayout from './MyMainLayout';
 
 // Define custom animation defaults
@@ -141,7 +139,7 @@ const customAnimationDefaults = {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider initialTheme="nebula" initialColorMode="dark">
       <AnimationProvider value={customAnimationDefaults}>
         <MyMainLayout />
       </AnimationProvider>
@@ -153,10 +151,10 @@ export default App;
 
 // src/components/MyButton.tsx (Example Component using context)
 import React from 'react';
-import { Button as MuiButton, ButtonProps } from '@mui/material';
+import { GlassButton, GlassButtonProps } from 'galileo-glass-ui'; 
 import { usePhysicsInteraction, useAnimationContext } from 'galileo-glass-ui';
 
-export const MyButton = React.forwardRef<HTMLButtonElement, ButtonProps>((
+export const MyButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>((
   props,
   ref
 ) => {
@@ -164,7 +162,7 @@ export const MyButton = React.forwardRef<HTMLButtonElement, ButtonProps>((
   
   // NOTE: Actual Button likely combines hover/press/focus logic more intricately
   // This is a simplified example showing context usage.
-  const { ref: physicsRef, style, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
+  const { ref: physicsRef, style } = usePhysicsInteraction<HTMLButtonElement>({
     // Use specific context defaults if available, otherwise fallback might happen internally
     animationConfig: pressSpringConfig, 
     // Hover config might be handled by conditional logic inside usePhysicsInteraction 
@@ -174,14 +172,10 @@ export const MyButton = React.forwardRef<HTMLButtonElement, ButtonProps>((
     scaleAmplitude: 0.04,
   });
 
-  // Combine refs if necessary (using a helper hook like useComposedRef)
-  // For simplicity, we assume physicsRef is sufficient here.
-
   return (
-    <MuiButton
+    <GlassButton
       ref={physicsRef} // Attach physics ref
       style={{ ...style, ...props.style }} // Combine styles
-      {...eventHandlers} // Spread event handlers
       {...props} // Pass other props
     />
   );
@@ -245,9 +239,7 @@ interface AnimationContextState {
 ```tsx
 // src/App.tsx (or equivalent top-level component)
 import React from 'react';
-import { ThemeProvider } from '@mui/material/styles';
-import { AnimationProvider } from 'galileo-glass-ui';
-import { theme } from './theme'; // Your application theme
+import { ThemeProvider, AnimationProvider } from 'galileo-glass-ui'; // Import Galileo ThemeProvider
 import MyMainLayout from './MyMainLayout';
 
 // Define custom animation defaults
@@ -260,7 +252,7 @@ const customAnimationDefaults = {
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider initialTheme="nebula" initialColorMode="dark">
       <AnimationProvider value={customAnimationDefaults}>
         <MyMainLayout />
       </AnimationProvider>
@@ -272,10 +264,10 @@ export default App;
 
 // src/components/MyButton.tsx (Example Component using context)
 import React from 'react';
-import { Button as MuiButton, ButtonProps } from '@mui/material';
+import { GlassButton, GlassButtonProps } from 'galileo-glass-ui'; 
 import { usePhysicsInteraction, useAnimationContext } from 'galileo-glass-ui';
 
-export const MyButton = React.forwardRef<HTMLButtonElement, ButtonProps>((
+export const MyButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>((
   props,
   ref
 ) => {
@@ -283,7 +275,7 @@ export const MyButton = React.forwardRef<HTMLButtonElement, ButtonProps>((
   
   // NOTE: Actual Button likely combines hover/press/focus logic more intricately
   // This is a simplified example showing context usage.
-  const { ref: physicsRef, style, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>({
+  const { ref: physicsRef, style } = usePhysicsInteraction<HTMLButtonElement>({
     // Use specific context defaults if available, otherwise fallback might happen internally
     animationConfig: pressSpringConfig, 
     // Hover config might be handled by conditional logic inside usePhysicsInteraction 
@@ -293,16 +285,11 @@ export const MyButton = React.forwardRef<HTMLButtonElement, ButtonProps>((
     scaleAmplitude: 0.04,
   });
 
-  // Combine refs if necessary (using a helper hook like useComposedRef)
-  // For simplicity, we assume physicsRef is sufficient here.
-
   return (
-    <MuiButton
+    <GlassButton
       ref={physicsRef} // Attach physics ref
       style={{ ...style, ...props.style }} // Combine styles
-      {...eventHandlers} // Spread event handlers
       {...props} // Pass other props
     />
   );
-});
-``` 
+}); 

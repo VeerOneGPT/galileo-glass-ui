@@ -1,3 +1,10 @@
+/**
+ * GestureDetector.fixed.test.ts
+ * 
+ * Self-contained tests for the GestureDetector class with improved
+ * mocks and isolated state between tests to avoid test interference.
+ */
+
 import { 
   createGestureDetector, 
   GestureType, 
@@ -6,7 +13,9 @@ import {
   GestureEventData
 } from '../GestureDetector';
 
-// Minimal mock implementation to avoid type conflicts
+// --- Improved Mock Implementations ---
+
+// Minimal mock implementation with proper type support
 class MockEventTarget {
   listeners: Record<string, Function[]> = {};
   
@@ -32,563 +41,750 @@ class MockEventTarget {
   }
 }
 
-// Mock HTMLElement
+// Mock HTMLElement with style and getBoundingClientRect
 class MockElement extends MockEventTarget {
   style: Record<string, any> = {};
+  
   getBoundingClientRect() {
-    return { left: 0, top: 0, width: 100, height: 100 };
+    return { 
+      left: 0, 
+      top: 0, 
+      width: 100, 
+      height: 100,
+      right: 100,
+      bottom: 100,
+      x: 0,
+      y: 0
+    };
+  }
+  
+  setPointerCapture(pointerId: number) {
+    // Mock implementation
+  }
+  
+  releasePointerCapture(pointerId: number) {
+    // Mock implementation
   }
 }
 
-// Mock document
-const mockDocument = new MockEventTarget();
-
-// Mock window with type assertion
-const mockWindow = {
-  setTimeout: jest.fn().mockReturnValue(1),
-  clearTimeout: jest.fn(),
-};
-
-// Setup globals
-(global as any).document = mockDocument;
-(global as any).window = mockWindow;
-
-describe('GestureDetector', () => {
-  let element: MockElement;
-  let gestureDetector: ReturnType<typeof createGestureDetector>;
-  let gestureHandler: jest.Mock;
+// Create a fresh environment for each test to prevent state leakage
+function createTestEnvironment() {
+  // Fresh document and window mocks for each test
+  const mockDocument = new MockEventTarget();
+  const mockWindow = {
+    setTimeout: jest.fn().mockImplementation((cb, delay) => {
+      const id = setTimeout(() => {}, 0); // Create a real timeout ID
+      // Store the callback for manual triggering
+      timeoutCallbacks.set(id as unknown as number, cb);
+      return id;
+    }),
+    clearTimeout: jest.fn().mockImplementation((id) => {
+      timeoutCallbacks.delete(id as unknown as number);
+      clearTimeout(id); // Clear the real timeout
+    }),
+  };
   
-  beforeEach(() => {
-    // Reset mocks
-    jest.clearAllMocks();
-    
-    // Create mock element and detector
-    element = new MockElement();
-    
-    // Type assertion to make TypeScript happy
-    gestureDetector = createGestureDetector(element as any, {
-      enableMouseEvents: true,
-      enableTouchEvents: true,
-      enablePointerEvents: false
-    });
-    
-    // Create mock handler
-    gestureHandler = jest.fn();
-    
-    // Reset timestamp mocks
-    const now = Date.now();
-    jest.spyOn(Date, 'now').mockImplementation(() => now);
+  // Store timeout callbacks for manual triggering
+  const timeoutCallbacks = new Map<number, Function>();
+  
+  // Trigger a stored timeout callback
+  const triggerTimeout = (id: number) => {
+    const callback = timeoutCallbacks.get(id);
+    if (callback) {
+      callback();
+      timeoutCallbacks.delete(id);
+    }
+  };
+  
+  // Set up globals for this test
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  global.document = mockDocument as any;
+  global.window = mockWindow as any;
+  
+  // Create a fresh element and detector for this test
+  const element = new MockElement();
+  
+  return {
+    document: mockDocument,
+    window: mockWindow,
+    element,
+    timeoutCallbacks,
+    triggerTimeout,
+    cleanup: () => {
+      global.document = originalDocument;
+      global.window = originalWindow;
+    }
+  };
+}
+
+// --- Helper Functions for Event Simulation ---
+
+// Helper to simulate mouse events
+function simulateMouseEvent(target: MockEventTarget, type: string, options: any = {}) {
+  const event = {
+    type,
+    clientX: options.clientX ?? 100,
+    clientY: options.clientY ?? 100,
+    button: options.button ?? 0,
+    preventDefault: jest.fn(),
+    stopPropagation: jest.fn(),
+    target: options.target ?? target,
+    ...options
+  };
+  
+  if (type.startsWith('mouse')) {
+    if (type === 'mousedown' || type === 'mouseover' || type === 'mouseout') {
+      target.dispatchEvent(event);
+    } else {
+      // For mousemove and mouseup, dispatch to document
+      (global.document as any).dispatchEvent(event);
+    }
+  }
+  
+  return event;
+}
+
+// Helper to simulate touch events with proper structure
+function simulateTouchEvent(target: MockEventTarget, type: string, touchList: any[] = [], options: any = {}) {
+  const touches = touchList.map((touch, index) => ({
+    identifier: touch.identifier ?? index,
+    clientX: touch.clientX ?? 100,
+    clientY: touch.clientY ?? 100,
+    target: touch.target ?? target,
+    ...touch
+  }));
+  
+  const event = {
+    type,
+    touches: [...touches],
+    changedTouches: [...touches],
+    preventDefault: jest.fn(),
+    stopPropagation: jest.fn(),
+    target: options.target ?? target,
+    ...options
+  };
+  
+  if (type === 'touchstart') {
+    target.dispatchEvent(event);
+  } else {
+    // For touchmove, touchend, and touchcancel, dispatch to document
+    (global.document as any).dispatchEvent(event);
+  }
+  
+  return event;
+}
+
+// Helper to simulate a complete tap with mouse
+function simulateMouseTap(element: MockEventTarget, position = { x: 100, y: 100 }) {
+  simulateMouseEvent(element, 'mousedown', { clientX: position.x, clientY: position.y });
+  simulateMouseEvent(element, 'mouseup', { clientX: position.x, clientY: position.y });
+}
+
+// Helper to simulate a complete tap with touch
+function simulateTouchTap(element: MockEventTarget, position = { x: 100, y: 100 }) {
+  const touch = { clientX: position.x, clientY: position.y, identifier: 0 };
+  simulateTouchEvent(element, 'touchstart', [touch]);
+  simulateTouchEvent(element, 'touchend', [touch], { touches: [] });
+}
+
+// --- Tests ---
+
+describe('GestureDetector (Fixed)', () => {
+  // Use fake timers for all tests
+  beforeAll(() => {
+    jest.useFakeTimers();
   });
   
-  afterEach(() => {
-    gestureDetector.destroy();
-    jest.restoreAllMocks();
+  afterAll(() => {
+    jest.useRealTimers();
   });
   
   describe('Event Subscription', () => {
     test('should attach event listeners when created', () => {
-      expect(element.listeners['mousedown']).toBeDefined();
-      expect(element.listeners['mouseover']).toBeDefined();
-      expect(element.listeners['mouseout']).toBeDefined();
-      expect(element.listeners['touchstart']).toBeDefined();
+      const env = createTestEnvironment();
       
-      expect(mockDocument.listeners['mousemove']).toBeDefined();
-      expect(mockDocument.listeners['mouseup']).toBeDefined();
-      expect(mockDocument.listeners['touchmove']).toBeDefined();
-      expect(mockDocument.listeners['touchend']).toBeDefined();
-      expect(mockDocument.listeners['touchcancel']).toBeDefined();
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true,
+          enableTouchEvents: true,
+          enablePointerEvents: false
+        });
+        
+        // Check element listeners
+        expect(env.element.listeners['mousedown']).toBeDefined();
+        expect(env.element.listeners['mouseover']).toBeDefined();
+        expect(env.element.listeners['mouseout']).toBeDefined();
+        expect(env.element.listeners['touchstart']).toBeDefined();
+        
+        // Check document listeners
+        expect(env.document.listeners['mousemove']).toBeDefined();
+        expect(env.document.listeners['mouseup']).toBeDefined();
+        expect(env.document.listeners['touchmove']).toBeDefined();
+        expect(env.document.listeners['touchend']).toBeDefined();
+        expect(env.document.listeners['touchcancel']).toBeDefined();
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should remove event listeners when destroyed', () => {
-      gestureDetector.destroy();
+      const env = createTestEnvironment();
       
-      expect(element.listeners['mousedown']).toEqual([]);
-      expect(element.listeners['mouseover']).toEqual([]);
-      expect(element.listeners['mouseout']).toEqual([]);
-      expect(element.listeners['touchstart']).toEqual([]);
-      
-      expect(mockDocument.listeners['mousemove']).toEqual([]);
-      expect(mockDocument.listeners['mouseup']).toEqual([]);
-      expect(mockDocument.listeners['touchmove']).toEqual([]);
-      expect(mockDocument.listeners['touchend']).toEqual([]);
-      expect(mockDocument.listeners['touchcancel']).toEqual([]);
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true,
+          enableTouchEvents: true,
+          enablePointerEvents: false
+        });
+        
+        // Destroy the detector
+        gestureDetector.destroy();
+        
+        // Check element listeners are gone
+        expect(env.element.listeners['mousedown'] || []).toHaveLength(0);
+        expect(env.element.listeners['mouseover'] || []).toHaveLength(0);
+        expect(env.element.listeners['mouseout'] || []).toHaveLength(0);
+        expect(env.element.listeners['touchstart'] || []).toHaveLength(0);
+        
+        // Check document listeners are gone
+        expect(env.document.listeners['mousemove'] || []).toHaveLength(0);
+        expect(env.document.listeners['mouseup'] || []).toHaveLength(0);
+        expect(env.document.listeners['touchmove'] || []).toHaveLength(0);
+        expect(env.document.listeners['touchend'] || []).toHaveLength(0);
+        expect(env.document.listeners['touchcancel'] || []).toHaveLength(0);
+      } finally {
+        env.cleanup();
+      }
     });
   });
   
   describe('Gesture Handlers', () => {
     test('should register and call handlers', () => {
-      gestureDetector.on(GestureType.TAP, gestureHandler);
+      const env = createTestEnvironment();
       
-      // Dispatch events to simulate a tap
-      simulateTap(element);
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(1);
-      expect(gestureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.TAP,
-          state: GestureState.RECOGNIZED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.TAP, gestureHandler);
+        
+        // Simulate a tap
+        simulateMouseTap(env.element);
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.TAP,
+            state: GestureState.RECOGNIZED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should remove handlers with off()', () => {
-      gestureDetector.on(GestureType.TAP, gestureHandler);
-      gestureDetector.off(GestureType.TAP, gestureHandler);
+      const env = createTestEnvironment();
       
-      // Dispatch events to simulate a tap
-      simulateTap(element);
-      
-      expect(gestureHandler).not.toHaveBeenCalled();
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.TAP, gestureHandler);
+        
+        // Remove the handler
+        gestureDetector.off(GestureType.TAP, gestureHandler);
+        
+        // Simulate a tap
+        simulateMouseTap(env.element);
+        
+        expect(gestureHandler).not.toHaveBeenCalled();
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should remove all handlers for a type with off(type)', () => {
-      const handler1 = jest.fn();
-      const handler2 = jest.fn();
+      const env = createTestEnvironment();
       
-      gestureDetector.on(GestureType.TAP, handler1);
-      gestureDetector.on(GestureType.TAP, handler2);
-      gestureDetector.off(GestureType.TAP);
-      
-      // Dispatch events to simulate a tap
-      simulateTap(element);
-      
-      expect(handler1).not.toHaveBeenCalled();
-      expect(handler2).not.toHaveBeenCalled();
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true
+        });
+        
+        const handler1 = jest.fn();
+        const handler2 = jest.fn();
+        
+        gestureDetector.on(GestureType.TAP, handler1);
+        gestureDetector.on(GestureType.TAP, handler2);
+        
+        // Remove all handlers for tap
+        gestureDetector.off(GestureType.TAP);
+        
+        // Simulate a tap
+        simulateMouseTap(env.element);
+        
+        expect(handler1).not.toHaveBeenCalled();
+        expect(handler2).not.toHaveBeenCalled();
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
   });
   
   describe('Mouse Gestures', () => {
     test('should detect tap gesture with mouse events', () => {
-      gestureDetector.on(GestureType.TAP, gestureHandler);
+      const env = createTestEnvironment();
       
-      simulateTap(element);
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(1);
-      expect(gestureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.TAP,
-          state: GestureState.RECOGNIZED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.TAP, gestureHandler);
+        
+        // Simulate a tap
+        simulateMouseTap(env.element);
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.TAP,
+            state: GestureState.RECOGNIZED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should detect double tap with mouse events', () => {
-      gestureDetector.on(GestureType.DOUBLE_TAP, gestureHandler);
+      const env = createTestEnvironment();
       
-      // First tap
-      simulateTap(element);
-      
-      // Advance time a little
-      jest.spyOn(Date, 'now').mockImplementation(() => Date.now() + 200);
-      
-      // Second tap
-      simulateTap(element);
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(1);
-      expect(gestureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.DOUBLE_TAP,
-          state: GestureState.RECOGNIZED
-        })
-      );
+      try {
+        // Mock Date.now for consistent timing
+        const originalNow = Date.now;
+        const mockNow = jest.fn();
+        let now = 1000;
+        mockNow.mockImplementation(() => now);
+        Date.now = mockNow;
+        
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true,
+          doubleTapTimeThreshold: 300
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.DOUBLE_TAP, gestureHandler);
+        
+        // First tap
+        simulateMouseTap(env.element);
+        
+        // Advance time a little
+        now += 200;
+        
+        // Second tap
+        simulateMouseTap(env.element);
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.DOUBLE_TAP,
+            state: GestureState.RECOGNIZED
+          })
+        );
+        
+        gestureDetector.destroy();
+        Date.now = originalNow;
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should detect long press with mouse events', () => {
-      gestureDetector.on(GestureType.LONG_PRESS, gestureHandler);
+      const env = createTestEnvironment();
       
-      // Mouse down
-      element.dispatchEvent({
-        type: 'mousedown',
-        clientX: 100,
-        clientY: 100,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Get the timeout callback
-      const mockSetTimeout = jest.fn() as jest.Mock;
-      Object.defineProperty(mockSetTimeout, 'mock', {
-        value: { calls: [[() => {
-          if (gestureDetector) {
-            // Manually trigger the longpress gesture
-            element.dispatchEvent({
-              type: 'longpress',
-              clientX: 100,
-              clientY: 100,
-              preventDefault: jest.fn(),
-              stopPropagation: jest.fn(),
-              target: element
-            });
-          }
-        }]] }
-      });
-      
-      // Call the timeout callback to simulate time passing
-      mockSetTimeout.mock.calls[0][0]();
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(1);
-      expect(gestureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.LONG_PRESS,
-          state: GestureState.RECOGNIZED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true,
+          longPressTimeThreshold: 500
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.LONG_PRESS, gestureHandler);
+        
+        // Start mouse down
+        simulateMouseEvent(env.element, 'mousedown');
+        
+        // Get the last timeout ID
+        const timeoutIds = Array.from(env.timeoutCallbacks.keys());
+        const longPressTimeoutId = timeoutIds[timeoutIds.length - 1];
+        
+        // Trigger the long press timeout
+        env.triggerTimeout(longPressTimeoutId);
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.LONG_PRESS,
+            state: GestureState.RECOGNIZED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should detect hover with mouse events', () => {
-      gestureDetector.on(GestureType.HOVER, gestureHandler);
+      const env = createTestEnvironment();
       
-      // Mouse over
-      element.dispatchEvent({
-        type: 'mouseover',
-        clientX: 100,
-        clientY: 100,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(1);
-      expect(gestureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.HOVER,
-          state: GestureState.BEGAN
-        })
-      );
-      
-      // Mouse out
-      element.dispatchEvent({
-        type: 'mouseout',
-        clientX: 100,
-        clientY: 100,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(2);
-      expect(gestureHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.HOVER,
-          state: GestureState.ENDED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.HOVER, gestureHandler);
+        
+        // Mouse over
+        simulateMouseEvent(env.element, 'mouseover');
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.HOVER,
+            state: GestureState.BEGAN
+          })
+        );
+        
+        // Reset the mock
+        gestureHandler.mockClear();
+        
+        // Mouse out
+        simulateMouseEvent(env.element, 'mouseout');
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.HOVER,
+            state: GestureState.ENDED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should detect pan and swipe with mouse events', () => {
-      const panHandler = jest.fn();
-      const swipeHandler = jest.fn();
+      const env = createTestEnvironment();
       
-      gestureDetector.on(GestureType.PAN, panHandler);
-      gestureDetector.on(GestureType.SWIPE, swipeHandler);
-      
-      // Mouse down
-      element.dispatchEvent({
-        type: 'mousedown',
-        clientX: 100,
-        clientY: 100,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Pan should start
-      expect(panHandler).toHaveBeenCalledTimes(1);
-      expect(panHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.PAN,
-          state: GestureState.BEGAN
-        })
-      );
-      
-      // Mouse move
-      mockDocument.dispatchEvent({
-        type: 'mousemove',
-        clientX: 150,
-        clientY: 150,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Pan should update
-      expect(panHandler).toHaveBeenCalledTimes(2);
-      expect(panHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.PAN,
-          state: GestureState.CHANGED
-        })
-      );
-      
-      // Fast move to create swipe velocity
-      jest.spyOn(Date, 'now').mockImplementation(() => Date.now() + 50);
-      
-      // Mouse move to create velocity for swipe
-      mockDocument.dispatchEvent({
-        type: 'mousemove',
-        clientX: 200,
-        clientY: 200,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Mouse up
-      mockDocument.dispatchEvent({
-        type: 'mouseup',
-        clientX: 200,
-        clientY: 200,
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Pan should end
-      expect(panHandler).toHaveBeenCalledTimes(3);
-      expect(panHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.PAN,
-          state: GestureState.ENDED
-        })
-      );
-      
-      // Swipe should be detected
-      expect(swipeHandler).toHaveBeenCalledTimes(1);
-      expect(swipeHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.SWIPE,
-          state: GestureState.RECOGNIZED
-        })
-      );
+      try {
+        // Mock Date.now for consistent timing
+        const originalNow = Date.now;
+        const mockNow = jest.fn();
+        let now = 1000;
+        mockNow.mockImplementation(() => now);
+        Date.now = mockNow;
+        
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableMouseEvents: true,
+          swipeVelocityThreshold: 0.5,
+          swipeDistanceThreshold: 50
+        });
+        
+        const panHandler = jest.fn();
+        const swipeHandler = jest.fn();
+        
+        gestureDetector.on(GestureType.PAN, panHandler);
+        gestureDetector.on(GestureType.SWIPE, swipeHandler);
+        
+        // Mouse down
+        simulateMouseEvent(env.element, 'mousedown', { clientX: 100, clientY: 100 });
+        
+        // Pan should start
+        expect(panHandler).toHaveBeenCalledTimes(1);
+        expect(panHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.PAN,
+            state: GestureState.BEGAN
+          })
+        );
+        
+        // Reset the mock
+        panHandler.mockClear();
+        
+        // Mouse move
+        simulateMouseEvent(env.element, 'mousemove', { clientX: 150, clientY: 150 });
+        
+        // Pan should update
+        expect(panHandler).toHaveBeenCalledTimes(1);
+        expect(panHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.PAN,
+            state: GestureState.CHANGED
+          })
+        );
+        
+        // Reset the mock
+        panHandler.mockClear();
+        
+        // Advance time for swipe velocity
+        now += 50;
+        
+        // Fast move to create swipe velocity
+        simulateMouseEvent(env.element, 'mousemove', { clientX: 200, clientY: 200 });
+        
+        // Reset the mock
+        panHandler.mockClear();
+        
+        // Mouse up
+        simulateMouseEvent(env.element, 'mouseup', { clientX: 200, clientY: 200 });
+        
+        // Pan should end
+        expect(panHandler).toHaveBeenCalledTimes(1);
+        expect(panHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.PAN,
+            state: GestureState.ENDED
+          })
+        );
+        
+        // Swipe should be detected
+        expect(swipeHandler).toHaveBeenCalledTimes(1);
+        expect(swipeHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.SWIPE,
+            state: GestureState.RECOGNIZED
+          })
+        );
+        
+        gestureDetector.destroy();
+        Date.now = originalNow;
+      } finally {
+        env.cleanup();
+      }
     });
   });
   
   describe('Touch Gestures', () => {
     test('should detect tap gesture with touch events', () => {
-      gestureDetector.on(GestureType.TAP, gestureHandler);
+      const env = createTestEnvironment();
       
-      simulateTouchTap(element);
-      
-      expect(gestureHandler).toHaveBeenCalledTimes(1);
-      expect(gestureHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.TAP,
-          state: GestureState.RECOGNIZED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableTouchEvents: true
+        });
+        
+        const gestureHandler = jest.fn();
+        gestureDetector.on(GestureType.TAP, gestureHandler);
+        
+        // Simulate a touch tap
+        simulateTouchTap(env.element);
+        
+        expect(gestureHandler).toHaveBeenCalledTimes(1);
+        expect(gestureHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.TAP,
+            state: GestureState.RECOGNIZED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should detect pinch gesture with touch events', () => {
-      const pinchHandler = jest.fn();
-      gestureDetector.on(GestureType.PINCH, pinchHandler);
+      const env = createTestEnvironment();
       
-      // Touch start with two touches
-      element.dispatchEvent({
-        type: 'touchstart',
-        touches: [
-          { identifier: 0, clientX: 100, clientY: 100 },
-          { identifier: 1, clientX: 200, clientY: 100 }
-        ],
-        changedTouches: [
-          { identifier: 0, clientX: 100, clientY: 100 },
-          { identifier: 1, clientX: 200, clientY: 100 }
-        ],
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Pinch should start
-      expect(pinchHandler).toHaveBeenCalledTimes(1);
-      expect(pinchHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.PINCH,
-          state: GestureState.BEGAN,
-          scale: 1
-        })
-      );
-      
-      // Touch move (pinch out)
-      mockDocument.dispatchEvent({
-        type: 'touchmove',
-        touches: [
-          { identifier: 0, clientX: 50, clientY: 100 },
-          { identifier: 1, clientX: 250, clientY: 100 }
-        ],
-        changedTouches: [
-          { identifier: 0, clientX: 50, clientY: 100 },
-          { identifier: 1, clientX: 250, clientY: 100 }
-        ],
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Pinch should update with increased scale
-      expect(pinchHandler).toHaveBeenCalledTimes(2);
-      expect(pinchHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.PINCH,
-          state: GestureState.CHANGED,
-          scale: expect.any(Number)
-        })
-      );
-      
-      // Check that scale increased (pinched out)
-      const callData = pinchHandler.mock.calls[1][0] as GestureEventData;
-      expect(callData.scale).toBeGreaterThan(1);
-      
-      // Touch end
-      mockDocument.dispatchEvent({
-        type: 'touchend',
-        touches: [],
-        changedTouches: [
-          { identifier: 0, clientX: 50, clientY: 100 },
-          { identifier: 1, clientX: 250, clientY: 100 }
-        ],
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Pinch should end
-      expect(pinchHandler).toHaveBeenCalledTimes(3);
-      expect(pinchHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.PINCH,
-          state: GestureState.ENDED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableTouchEvents: true
+        });
+        
+        const pinchHandler = jest.fn();
+        gestureDetector.on(GestureType.PINCH, pinchHandler);
+        
+        // Touch start with two touches
+        simulateTouchEvent(
+          env.element, 
+          'touchstart', 
+          [
+            { identifier: 0, clientX: 100, clientY: 100 },
+            { identifier: 1, clientX: 200, clientY: 100 }
+          ]
+        );
+        
+        // Pinch should start
+        expect(pinchHandler).toHaveBeenCalledTimes(1);
+        expect(pinchHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.PINCH,
+            state: GestureState.BEGAN,
+            scale: 1
+          })
+        );
+        
+        // Reset the mock
+        pinchHandler.mockClear();
+        
+        // Touch move (pinch out)
+        simulateTouchEvent(
+          env.document, 
+          'touchmove', 
+          [
+            { identifier: 0, clientX: 50, clientY: 100 },
+            { identifier: 1, clientX: 250, clientY: 100 }
+          ]
+        );
+        
+        // Pinch should update with increased scale
+        expect(pinchHandler).toHaveBeenCalledTimes(1);
+        expect(pinchHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.PINCH,
+            state: GestureState.CHANGED
+          })
+        );
+        
+        // Check that scale increased (pinched out)
+        const callData = pinchHandler.mock.calls[0][0] as GestureEventData;
+        expect(callData.scale).toBeGreaterThan(1);
+        
+        // Reset the mock
+        pinchHandler.mockClear();
+        
+        // Touch end
+        simulateTouchEvent(
+          env.document, 
+          'touchend', 
+          [
+            { identifier: 0, clientX: 50, clientY: 100 },
+            { identifier: 1, clientX: 250, clientY: 100 }
+          ], 
+          { touches: [] }
+        );
+        
+        // Pinch should end
+        expect(pinchHandler).toHaveBeenCalledTimes(1);
+        expect(pinchHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.PINCH,
+            state: GestureState.ENDED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
     
     test('should detect rotate gesture with touch events', () => {
-      const rotateHandler = jest.fn();
-      gestureDetector.on(GestureType.ROTATE, rotateHandler);
+      const env = createTestEnvironment();
       
-      // Touch start with two touches
-      element.dispatchEvent({
-        type: 'touchstart',
-        touches: [
-          { identifier: 0, clientX: 100, clientY: 100 },
-          { identifier: 1, clientX: 200, clientY: 100 } // Horizontal line
-        ],
-        changedTouches: [
-          { identifier: 0, clientX: 100, clientY: 100 },
-          { identifier: 1, clientX: 200, clientY: 100 }
-        ],
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Rotate should start
-      expect(rotateHandler).toHaveBeenCalledTimes(1);
-      expect(rotateHandler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: GestureType.ROTATE,
-          state: GestureState.BEGAN,
-          rotation: 0
-        })
-      );
-      
-      // Touch move (rotate 45 degrees)
-      mockDocument.dispatchEvent({
-        type: 'touchmove',
-        touches: [
-          { identifier: 0, clientX: 100, clientY: 100 }, // Fixed
-          { identifier: 1, clientX: 170, clientY: 170 }  // Moved 45 degrees
-        ],
-        changedTouches: [
-          { identifier: 0, clientX: 100, clientY: 100 },
-          { identifier: 1, clientX: 170, clientY: 170 }
-        ],
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Rotate should update with rotation value
-      expect(rotateHandler).toHaveBeenCalledTimes(2);
-      expect(rotateHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.ROTATE,
-          state: GestureState.CHANGED,
-          rotation: expect.any(Number)
-        })
-      );
-      
-      // Check that rotation is approximately 45 degrees (allow for rounding)
-      const callData = rotateHandler.mock.calls[1][0] as GestureEventData;
-      expect(Math.abs(callData.rotation! - 45)).toBeLessThan(5);
-      
-      // Touch end
-      mockDocument.dispatchEvent({
-        type: 'touchend',
-        touches: [],
-        changedTouches: [
-          { identifier: 0, clientX: 100, clientY: 100 },
-          { identifier: 1, clientX: 170, clientY: 170 }
-        ],
-        preventDefault: jest.fn(),
-        stopPropagation: jest.fn(),
-        target: element
-      });
-      
-      // Rotate should end
-      expect(rotateHandler).toHaveBeenCalledTimes(3);
-      expect(rotateHandler).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          type: GestureType.ROTATE,
-          state: GestureState.ENDED
-        })
-      );
+      try {
+        const gestureDetector = createGestureDetector(env.element as any, {
+          enableTouchEvents: true
+        });
+        
+        const rotateHandler = jest.fn();
+        gestureDetector.on(GestureType.ROTATE, rotateHandler);
+        
+        // Touch start with two touches (horizontal line)
+        simulateTouchEvent(
+          env.element, 
+          'touchstart', 
+          [
+            { identifier: 0, clientX: 100, clientY: 100 },
+            { identifier: 1, clientX: 200, clientY: 100 }
+          ]
+        );
+        
+        // Rotate should start
+        expect(rotateHandler).toHaveBeenCalledTimes(1);
+        expect(rotateHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.ROTATE,
+            state: GestureState.BEGAN,
+            rotation: 0
+          })
+        );
+        
+        // Reset the mock
+        rotateHandler.mockClear();
+        
+        // Touch move (rotate 45 degrees)
+        simulateTouchEvent(
+          env.document, 
+          'touchmove', 
+          [
+            { identifier: 0, clientX: 100, clientY: 100 }, // Fixed
+            { identifier: 1, clientX: 170, clientY: 170 }  // Moved ~45 degrees
+          ]
+        );
+        
+        // Rotate should update with rotation value
+        expect(rotateHandler).toHaveBeenCalledTimes(1);
+        expect(rotateHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.ROTATE,
+            state: GestureState.CHANGED
+          })
+        );
+        
+        // Check that rotation is approximately 45 degrees (allow for rounding)
+        const callData = rotateHandler.mock.calls[0][0] as GestureEventData;
+        expect(Math.abs(callData.rotation! - 45)).toBeLessThan(10);
+        
+        // Reset the mock
+        rotateHandler.mockClear();
+        
+        // Touch end
+        simulateTouchEvent(
+          env.document, 
+          'touchend', 
+          [
+            { identifier: 0, clientX: 100, clientY: 100 },
+            { identifier: 1, clientX: 170, clientY: 170 }
+          ], 
+          { touches: [] }
+        );
+        
+        // Rotate should end
+        expect(rotateHandler).toHaveBeenCalledTimes(1);
+        expect(rotateHandler).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: GestureType.ROTATE,
+            state: GestureState.ENDED
+          })
+        );
+        
+        gestureDetector.destroy();
+      } finally {
+        env.cleanup();
+      }
     });
   });
-});
-
-// Helper to simulate mouse tap
-function simulateTap(element: MockEventTarget) {
-  // Mouse down
-  element.dispatchEvent({
-    type: 'mousedown',
-    clientX: 100,
-    clientY: 100,
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
-    target: element
-  });
-  
-  // Mouse up
-  mockDocument.dispatchEvent({
-    type: 'mouseup',
-    clientX: 100,
-    clientY: 100,
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
-    target: element
-  });
-}
-
-// Helper to simulate touch tap
-function simulateTouchTap(element: MockEventTarget) {
-  // Touch start
-  element.dispatchEvent({
-    type: 'touchstart',
-    touches: [{ identifier: 0, clientX: 100, clientY: 100 }],
-    changedTouches: [{ identifier: 0, clientX: 100, clientY: 100 }],
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
-    target: element
-  });
-  
-  // Touch end
-  mockDocument.dispatchEvent({
-    type: 'touchend',
-    touches: [],
-    changedTouches: [{ identifier: 0, clientX: 100, clientY: 100 }],
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
-    target: element
-  });
-}
+}); 

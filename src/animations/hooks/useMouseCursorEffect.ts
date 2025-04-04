@@ -142,46 +142,8 @@ export const useMouseCursorEffect = (options: MouseCursorEffectOptions = {}) => 
     containerRef.current = container;
   }, [targetSelector, zIndex]);
 
-  // Setup effect based on type
-  const setupEffect = useCallback(() => {
-    if (prefersReducedMotion && (type === 'trail' || type === 'ripple')) {
-      // For highly motion-intensive effects, switch to a more subtle effect
-      return setupGlowEffect();
-    }
-
-    switch (type) {
-      case 'glow':
-        return setupGlowEffect();
-      case 'ripple':
-        return setupRippleEffect();
-      case 'trail':
-        return setupTrailEffect();
-      case 'magnetic':
-        return setupMagneticEffect();
-      case 'repel':
-        return setupRepelEffect();
-      case 'spotlight':
-        return setupSpotlightEffect();
-      default:
-        return setupGlowEffect();
-    }
-  }, [type, prefersReducedMotion, 
-    // These are declared later but the linter requires them here
-    // @ts-ignore - Function is defined below but referenced here in dependency array
-    setupGlowEffect, 
-    // @ts-ignore - Function is defined below but referenced here in dependency array
-    setupTrailEffect, 
-    // @ts-ignore - Function is defined below but referenced here in dependency array
-    setupMagneticEffect, 
-    // @ts-ignore - Function is defined below but referenced here in dependency array
-    setupRepelEffect, 
-    // @ts-ignore - Function is defined below but referenced here in dependency array
-    setupSpotlightEffect, 
-    // @ts-ignore - Function is defined below but referenced here in dependency array
-    setupRippleEffect
-  ]);
-
   // Setup functions for different effect types
+  // IMPORTANT: These must be defined BEFORE setupEffect
   const setupGlowEffect = useCallback(() => {
     // Clear existing elements
     effectElementsRef.current.forEach(el => el.remove());
@@ -332,6 +294,40 @@ export const useMouseCursorEffect = (options: MouseCursorEffectOptions = {}) => 
       ) as HTMLElement[];
     }
   }, [radius, gpuAccelerated, targetSelector]);
+
+  // Setup effect based on type - now all setup*Effect functions are already defined
+  const setupEffect = useCallback(() => {
+    if (prefersReducedMotion && (type === 'trail' || type === 'ripple')) {
+      // For highly motion-intensive effects, switch to a more subtle effect
+      return setupGlowEffect();
+    }
+
+    switch (type) {
+      case 'glow':
+        return setupGlowEffect();
+      case 'ripple':
+        return setupRippleEffect();
+      case 'trail':
+        return setupTrailEffect();
+      case 'magnetic':
+        return setupMagneticEffect();
+      case 'repel':
+        return setupRepelEffect();
+      case 'spotlight':
+        return setupSpotlightEffect();
+      default:
+        return setupGlowEffect();
+    }
+  }, [
+    type, 
+    prefersReducedMotion, 
+    setupGlowEffect, 
+    setupRippleEffect, 
+    setupTrailEffect, 
+    setupMagneticEffect, 
+    setupRepelEffect, 
+    setupSpotlightEffect
+  ]);
 
   // Create ripple element on click
   const createRipple = useCallback(

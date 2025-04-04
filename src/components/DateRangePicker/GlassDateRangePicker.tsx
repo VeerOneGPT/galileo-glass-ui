@@ -4,7 +4,7 @@
  * A glass-styled date range picker component with physics-based animations,
  * presets for common ranges, and comparison mode support.
  */
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths } from 'date-fns';
@@ -287,6 +287,7 @@ const PickerContainer = styled.div<{
 
 const PickerHeader = styled.div<{
   $color: string;
+  'data-animate': string;
 }>`
   display: flex;
   align-items: center;
@@ -326,6 +327,8 @@ const PickerHeader = styled.div<{
       box-shadow: 0 0 0 1px var(--color-${props => props.$color}-transparent, rgba(99, 102, 241, 0.4));
     }
   }
+  
+  data-animate={String(props['data-animate'])};
 `;
 
 const PickerBody = styled.div`
@@ -860,10 +863,32 @@ const PopoverContainer = styled.div<{
   })}
 `;
 
+// Ref interface
+export interface GlassDateRangePickerRef {
+  /** Opens the date range picker popover */
+  openPicker: () => void;
+  /** Closes the date range picker popover */
+  closePicker: () => void;
+  /** Gets the currently selected primary date range */
+  getSelectedRange: () => DateRange | null;
+  /** Gets the currently selected comparison date range (if applicable) */
+  getComparisonRange: () => ComparisonDateRange | null;
+  /** Programmatically sets the primary date range */
+  setRange: (range: DateRange | null) => void;
+  /** Programmatically sets the comparison date range (if applicable) */
+  setComparisonRange: (range: ComparisonDateRange | null) => void;
+  /** Clears the selected date ranges */
+  clearRange: () => void;
+  /** Gets the main input container element */
+  getInputContainerElement: () => HTMLDivElement | null;
+  /** Gets the picker popover element (if open) */
+  getPickerElement: () => HTMLDivElement | null;
+}
+
 /**
  * GlassDateRangePicker Component
  */
-export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
+export const GlassDateRangePicker = forwardRef<GlassDateRangePickerRef, DateRangePickerProps>(({
   // Basic props
   value,
   onChange,
@@ -927,7 +952,7 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
     mobileView: 'auto',
     enableGestures: true
   }
-}) => {
+}, ref) => {
   // State
   const [isOpen, setIsOpen] = useState(inline);
   const [isComparing, setIsComparing] = useState(comparisonMode);
@@ -1408,7 +1433,7 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
       aria-modal="true"
       aria-label="Date range selection calendar"
     >
-      <PickerHeader $color={color}>
+      <PickerHeader $color={color} data-animate={String(animate)}>
         <div className="title">{comparisonMode ? 'Select Range & Comparison' : 'Select Date Range'}</div>
         <div className="actions">
           {clearable && (localValue.startDate || localValue.endDate) && (
@@ -1578,96 +1603,101 @@ export const GlassDateRangePicker: React.FC<DateRangePickerProps> = ({
   // Determine portal container
   const portalContainer = !inline && typeof document !== 'undefined' ? document.body : null;
   
+  // Log state before return
+  console.log('isOpen:', isOpen, 'activeScene:', activeScene);
+
   return (
-    <GlassLocalizationProvider
-      locale={locale}
-      adapter={createDateFnsAdapter(locale)}
+    <DateRangePickerRoot
+      ref={rootRef}
+      $fullWidth={fullWidth}
+      $size={size}
+      $animate={animate}
+      $reducedMotion={prefersReducedMotion}
+      className={className}
+      style={style}
     >
-      <DateRangePickerRoot
-        ref={rootRef}
-        $fullWidth={fullWidth}
-        $size={size}
-        $animate={animate}
-        $reducedMotion={prefersReducedMotion}
-        className={className}
-        style={style}
-      >
-        {label && <Label htmlFor={id || 'glass-date-range'}>{label}</Label>}
-        
-        {/* Custom input renderer */}
-        {renderInput ? (
-          renderInput({
-            startDate: localValue.startDate,
-            endDate: localValue.endDate,
-            onClick: handleInputClick,
-            placeholder,
-            inputRef: inputRef as React.RefObject<HTMLInputElement>
-          })
-        ) : (
-          <InputContainer
-            ref={inputRef as React.RefObject<HTMLDivElement>}
-            $size={size}
-            $focused={isOpen}
-            $disabled={disabled}
-            $hasError={error}
-            $glassVariant={glassVariant}
-            $blurStrength={blurStrength}
-            $color={color}
-            onClick={handleInputClick}
-            aria-haspopup="dialog"
-            aria-expanded={isOpen}
-            aria-label={ariaLabel || label || 'Date range picker'}
-            id={id || 'glass-date-range'}
-            role="button"
-            tabIndex={disabled ? -1 : 0}
-          >
-            <InputValue>
-              {localValue.startDate || localValue.endDate ? (
-                <>
-                  <span className="date-label range-start">
-                    {formatDate(localValue.startDate)}
-                  </span>
-                  <span className="range-separator">–</span>
-                  <span className="date-label range-end">
-                    {formatDate(localValue.endDate)}
-                  </span>
-                </>
-              ) : (
-                <span className="empty-label">{placeholder}</span>
-              )}
-            </InputValue>
-            
-            {/* Clear button */}
-            {clearable && !disabled && (localValue.startDate || localValue.endDate) && (
-              <ActionButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClear();
-                }}
-                aria-label="Clear date range"
-              >
-                <ClearIcon />
-              </ActionButton>
+      {label && <Label htmlFor={id || 'glass-date-range'}>{label}</Label>}
+      
+      {/* Custom input renderer */}
+      {renderInput ? (
+        renderInput({
+          startDate: localValue.startDate,
+          endDate: localValue.endDate,
+          onClick: handleInputClick,
+          placeholder,
+          inputRef: inputRef as React.RefObject<HTMLInputElement>
+        })
+      ) : (
+        <InputContainer
+          ref={inputRef as React.RefObject<HTMLDivElement>}
+          $size={size}
+          $focused={isOpen}
+          $disabled={disabled}
+          $hasError={error}
+          $glassVariant={glassVariant}
+          $blurStrength={blurStrength}
+          $color={color}
+          onClick={handleInputClick}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          aria-label={ariaLabel || label || 'Date range picker'}
+          id={id || 'glass-date-range'}
+          role="button"
+          tabIndex={disabled ? -1 : 0}
+        >
+          <InputValue>
+            {localValue.startDate || localValue.endDate ? (
+              <>
+                <span className="date-label range-start">
+                  {formatDate(localValue.startDate)}
+                </span>
+                <span className="range-separator">–</span>
+                <span className="date-label range-end">
+                  {formatDate(localValue.endDate)}
+                </span>
+              </>
+            ) : (
+              <span className="empty-label">{placeholder}</span>
             )}
-          </InputContainer>
-        )}
-        
-        {/* Error or helper text */}
-        {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
-        {helperText && !error && <HelperText>{helperText}</HelperText>}
-        
-        {/* Portal for Picker */}
-        {portalContainer ? (
-          createPortal(
-            activeScene === 'visible' && renderPickerContent(),
-            portalContainer
-          )
-        ) : (
-          activeScene === 'visible' && renderPickerContent()
-        )}
-      </DateRangePickerRoot>
-    </GlassLocalizationProvider>
+          </InputValue>
+          
+          {/* Clear button */}
+          {clearable && !disabled && (localValue.startDate || localValue.endDate) && (
+            <ActionButton
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClear();
+              }}
+              aria-label="Clear date range"
+            >
+              <ClearIcon />
+            </ActionButton>
+          )}
+        </InputContainer>
+      )}
+      
+      {/* Error or helper text */}
+      {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
+      {helperText && !error && <HelperText>{helperText}</HelperText>}
+      
+      {/* Temporary: Render picker content directly if isOpen, bypassing portal/scene for testing */}
+      {isOpen && renderPickerContent()}
+      
+      {/* Original Portal Logic - Commented out for testing 
+      {portalContainer ? (
+        createPortal(
+          activeScene === 'visible' && renderPickerContent(),
+          portalContainer
+        )
+      ) : (
+        activeScene === 'visible' && renderPickerContent()
+      )}
+      */}
+    </DateRangePickerRoot>
   );
-};
+});
+
+// Add displayName
+GlassDateRangePicker.displayName = 'GlassDateRangePicker';
 
 export default GlassDateRangePicker;

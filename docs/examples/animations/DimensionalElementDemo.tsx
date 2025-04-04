@@ -4,7 +4,10 @@ import {
   Transform3DOptions,
   Transform3DState,
 } from '../../../src/animations/physics/use3DTransform';
-import { Box, Paper, Typography, Button } from '@mui/material';
+import { Box } from '../../../src/components/Box';
+import { Paper } from '../../../src/components/Paper';
+import { Typography } from '../../../src/components/Typography';
+import { Button } from '../../../src/components/Button';
 
 // Initial state
 const initialState: Partial<Transform3DState> = {
@@ -42,20 +45,20 @@ export const DimensionalElementDemo: React.FC = () => {
   };
 
   return (
-    <Paper elevation={2} sx={{ padding: 3, margin: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Paper elevation={2} style={{ padding: '24px', margin: '16px' }}>
+      <Typography variant="h6" style={{ marginBottom: '8px' }}>
         Dimensional Element Demo (use3DTransform)
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: 2 }}>
+      <Typography variant="body2" style={{ marginBottom: '16px' }}>
         Click the button to animate the element between two 3D states
         using spring physics.
       </Typography>
-      <Button onClick={toggleState} sx={{ marginBottom: 3 }}>
+      <Button onClick={toggleState} style={{ marginBottom: '24px' }}>
         Toggle 3D State
       </Button>
       <Box
-        // Container for perspective
-        sx={{
+        // Container with style prop
+        style={{ 
           width: '100%',
           height: '250px',
           display: 'flex',
@@ -64,15 +67,17 @@ export const DimensionalElementDemo: React.FC = () => {
           border: '1px dashed grey',
           borderRadius: '4px',
           position: 'relative',
-          perspective: '800px', // Apply perspective CSS here
+          perspective: '800px', 
         }}
       >
         <Box
-          ref={elementRef} // Assign ref from the hook
-          sx={{
+          ref={elementRef} 
+          // Apply style from hook and base styles
+          style={{ 
             width: 120,
             height: 120,
-            backgroundColor: 'secondary.main',
+            // Use basic colors or theme variables
+            backgroundColor: '#9c27b0', // Example: secondary purple
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
@@ -80,8 +85,8 @@ export const DimensionalElementDemo: React.FC = () => {
             color: 'white',
             fontSize: '1.1rem',
             position: 'relative',
-            // Apply the style object directly from the hook
-            ...(style as CSSProperties), // Cast needed if type inference is loose
+            // Spread the style object from the hook
+            ...(style as CSSProperties), 
           }}
         >
           Transform Me

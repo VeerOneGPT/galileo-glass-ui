@@ -1,4 +1,4 @@
-import React from "react";
+import React, { forwardRef } from "react";
 import styled from "styled-components";
 import { Card } from "../Card/Card";
 import { glassSurface } from "../../core/mixins/glassSurface";
@@ -152,7 +152,7 @@ export interface GlassCardLinkProps {
  * An enhanced card with 3D transform effects and link functionality.
  * Features physics-inspired animations and intuitive hover states.
  */
-export const GlassCardLink: React.FC<GlassCardLinkProps> = ({
+export const GlassCardLink = forwardRef<HTMLAnchorElement, GlassCardLinkProps>(({
   icon,
   title,
   description,
@@ -163,7 +163,7 @@ export const GlassCardLink: React.FC<GlassCardLinkProps> = ({
   glassVariant = "frosted",
   onClick,
   children
-}) => {
+}, ref) => {
   const handleClick = (e: React.MouseEvent) => {
     if (onClick) {
       onClick(e);
@@ -227,6 +227,7 @@ export const GlassCardLink: React.FC<GlassCardLinkProps> = ({
   // Wrap the card in a link if no custom handler
   return (
     <LinkWrapper 
+      ref={ref}
       href={link}
       className={`glass-card-link-wrapper ${className}`}
       onClick={handleClick}
@@ -236,6 +237,8 @@ export const GlassCardLink: React.FC<GlassCardLinkProps> = ({
       </EnhancedLinkCard>
     </LinkWrapper>
   );
-};
+});
+
+GlassCardLink.displayName = 'GlassCardLink';
 
 export default GlassCardLink; 

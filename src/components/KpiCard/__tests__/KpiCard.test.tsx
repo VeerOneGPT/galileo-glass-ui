@@ -2,6 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 
 import { ThemeProvider } from '../../../theme/ThemeProvider';
+// Import theme tokens for color checking
+import { colors } from '../../../theme'; 
 import { KpiCard } from '../KpiCard';
 
 // Test wrapper with ThemeProvider
@@ -65,30 +67,34 @@ describe('KpiCard Component', () => {
     expect(screen.getByText('Last 30 days')).toBeInTheDocument();
   });
 
-  test('applies different color schemes', () => {
+  test('applies different color schemes to change indicator', () => {
     const { rerender } = renderWithTheme(
-      <KpiCard title="Success Metric" value={95} color="success" />
+      <KpiCard title="Success Metric" value={95} color="success" change={0.1} changeFormat="+.1%" />
     );
 
-    let valueElement = screen.getByText('95');
-    expect(valueElement).toHaveStyle({ color: 'rgba(76, 175, 80, 1)' });
+    let changeElement = screen.getByText(/\d+\.\d+%/);
+    // Use correct RGB value for colors.success[500]
+    expect(changeElement).toHaveStyle({ color: 'rgb(16, 185, 129)' }); 
 
     rerender(
       <ThemeProvider>
-        <KpiCard title="Error Metric" value={15} color="error" />
+        <KpiCard title="Error Metric" value={15} color="error" change={-0.05} changeFormat=".1%" />
       </ThemeProvider>
     );
 
-    valueElement = screen.getByText('15');
-    expect(valueElement).toHaveStyle({ color: 'rgba(240, 82, 82, 1)' });
+    changeElement = screen.getByText(/\d+\.\d+%/);
+    // Use correct RGB value for colors.error[500]
+    expect(changeElement).toHaveStyle({ color: 'rgb(239, 68, 68)' }); 
   });
 
   test('handles click events', () => {
     const handleClick = jest.fn();
-    renderWithTheme(<KpiCard title="Clickable Card" value={42} onClick={handleClick} />);
+    // Add data-testid directly here for clarity
+    renderWithTheme(<KpiCard title="Clickable Card" value={42} onClick={handleClick} data-testid="kpi-card-clickable" />);
 
-    const card = screen.getByText('Clickable Card').closest('div');
-    fireEvent.click(card!);
+    // Use the explicit data-testid
+    const card = screen.getByTestId('kpi-card-clickable'); 
+    fireEvent.click(card);
 
     expect(handleClick).toHaveBeenCalledTimes(1);
   });

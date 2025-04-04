@@ -1,5 +1,5 @@
 /**
  * Card Component
  */
-export { Card } from './Card';
-export type { CardProps } from './Card';
+export { Card, CardHeader, CardContent, CardActions } from './Card';
+export type { CardProps, CardHeaderProps, CardContentProps, CardActionsProps } from './Card';

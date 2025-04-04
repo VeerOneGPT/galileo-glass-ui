@@ -369,7 +369,7 @@ const dtsConfigs = [
   },
   {
     input: 'src/hooks/index.ts', // Pointing to SRC
-    output: [{ file: 'dist/hooks.d.ts', format: 'es' }],
+    output: [{ file: 'dist/hooks/index.d.ts', format: 'es' }],
     plugins: [createDtsPlugin()],
     external: dtsExternal
   },

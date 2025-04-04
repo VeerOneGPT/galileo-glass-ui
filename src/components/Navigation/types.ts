@@ -190,6 +190,8 @@ export interface ZSpaceAppLayoutProps {
   footerHeight?: string | number;
   /** Whether the sidebar is initially collapsed */
   initialSidebarCollapsed?: boolean;
+  /** Breakpoint below which the sidebar automatically collapses. Defaults to 'md' (960px). */
+  sidebarBreakpoint?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number;
   /** Custom CSS class */
   className?: string;
   /** Custom inline styles */

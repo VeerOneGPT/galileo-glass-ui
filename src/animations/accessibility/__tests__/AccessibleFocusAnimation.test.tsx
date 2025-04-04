@@ -9,7 +9,8 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import '@testing-library/jest-dom';
-import styled, { ThemeProvider } from 'styled-components';
+import styled, { ThemeProvider, css, FlattenSimpleInterpolation } from 'styled-components';
+import 'jest-styled-components';
 import { 
   useAccessibleFocusAnimation, 
   FocusAnimationStyle,
@@ -19,6 +20,7 @@ import {
   mapFocusToHighContrastType
 } from '../AccessibleFocusAnimation';
 import { HighContrastAnimationType , useHighContrast } from '../useHighContrast';
+import { ThemeProvider as ActualThemeProvider } from '../../../theme';
 
 // Mock the required hooks
 jest.mock('../useReducedMotion', () => ({
@@ -56,6 +58,21 @@ jest.mock('../useHighContrast', () => ({
 // Helper imports
 import { useReducedMotion } from '../useReducedMotion';
 
+// Helper component to render styles for checking
+const StyleTester = styled.div<{ styles?: FlattenSimpleInterpolation }>`
+  ${props => props.styles}
+`;
+
+// Helper to render with ThemeProvider - Rely on provider's internal theme
+const renderWithTheme = (ui: React.ReactElement) => {
+    return render(<ActualThemeProvider>{ui}</ActualThemeProvider>);
+};
+
+// Custom wrapper for renderHook - Rely on provider's internal theme
+const ThemeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ActualThemeProvider>{children}</ActualThemeProvider>
+);
+
 describe('AccessibleFocusAnimation', () => {
   
   beforeEach(() => {
@@ -76,7 +93,7 @@ describe('AccessibleFocusAnimation', () => {
   });
   
   test('useAccessibleFocusAnimation returns expected properties', () => {
-    const { result } = renderHook(() => useAccessibleFocusAnimation());
+    const { result } = renderHook(() => useAccessibleFocusAnimation(), { wrapper: ThemeWrapper });
     
     expect(result.current).toHaveProperty('focusStyle');
     expect(result.current).toHaveProperty('focusWithinStyle');
@@ -86,32 +103,35 @@ describe('AccessibleFocusAnimation', () => {
   });
   
   test('generateFocusStyle produces different styles based on options', () => {
-    const { result } = renderHook(() => useAccessibleFocusAnimation());
+    const { result } = renderHook(() => useAccessibleFocusAnimation(), { wrapper: ThemeWrapper });
     
-    const defaultStyle = result.current.generateFocusStyle();
-    const outlineStyle = result.current.generateFocusStyle({ 
-      style: FocusAnimationStyle.OUTLINE_PULSE 
-    });
-    const glowStyle = result.current.generateFocusStyle({ 
-      style: FocusAnimationStyle.GLOW 
-    });
+    const defaultStyleCSS = result.current.generateFocusStyle();
+    const outlineStyleCSS = result.current.generateFocusStyle({ style: FocusAnimationStyle.OUTLINE_PULSE });
+    const glowStyleCSS = result.current.generateFocusStyle({ style: FocusAnimationStyle.GLOW });
+    const blueStyleCSS = result.current.generateFocusStyle({ color: 'blue' });
+    const redStyleCSS = result.current.generateFocusStyle({ color: 'red' });
+
+    const { container: defaultContainer } = renderWithTheme(<StyleTester styles={defaultStyleCSS} />);
+    const { container: glowContainer } = renderWithTheme(<StyleTester data-testid="glow" styles={glowStyleCSS} />);
+    const { container: outlineContainer } = renderWithTheme(<StyleTester data-testid="outline" styles={outlineStyleCSS} />);
+    const { container: blueContainer } = renderWithTheme(<StyleTester data-testid="blue" styles={blueStyleCSS} />);
+    const { container: redContainer } = renderWithTheme(<StyleTester data-testid="red" styles={redStyleCSS} />);
+
+    // Check for properties expected for specific styles
+    expect(glowContainer.firstChild).toHaveStyleRule('box-shadow', expect.any(String));
+    expect(outlineContainer.firstChild).toHaveStyleRule('outline', expect.any(String));
     
-    // Different style types should produce different CSS
-    expect(String(glowStyle)).not.toEqual(String(outlineStyle));
-    
-    // Custom colors should affect the output
-    const blueStyle = result.current.generateFocusStyle({ 
-      color: 'blue' 
-    });
-    const redStyle = result.current.generateFocusStyle({ 
-      color: 'red' 
-    });
-    
-    expect(String(blueStyle)).not.toEqual(String(redStyle));
+    // Check color custom property is set
+    expect(window.getComputedStyle(blueContainer.firstChild as Element).getPropertyValue('--focus-color')).toBeTruthy();
+    expect(window.getComputedStyle(redContainer.firstChild as Element).getPropertyValue('--focus-color')).toBeTruthy();
+
+    // Check styles are generated and distinct (basic check)
+    expect(defaultStyleCSS).toBeDefined();
+    expect(glowStyleCSS).not.toEqual(outlineStyleCSS);
+    expect(blueStyleCSS).not.toEqual(redStyleCSS);
   });
   
   test('focus animations respect reduced motion preferences', () => {
-    // Mock reduced motion preference
     (useReducedMotion as jest.Mock).mockReturnValue({
       prefersReducedMotion: true,
       appReducedMotion: true,
@@ -122,25 +142,26 @@ describe('AccessibleFocusAnimation', () => {
     
     const { result: reducedMotionResult } = renderHook(() => 
       useAccessibleFocusAnimation({ highVisibility: false })
+    , { wrapper: ThemeWrapper });
+    
+    const { container: reducedMotionContainer } = renderWithTheme(
+      <StyleTester styles={reducedMotionResult.current.focusStyle} />
     );
+    // Check animation is NOT applied
+    expect(reducedMotionContainer.firstChild).not.toHaveStyleRule('animation'); 
     
-    // With reduced motion, should not contain animation
-    const reducedMotionStyle = String(reducedMotionResult.current.focusStyle);
-    expect(reducedMotionStyle).not.toContain('animation:');
-    
-    // But high visibility should override reduced motion
     const { result: highVisibilityResult } = renderHook(() => 
       useAccessibleFocusAnimation({ highVisibility: true })
-    );
+    , { wrapper: ThemeWrapper });
     
-    // With high visibility, should still animate even with reduced motion
-    const highVisibilityStyle = String(highVisibilityResult.current.focusStyle);
-    // Check for presence of animation or outline properties
-    expect(highVisibilityStyle.includes('animation-name:') || highVisibilityStyle.includes('outline:')).toBe(true);
+    const { container: highVisContainer } = renderWithTheme(
+       <StyleTester styles={highVisibilityResult.current.focusStyle} />
+    );
+    // Check for presence of high-vis style (e.g., outline)
+    expect(highVisContainer.firstChild).toHaveStyleRule('outline', expect.any(String));
   });
   
   test('focus animations adapt to high contrast mode', () => {
-    // Mock high contrast preference
     (useHighContrast as jest.Mock).mockReturnValue({
       isHighContrast: true,
       appHighContrast: true,
@@ -148,28 +169,29 @@ describe('AccessibleFocusAnimation', () => {
     });
     
     const { result: highContrastResult } = renderHook(() => 
-      useAccessibleFocusAnimation()
+      useAccessibleFocusAnimation(), { wrapper: ThemeWrapper } 
     );
     
-    // High contrast mode should contain high visibility styles
-    const highContrastStyle = String(highContrastResult.current.focusStyle);
-    // Check for high contrast colors or outline
-    expect(highContrastStyle.includes('rgba(255, 255, 255') || highContrastStyle.includes('outline:')).toBe(true);
+    // Assert that the style is generated and check for a high-contrast indicator
+    expect(highContrastResult.current.focusStyle).toBeDefined(); 
+    const { container } = renderWithTheme(<StyleTester styles={highContrastResult.current.focusStyle} />);
+    expect(container.firstChild).toHaveStyleRule('outline', expect.any(String)); // High contrast often uses outline
   });
   
   test('focus animation intensity affects output', () => {
     const { result: minimalResult } = renderHook(() => 
-      useAccessibleFocusAnimation({ intensity: FocusAnimationIntensity.MINIMAL })
+      useAccessibleFocusAnimation({ intensity: FocusAnimationIntensity.MINIMAL }), { wrapper: ThemeWrapper } 
     );
-    
     const { result: maximumResult } = renderHook(() => 
-      useAccessibleFocusAnimation({ intensity: FocusAnimationIntensity.MAXIMUM })
+      useAccessibleFocusAnimation({ intensity: FocusAnimationIntensity.MAXIMUM }), { wrapper: ThemeWrapper } 
     );
     
-    // Different intensities should produce different output
-    expect(String(minimalResult.current.focusStyle)).not.toEqual(
-      String(maximumResult.current.focusStyle)
-    );
+    expect(minimalResult.current.focusStyle).toBeDefined();
+    expect(maximumResult.current.focusStyle).toBeDefined();
+    // Check that the styles are actually different (avoids String conversion issue)
+    const { container: minContainer } = renderWithTheme(<StyleTester styles={minimalResult.current.focusStyle} />);
+    const { container: maxContainer } = renderWithTheme(<StyleTester styles={maximumResult.current.focusStyle} />);
+    expect(minContainer.innerHTML).not.toEqual(maxContainer.innerHTML);
   });
   
   test('createAccessibleFocusAnimation works standalone', () => {
@@ -178,8 +200,10 @@ describe('AccessibleFocusAnimation', () => {
       color: 'blue'
     }, false, false);
     
-    expect(String(focusCSS)).toContain('--focus-color');
-    expect(String(focusCSS)).toContain('outline');
+    expect(focusCSS).toBeDefined();
+    const { container } = renderWithTheme(<StyleTester styles={focusCSS} />);
+    expect(container.firstChild).toHaveStyleRule('outline', expect.any(String)); 
+    expect(container.firstChild).toHaveStyleRule('--focus-color', expect.stringContaining('blue'));
   });
   
   test('focusAnimation generates expected CSS', () => {
@@ -188,8 +212,10 @@ describe('AccessibleFocusAnimation', () => {
       color: 'red'
     });
     
-    expect(String(styledCSS)).toContain('&:focus-visible');
-    expect(String(styledCSS)).toContain('&:focus:not(:focus-visible)');
+    expect(styledCSS).toBeDefined();
+    const { container } = renderWithTheme(<StyleTester styles={styledCSS} />);
+    // Check for a key property applied in the focused state
+    expect(container.firstChild).toHaveStyleRule('box-shadow', expect.any(String), { modifier: ':focus-visible' });
   });
   
   test('mapFocusToHighContrastType returns appropriate mapping', () => {
@@ -204,14 +230,17 @@ describe('AccessibleFocusAnimation', () => {
   });
   
   test('each focus animation style produces unique CSS', () => {
-    const uniqueStyles = new Set();
+    // Correct type for map storing rendered HTML strings
+    const stylesMap = new Map<string, string>();
     
     Object.values(FocusAnimationStyle).forEach(style => {
       const focusCSS = createAccessibleFocusAnimation({ style: style as FocusAnimationStyle }, false, false);
-      uniqueStyles.add(String(focusCSS));
+      expect(focusCSS).toBeDefined(); 
+      const { container } = renderWithTheme(<StyleTester styles={focusCSS} />);
+      stylesMap.set(style, container.innerHTML);
     });
     
-    // Each style should produce unique CSS (not perfect test but catches most issues)
-    expect(uniqueStyles.size).toBeGreaterThanOrEqual(Object.values(FocusAnimationStyle).length - 1);
+    const uniqueStyleCount = new Set(stylesMap.values()).size;
+    expect(uniqueStyleCount).toBeGreaterThanOrEqual(Object.values(FocusAnimationStyle).length - 1);
   });
 });

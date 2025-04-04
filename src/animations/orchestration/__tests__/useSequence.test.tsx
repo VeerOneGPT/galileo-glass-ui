@@ -20,7 +20,7 @@ jest.mock('../DeclarativeSequencer', () => {
     DeclarativeSequencer: {
       create: jest.fn().mockImplementation(() => mockSequencer)
     },
-    SequenceBuilder: jest.fn().mockImplementation(function() {
+    SequenceBuilder: jest.fn().mockImplementation(function() { 
       this.animate = jest.fn().mockReturnThis();
       this.stagger = jest.fn().mockReturnThis();
       this.wait = jest.fn().mockReturnThis();
@@ -39,7 +39,7 @@ jest.mock('../DeclarativeSequencer', () => {
 });
 
 // Mock useReducedMotion hook
-jest.mock('../../hooks/useReducedMotion', () => ({
+jest.mock('../../../hooks/useReducedMotion', () => ({
   useReducedMotion: jest.fn().mockReturnValue(false)
 }));
 

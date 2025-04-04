@@ -16,7 +16,11 @@ import {
   type Vector2D,
   type PhysicsBodyState,
   type CollisionEvent,
-  type GalileoPhysicsEngineAPI
+  type GalileoPhysicsEngineAPI,
+  type PhysicsConstraintOptions,
+  type DistanceConstraintOptions,
+  type SpringConstraintOptions,
+  type HingeConstraintOptions
 } from '@veerone/galileo-glass-ui';
 ```
 
@@ -28,7 +32,11 @@ import {
   type Vector2D,
   type PhysicsBodyState,
   type CollisionEvent,
-  type GalileoPhysicsEngineAPI
+  type GalileoPhysicsEngineAPI,
+  type PhysicsConstraintOptions,
+  type DistanceConstraintOptions,
+  type SpringConstraintOptions,
+  type HingeConstraintOptions
 } from '@veerone/galileo-glass-ui/physics';
 ```
 
@@ -81,27 +89,20 @@ function MyPhysicsComponent() {
 ### Hook Signature
 
 ```typescript
-useGalileoPhysicsEngine = (config?: EngineConfiguration): GalileoPhysicsEngineAPI;
+useGalileoPhysicsEngine = (config?: PhysicsEngineConfig): GalileoPhysicsEngineAPI;
 ```
 
-*   **`config` (optional):** An object containing engine configuration options:
+*   **`config` (optional):** An object providing configuration options for the physics world.
     ```typescript
-    interface EngineConfiguration {
-      gravity?: Vector2D;           // Default: { x: 0, y: 9.81 }
-      defaultDamping?: number;      // Default: 0.01
-      timeScale?: number;           // Default: 1.0
-      fixedTimeStep?: number;       // Default: 1/60
-      maxSubSteps?: number;         // Default: 10
-      velocitySleepThreshold?: number;  // Default: 0.05
-      angularSleepThreshold?: number;   // Default: 0.05
-      sleepTimeThreshold?: number;      // Default: 1000 (ms)
-      enableSleeping?: boolean;         // Default: true
-      integrationMethod?: 'euler' | 'verlet' | 'rk4';  // Default: 'verlet'
-      boundsCheckEnabled?: boolean;     // Default: false
-      bounds?: {
-        min: Vector2D;
-        max: Vector2D;
-      };
+    // Intended Public Configuration Options
+    export interface PhysicsEngineConfig {
+      gravity?: Vector2D;           // Global gravity vector. Default: { x: 0, y: 9.8 }
+      timeScale?: number;           // Multiplier for simulation speed. Default: 1.0
+      enableSleeping?: boolean;     // Allow bodies to sleep when inactive? Default: true
+      velocitySleepThreshold?: number;  // Velocity magnitude below which a body can sleep. Default: 0.05
+      angularSleepThreshold?: number; // Angular velocity (radians/s) below which a body can sleep. Default: 0.05
+      sleepTimeThreshold?: number;    // Time (ms) a body must be inactive to sleep. Default: 1000
+      // Note: Other internal config like fixedTimeStep, maxSubSteps, integrationMethod are generally not exposed.
     }
     ```
 *   **Returns:** An object implementing the `GalileoPhysicsEngineAPI` interface. The object reference is stable.
@@ -127,6 +128,10 @@ export interface GalileoPhysicsEngineAPI {
   onCollisionStart: (callback: (event: CollisionEvent) => void) => UnsubscribeFunction;
   onCollisionActive: (callback: (event: CollisionEvent) => void) => UnsubscribeFunction;
   onCollisionEnd: (callback: (event: CollisionEvent) => void) => UnsubscribeFunction;
+
+  // Constraints (v1.0.14+)
+  addConstraint: (options: PhysicsConstraintOptions) => string;
+  removeConstraint: (id: string) => void;
 }
 ```
 
@@ -203,11 +208,146 @@ export interface CollisionEvent {
   bodyBId: string;
   bodyAUserData?: any;
   bodyBUserData?: any;
-  contactPoints?: Vector2D[];
-  normal?: Vector2D; // Collision normal vector (points from A to B)
-  penetration?: number; // How much bodies overlap
+  /** 
+   * The approximate point of contact in world coordinates. 
+   * Calculation depends on the shapes involved.
+   */
+  contactPoint?: Vector2D;
+  /** 
+   * The collision normal vector, pointing from bodyA towards bodyB.
+   */
+  normal?: Vector2D; 
+  /** 
+   * The depth of penetration between the bodies at the time of collision.
+   */
+  penetration?: number; 
+  /** 
+   * The relative velocity between the two bodies at the point of contact.
+   * Calculated as `velocityB - velocityA`.
+   */
+  relativeVelocity?: Vector2D;
+  /**
+   * The magnitude of the impulse applied to resolve the collision.
+   * This value represents the change in momentum during the collision, 
+   * which is a direct measure of the collision's intensity.
+   */
+  impulse?: number; 
 }
 ```
+
+**Key Collision Data:**
+*   `contactPoint`: Useful for positioning collision effects (e.g., sparks).
+*   `relativeVelocity`: Can be used to determine the speed of impact along the collision normal (`dotProduct(relativeVelocity, normal)`).
+*   `impulse`: A direct measure of the collision's intensity. Higher values indicate stronger impacts. Useful for triggering different sound effects, visual feedback, or game logic based on impact strength.
+
+For detailed examples of using collision events to drive UI updates efficiently, see the [Event-Driven Physics Updates](./event-driven-updates.md) guide.
+
+### Constraints (v1.0.14+)
+
+Methods for adding and removing constraints between physics bodies. Constraints enforce specific geometric relationships (like fixed distance, coincident points, or orientation limits) between two bodies.
+
+*   **`addConstraint(options: PhysicsConstraintOptions): string`**
+    *   Adds a constraint between two bodies based on the provided options.
+    *   Returns the unique ID assigned to the constraint, or an empty string on failure (e.g., if body IDs are invalid).
+    *   **`PhysicsConstraintOptions`:** (Union type from `src/animations/physics/engineTypes.ts`)
+        ```typescript
+        // Base options common to all constraints
+        export interface BaseConstraintOptions {
+          id?: string; // Optional user-defined ID for the constraint
+          bodyAId: string; // ID of the first body
+          bodyBId: string; // ID of the second body
+          // Optional: Define points relative to the body centers where the constraint attaches
+          pointA?: Vector2D; // Default: { x: 0, y: 0 }
+          pointB?: Vector2D; // Default: { x: 0, y: 0 }
+          collideConnected?: boolean; // Should the connected bodies still collide? Default: false
+          stiffness?: number; // Spring stiffness (0 to 1 typical). Used by Distance, Spring, Hinge (positional).
+          damping?: number; // Damping factor (0 to 1 typical). Used by Spring.
+        }
+
+        // Distance Constraint: Maintains a fixed distance
+        export interface DistanceConstraintOptions extends BaseConstraintOptions {
+          type: 'distance';
+          distance: number; // Target distance between pointA and pointB
+          // Inherits stiffness for 'softness'
+        }
+
+        // Spring Constraint: Acts like a damped spring between two points
+        export interface SpringConstraintOptions extends BaseConstraintOptions {
+            type: 'spring';
+            restLength: number; // The natural length of the spring
+            stiffness: number; // Spring stiffness (e.g., 0.5)
+            damping: number; // Damping factor (e.g., 0.1)
+        }
+
+        // Hinge Constraint: Restricts relative rotation (like a door hinge)
+        export interface HingeConstraintOptions extends BaseConstraintOptions {
+          type: 'hinge';
+          // Hinge connects bodies at a single world point (anchor)
+          // If specified, takes precedence over pointA/pointB - NOT IMPLEMENTED YET
+          // anchor?: Vector2D; 
+          // Optional: Enable motor - NOT IMPLEMENTED YET
+          // enableMotor?: boolean;
+          // motorSpeed?: number;
+          // maxMotorTorque?: number;
+          // Optional: Enable limits - NOT IMPLEMENTED YET
+          // enableLimit?: boolean;
+          // lowerAngle?: number; // Radians
+          // upperAngle?: number; // Radians
+        }
+
+        // Union of all constraint types
+        export type PhysicsConstraintOptions =
+            DistanceConstraintOptions |
+            HingeConstraintOptions |
+            SpringConstraintOptions;
+        ```
+*   **`removeConstraint(id: string): void`**
+    *   Removes the constraint with the specified ID from the simulation.
+    *   Does nothing if the ID is not found.
+
+**Implementation Notes (Constraints v1.0.14):**
+*   Constraints are resolved iteratively within the physics `step` using positional correction.
+*   `DistanceConstraint` uses the `stiffness` parameter to control how strongly the target distance is enforced (lower values are softer).
+*   `SpringConstraint` uses `stiffness` and `damping` to simulate a damped harmonic oscillator between the attachment points, aiming for the `restLength`.
+*   `HingeConstraint` currently only enforces the positional aspect: keeping the world-space positions of `pointA` (rotated by bodyA's angle) and `pointB` (rotated by bodyB's angle) coincident. Angular limits and motors are **not implemented**. Using the `anchor` property is **not implemented**.
+*   The `collideConnected` option is not yet implemented; connected bodies will not collide with each other regardless of this setting.
+
+**Example: Adding a Spring Constraint**
+
+```typescript
+useEffect(() => {
+  if (!engine) return;
+
+  const bodyId1 = engine.addBody({ /* ... options ... */ });
+  const bodyId2 = engine.addBody({ /* ... options ... */ });
+
+  const springOptions: SpringConstraintOptions = {
+    type: 'spring',
+    bodyAId: bodyId1,
+    bodyBId: bodyId2,
+    restLength: 50,
+    stiffness: 0.6,
+    damping: 0.1,
+    pointA: { x: 0, y: 10 }, // Attach 10 units above center of body 1
+    pointB: { x: 0, y: -10 } // Attach 10 units below center of body 2
+  };
+
+  const constraintId = engine.addConstraint(springOptions);
+  console.log('Added spring constraint:', constraintId);
+
+  // Cleanup function to remove the constraint
+  return () => {
+    if (constraintId) {
+      engine.removeConstraint(constraintId);
+      console.log('Removed spring constraint:', constraintId);
+    }
+  };
+}, [engine]);
+```
+
+## Declarative Constraint Management
+
+For a more React-friendly way to manage constraints declaratively, see the `usePhysicsConstraint` hook documentation (located in `docs/hooks/usePhysicsConstraint.md`).
 
 ## Implementation Notes
 
@@ -221,6 +361,415 @@ export interface CollisionEvent {
 *   Adding a large number of bodies or complex shapes can impact performance. Profile your specific use case.
 *   The system uses a spatial grid for broad-phase collision detection by default, which helps performance in scenes with many bodies.
 *   Collision event callbacks should be efficient to avoid delaying the simulation loop.
+
+## Troubleshooting Guide
+
+This section addresses common issues developers may encounter when working with the Galileo Physics Engine and provides solutions.
+
+### State Retrieval Issues
+
+**Problem:** `engine.getBodyState(bodyId)` returns `null` even though body creation was successful.
+
+**Solutions:**
+
+1. **Use State Retrieval Utility (Recommended)**: A reliable utility function is provided:
+   ```typescript
+   // Import from the main hooks export
+   import { getPhysicsBodyState } from '@veerone/galileo-glass-ui/hooks';
+   
+   // ... inside component ...
+   const state = getPhysicsBodyState(engine, bodyId);
+   ```
+
+2. **Verify the Body ID**: Always use the exact ID returned from `addBody()`. String vs. number type issues have been fixed in v1.0.14.
+
+3. **Wait for Physics Updates**: The physics system may need at least one update cycle to initialize body states.
+   ```typescript
+   // Create body
+   const bodyId = engine.addBody({ /* options */ });
+   
+   // Wait for next frame
+   requestAnimationFrame(() => {
+     const state = engine.getBodyState(bodyId);
+     // Use state here...
+   });
+   ```
+
+4. **Force a Physics Update**: You can trigger an update to ensure the physics state is current using another utility:
+   ```typescript
+   // Import from the main hooks export
+   import { forcePhysicsEngineUpdate } from '@veerone/galileo-glass-ui/hooks';
+   
+   // ... inside component ...
+   forcePhysicsEngineUpdate(engine, bodyId);
+   const state = engine.getBodyState(bodyId); // State should now be available
+   ```
+
+5. **Check Engine Status**: Use the diagnostic utility to verify the engine is working correctly:
+   ```typescript
+   // Import from the main hooks export
+   import { verifyPhysicsEngineState } from '@veerone/galileo-glass-ui/hooks';
+   
+   // ... inside component ...
+   const status = verifyPhysicsEngineState(engine);
+   console.log(status.message);
+   ```
+
+**Note:** If you're using a version prior to 1.0.14, you can implement a workaround by retrieving the state from `getAllBodyStates()`. See the [migration guide](./migration-guides.md) for details.
+
+### Bodies Not Moving as Expected
+
+**Problem:** Physics bodies don't respond to forces or appear static when they should be moving.
+
+**Solutions:**
+
+1. **Verify Engine is Running**: The physics loop should start automatically, but for debugging:
+   ```typescript
+   // Check if engine is creating bodies successfully
+   const bodyId = engine.addBody({
+     position: { x: 100, y: 100 },
+     velocity: { x: 50, y: 0 },
+     shape: { type: 'circle', radius: 10 }
+   });
+   console.log("Initial body state:", engine.getBodyState(bodyId));
+   
+   // Force a state update to trigger the physics loop
+   engine.updateBodyState(bodyId, { 
+     velocity: { x: 50, y: 0 } // Even re-applying the same velocity helps
+   });
+   ```
+
+2. **Check Static Bodies**: Ensure bodies aren't accidentally static:
+   ```typescript
+   // Explicitly set isStatic to false for dynamic bodies
+   const bodyId = engine.addBody({
+     // ...other options
+     isStatic: false, // Must be false for movement
+     mass: 1 // Must NOT be Infinity for dynamic bodies
+   });
+   ```
+
+3. **Apply Forces/Impulses**: If bodies aren't moving, try applying direct forces:
+   ```typescript
+   // Apply a significant impulse to verify movement
+   engine.applyImpulse(bodyId, { x: 100, y: 0 });
+   ```
+
+For a comprehensive guide to diagnosing and fixing issues with static or incorrectly moving bodies, see [Common Physics Engine Movement Issues](./common-issues.md).
+
+### Collision Detection Issues
+
+**Problem:** Collisions aren't being detected or collision events aren't firing.
+
+**Solutions:**
+1. **Verify Collision Registration**: Make sure you've subscribed to collision events:
+   ```typescript
+   // Log for confirmation that subscription happened
+   const unsubscribe = engine.onCollisionStart((event) => {
+     console.log("Collision detected:", event);
+   });
+   console.log("Collision listener registered");
+   ```
+
+2. **Check Collision Filters**: Bodies might have incompatible collision filters:
+   ```typescript
+   // Ensure collision masks allow interaction
+   const bodyA = engine.addBody({
+     // ...other options
+     collisionFilter: {
+       group: 1, // Same group will collide by default
+       mask: 0xFFFFFFFF // Allow collision with all groups
+     }
+   });
+   ```
+
+3. **Verify Body Shapes**: Ensure collision shapes are appropriate:
+   ```typescript
+   // For better collision detection, use explicit radius/dimensions
+   const smallBody = engine.addBody({
+     shape: { type: 'circle', radius: 5 }, // Too small can miss collisions
+     // ...other options
+   });
+   const largeBody = engine.addBody({
+     shape: { type: 'rectangle', width: 50, height: 50 },
+     // ...other options
+   });
+   ```
+
+For advanced physics engine debugging and visualization, see our [Physics Engine Debugging Guide](./physics-debugging.md) which includes visualization tools to help you see exactly what's happening in your physics simulation.
+
+### Event-Based Updates
+
+**Problem:** Polling with `getBodyState()` isn't efficient for tracking position changes.
+
+**Solution:** Use collision events for reactive updates:
+```typescript
+// Set up a reactive system using collision events
+const bodyIds = new Set(); // Track bodies of interest
+
+// Add bodies you want to track
+const targetId = engine.addBody({/* options */});
+bodyIds.add(targetId);
+
+// Get position updates during collisions
+engine.onCollisionActive((event) => {
+  if (bodyIds.has(event.bodyAId) || bodyIds.has(event.bodyBId)) {
+    // Get the body ID we care about
+    const id = bodyIds.has(event.bodyAId) ? event.bodyAId : event.bodyBId;
+    const state = engine.getBodyState(id);
+    if (state) {
+      // Update your UI with the new position
+      updateElementPosition(state.position);
+    }
+  }
+});
+
+// Alternative: Set up a render loop for continuous updates
+// (More appropriate for game-like interfaces)
+function updateFrame() {
+  bodyIds.forEach(id => {
+    const state = engine.getBodyState(id);
+    if (state) {
+      updateElementPosition(id, state.position);
+    }
+  });
+  requestAnimationFrame(updateFrame);
+}
+requestAnimationFrame(updateFrame);
+```
+
+### Performance Issues
+
+**Problem:** Physics simulations are slow or dropping frames.
+
+**Solutions:**
+1. **Reduce Body Count**: Limit the number of physics bodies in your scene.
+2. **Use Simple Shapes**: Prefer circles over rectangles where possible.
+3. **Enable Sleeping**: Bodies at rest can "sleep" to save CPU:
+   ```typescript
+   const engine = useGalileoPhysicsEngine({
+     enableSleeping: true,
+     velocitySleepThreshold: 0.05,
+     sleepTimeThreshold: 500 // ms
+   });
+   ```
+4. **Optimize Collision Filters**: Use collision groups/masks to limit collision checks.
+5. **Clean Up**: Remove bodies when no longer needed:
+   ```typescript
+   useEffect(() => {
+     const bodyIds = []; // Store IDs
+     // Add bodies...
+     
+     return () => {
+       // Clean up when component unmounts
+       bodyIds.forEach(id => engine.removeBody(id));
+     };
+   }, [engine]);
+   ```
+
+For detailed performance optimization strategies and real-time monitoring tools, see the [Performance Profiling](./physics-debugging.md#performance-profiling) section in our Physics Debugging Guide.
+
+### Complete Lifecycle Example
+
+Here's a comprehensive example showing the complete lifecycle of collision detection with the physics engine:
+
+```typescript
+import React, { useEffect, useRef, useState } from 'react';
+import { useGalileoPhysicsEngine } from '@veerone/galileo-glass-ui';
+
+function PhysicsDemo() {
+  const [collisionCount, setCollisionCount] = useState(0);
+  const bodyARef = useRef(null);
+  const bodyBRef = useRef(null);
+  
+  // 1. Initialize the physics engine
+  const engine = useGalileoPhysicsEngine({
+    gravity: { x: 0, y: 0 }, // No gravity for this example
+    enableSleeping: false    // Keep bodies active
+  });
+  
+  useEffect(() => {
+    if (!engine) return;
+    
+    console.log("Physics engine initialized");
+    
+    // 2. Create two bodies that will collide
+    const bodyA = engine.addBody({
+      shape: { type: 'circle', radius: 20 },
+      position: { x: 100, y: 150 },
+      velocity: { x: 50, y: 0 },  // Moving right
+      mass: 1,
+      restitution: 0.8,           // Bouncy
+      friction: 0.1,
+      isStatic: false,
+      userData: { type: 'playerBall' }  // Custom data
+    });
+    
+    const bodyB = engine.addBody({
+      shape: { type: 'circle', radius: 20 },
+      position: { x: 300, y: 150 },
+      velocity: { x: -50, y: 0 }, // Moving left
+      mass: 1,
+      restitution: 0.8,
+      friction: 0.1,
+      isStatic: false,
+      userData: { type: 'enemyBall' }
+    });
+    
+    // Store body IDs for later use
+    bodyARef.current = bodyA;
+    bodyBRef.current = bodyB;
+    
+    console.log("Bodies created:", bodyA, bodyB);
+    
+    // Verify body states are initialized
+    setTimeout(() => {
+      console.log("Body A state:", engine.getBodyState(bodyA));
+      console.log("Body B state:", engine.getBodyState(bodyB));
+    }, 32);
+    
+    // 3. Set up collision event listeners
+    const unsubscribeStart = engine.onCollisionStart((event) => {
+      console.log("Collision started:", event);
+      
+      // Extract user data from the event
+      const bodyAData = event.bodyAUserData;
+      const bodyBData = event.bodyBUserData;
+      
+      console.log("Collision between:", bodyAData?.type, "and", bodyBData?.type);
+      console.log("Impact force:", event.impactForce);
+      console.log("Contact point:", event.contactPoint);
+      
+      // Update component state
+      setCollisionCount(prev => prev + 1);
+      
+      // Play sound or trigger visual effect based on impact force
+      if (event.impactForce > 50) {
+        console.log("Strong collision detected!");
+        // triggerCollisionEffect(event.contactPoint);
+      }
+    });
+    
+    const unsubscribeActive = engine.onCollisionActive((event) => {
+      // Only log occasionally to avoid console spam
+      if (Math.random() < 0.1) {
+        console.log("Collision active:", event.bodyAId, event.bodyBId);
+      }
+      
+      // Get updated positions during collision
+      const stateA = engine.getBodyState(event.bodyAId);
+      const stateB = engine.getBodyState(event.bodyBId);
+      
+      // Use these states to update UI elements
+      // updateVisualPosition('ballA', stateA.position);
+      // updateVisualPosition('ballB', stateB.position);
+    });
+    
+    const unsubscribeEnd = engine.onCollisionEnd((event) => {
+      console.log("Collision ended:", event.bodyAId, event.bodyBId);
+    });
+    
+    // 4. Set up walls to keep bodies in view
+    // Top wall
+    engine.addBody({
+      shape: { type: 'rectangle', width: 600, height: 20 },
+      position: { x: 300, y: -10 },
+      isStatic: true
+    });
+    
+    // Bottom wall
+    engine.addBody({
+      shape: { type: 'rectangle', width: 600, height: 20 },
+      position: { x: 300, y: 310 },
+      isStatic: true
+    });
+    
+    // Left wall
+    engine.addBody({
+      shape: { type: 'rectangle', width: 20, height: 300 },
+      position: { x: -10, y: 150 },
+      isStatic: true
+    });
+    
+    // Right wall
+    engine.addBody({
+      shape: { type: 'rectangle', width: 20, height: 300 },
+      position: { x: 610, y: 150 },
+      isStatic: true
+    });
+    
+    // 5. Set up a render loop for visualization (optional)
+    const canvasRef = document.getElementById('physics-canvas');
+    if (canvasRef) {
+      const ctx = canvasRef.getContext('2d');
+      
+      function render() {
+        // Clear canvas
+        ctx.clearRect(0, 0, 600, 300);
+        
+        // Get all body states
+        const allBodies = engine.getAllBodyStates();
+        
+        // Render each body
+        allBodies.forEach((state) => {
+          ctx.beginPath();
+          // Assuming all bodies are circles for simplicity
+          ctx.arc(state.position.x, state.position.y, 20, 0, Math.PI * 2);
+          ctx.fillStyle = state.id === bodyA ? 'blue' : 'red';
+          ctx.fill();
+        });
+        
+        requestAnimationFrame(render);
+      }
+      
+      requestAnimationFrame(render);
+    }
+    
+    // 6. Clean up when component unmounts
+    return () => {
+      // Unsubscribe from collision events
+      unsubscribeStart();
+      unsubscribeActive();
+      unsubscribeEnd();
+      
+      // Remove all bodies
+      if (bodyARef.current) engine.removeBody(bodyARef.current);
+      if (bodyBRef.current) engine.removeBody(bodyBRef.current);
+      
+      console.log("Physics cleanup complete");
+    };
+  }, [engine]); // Dependency on engine ensures effect runs once when engine is available
+  
+  // User interaction example: Apply impulse to body A
+  const applyImpulse = () => {
+    if (bodyARef.current) {
+      engine.applyImpulse(bodyARef.current, { x: 100, y: -50 });
+      console.log("Impulse applied to Body A");
+    }
+  };
+  
+  return (
+    <div>
+      <h2>Physics Collision Demo</h2>
+      <p>Collision count: {collisionCount}</p>
+      <button onClick={applyImpulse}>Apply Impulse</button>
+      <div 
+        style={{ 
+          width: 600, 
+          height: 300, 
+          border: '1px solid black',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <canvas id="physics-canvas" width={600} height={300} />
+      </div>
+    </div>
+  );
+}
+
+export default PhysicsDemo;
+```
 
 ## Best Practices
 

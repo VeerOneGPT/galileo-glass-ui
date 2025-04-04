@@ -1,291 +1,522 @@
-# Animation Orchestration: `useSequence`
+# Animation Orchestration: `useAnimationSequence` & `useSequence`
 
-This document details the `useSequence` hook, a powerful tool within the Galileo Glass UI library for creating and managing coordinated sequences of animations. It allows for precise control over timing, dependencies, and staggering, enabling complex and expressive animation choreography.
+This document details the hooks provided by Galileo Glass UI for creating and managing coordinated sequences of animations: `useAnimationSequence` (using a declarative configuration object) and `useSequence` (using a builder pattern). These allow for precise control over timing, dependencies, and staggering, enabling complex animation choreography.
 
 ## Table of Contents
 
-- [Purpose](#purpose)
-- [Core Concepts](#core-concepts)
-  - [Stages](#stages)
-  - [Dependencies & Timing](#dependencies--timing)
-  - [Targets](#targets)
-  - [Controls](#controls)
-  - [Reduced Motion](#reduced-motion)
-- [Signature](#signature)
-- [Parameters (`UseSequenceParams`)](#parameters-usesequenceparams)
-- [Return Value (`UseSequenceResult`)](#return-value-usesequenceresult)
-- [Key Types & Enums](#key-types--enums)
-  - [`AnimationStep`](#animationstep)
+- [Choosing Between Hooks](#choosing-between-hooks)
+- [`useAnimationSequence` (Declarative Config)](#useanimationsequence-declarative-config)
+  - [Purpose](#purpose-useanimationsequence)
+  - [Core Concepts](#core-concepts-useanimationsequence)
+    - [Configuration (`AnimationSequenceConfig`)](#configuration-animationsequenceconfig)
+    - [Stages (`AnimationStage`)](#stages-animationstage)
+    - [Targets](#targets-useanimationsequence)
+    - [Timing & Dependencies](#timing--dependencies-useanimationsequence)
+    - [Controls (`SequenceControls`)](#controls-sequencecontrols-useanimationsequence)
+    - [Reduced Motion](#reduced-motion-useanimationsequence)
+  - [Signature](#signature-useanimationsequence)
+  - [Parameters (`AnimationSequenceConfig`)](#parameters-animationsequenceconfig)
+  - [Key Stage Types (`AnimationStage`)](#key-stage-types-animationstage)
+    - [`StyleAnimationStage`](#styleanimationstage)
+    - [`GroupAnimationStage`](#groupanimationstage)
+    - [`StaggerAnimationStage`](#staggeranimationstage)
+    - [`CallbackAnimationStage`](#callbackanimationstage)
+    - [`EventAnimationStage`](#eventanimationstage)
+  - [Return Value (`AnimationSequenceResult`)](#return-value-animationsequenceresult)
+  - [Example Usage](#example-usage-useanimationsequence)
+  - [Best Practices](#best-practices-useanimationsequence)
+- [`useSequence` (Builder Pattern)](#usesequence-builder-pattern)
+  - [Purpose](#purpose-usesequence)
+  - [Core Concepts](#core-concepts-usesequence)
+    - [Builder Function (`builderFn`)](#builder-function-builderfn)
+    - [Sequence Builder (`SequenceBuilder`)](#sequence-builder-sequencebuilder)
+    - [Animation Definitions](#animation-definitions-usesequence)
+    - [Controls](#controls-usesequence)
+  - [Signature](#signature-usesequence)
+  - [Parameters (`UseSequenceParams`)](#parameters-usesequenceparams)
+  - [Return Value (`UseSequenceResult`)](#return-value-usesequenceresult)
+  - [Example Usage](#example-usage-usesequence)
+  - [Best Practices](#best-practices-usesequence)
+- [Key Types & Enums (Common)](#key-types--enums-common)
   - [`PlaybackDirection`](#playbackdirection)
-  - [`StaggerPattern`](#staggerpattern)
   - [`PlaybackState`](#playbackstate)
-- [Example Usage](#example-usage)
-  - [Basic Style Sequence](#basic-style-sequence)
-  - [Sequence with Dependencies](#sequence-with-dependencies)
-  - [Staggered Animation](#staggered-animation)
-- [Best Practices](#best-practices)
+  - [`AnimationCategory`](#animationcategory)
+- [`useAnimationStateMachine` (Finite State Machine)](#useanimationstatemachine-finite-state-machine)
+  - [Purpose](#purpose-useanimationstatemachine)
+  - [Core Concepts](#core-concepts-useanimationstatemachine)
+    - [States (`AnimationState[]`)](#states-animationstate)
+    - [Transitions (`StateTransition[]`)](#transitions-statetransition)
+    - [Events](#events-useanimationstatemachine)
+    - [Context](#context-useanimationstatemachine)
+  - [Signature](#signature-useanimationstatemachine)
+  - [Parameters (`UseAnimationStateMachineParams`)](#parameters-useanimationstatemachineparams)
+  - [Return Value (`UseAnimationStateMachineResult`)](#return-value-useanimationstatemachineresult)
+  - [Example Usage](#example-usage-useanimationstatemachine)
+  - [Best Practices](#best-practices-useanimationstatemachine)
 
 ---
 
-## Purpose
+## Choosing Between Hooks
 
-The `useSequence` hook is designed to:
+- **`useAnimationSequence`:** Choose this hook if you prefer defining your entire animation sequence upfront using a declarative JavaScript configuration object. This can be easier for complex sequences defined dynamically or loaded from external sources.
+- **`useSequence`:** Choose this hook if you prefer a fluent, builder-style API to define your sequence steps programmatically within a function. This can feel more imperative and might be preferable for sequences built up conditionally.
 
-- Define multi-step animations involving multiple properties or elements.
-- Coordinate animations with precise timing relationships (e.g., one after another, overlapping).
+Both hooks provide similar underlying capabilities and controls.
+
+---
+
+## `useAnimationSequence` (Declarative Config)
+
+### Purpose {#purpose-useanimationsequence}
+
+The `useAnimationSequence` hook is designed to:
+
+- Define multi-step animations involving multiple properties or elements using a single configuration object.
+- Coordinate animations with precise timing relationships (e.g., one after another, overlapping, dependencies).
 - Create entrance/exit animations for lists or groups of elements with controlled staggering.
 - Build complex UI transitions involving several distinct animation phases.
-- Provide fine-grained playback control (play, pause, seek, reverse) over complex animations.
+- Provide fine-grained playback control (play, pause, stop, seek) over complex animations defined declaratively.
 
----
+### Core Concepts {#core-concepts-useanimationsequence}
 
-## Core Concepts
+#### Configuration (`AnimationSequenceConfig`)
 
-### Stages
+The primary input is a single configuration object (`AnimationSequenceConfig`) defining the entire sequence, including stages, timing, looping, and callbacks.
 
-A sequence is composed of one or more `AnimationStep` objects. Each step represents a distinct part of the animation. Key types include:
+#### Stages (`AnimationStage`)
 
-- **`StyleAnimationStep`:** Animates CSS properties of target elements from a `from` state to a `to` state over a `duration`.
-- **`StaggerAnimationStep`:** Applies a style animation sequentially across multiple `targets` with a defined `staggerDelay` and `staggerPattern`.
-- **`CallbackAnimationStep`:** Executes a provided JavaScript function on each frame of its duration, passing the current progress.
-- **`EventAnimationStep`:** Executes a callback function once at its designated start time (duration is 0).
-- **`GroupAnimationStep`:** Groups multiple child steps, allowing them to be treated as a unit with specific timing relationships (`CHAIN`, `START_TOGETHER`, etc.).
+The core is the `stages` array. Each object in the array represents a step (an `AnimationStage`) with a specific `type` (e.g., `'style'`, `'stagger'`, `'callback'`).
 
-### Dependencies & Timing
+#### Targets {#targets-useanimationsequence}
 
-- **Dependencies:** Steps can specify `dependsOn` (an array of step IDs) that must complete before they begin.
-- **Start Time:** Steps can have an explicit `startTime` (in ms from sequence start) or have their start time calculated based on dependencies and the flow of the sequence.
-- **Duration:** Each step has a `duration`.
-- **Easing:** Each step can have its own `easing` function.
-- **Repetition:** Sequences and steps can `repeatCount` with optional `yoyo` (reverse direction on repeat) and `repeatDelay`.
-- **Timeline Calculation:** The hook automatically calculates the start and end times for each step based on durations, dependencies, and group relationships, determining the total sequence duration.
+Stages like `StyleAnimationStage` require a `targets` property:
+- React ref(s) (`React.RefObject<HTMLElement>` or array).
+- CSS selector string(s).
+- Direct HTMLElement/NodeList (less common).
 
-### Targets
+#### Timing & Dependencies {#timing--dependencies-useanimationsequence}
 
-`StyleAnimationStep` and `StaggerAnimationStep` require `targets`. These can be:
-- A CSS selector string (e.g., `'.my-class'`).
-- A direct reference to an HTMLElement.
-- An array of selectors or HTMLElements.
-- A NodeList.
+Control timing using `duration`, `delay`, explicit `startTime`, or `dependsOn` (an array of stage IDs that must complete first). Easing is specified per stage.
 
-### Controls
+#### Controls (`SequenceControls`) {#controls-sequencecontrols-useanimationsequence}
 
-The hook returns a `SequenceControls` object, providing imperative methods to manage playback:
+Returns an object with methods like `play()`, `pause()`, `stop()`, `seek()`, etc., to manage playback.
 
-- `play()`, `pause()`, `stop()` (resets to start)
-- `reverse()`
-- `restart()`
-- `seek(timeMs)`, `seekProgress(progressPercent)`, `seekLabel(labelName)`
-- `setPlaybackRate(rate)`
-- Dynamic step management: `addStep()`, `removeStep()`, `updateStep()`
+#### Reduced Motion {#reduced-motion-useanimationsequence}
 
-### Reduced Motion
+Respects `useReducedMotion`. Animations may be skipped or run instantly based on category and user preferences.
 
-- The hook respects the user's preference detected via `useReducedMotion`.
-- Individual steps can define a `reducedMotionAlternative` step to run instead.
-- If reduced motion is active, animations typically complete instantly unless an alternative is defined.
-
----
-
-## Signature
+### Signature {#signature-useanimationsequence}
 
 ```typescript
-import { useSequence, type UseSequenceParams, type UseSequenceResult } from '@veerone/galileo-glass-ui/hooks';
+import {
+  useAnimationSequence,
+  type AnimationSequenceConfig,
+  type AnimationSequenceResult
+} from '@veerone/galileo-glass-ui/animations'; // Correct path
+// or from '@veerone/galileo-glass-ui/hooks';
+
+function useAnimationSequence(
+  config: AnimationSequenceConfig
+): AnimationSequenceResult;
+```
+
+### Parameters (`AnimationSequenceConfig`)
+
+A single object with properties like:
+
+- **`stages`** (`AnimationStage[]`, **Required**): Array defining the animation steps.
+- `id` (`string`, optional): Unique sequence identifier.
+- `autoplay` (`boolean`, optional): Play on mount. Default: `false`.
+- `duration` (`number`, optional): Explicit total duration (ms). Calculated if omitted.
+- `repeatCount` (`number`, optional): Repeats (0=none, -1=infinite). Default: 0.
+- `yoyo` (`boolean`, optional): Reverse direction on repeat. Default: `false`.
+- `direction` (`PlaybackDirection`, optional): Initial direction. Default: `FORWARD`.
+- `category` (`AnimationCategory`, optional): Accessibility category.
+- `playbackRate` (`number`, optional): Speed multiplier. Default: 1.
+- **Lifecycle Callbacks** (optional): `onStart`, `onUpdate`, `onComplete`, etc.
+
+### Key Stage Types (`AnimationStage`) {#key-stage-types-animationstage}
+
+Common types for the `stages` array:
+
+#### `StyleAnimationStage`
+
+Animates CSS properties. **Use the `properties` key for target values, and optionally `from` for starting values.**
+
+```typescript
+interface StyleAnimationStage extends BaseAnimationStage { // Base contains id, duration, delay, easing, dependsOn etc.
+  type: 'style';
+  targets: AnimationTarget | AnimationTarget[];
+  // Use 'properties' for target values, 'from' (optional) for start values
+  properties: Record<string, unknown | number | string>; // Target CSS properties (camelCase)
+  from?: Record<string, unknown | number | string>; // Optional starting CSS properties
+  exclude?: string[]; // Properties to exclude from animation
+}
+```
+
+#### `GroupAnimationStage`
+
+Groups child stages (`children: AnimationStage[]`) with timing relationships (`relationship?: TimingRelationship`).
+
+#### `StaggerAnimationStage`
+
+Applies an animation sequentially across multiple `targets`.
+
+```typescript
+interface StaggerAnimationStage extends BaseAnimationStage {
+  type: 'stagger';
+  targets: AnimationTarget | AnimationTarget[];
+  // Use 'properties' for target values, 'from' for start values
+  properties: { /* Target CSS properties like in StyleAnimationStage */ };
+  from: { /* Starting CSS properties */ };
+  duration: number; // Duration for each element
+  staggerDelay: number; // Delay (ms) between targets
+  staggerPattern?: StaggerPattern;
+  // ... other options
+}
+```
+*(Note: The exact structure for `to`/`from` within `StaggerAnimationStage` should be confirmed from implementation if needed.)*
+
+#### `CallbackAnimationStage`
+
+Executes `callback: (progress: number, stageId: string) => void` on each frame.
+
+#### `EventAnimationStage`
+
+Executes `callback: (stageId: string) => void` once. `duration` is 0.
+
+*(Refer to source types `AnimationStage` union in `useAnimationSequence.ts` for full details)*
+
+### Return Value (`AnimationSequenceResult`)
+
+Object containing state and `SequenceControls`:
+- `play`, `pause`, `stop`, `seek`, etc.
+- `progress` (0 to 1)
+- `playbackState` (`PlaybackState` enum)
+- `duration` (ms)
+- ... and other state values.
+
+### Example Usage {#example-usage-useanimationsequence}
+
+```tsx
+import React, { useRef } from 'react';
+import {
+  useAnimationSequence,
+  type AnimationSequenceConfig
+} from '@veerone/galileo-glass-ui/animations';
+import { GlassBox, GlassButton } from '@veerone/galileo-glass-ui/components';
+
+const SequenceDemo = () => {
+  const element1Ref = useRef<HTMLDivElement>(null);
+  const element2Ref = useRef<HTMLDivElement>(null);
+
+  const sequenceConfig: AnimationSequenceConfig = {
+    id: 'declarative-sequence',
+    autoplay: false,
+    stages: [
+      {
+        id: 'el1-fade-move',
+        type: 'style',
+        targets: element1Ref,
+        // Use 'from' and 'properties' keys here
+        from: { opacity: 0, transform: 'translateY(20px)' },
+        properties: { opacity: 1, transform: 'translateY(0px)' },
+        duration: 500,
+        easing: 'easeOutCubic'
+      },
+      {
+        id: 'el2-fade-in',
+        type: 'style',
+        targets: element2Ref,
+        from: { opacity: 0 },
+        properties: { opacity: 1 },
+        duration: 400,
+        dependsOn: ['el1-fade-move'],
+        delay: 100
+      }
+    ]
+  };
+
+  const { play, stop, playbackState } = useAnimationSequence(sequenceConfig);
+
+  return (
+    <GlassBox style={{ padding: '16px' }}>
+      {/* ... elements with refs ... */}
+      <GlassButton onClick={play} disabled={playbackState === 'playing'}>Play</GlassButton>
+      <GlassButton onClick={stop} disabled={playbackState === 'idle'}>Stop</GlassButton>
+      {/* ... Element 1 and Element 2 definitions ... */}
+    </GlassBox>
+  );
+};
+```
+
+### Best Practices {#best-practices-useanimationsequence}
+
+- Use unique stage IDs.
+- Set initial element styles to match the `from` state if provided.
+- Use `will-change` CSS property.
+- Use `dependsOn` and `delay` for timing control.
+- Ensure `properties` (and optionally `from`) keys are used for `StyleAnimationStage`.
+
+---
+
+## `useSequence` (Builder Pattern)
+
+### Purpose {#purpose-usesequence}
+
+The `useSequence` hook allows you to:
+
+- Define animation sequences programmatically using a fluent builder API.
+- Build sequences step-by-step within a function.
+- Primarily works with predefined animation presets or potentially keyframes objects.
+
+### Core Concepts {#core-concepts-usesequence}
+
+#### Builder Function (`builderFn`)
+The hook takes a function (`builderFn`) as its second argument. This function receives a `SequenceBuilder` instance which you use to define the animation steps.
+
+#### Sequence Builder (`SequenceBuilder`)
+The `builder` object provides methods like:
+- `builder.animate(target, animation, options)`: Animate a target using a preset or keyframes.
+- `builder.stagger(target, animation, options)`: Apply staggered animation.
+- `builder.wait(duration)`: Add a delay.
+- `builder.add(declaration)`: Add a raw animation declaration (structure may vary).
+
+#### Animation Definitions {#animation-definitions-usesequence}
+Instead of inline `properties`, `builder.animate` typically takes:
+- `target`: CSS selector or ref.
+- `animation`: The **name** of an animation preset (string, e.g., `'fadeIn'`) or a `keyframes` object.
+- `options`: Optional configuration like `duration`, `delay`, `easing`.
+
+#### Controls {#controls-usesequence}
+Returns an object (`UseSequenceResult`) with methods like `start()`, `pause()`, `resume()`, `stop()`, `reset()`.
+
+### Signature {#signature-usesequence}
+
+```typescript
+import {
+  useSequence,
+  type UseSequenceParams,
+  type UseSequenceResult,
+  type SequenceBuilder // May need to import builder type if used outside
+} from '@veerone/galileo-glass-ui/animations'; // Correct path
+// Or from '@veerone/galileo-glass-ui/hooks'; // If re-exported
 
 function useSequence(
-  config?: UseSequenceParams
+  params: UseSequenceParams, // Basic config like name, loop, etc.
+  builderFn: (builder: SequenceBuilder) => void // Function to build the sequence
 ): UseSequenceResult;
 ```
 
----
+### Parameters (`UseSequenceParams`)
 
-## Parameters (`UseSequenceParams`)
+Object with basic sequence configuration:
+- `name` (string, Required): Unique sequence name.
+- `autoPlay` (boolean, optional): Default: `false`.
+- `startDelay` (number, optional): Delay before starting (ms).
+- `loop`, `iterations`, `alternate` (optional): Looping behavior.
+- `sensitivity`, `relative`, `defaultEase` (optional): Other sequence defaults.
+- `deps` (any[], optional): Dependencies to recreate the sequence.
 
-An object containing the sequence definition:
+### Return Value (`UseSequenceResult`)
 
-- **`steps`** (`AnimationStep[]`, **Required**): An array defining the animation steps/stages.
-- `id` (`string`, optional): A unique identifier for the sequence.
-- `autoplay` (`boolean`, optional): If `true`, the sequence plays automatically on mount/config update. Default: `false`.
-- `duration` (`number`, optional): Total duration in ms. If omitted, it's calculated based on stages and dependencies.
-- `repeatCount` (`number`, optional): Number of times to repeat the entire sequence (0 = no repeat, -1 = infinite).
-- `yoyo` (`boolean`, optional): If `true`, reverses direction on each sequence repeat. Default: `false`.
-- `direction` (`PlaybackDirection`, optional): Initial playback direction. Default: `FORWARD`.
-- `category` (`AnimationCategory`, optional): Accessibility category.
-- `useWebAnimations` (`boolean`, optional): Hint to use the Web Animations API (WAAPI) if available (may offer performance benefits but has limitations). Default often depends on internal implementation (likely RAF-based).
-- **Lifecycle Callbacks** (optional): `onStart`, `onUpdate`, `onComplete`, `onPause`, `onResume`, `onCancel`, `onAnimationStart`, `onAnimationComplete`.
+Object containing controls and state:
+- `builder`: The builder function passed in.
+- `start`, `pause`, `resume`, `stop`, `reset`: Control methods.
+- `isPlaying`, `isPaused`, `isComplete`: State booleans.
+- `animationTarget`, `staggerTarget`: Utility functions (might be related to builder).
 
----
-
-## Return Value (`UseSequenceResult`)
-
-An object containing the sequence state and controls:
-
-- **`progress`** (`number`): Current overall progress of the sequence (0 to 1).
-- **`playbackState`** (`PlaybackState`): Current state (e.g., `IDLE`, `PLAYING`, `PAUSED`, `FINISHED`).
-- **`duration`** (`number`): Calculated total duration of the sequence in ms.
-- **`direction`** (`PlaybackDirection`): Current playback direction.
-- **`playbackRate`** (`number`): Current playback speed multiplier (1 is normal).
-- **`reducedMotion`** (`boolean`): Indicates if reduced motion mode is active for this sequence.
-- **`steps`** (`AnimationStep[]`): The array of step configurations.
-- **`id`** (`string`): The sequence ID.
-- **`SequenceControls`**: All the control methods (`play`, `pause`, `seek`, etc. - see [Controls](#controls)).
-
----
-
-## Key Types & Enums
-
-### `AnimationStep`
-
-Union type for different step kinds. Common properties include:
-- `id` (string, Required)
-- `duration` (number, ms, Required, except for `event` type)
-- `type` (string, e.g., 'style', 'stagger', 'group', 'callback', 'event', Required)
-- `startTime` (number, ms, optional)
-- `dependsOn` (string[], optional)
-- `easing` (string | function, optional)
-- `repeatCount`, `repeatDelay`, `yoyo` (optional)
-- Specific properties based on `type` (e.g., `targets`, `from`, `to` for `style`).
-
-### `PlaybackDirection`
-
-Enum: `FORWARD`, `BACKWARD`, `ALTERNATE`, `ALTERNATE_REVERSE`.
-
-### `StaggerPattern`
-
-Enum: `SEQUENTIAL`, `FROM_CENTER`, `FROM_EDGES`, `RANDOM`, `WAVE`, `CASCADE`, `RIPPLE`, `CUSTOM`.
-
-### `PlaybackState`
-
-Enum: `IDLE`, `PLAYING`, `PAUSED`, `FINISHED`, `CANCELLING`.
-
-*(Refer to the source code or type definitions for exhaustive details on all interfaces and options.)*
-
----
-
-## Example Usage
-
-### Basic Style Sequence
+### Example Usage {#example-usage-usesequence}
 
 ```tsx
-import React from 'react';
-import { useSequence, type UseSequenceParams } from '@veerone/galileo-glass-ui/hooks';
-import { Box } from '@mui/material';
+import React, { useRef } from 'react';
+import { useSequence, type UseSequenceParams } from '@veerone/galileo-glass-ui/animations';
+import { keyframes } from 'styled-components';
+import { GlassBox, GlassButton } from '@veerone/galileo-glass-ui/components';
 
-const SimpleSequence = () => {
-  const { play } = useSequence();
+// Define keyframes if not using presets
+const fadeAndMoveKf = keyframes`
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0px); }
+`;
 
-  const runSequence = () => {
-    const sequenceConfig: UseSequenceParams = {
-      id: 'fade-and-move',
-      steps: [
-        {
-          id: 'fade-in',
-          type: 'style',
-          targets: '#my-box',
-          duration: 500,
-          from: { opacity: 0 },
-          to: { opacity: 1 },
-          easing: 'easeOutQuad',
-        },
-        {
-          id: 'move-right',
-          type: 'style',
-          targets: '#my-box',
-          dependsOn: ['fade-in'],
-          duration: 800,
-          from: { transform: 'translateX(0px)' },
-          to: { transform: 'translateX(200px)' },
-          easing: 'easeInOutCubic',
-        },
-      ],
-    };
-    play(sequenceConfig);
+const BuilderSequenceDemo = () => {
+  const element1Ref = useRef<HTMLDivElement>(null);
+  const element2Ref = useRef<HTMLDivElement>(null);
+
+  const sequenceParams: UseSequenceParams = {
+    name: 'builder-sequence',
+    autoPlay: false
+  };
+
+  // Use the hook with the builder function
+  const { start, stop, isPlaying } = useSequence(sequenceParams, (builder) => {
+    // Use builder methods to define steps
+    builder.animate(element1Ref, 'fadeIn', { duration: 500 }); // Preset
+    builder.animate(element1Ref, 'slideUp', { duration: 300, delay: 500 }); // Preset
+
+    // Use keyframes for the second element, wait until first is done
+    builder.animate(element2Ref, fadeAndMoveKf, { duration: 800, delay: 800 });
+  });
+
+  return (
+    <GlassBox style={{ padding: '16px' }}>
+      {/* ... elements with refs ... */}
+      <GlassButton onClick={start} disabled={isPlaying}>Play Builder Sequence</GlassButton>
+      {/* ... Element 1 and Element 2 definitions ... */}
+    </GlassBox>
+  );
+};
+```
+
+### Best Practices {#best-practices-usesequence}
+
+- Define reusable animation presets in your theme/provider.
+- Use the builder methods (`animate`, `stagger`, `wait`) as intended.
+- Keep the builder function focused on defining the sequence flow.
+- Refer to the `AnimationDeclaration` and `StaggerOptions` type definitions (exported from `@veerone/galileo-glass-ui/animations`) for detailed configuration options available within the builder methods.
+
+---
+
+## `useAnimationStateMachine` (Finite State Machine)
+
+### Purpose
+
+The `useAnimationStateMachine` hook allows you to manage complex UI states and orchestrate animations *between* those states using a finite state machine (FSM) model.
+
+- Define distinct UI states (e.g., 'idle', 'loading', 'success', 'error').
+- Specify transitions between states triggered by events (e.g., button click, data fetch complete).
+- Automatically apply animations (enter/exit/transition) when moving between states.
+- Manage complex conditional logic for state changes and associated animations.
+
+### Core Concepts
+
+- **States (`AnimationState[]`):** Define each possible state with an `id`, optional `enterAnimation`/`exitAnimation` presets, and potentially initial `properties` or `styles` for elements in that state.
+- **Transitions (`StateTransition[]`):** Define the rules for moving between states. Each transition specifies the `from` state, the `to` state, and the `on` event that triggers it. Transitions can have `conditions`, `actions` (callbacks), and specific `transitionAnimation` presets.
+- **Events:** You trigger state changes by `send`ing events (strings) to the machine.
+- **Context:** The machine maintains internal context (data) that can be used in conditions or actions.
+
+### Signature
+
+```typescript
+import {
+  useAnimationStateMachine,
+  type UseAnimationStateMachineParams,
+  type UseAnimationStateMachineResult,
+  type AnimationState, // Import supporting types as needed
+  type StateTransition
+} from '@veerone/galileo-glass-ui/animations'; // Correct path
+// Or from '@veerone/galileo-glass-ui/hooks'; // If re-exported
+
+function useAnimationStateMachine(
+  params: UseAnimationStateMachineParams
+): UseAnimationStateMachineResult;
+```
+
+### Parameters (`UseAnimationStateMachineParams`)
+
+Object containing the machine definition:
+- **`states`** (`AnimationState[]`, **Required**): Array of state definitions.
+- **`transitions`** (`StateTransition[]`, **Required**): Array of transition definitions.
+- `targets` (optional): DOM element(s) to potentially manage/animate.
+- `sensitivity`, `debug`, `persist`, `storageKey`, `deps`, `onStateChange` (optional).
+
+### Return Value (`UseAnimationStateMachineResult`)
+
+Object containing state and controls:
+- `currentState` (string): The ID of the current state.
+- `previousState` (string): The ID of the previous state.
+- `send(event, params?)`: Function to trigger a transition event.
+- `is(stateId)`: Check if currently in a specific state.
+- `can(event)`: Check if an event can be handled.
+- `reset()`: Reset to initial state.
+- `transitioning` (boolean): Is a transition currently in progress?
+- `setData`, `getData`, `getHistory`, `clearHistory`, `on`, `off`, `machine` (raw instance).
+
+### Example Usage
+
+```tsx
+import React, { useState } from 'react';
+import {
+  useAnimationStateMachine,
+  type AnimationState,
+  type StateTransition
+} from '@veerone/galileo-glass-ui/animations';
+import { GlassBox, GlassButton, GlassLoader, GlassTypography } from '@veerone/galileo-glass-ui/components';
+
+// Define States
+const states: AnimationState[] = [
+  { id: 'idle', name: 'Idle' },
+  { 
+    id: 'loading', 
+    name: 'Loading', 
+    enterAnimation: 'fadeIn' // Use animation presets
+  },
+  { 
+    id: 'success', 
+    name: 'Success', 
+    enterAnimation: 'pulse',
+    properties: { /* styles for success state */ }
+  },
+  { id: 'error', name: 'Error', enterAnimation: 'shake' }
+];
+
+// Define Transitions
+const transitions: StateTransition[] = [
+  { from: 'idle', on: 'FETCH', to: 'loading' },
+  { from: 'loading', on: 'RESOLVE', to: 'success' },
+  { from: 'loading', on: 'REJECT', to: 'error' },
+  { from: 'success', on: 'RESET', to: 'idle' },
+  { from: 'error', on: 'RESET', to: 'idle' },
+];
+
+const StateMachineDemo = () => {
+  const machine = useAnimationStateMachine({
+    states,
+    transitions,
+    initialState: 'idle',
+    onStateChange: (from, to) => console.log(`Moved from ${from} to ${to}`)
+  });
+
+  const handleFetch = () => {
+    machine.send('FETCH').then(() => {
+      // Simulate API call
+      setTimeout(() => {
+        const success = Math.random() > 0.3;
+        machine.send(success ? 'RESOLVE' : 'REJECT');
+      }, 1500);
+    });
+  };
+
+  const handleReset = () => {
+    machine.send('RESET');
   };
 
   return (
-    <Box 
-      id="my-box"
-      sx={{ 
-        width: 50, 
-        height: 50, 
-        backgroundColor: 'primary.main', 
-        opacity: 0,
-        willChange: 'opacity, transform'
-      }}
-    />
+    <GlassBox style={{ padding: '16px', textAlign: 'center' }}>
+      <GlassTypography variant="h3">Current State: {machine.currentState}</GlassTypography>
+      {machine.is('idle') && (
+        <GlassButton variant="contained" onClick={handleFetch}>Fetch Data</GlassButton>
+      )}
+      {machine.is('loading') && <GlassLoader />}
+      {machine.is('success') && (
+        <GlassTypography color="success"> 
+           Success! <GlassButton onClick={handleReset}>Reset</GlassButton>
+        </GlassTypography>
+      )}
+      {machine.is('error') && (
+        <GlassTypography color="error">
+          Error! <GlassButton onClick={handleReset}>Reset</GlassButton>
+        </GlassTypography>
+      )}
+    </GlassBox>
   );
 };
 ```
 
-### Sequence with Dependencies
+### Best Practices
 
-(See example above - `move-right` uses `dependsOn: ['fade-in']`)
-
-### Staggered Animation
-
-```tsx
-import React, { useEffect } from 'react';
-import { useSequence, type UseSequenceParams } from '@veerone/galileo-glass-ui/hooks';
-import { Box } from '@mui/material';
-
-const StaggeredList = () => {
-  const { play } = useSequence();
-
-  useEffect(() => {
-    const sequenceConfig: UseSequenceParams = {
-      id: 'list-entrance',
-      steps: [
-        {
-          id: 'stagger-fade-in',
-          type: 'stagger',
-          targets: '.list-item',
-          duration: 400,
-          staggerDelay: 100,
-          staggerPattern: 'SEQUENTIAL',
-          from: { opacity: 0, transform: 'translateY(20px)' },
-          to: { opacity: 1, transform: 'translateY(0px)' },
-          easing: 'easeOutCubic',
-        },
-      ],
-    };
-    play(sequenceConfig);
-  }, [play]);
-
-  return (
-    <Box>
-      {[1, 2, 3, 4, 5].map(i => (
-        <Box
-          key={i}
-          className="list-item"
-          sx={{ 
-            padding: 1, 
-            margin: 0.5, 
-            backgroundColor: 'grey.200', 
-            opacity: 0,
-            willChange: 'opacity, transform'
-          }}
-        >
-          Item {i}
-        </Box>
-      ))}
-    </Box>
-  );
-};
-```
-
----
-
-## Best Practices
-
-- **Start Simple:** Begin with basic sequences and gradually add complexity.
-- **Unique IDs:** Ensure all step IDs within a sequence are unique.
-- **Initial State:** Set the initial CSS styles of your elements to match the `from` state of the first relevant animation step to avoid jumps.
-- **Performance:**
-    - Use `will-change` CSS property on elements being animated, especially for `transform` and `opacity`.
-    - Consider the `useWebAnimations` flag for potentially smoother animations on supported browsers, but test thoroughly.
-    - Be mindful of the number of elements targeted, especially in complex stagger animations.
-- **Dependencies:** Clearly define dependencies to control the flow. Avoid circular dependencies.
-- **Accessibility:** Use `reducedMotionAlternative` where appropriate and consider the `category` property.
-- **Readability:** Break down very complex animations into logical groups using `GroupAnimationStep`.
-- **Controls:** Provide user interface elements (buttons, etc.) to interact with the sequence controls (`play`, `pause`, `seek`) if manual control is desired.
-- **Check `useSequence` API:** Always refer to the specific documentation or type definitions for `useSequence` as parameter names, config structure, and control methods might differ slightly from the older internal hook. 
+- Clearly define all possible states and the events that trigger transitions.
+- Use animation presets (`enterAnimation`, `exitAnimation`, `transitionAnimation`) for common effects.
+- Leverage `conditions` and `

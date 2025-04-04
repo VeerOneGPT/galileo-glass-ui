@@ -20,6 +20,7 @@ import {
 } from '../animations/orchestration/StaggeredAnimations';
 import { AnimationPreset } from '../animations/core/types';
 import { useReducedMotion } from './useReducedMotion';
+import { act } from 'react-dom/test-utils';
 
 /**
  * Hook options for staggered animation
@@ -160,8 +161,8 @@ export function useStaggeredAnimation(
   // Progress state
   const [progress, setProgress] = useState<number>(0);
   
-  // Progress tracking interval
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  // Progress tracking with requestAnimationFrame
+  const progressFrameRef = useRef<number | null>(null);
   
   // Start time ref for progress tracking
   const startTimeRef = useRef<number>(0);
@@ -210,7 +211,8 @@ export function useStaggeredAnimation(
     
     // Auto-create animation if specified
     if (options.autoCreate && initialConfig.targets.length > 0) {
-      const newResult = createStaggeredAnimation(initialConfig);
+      // Use the animator instance to create
+      const newResult = staggeredAnimator.createAnimation(idRef.current, initialConfig); 
       setResult(newResult);
       
       // Auto-play if specified
@@ -233,48 +235,54 @@ export function useStaggeredAnimation(
       }
       
       // Clear progress tracking interval
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+      if (progressFrameRef.current) {
+        cancelAnimationFrame(progressFrameRef.current);
+        progressFrameRef.current = null;
       }
     };
   }, []);
   
   // Set up progress tracking when playing state changes
   useEffect(() => {
+    const trackProgress = () => {
+      if (!isPlaying || !result || !startTimeRef.current) {
+        progressFrameRef.current = null;
+        return;
+      }
+
+      const elapsed = performance.now() - startTimeRef.current;
+      const newProgress = Math.min(1, elapsed / result.totalDuration);
+
+      setProgress(newProgress);
+
+      if (newProgress < 1) {
+        // Schedule the next frame
+        progressFrameRef.current = requestAnimationFrame(trackProgress);
+      } else {
+        // Animation finished
+        setIsPlaying(false);
+        progressFrameRef.current = null;
+      }
+    };
+
     if (isPlaying && result) {
-      // Set up progress tracking interval
-      progressIntervalRef.current = setInterval(() => {
-        if (!result) return;
-        
-        const elapsed = performance.now() - startTimeRef.current;
-        const newProgress = Math.min(1, elapsed / result.totalDuration);
-        
-        setProgress(newProgress);
-        
-        // Clear interval when done
-        if (newProgress >= 1) {
-          setIsPlaying(false);
-          
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-            progressIntervalRef.current = null;
-          }
-        }
-      }, 16);
+      // Start progress tracking
+      startTimeRef.current = performance.now(); // Reset start time when play begins
+      if (progressFrameRef.current) cancelAnimationFrame(progressFrameRef.current);
+      progressFrameRef.current = requestAnimationFrame(trackProgress);
     } else {
-      // Clear interval if not playing
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+      // Stop progress tracking
+      if (progressFrameRef.current) {
+        cancelAnimationFrame(progressFrameRef.current);
+        progressFrameRef.current = null;
       }
     }
-    
-    // Clean up on unmount or when playing state changes
+
+    // Cleanup function
     return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+      if (progressFrameRef.current) {
+        cancelAnimationFrame(progressFrameRef.current);
+        progressFrameRef.current = null;
       }
     };
   }, [isPlaying, result]);
@@ -436,20 +444,14 @@ export function useStaggeredAnimation(
       currentResult = createAnimation();
     }
     
-    if (!currentResult) {
-      throw new Error('No animation available to play');
-    }
-    
-    // Start playing
-    setIsPlaying(true);
-    startTimeRef.current = performance.now();
-    setProgress(0);
-    
-    try {
-      await currentResult.play();
-    } finally {
-      setIsPlaying(false);
-      setProgress(1);
+    if (currentResult) {
+      try {
+        await currentResult.play();
+      } finally {
+        // Removed act() wrapper
+        setIsPlaying(false);
+        setProgress(1);
+      }
     }
   }, [result, createAnimation]);
   
@@ -459,8 +461,14 @@ export function useStaggeredAnimation(
   const cancel = useCallback(() => {
     if (result) {
       result.cancel();
+      // Removed act() wrapper
       setIsPlaying(false);
       setProgress(0);
+      // Cancel any pending animation frame
+      if (progressFrameRef.current) {
+        cancelAnimationFrame(progressFrameRef.current);
+        progressFrameRef.current = null;
+      }
     }
   }, [result]);
   
@@ -498,6 +506,15 @@ export function useStaggeredAnimation(
    */
   const getRegisteredElements = useCallback(() => {
     return new Map(elementRefsMap.current);
+  }, []);
+  
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (progressFrameRef.current) {
+        cancelAnimationFrame(progressFrameRef.current);
+      }
+    };
   }, []);
   
   return {

@@ -13,6 +13,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { AnimationProps } from '../../animations/types';
 import { MotionSensitivityLevel } from '../../animations/accessibility/MotionSensitivity';
 import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
+import { mergePhysicsRef } from '../../utils/refUtils';
 
 export interface TabsProps extends AnimationProps {
   /**
@@ -467,14 +468,26 @@ const PhysicsTab = forwardRef<HTMLButtonElement, PhysicsTabProps>((props, ref) =
     }
   };
 
+  // Use mergePhysicsRef for proper ref handling
+  const mergedRefCallback = useMemo(() => {
+      return mergePhysicsRef(ref, physicsRef);
+  }, [ref, physicsRef]);
+  
   const combinedRef = useCallback((node: HTMLButtonElement | null) => {
-    tabIndexRef(node); // Call ref callback passed from Tabs
-    if (typeof ref === 'function') {
-      ref(node);
-    } else if (ref) {
-      ref.current = node;
+    // Call the memoized merged ref function/setter
+    if (typeof mergedRefCallback === 'function') {
+        // Explicitly cast to RefCallback to resolve TS error
+        (mergedRefCallback as React.RefCallback<HTMLButtonElement | null>)(node);
+    } else if (mergedRefCallback && typeof mergedRefCallback === 'object' && 'current' in mergedRefCallback) {
+        // Handle object ref case (e.g., React.MutableRefObject)
+        (mergedRefCallback as React.MutableRefObject<HTMLButtonElement | null>).current = node;
     }
-  }, [ref, tabIndexRef]);
+    
+    // Also call tabIndexRef
+    if (tabIndexRef) {
+      tabIndexRef(node);
+    }
+  }, [mergedRefCallback, tabIndexRef]); // Depend on the memoized callback
 
   return (
     <StyledTab

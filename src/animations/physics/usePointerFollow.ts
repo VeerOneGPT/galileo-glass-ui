@@ -15,6 +15,22 @@ import {
 } from './physicsCalculations';
 import { lerp as linearInterpolate } from './interpolation';
 
+// Simple throttle function
+function throttle<T extends (...args: any[]) => any>(
+  func: T,
+  limit: number
+): (...args: Parameters<T>) => void {
+  let inThrottle: boolean;
+  let lastResult: ReturnType<T>;
+  return function(this: ThisParameterType<T>, ...args: Parameters<T>): void {
+    if (!inThrottle) {
+      lastResult = func.apply(this, args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
+}
+
 /**
  * Vector for 2D position and motion
  */
@@ -350,268 +366,19 @@ export function usePointerFollow<T extends HTMLElement = HTMLElement>(
   // Tracking if pointer is over the element
   const isPointerOverRef = useRef<boolean>(false);
   
-  // Initialize controllers
-  useEffect(() => {
-    // Create inertial controllers
-    const configObject = typeof physics === 'string' 
-      ? InertialPresets[physics] 
-      : physics;
-    
-    // Apply reduced motion settings if needed
-    if (shouldReduceMotion) {
-      configObject.friction = Math.min(configObject.friction ?? 0.95, 0.8);
-      configObject.restThreshold = Math.max(configObject.restThreshold ?? 0.1, 0.5);
-    }
-    
-    inertialXRef.current = new InertialMovement(configObject);
-    inertialYRef.current = new InertialMovement(configObject);
-    
-    // Set initial positions to origin
-    inertialXRef.current.set(originPosition.x, 0);
-    inertialYRef.current.set(originPosition.y, 0);
-    
-    // Get element dimensions
+  // --- Define Handlers Earlier --- 
+  // Update element info on resize
+  const updateElementInfo = useCallback(() => {
     if (elementRef.current) {
       const rect = elementRef.current.getBoundingClientRect();
-      setElementDimensions({ 
-        width: rect.width, 
-        height: rect.height 
-      });
-      setElementOrigin({ 
-        x: originPosition.x,
-        y: originPosition.y
+      setElementDimensions({
+        width: rect.width,
+        height: rect.height
       });
     }
-    
-    return () => {
-      // Clean up animation frame
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-    };
-  }, [physics, originPosition, shouldReduceMotion]);
-  
-  // Update element origin and dimensions on resize
-  useEffect(() => {
-    const updateElementInfo = () => {
-      if (elementRef.current) {
-        const rect = elementRef.current.getBoundingClientRect();
-        setElementDimensions({
-          width: rect.width,
-          height: rect.height
-        });
-      }
-    };
-    
-    // Update on mount and resize
-    updateElementInfo();
-    window.addEventListener('resize', updateElementInfo);
-    
-    return () => {
-      window.removeEventListener('resize', updateElementInfo);
-    };
   }, []);
-  
-  // Handle pointer movement
-  const handlePointerMove = useCallback((e: PointerEvent) => {
-    // Update pointer position
-    const pointerPos = { x: e.clientX, y: e.clientY };
-    setPointerPosition(pointerPos);
-    
-    // Calculate velocity by comparing with last position
-    const now = Date.now();
-    const timeDelta = now - lastPointerRef.current.time;
-    
-    if (timeDelta > 0) {
-      const xVelocity = (pointerPos.x - lastPointerRef.current.x) / timeDelta * 16.67; // Normalize to 60fps
-      const yVelocity = (pointerPos.y - lastPointerRef.current.y) / timeDelta * 16.67;
-      
-      // Apply low-pass filter for smoother velocity
-      pointerVelocityRef.current = {
-        x: pointerVelocityRef.current.x * 0.8 + xVelocity * 0.2,
-        y: pointerVelocityRef.current.y * 0.8 + yVelocity * 0.2
-      };
-    }
-    
-    // Update last known position
-    lastPointerRef.current = {
-      x: pointerPos.x,
-      y: pointerPos.y,
-      time: now
-    };
-    
-    // Only continue if we're following
-    if (!isFollowing) return;
-    
-    // Get element center
-    if (elementRef.current) {
-      const rect = elementRef.current.getBoundingClientRect();
-      const elementCenter = {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-      };
-      
-      // Calculate distance from pointer to element center
-      const distanceX = pointerPos.x - elementCenter.x;
-      const distanceY = pointerPos.y - elementCenter.y;
-      const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-      
-      // Check distance threshold
-      if (followThreshold > 0 && distance < followThreshold) {
-        return;
-      }
-      
-      // Calculate target position based on behavior
-      let targetX = 0;
-      let targetY = 0;
-      
-      switch (behavior) {
-        case 'direct':
-          // Direct following - element follows pointer directly with offset
-          targetX = pointerPos.x - elementCenter.x + offset.x;
-          targetY = pointerPos.y - elementCenter.y + offset.y;
-          break;
-          
-        case 'delayed':
-          // Delayed following - we use inertia controllers with higher friction
-          if (inertialXRef.current && inertialYRef.current) {
-            targetX = pointerPos.x - elementCenter.x + transform.x + offset.x;
-            targetY = pointerPos.y - elementCenter.y + transform.y + offset.y;
-          }
-          break;
-          
-        case 'springy':
-          // Springy following - spring-like motion towards target
-          targetX = (pointerPos.x - elementCenter.x) * 0.5 + offset.x;
-          targetY = (pointerPos.y - elementCenter.y) * 0.5 + offset.y;
-          break;
-          
-        case 'magnetic':
-          // Magnetic following - attraction based on distance
-          const maxAttractionDistance = maxDistance * 2;
-          const attractionFactor = Math.max(0, 1 - distance / maxAttractionDistance);
-          targetX = distanceX * attractionFactor + offset.x;
-          targetY = distanceY * attractionFactor + offset.y;
-          break;
-          
-        case 'orbit':
-          // Orbit following - element orbits around pointer
-          const angle = Math.atan2(distanceY, distanceX) + Math.PI / 4; // 45° ahead
-          const orbitRadius = followDistance || maxDistance / 2;
-          targetX = Math.cos(angle) * orbitRadius + offset.x;
-          targetY = Math.sin(angle) * orbitRadius + offset.y;
-          break;
-          
-        case 'elastic':
-          // Elastic following - stretches and contracts based on movement
-          const elasticFactor = 1 - Math.min(1, distance / (maxDistance * 2));
-          targetX = distanceX * elasticFactor * 2 + offset.x;
-          targetY = distanceY * elasticFactor * 2 + offset.y;
-          break;
-          
-        case 'momentum':
-        default:
-          // Momentum following - natural physics motion
-          if (inertialXRef.current && inertialYRef.current) {
-            // Target is a mix of current position and pointer position
-            const blendFactor = 0.85; // How much to blend
-            targetX = ((pointerPos.x - elementCenter.x) * (1 - blendFactor) + 
-                      transform.x * blendFactor) + offset.x;
-            targetY = ((pointerPos.y - elementCenter.y) * (1 - blendFactor) + 
-                      transform.y * blendFactor) + offset.y;
-          }
-          break;
-      }
-      
-      // Apply speed factor
-      targetX *= speedFactor;
-      targetY *= speedFactor;
-      
-      // Apply max distance constraint
-      const targetDistance = Math.sqrt(targetX * targetX + targetY * targetY);
-      if (targetDistance > maxDistance) {
-        const scale = maxDistance / targetDistance;
-        targetX *= scale;
-        targetY *= scale;
-      }
-      
-      // Update inertial controllers
-      if (inertialXRef.current && inertialYRef.current) {
-        // Starting state is important for motion quality
-        const currentX = inertialXRef.current.getPosition();
-        const currentY = inertialYRef.current.getPosition();
-        
-        if (behavior === 'momentum') {
-          // For momentum behavior, we need to set new targets but keep existing velocity
-          const vx = inertialXRef.current.getVelocity();
-          const vy = inertialYRef.current.getVelocity();
-          
-          // Add some of the pointer's velocity to create more natural feel
-          const newVx = vx * 0.92 + pointerVelocityRef.current.x * 0.08;
-          const newVy = vy * 0.92 + pointerVelocityRef.current.y * 0.08;
-          
-          // Blend toward target position
-          inertialXRef.current.set(
-            currentX + (targetX - currentX) * 0.08, 
-            newVx
-          );
-          
-          inertialYRef.current.set(
-            currentY + (targetY - currentY) * 0.08,
-            newVy
-          );
-        } else {
-          // For other behaviors, set target position with calculated velocity
-          const velX = (targetX - currentX) * 0.2;
-          const velY = (targetY - currentY) * 0.2;
-          
-          inertialXRef.current.set(currentX, velX);
-          inertialYRef.current.set(currentY, velY);
-        }
-      }
-      
-      // Start animation if not running
-      startAnimation();
-    }
-  }, [
-    behavior, 
-    followDistance, 
-    followThreshold, 
-    isFollowing, 
-    maxDistance, 
-    offset, 
-    speedFactor, 
-    transform.x, 
-    transform.y
-  ]);
-  
-  // Handle pointer enter
-  const handlePointerEnter = useCallback(() => {
-    isPointerOverRef.current = true;
-    
-    if (alwaysFollow) {
-      startFollowing();
-    }
-  }, [alwaysFollow]);
-  
-  // Handle pointer leave
-  const handlePointerLeave = useCallback(() => {
-    isPointerOverRef.current = false;
-    
-    if (!alwaysFollow && !capturePointer) {
-      stopFollowing();
-    }
-  }, [alwaysFollow, capturePointer]);
-  
-  // Start animation loop
-  const startAnimation = useCallback(() => {
-    if (rafRef.current === null) {
-      rafRef.current = requestAnimationFrame(updateAnimation);
-    }
-  }, []);
-  
-  // Update animation frame
+
+  // Update animation frame (forward declaration)
   const updateAnimation = useCallback(() => {
     if (inertialXRef.current && inertialYRef.current) {
       // Update both axes
@@ -633,17 +400,10 @@ export function usePointerFollow<T extends HTMLElement = HTMLElement>(
       // Calculate rotation based on velocity if enabled
       let rotation = 0;
       if (enableRotation) {
-        // Rotate based on velocity direction and magnitude
         const velocityMagnitude = Math.sqrt(vx * vx + vy * vy);
         const normalizedMagnitude = Math.min(1, velocityMagnitude / 20);
-        
-        // Calculate angle from velocity components
         const velocityAngle = Math.atan2(vy, vx) * (180 / Math.PI);
-        
-        // Scale rotation by magnitude and max rotation
         rotation = velocityAngle * normalizedMagnitude * (maxRotation / 180);
-        
-        // Reduce motion if needed
         if (shouldReduceMotion) {
           rotation *= 0.3;
         }
@@ -652,15 +412,10 @@ export function usePointerFollow<T extends HTMLElement = HTMLElement>(
       // Calculate scale based on velocity if enabled
       let scale = 1;
       if (enableScaling) {
-        // Scale based on velocity magnitude
         const velocityMagnitude = Math.sqrt(vx * vx + vy * vy);
         const normalizedMagnitude = Math.min(1, velocityMagnitude / 30);
-        
-        // Interpolate scale between min and max values
         const scaleRange = maxScale - minScale;
         scale = minScale + scaleRange * normalizedMagnitude;
-        
-        // Reduce motion if needed
         if (shouldReduceMotion) {
           scale = 1 + (scale - 1) * 0.3;
         }
@@ -690,17 +445,11 @@ export function usePointerFollow<T extends HTMLElement = HTMLElement>(
       setTransform(newTransform);
       
       // Call onTransform if provided
-      if (onTransform) {
-        onTransform(newTransform);
-      }
+      onTransform?.(newTransform);
       
       // Add or remove following class
       if (elementRef.current && followingClassName) {
-        if (isFollowing) {
-          elementRef.current.classList.add(followingClassName);
-        } else {
-          elementRef.current.classList.remove(followingClassName);
-        }
+        elementRef.current.classList.toggle(followingClassName, isFollowing);
       }
       
       // Check if we should continue animating
@@ -709,172 +458,273 @@ export function usePointerFollow<T extends HTMLElement = HTMLElement>(
         rafRef.current = requestAnimationFrame(updateAnimation);
       } else {
         rafRef.current = null;
-        
-        // If we've stopped moving and we're following, should we return to origin?
         if (!isPointerOverRef.current && !alwaysFollow) {
           returnToOrigin();
         }
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    alwaysFollow, 
-    elementOrigin.x, 
-    elementOrigin.y, 
-    enableRotation,
-    enableScaling,
-    followingClassName,
-    isFollowing,
-    maxRotation,
-    maxScale,
-    minScale,
-    onTransform,
-    shouldReduceMotion
+    alwaysFollow, elementOrigin.x, elementOrigin.y, enableRotation, enableScaling,
+    followingClassName, isFollowing, maxRotation, maxScale, minScale,
+    onTransform, shouldReduceMotion, /* returnToOrigin will be added below */
   ]);
-  
+
+  // Start animation loop
+  const startAnimation = useCallback(() => {
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(updateAnimation);
+    }
+  }, [updateAnimation]); // Depend on the memoized updateAnimation
+
   // Return to origin position
   const returnToOrigin = useCallback(() => {
     if (inertialXRef.current && inertialYRef.current) {
-      // Get current position
       const currentX = inertialXRef.current.getPosition();
       const currentY = inertialYRef.current.getPosition();
-      
-      // Calculate velocity toward origin
       const toOriginX = (elementOrigin.x - currentX) * 0.1;
       const toOriginY = (elementOrigin.y - currentY) * 0.1;
-      
-      // Set new velocity toward origin
       inertialXRef.current.set(currentX, toOriginX);
       inertialYRef.current.set(currentY, toOriginY);
-      
-      // Start animation if not running
       startAnimation();
     }
   }, [elementOrigin.x, elementOrigin.y, startAnimation]);
+
+  // Now add returnToOrigin to updateAnimation dependencies
+  useEffect(() => {
+    // This effect is just to establish the dependency link
+    // The actual call happens within updateAnimation
+  }, [updateAnimation, returnToOrigin]);
+
+  // Handle pointer movement (Throttled)
+  const handlePointerMoveThrottled = useCallback(
+    throttle((e: PointerEvent) => {
+      const pointerPos = { x: e.clientX, y: e.clientY };
+      setPointerPosition(pointerPos);
+      const now = Date.now();
+      const timeDelta = now - lastPointerRef.current.time;
+      if (timeDelta > 0) {
+        const xVelocity = (pointerPos.x - lastPointerRef.current.x) / timeDelta * 16.67;
+        const yVelocity = (pointerPos.y - lastPointerRef.current.y) / timeDelta * 16.67;
+        pointerVelocityRef.current = {
+          x: pointerVelocityRef.current.x * 0.8 + xVelocity * 0.2,
+          y: pointerVelocityRef.current.y * 0.8 + yVelocity * 0.2
+        };
+      }
+      lastPointerRef.current = { x: pointerPos.x, y: pointerPos.y, time: now };
   
-  // Start following the pointer
+      if (!isFollowing) return;
+      
+      if (elementRef.current) {
+        const rect = elementRef.current.getBoundingClientRect();
+        const elementCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        const distanceX = pointerPos.x - elementCenter.x;
+        const distanceY = pointerPos.y - elementCenter.y;
+        const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+        if (followThreshold > 0 && distance < followThreshold) return;
+        let targetX = 0;
+        let targetY = 0;
+        switch (behavior) {
+          case 'direct':
+            targetX = pointerPos.x - elementCenter.x + offset.x;
+            targetY = pointerPos.y - elementCenter.y + offset.y;
+            break;
+          case 'delayed':
+            if (inertialXRef.current && inertialYRef.current) {
+              targetX = pointerPos.x - elementCenter.x + transform.x + offset.x;
+              targetY = pointerPos.y - elementCenter.y + transform.y + offset.y;
+            }
+            break;
+          case 'springy':
+            targetX = (pointerPos.x - elementCenter.x) * 0.5 + offset.x;
+            targetY = (pointerPos.y - elementCenter.y) * 0.5 + offset.y;
+            break;
+          case 'magnetic':
+            const maxAttractionDistance = maxDistance * 2;
+            const attractionFactor = Math.max(0, 1 - distance / maxAttractionDistance);
+            targetX = distanceX * attractionFactor + offset.x;
+            targetY = distanceY * attractionFactor + offset.y;
+            break;
+          case 'orbit':
+            const angle = Math.atan2(distanceY, distanceX) + Math.PI / 4;
+            const orbitRadius = followDistance || maxDistance / 2;
+            targetX = Math.cos(angle) * orbitRadius + offset.x;
+            targetY = Math.sin(angle) * orbitRadius + offset.y;
+            break;
+          case 'elastic':
+            const elasticFactor = 1 - Math.min(1, distance / (maxDistance * 2));
+            targetX = distanceX * elasticFactor * 2 + offset.x;
+            targetY = distanceY * elasticFactor * 2 + offset.y;
+            break;
+          case 'momentum':
+          default:
+            if (inertialXRef.current && inertialYRef.current) {
+              const blendFactor = 0.85;
+              targetX = ((pointerPos.x - elementCenter.x) * (1 - blendFactor) + transform.x * blendFactor) + offset.x;
+              targetY = ((pointerPos.y - elementCenter.y) * (1 - blendFactor) + transform.y * blendFactor) + offset.y;
+            }
+            break;
+        }
+        targetX *= speedFactor;
+        targetY *= speedFactor;
+        const targetDistance = Math.sqrt(targetX * targetX + targetY * targetY);
+        if (targetDistance > maxDistance) {
+          const scaleFactor = maxDistance / targetDistance;
+          targetX *= scaleFactor;
+          targetY *= scaleFactor;
+        }
+  
+        if (inertialXRef.current && inertialYRef.current) {
+          const currentX = inertialXRef.current.getPosition();
+          const currentY = inertialYRef.current.getPosition();
+          if (behavior === 'momentum') {
+            const vx = inertialXRef.current.getVelocity();
+            const vy = inertialYRef.current.getVelocity();
+            const newVx = vx * 0.92 + pointerVelocityRef.current.x * 0.08;
+            const newVy = vy * 0.92 + pointerVelocityRef.current.y * 0.08;
+            inertialXRef.current.set(currentX + (targetX - currentX) * 0.08, newVx);
+            inertialYRef.current.set(currentY + (targetY - currentY) * 0.08, newVy);
+          } else {
+            const velX = (targetX - currentX) * 0.2;
+            const velY = (targetY - currentY) * 0.2;
+            inertialXRef.current.set(currentX, velX);
+            inertialYRef.current.set(currentY, velY);
+          }
+        }
+        startAnimation();
+      }
+    }, 16), // Throttle to roughly 60fps (1000ms / 60fps ≈ 16ms)
+    [
+      behavior, followDistance, followThreshold, isFollowing, maxDistance, 
+      offset.x, offset.y, speedFactor, transform.x, transform.y, startAnimation
+    ]
+  );
+  
+  // --- Define Control Functions Earlier --- 
+  // Start following
   const startFollowing = useCallback(() => {
     if (!isFollowing) {
       setIsFollowing(true);
-      
-      // Call onFollowStart if provided
-      if (onFollowStart) {
-        onFollowStart();
-      }
+      onFollowStart?.();
+      startAnimation(); 
     }
-  }, [isFollowing, onFollowStart]);
-  
-  // Stop following the pointer
+  }, [isFollowing, onFollowStart, startAnimation]);
+
+  // Stop following and return to origin
   const stopFollowing = useCallback(() => {
     if (isFollowing) {
       setIsFollowing(false);
-      
-      // Return to origin position
+      onFollowEnd?.();
       returnToOrigin();
-      
-      // Call onFollowEnd if provided
-      if (onFollowEnd) {
-        onFollowEnd();
-      }
     }
   }, [isFollowing, onFollowEnd, returnToOrigin]);
+
+  // --- Define Remaining Handlers Earlier --- 
+  // Handle pointer enter
+  const handlePointerEnter = useCallback(() => {
+    isPointerOverRef.current = true;
+    if (alwaysFollow) {
+      startFollowing(); 
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alwaysFollow, startFollowing]);
   
-  // Manually set position
+  // Handle pointer leave
+  const handlePointerLeave = useCallback(() => {
+    isPointerOverRef.current = false;
+    if (!alwaysFollow && !capturePointer) {
+      stopFollowing(); 
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alwaysFollow, capturePointer, stopFollowing]);
+
+  // --- Initialize and Attach/Detach Event Listeners --- 
+  useEffect(() => {
+    // Initialize inertial controllers
+    const configObject = typeof physics === 'string' 
+      ? { ...InertialPresets[physics] } // Clone preset
+      : { ...physics }; // Clone custom config
+    
+    if (shouldReduceMotion) {
+      configObject.friction = Math.min(configObject.friction ?? 0.95, 0.8);
+      configObject.restThreshold = Math.max(configObject.restThreshold ?? 0.1, 0.5);
+    }
+    
+    inertialXRef.current = new InertialMovement(configObject);
+    inertialYRef.current = new InertialMovement(configObject);
+    inertialXRef.current.set(originPosition.x, 0);
+    inertialYRef.current.set(originPosition.y, 0);
+    
+    // Get initial element info
+    updateElementInfo();
+    
+    // Attach event listeners (use throttled handler)
+    window.addEventListener('pointermove', handlePointerMoveThrottled);
+    window.addEventListener('resize', updateElementInfo);
+
+    const currentElement = elementRef.current;
+    if (currentElement) {
+      currentElement.addEventListener('pointerenter', handlePointerEnter);
+      currentElement.addEventListener('pointerleave', handlePointerLeave);
+    }
+    
+    // Start if autoStart
+    if (autoStart) {
+      startFollowing();
+    }
+
+    // Cleanup function
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      // Remove the throttled handler
+      window.removeEventListener('pointermove', handlePointerMoveThrottled);
+      window.removeEventListener('resize', updateElementInfo);
+      if (currentElement) {
+        currentElement.removeEventListener('pointerenter', handlePointerEnter);
+        currentElement.removeEventListener('pointerleave', handlePointerLeave);
+      }
+    };
+  // Update dependencies to use the throttled handler
+  // eslint-disable-next-line react-hooks/exhaustive-deps 
+  }, [physics, originPosition.x, originPosition.y, shouldReduceMotion, autoStart, 
+      handlePointerMoveThrottled, updateElementInfo, handlePointerEnter, handlePointerLeave,
+      startFollowing // Added startFollowing
+     ]);
+
+  // --- Define Remaining Control Functions --- 
+  // Manually set position (useful for initialization or external control)
   const setPosition = useCallback((position: Vector2D) => {
     if (inertialXRef.current && inertialYRef.current) {
       inertialXRef.current.set(position.x, 0);
       inertialYRef.current.set(position.y, 0);
-      
-      // Update states immediately
-      setTransform(prev => ({
-        ...prev,
-        x: position.x,
-        y: position.y
-      }));
+      // Update state immediately without animation
+      setTransform(prev => ({ ...prev, x: position.x, y: position.y }));
+      // Stop any existing animation
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     }
   }, []);
-  
-  // Apply force to the element
+
+  // Apply force/impulse
   const applyForce = useCallback((force: Vector2D) => {
     if (inertialXRef.current && inertialYRef.current) {
-      // Add velocity based on force
       inertialXRef.current.addVelocity(force.x);
       inertialYRef.current.addVelocity(force.y);
-      
-      // Start animation
       startAnimation();
     }
   }, [startAnimation]);
-  
-  // Update configuration
-  const updateConfig = useCallback((newOptions: Partial<PointerFollowOptions>) => {
-    // This would normally update the options state, but for simplicity
-    // we'll just update the inertial controllers with any new physics settings
-    if (newOptions.physics && inertialXRef.current && inertialYRef.current) {
-      const configObject = typeof newOptions.physics === 'string' 
-        ? InertialPresets[newOptions.physics] 
-        : newOptions.physics;
-        
-      inertialXRef.current.updateConfig(configObject);
-      inertialYRef.current.updateConfig(configObject);
-    }
+
+  // Update configuration dynamically
+  const updateConfig = useCallback((newConfig: Partial<PointerFollowOptions>) => {
+    // TODO: Implement logic to update internal options and potentially re-initialize physics
+    console.warn('updateConfig is not fully implemented yet.', newConfig);
   }, []);
-  
-  // Set up event listeners
-  useEffect(() => {
-    if (!elementRef.current) return;
-    
-    const element = elementRef.current;
-    
-    // Add event listeners to the element
-    element.addEventListener('pointerenter', handlePointerEnter);
-    element.addEventListener('pointerleave', handlePointerLeave);
-    
-    // Add document-level event listener for pointer movement
-    document.addEventListener('pointermove', handlePointerMove);
-    
-    // If capturing pointer events, handle that specially
-    if (capturePointer) {
-      const handlePointerDown = () => {
-        startFollowing();
-        element.setPointerCapture(1); // Capture next pointer events
-      };
-      
-      const handlePointerUp = () => {
-        if (!alwaysFollow) {
-          stopFollowing();
-        }
-        element.releasePointerCapture(1);
-      };
-      
-      element.addEventListener('pointerdown', handlePointerDown);
-      element.addEventListener('pointerup', handlePointerUp);
-      element.addEventListener('pointercancel', handlePointerUp);
-      
-      return () => {
-        element.removeEventListener('pointerdown', handlePointerDown);
-        element.removeEventListener('pointerup', handlePointerUp);
-        element.removeEventListener('pointercancel', handlePointerUp);
-        element.removeEventListener('pointerenter', handlePointerEnter);
-        element.removeEventListener('pointerleave', handlePointerLeave);
-        document.removeEventListener('pointermove', handlePointerMove);
-      };
-    }
-    
-    return () => {
-      element.removeEventListener('pointerenter', handlePointerEnter);
-      element.removeEventListener('pointerleave', handlePointerLeave);
-      document.removeEventListener('pointermove', handlePointerMove);
-    };
-  }, [
-    alwaysFollow,
-    capturePointer,
-    handlePointerEnter,
-    handlePointerLeave,
-    handlePointerMove,
-    startFollowing,
-    stopFollowing
-  ]);
-  
+
   return {
     ref: elementRef,
     transform,

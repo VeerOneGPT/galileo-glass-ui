@@ -61,7 +61,7 @@ interface MagneticElementOptions {
 ```tsx
 import React from 'react';
 import { useMagneticElement } from 'galileo-glass-ui';
-import { Box } from '@mui/material'; // Or any component
+import { GlassBox } from 'galileo-glass-ui/components';
 
 function MagneticComponent() {
   const { ref, style, isActive } = useMagneticElement({
@@ -71,24 +71,24 @@ function MagneticComponent() {
   });
 
   return (
-    <Box
+    <GlassBox
       ref={ref}
-      style={style} // Apply the calculated transform
-      sx={{
+      style={{
+        ...style,
         width: 100,
         height: 100,
         borderRadius: '50%',
-        backgroundColor: isActive ? 'primary.light' : 'primary.main',
+        backgroundColor: isActive ? '#A5B4FC' : '#6366F1',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         color: 'white',
         cursor: 'pointer',
-        willChange: 'transform', // Performance optimization
+        willChange: 'transform',
       }}
     >
       Attracts!
-    </Box>
+    </GlassBox>
   );
 }
 ```

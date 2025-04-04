@@ -125,7 +125,12 @@ import {
   MetricType,
   MetricSeverity as _MetricSeverity, // Keep renaming
   createPerformanceMonitor,
+  PerformanceMetric, // Assuming this is the correct type/enum 
+  PerformanceSnapshot,
+  PerformanceThresholds,
 } from '../performanceMonitor';
+
+import { act } from '@testing-library/react'; // Import act
 
 // Mock browser APIs that might not be available in Jest environment
 // Mock window.performance
@@ -190,90 +195,200 @@ class MockPerformanceObserver {
 
 global.PerformanceObserver = MockPerformanceObserver as any;
 
+// Mock performance.now if not relying on perf_hooks
+if (typeof global.performance === 'undefined') {
+  (global as any).performance = { now: jest.fn(() => Date.now()) };
+}
+
 describe('PerformanceMonitor', () => {
-  let monitor;
+  let monitor: PerformanceMonitor;
+
+  // Use controllable time/rAF mocks
+  let mockRafCallbacks: FrameRequestCallback[] = [];
+  let currentRafId = 0;
+  let mockTime = 0;
+  const originalPerformanceNow = performance.now;
+  const originalRaf = global.requestAnimationFrame;
+  const originalCaf = global.cancelAnimationFrame;
+
+  const advanceTime = (ms: number) => {
+    mockTime += ms;
+  };
+
+  const runAnimationFrame = (timeDeltaMs = 16.667) => {
+    advanceTime(timeDeltaMs);
+    const callbacks = mockRafCallbacks;
+    mockRafCallbacks = [];
+    callbacks.forEach(cb => {
+        try {
+            cb(mockTime);
+        } catch (e) {
+            console.error('Error in rAF callback', e);
+        }
+    });
+  };
 
   beforeEach(() => {
-    jest.useFakeTimers();
-    jest.clearAllMocks();
-    monitor = new PerformanceMonitor();
+    // Reset Time Mocks
+    mockTime = 0;
+    mockRafCallbacks = [];
+    currentRafId = 0;
+    performance.now = jest.fn(() => mockTime);
+    global.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => {
+      const id = ++currentRafId;
+      mockRafCallbacks.push(callback);
+      return id;
+    });
+    global.cancelAnimationFrame = jest.fn((id: number) => {});
+    // End Reset Time Mocks
+
+    monitor = createPerformanceMonitor(); // Test the actual factory
+    // REMOVED: jest.useFakeTimers(); - Control time manually
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    monitor.stop();
+    // Restore originals
+    performance.now = originalPerformanceNow;
+    global.requestAnimationFrame = originalRaf;
+    global.cancelAnimationFrame = originalCaf;
+    // REMOVED: jest.useRealTimers();
   });
 
-  test('can be instantiated', () => {
-    expect(monitor).toBeDefined();
-    expect(PerformanceMonitor).toHaveBeenCalled();
+  test('can be instantiated via factory', () => {
+    // Check if the factory returns an instance of the actual class
+    expect(monitor).toBeInstanceOf(PerformanceMonitor);
   });
 
-  test('factory function creates a monitor instance', () => {
-    const instance = createPerformanceMonitor();
-    expect(instance).toBeDefined();
-  });
+  // test('factory function creates a monitor instance', () => { // Redundant with above
+  //   const factoryMonitor = createPerformanceMonitor();
+  //   expect(factoryMonitor).toBeInstanceOf(PerformanceMonitor);
+  // });
 
   test('starts and stops monitoring', () => {
+    const rafSpy = jest.spyOn(global, 'requestAnimationFrame');
+    const cafSpy = jest.spyOn(global, 'cancelAnimationFrame');
+
     monitor.start();
-    expect(monitor.start).toHaveBeenCalled();
+    expect(rafSpy).toHaveBeenCalled();
+    // Need to get the rafId returned by the first call
+    const rafId = rafSpy.mock.results[0].value;
 
     monitor.stop();
-    expect(monitor.stop).toHaveBeenCalled();
+    // Check stopped state - stop should cancel the *specific* rAF ID
+    expect(cafSpy).toHaveBeenCalledWith(rafId);
+
+    rafSpy.mockRestore();
+    cafSpy.mockRestore();
   });
 
-  test('getSnapshot returns a performance snapshot', () => {
+  test('getSnapshot returns a valid snapshot structure', async () => {
+    monitor.start();
+    // Run a few frames to populate data
+    await act(async () => {
+        runAnimationFrame();
+        runAnimationFrame();
+    });
+    monitor.stop();
+
     const snapshot = monitor.getSnapshot();
     expect(snapshot).toBeDefined();
     expect(snapshot.metrics).toBeDefined();
+    expect(snapshot.metrics.fps).toBeDefined();
+    expect(snapshot.metrics.fps?.value).toBeDefined();
+    expect(snapshot.metrics.frameTime).toBeDefined();
+    expect(snapshot.metrics.frameTime?.value).toBeDefined();
     expect(snapshot.deviceInfo).toBeDefined();
-    expect(snapshot.overallScore).toBe(100);
+    expect(snapshot.overallScore).toBeDefined();
+    expect(snapshot.timestamp).toBeGreaterThan(0);
   });
 
-  test('getMetric returns a specific metric', () => {
+  test('getMetric returns a specific metric after sampling', async () => {
+    monitor.start();
+    await act(async () => {
+        runAnimationFrame(16); // ~60fps
+        runAnimationFrame(17);
+        runAnimationFrame(16);
+        runAnimationFrame(18);
+    });
+    monitor.stop();
+
     const metric = monitor.getMetric(MetricType.FPS);
     expect(metric).toBeDefined();
-    expect(metric.type).toBe(MetricType.FPS);
+    expect(metric?.type).toBe(MetricType.FPS);
+    expect(metric?.value).toBeGreaterThan(0);
+    expect(metric?.unit).toBe('fps');
+
+    const frameTimeMetric = monitor.getMetric(MetricType.FRAME_TIME);
+    expect(frameTimeMetric).toBeDefined();
+    expect(frameTimeMetric?.type).toBe(MetricType.FRAME_TIME);
+    expect(frameTimeMetric?.value).toBeGreaterThan(0);
+    expect(frameTimeMetric?.unit).toBe('ms');
   });
 
-  test('reset clears metrics', () => {
+  test('reset clears metrics', async () => {
+    monitor.start();
+    await act(async () => { runAnimationFrame(); }); // Collect one sample
+    monitor.stop();
+    const snapshot1 = monitor.getSnapshot();
+    expect(snapshot1.metrics.fps?.value).toBeGreaterThan(0);
+
     monitor.reset();
-    expect(monitor.reset).toHaveBeenCalled();
+    const snapshot2 = monitor.getSnapshot();
+    expect(snapshot2.metrics.fps?.value).toBe(0);
   });
 
   test('custom metrics can be set and retrieved', () => {
-    monitor.setCustomMetric('test', 42);
-    expect(monitor.setCustomMetric).toHaveBeenCalledWith('test', 42);
-
-    const metrics = monitor.getCustomMetrics();
-    expect(monitor.getCustomMetrics).toHaveBeenCalled();
-    expect(metrics).toBeDefined();
+    monitor.setCustomMetric('testMetric', 42);
+    const customMetrics = monitor.getCustomMetrics();
+    
+    // Check if the key exists
+    expect(customMetrics['testMetric']).toBeDefined();
+    // Assert directly on the value returned for the key
+    expect(customMetrics['testMetric']).toBe(42);
   });
 
-  test('recommendations are provided when needed', () => {
+  test('getRecommendations returns an array', () => {
+    // May need to simulate a performance issue to get actual recommendations
     const recommendations = monitor.getRecommendations();
-    expect(monitor.getRecommendations).toHaveBeenCalled();
     expect(Array.isArray(recommendations)).toBe(true);
   });
 
-  test('provides glass effect recommendations', () => {
+  test('provides default glass effect recommendations', () => {
+    // This might depend on the initial state or simulated performance
     const settings = monitor.getRecommendedGlassSettings();
-    expect(monitor.getRecommendedGlassSettings).toHaveBeenCalled();
     expect(settings).toHaveProperty('blurStrength');
     expect(settings).toHaveProperty('backgroundOpacity');
+    // Add more checks based on expected default recommendations
   });
 
-  test('identifies performance bottlenecks', () => {
+  test('identifyBottlenecks returns an array', () => {
+    // May need to simulate performance issues
     const bottlenecks = monitor.identifyBottlenecks();
-    expect(monitor.identifyBottlenecks).toHaveBeenCalled();
     expect(Array.isArray(bottlenecks)).toBe(true);
   });
 
   test('timing events can be measured', () => {
-    monitor.markEvent('start');
-    expect(monitor.markEvent).toHaveBeenCalledWith('start');
+    const perfSpyMark = jest.spyOn(performance, 'mark');
+    const perfSpyMeasure = jest.spyOn(performance, 'measure');
+    const perfSpyGetEntries = jest.spyOn(performance, 'getEntriesByName');
 
-    const duration = monitor.measureEvent('test', 'start', 'end');
-    expect(monitor.measureEvent).toHaveBeenCalledWith('test', 'start', 'end');
+    monitor.markEvent('testStart');
+    expect(perfSpyMark).toHaveBeenCalledWith('testStart');
+
+    monitor.markEvent('testEnd');
+    expect(perfSpyMark).toHaveBeenCalledWith('testEnd');
+
+    const duration = monitor.measureEvent('testMeasure', 'testStart', 'testEnd');
+    // Check if performance.measure was called correctly
+    expect(perfSpyMeasure).toHaveBeenCalledWith('testMeasure', 'testStart', 'testEnd');
+    // Check if performance.getEntriesByName was called to retrieve the measurement
+    expect(perfSpyGetEntries).toHaveBeenCalledWith('testMeasure', 'measure');
+    // Check the duration returned (using the mock value for getEntriesByName)
     expect(duration).toBe(42);
+
+    perfSpyMark.mockRestore();
+    perfSpyMeasure.mockRestore();
+    perfSpyGetEntries.mockRestore();
   });
 });

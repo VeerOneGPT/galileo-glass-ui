@@ -4,7 +4,7 @@
  * A unified chart container with glass styling, physics-based interactions,
  * and Z-Space layering. Acts as a wrapper for all chart types.
  */
-import React, { useMemo, useState, useRef, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styled, { DefaultTheme } from 'styled-components';
 
 import { useMouseMagneticEffect, usePhysicsInteraction } from '../../animations/hooks';
@@ -24,7 +24,23 @@ import GlassTooltip, { GlassTooltipContent } from './GlassTooltip';
 import { LineChart } from './LineChart';
 import { PieChart } from './PieChart';
 import SimpleChart from './SimpleChart';
-import { BaseChartProps } from './types';
+import { BaseChartProps, ChartSeries, SeriesDataPoint } from './types';
+
+// Ref interface
+export interface GlassChartRef {
+  /** Gets the main chart container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
+  /** Gets the currently rendered chart type */
+  getCurrentChartType: () => GlassChartProps['type'];
+  /** Programmatically changes the rendered chart type */
+  setChartType: (type: GlassChartProps['type']) => void;
+  /** Programmatically sets the active tab (if tabs are used) */
+  setActiveTab: (tabId: string) => void;
+  /** Programmatically triggers the download function (if configured) */
+  downloadChart: () => void;
+  /** Toggles the focus mode (if enabled) */
+  toggleFocusMode: () => void;
+}
 
 /**
  * GlassChart props interface
@@ -396,9 +412,36 @@ const ensureValidTheme = (themeInput: any): DefaultTheme => {
 };
 
 /**
+ * Helper function to transform Chart.js data format to ChartSeries[]
+ */
+const transformChartJsData = (chartJsData: any): ChartSeries[] => {
+  if (!chartJsData || !Array.isArray(chartJsData.datasets) || !Array.isArray(chartJsData.labels)) {
+    // Return empty or handle error if format is unexpected
+    // console.warn('Invalid data format passed to transformChartJsData');
+    return []; 
+  }
+
+  return chartJsData.datasets.map((dataset: any, index: number) => ({
+    id: dataset.id || `dataset-${index}`,
+    name: dataset.label || `Dataset ${index + 1}`,
+    color: dataset.borderColor || dataset.backgroundColor, // Use borderColor or backgroundColor as series color
+    data: dataset.data.map((value: number, pointIndex: number) => ({
+      // Use value directly if data is just numbers
+      // Use point object if data is {x, y} or similar (needs adjustment if x is not index)
+      // Assuming simple numeric data corresponding to labels for now
+      value: value,
+      label: chartJsData.labels[pointIndex] || `Point ${pointIndex + 1}`,
+      // Optionally include original point data if needed: ...point 
+    })),
+    // Add other potential ChartSeries properties if needed
+    // visible: dataset.hidden !== undefined ? !dataset.hidden : true,
+  }));
+};
+
+/**
  * GlassChart Component
  */
-export const GlassChart: React.FC<GlassChartProps> = ({
+export const GlassChart = forwardRef<GlassChartRef, GlassChartProps>(({
   type = 'bar',
   data,
   width = '100%',
@@ -426,7 +469,7 @@ export const GlassChart: React.FC<GlassChartProps> = ({
   style,
   className,
   theme: providedTheme,
-}) => {
+}, ref) => {
   // Get theme from context or use the provided theme, and ensure it's valid
   const contextTheme = useTheme();
   const theme = ensureValidTheme(providedTheme || contextTheme);
@@ -454,30 +497,6 @@ export const GlassChart: React.FC<GlassChartProps> = ({
 
   // Refs for chart container
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Call the magnetic effect hook directly at component level
-  const magneticEffectProps = magneticEffect && !prefersReducedMotion ? {
-    type: 'attract' as const,
-    strength: magneticStrength,
-    radius: 200,
-    maxDisplacement: 10,
-    affectsRotation: false,
-    affectsScale: false,
-    smooth: true,
-  } : null;
-
-  // Always call the hook, but conditionally pass null
-  const magneticProps = useMouseMagneticEffect<HTMLDivElement>(
-    magneticEffectProps || {
-      type: 'attract' as const,
-      strength: 0,
-      radius: 0,
-      maxDisplacement: 0,
-      affectsRotation: false,
-      affectsScale: false,
-      smooth: false,
-    }
-  );
 
   // Use depth animation if enabled
   const zAnimationResult = useZSpaceAnimation({
@@ -507,6 +526,23 @@ export const GlassChart: React.FC<GlassChartProps> = ({
 
   const depthStyles = zAnimationResult.style;
 
+  // Flag to know if original data was Chart.js format
+  const isChartJsDataFormat = useMemo(() => 
+    data && typeof data === 'object' && !Array.isArray(data) && data.datasets && data.labels,
+    [data]
+  );
+
+  // Prepare data for non-pie charts (target: ChartSeries[])
+  const chartSeriesData = useMemo(() => {
+    if (isChartJsDataFormat) {
+      return transformChartJsData(data);
+    }
+    // If not Chart.js format, assume it might be ChartSeries[] or SeriesDataPoint[]
+    // We'll let child components (like LineChart) handle SeriesDataPoint[] case if needed
+    return data as ChartSeries[]; // Assume ChartSeries[] for typing here
+  }, [data, isChartJsDataFormat]);
+
+  // --- Handler Functions ---
   // Handle tab change
   const handleTabChange = (tabId: string) => {
     setCurrentTab(tabId);
@@ -540,70 +576,151 @@ export const GlassChart: React.FC<GlassChartProps> = ({
     }
   };
 
+  // --- Imperative Handle (Moved After Handlers) ---
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => containerRef.current,
+    getCurrentChartType: () => currentType,
+    setChartType: (newType) => {
+      if (availableTypes.includes(newType)) {
+        handleTypeChange(newType);
+      }
+    },
+    setActiveTab: (tabId) => {
+      if (tabs?.some(tab => tab.id === tabId)) {
+        handleTabChange(tabId);
+      }
+    },
+    downloadChart: () => {
+      if (allowDownload) {
+        handleDownload();
+      }
+    },
+    toggleFocusMode: () => {
+      if (focusMode) {
+        handleFocusToggle();
+      }
+    },
+  }), [
+    containerRef, 
+    currentType, 
+    availableTypes, 
+    handleTypeChange, // Dependency
+    tabs, 
+    handleTabChange,  // Dependency
+    allowDownload, 
+    handleDownload,   // Dependency
+    focusMode, 
+    handleFocusToggle // Dependency
+  ]);
+
+  // Call the magnetic effect hook directly at component level
+  const magneticEffectProps = magneticEffect && !prefersReducedMotion ? {
+    type: 'magnetic' as const,
+    strength: magneticStrength,
+    radius: 200,
+    maxDisplacement: 10,
+    affectsRotation: false,
+    affectsScale: false,
+    smooth: true,
+  } : null;
+
+  // Always call the hook, but conditionally pass null
+  const magneticProps = useMouseMagneticEffect<HTMLDivElement>(
+    magneticEffectProps || {
+      type: 'magnetic' as const,
+      strength: 0,
+      radius: 0,
+      maxDisplacement: 0,
+      affectsRotation: false,
+      affectsScale: false,
+      smooth: false,
+    }
+  );
+
   // Render chart based on type and simplified mode
   const renderChart = useCallback(() => {
+    // Prepare props common to most charts
     const commonProps = {
-      data,
+      // We'll override data prop specifically where needed
       width: '100%',
       height: '100%',
       glass,
-      title: undefined, // We're handling title in the container
-      description: undefined, // We're handling description in the container
+      title: undefined,
+      description: undefined,
       adaptToCapabilities,
       simplified: useSimplified,
       onError,
       ...chartProps,
     };
 
+    // Handle Pie/Doughnut data preparation separately (target: SeriesDataPoint[])
+    if (currentType === 'pie') { // Add doughnut later if needed
+      let pieData: SeriesDataPoint[] = [];
+
+      if (isChartJsDataFormat) {
+        const firstDataset = data.datasets[0];
+        if (firstDataset && Array.isArray(firstDataset.data)) {
+          pieData = firstDataset.data.map((value: number, index: number) => ({
+            label: data.labels[index] || `Slice ${index + 1}`,
+            value: value,
+            color: Array.isArray(firstDataset.backgroundColor) 
+                     ? firstDataset.backgroundColor[index % firstDataset.backgroundColor.length] 
+                     : firstDataset.backgroundColor, 
+          }));
+        }
+      } else if (Array.isArray(data) && data.length > 0 && data[0].value !== undefined) {
+        // Check if input data looks like SeriesDataPoint[] directly
+        pieData = data as SeriesDataPoint[];
+      } else if (Array.isArray(chartSeriesData) && chartSeriesData.length > 0) {
+        // If input was ChartSeries[], extract data from the first series
+        pieData = chartSeriesData[0].data;
+      }
+      
+      if (useSimplified) {
+         return <SimpleChart type="pie" data={pieData} {...commonProps} />;
+      }
+      return <PieChart {...commonProps} data={pieData} />;
+    }
+    
+    // Handle other chart types, passing chartSeriesData
+    const chartDataForOtherTypes = chartSeriesData;
+
     if (useSimplified) {
       return (
         <SimpleChart
           type={currentType}
-          data={data}
-          glass={glass}
-          title={undefined}
-          height="100%"
-          width="100%"
-          {...chartProps}
+          data={chartDataForOtherTypes} // Pass ChartSeries[] to SimpleChart
+          {...commonProps}
         />
       );
     }
 
     switch (currentType) {
       case 'bar':
-        return <BarChart {...commonProps} />;
+        return <BarChart {...commonProps} data={chartDataForOtherTypes} />;
       case 'line':
-        return <LineChart {...commonProps} />;
+        return <LineChart {...commonProps} data={chartDataForOtherTypes} />;
       case 'area':
-        // Separate fillArea from other chartProps
-        const { fillArea, ...otherChartProps } = chartProps;
-        return <AreaChart {...commonProps} {...otherChartProps} />;
-      case 'pie':
-        return <PieChart {...commonProps} />;
+        const { fillArea, ...otherAreaProps } = chartProps;
+        return <AreaChart {...commonProps} data={chartDataForOtherTypes} {...otherAreaProps} />;
+      // Pie case handled above
       default:
-        return <BarChart {...commonProps} />;
+        // Fallback or handle scatter etc.
+        return <BarChart {...commonProps} data={chartDataForOtherTypes} />;
     }
-  }, [currentType, data, glass, chartProps, useSimplified, adaptToCapabilities, onError]);
-
-  // Create a ref callback that handles both container ref and magnetic ref
-  const combinedRefCallback = useCallback(
-    (element: HTMLDivElement | null) => {
-      // Set the container ref
-      if (containerRef) containerRef.current = element;
-
-      // Set the magnetic ref if it exists
-      if (magneticProps && magneticProps.ref) {
-        // Safe type cast using our utility type
-        const magneticRef = magneticProps.ref as React.MutableRefObject<HTMLDivElement | null>;
-        if (magneticRef) magneticRef.current = element;
-      }
-    },
-    [magneticProps]
-  );
+  // Separate dependencies for chartSeriesData calculation from renderChart
+  }, [currentType, isChartJsDataFormat, data, chartSeriesData, glass, chartProps, useSimplified, adaptToCapabilities, onError]); 
 
   return (
     <ChartContainer
-      ref={combinedRefCallback}
+      ref={(element: HTMLDivElement | null) => { 
+        // Assign to internal ref
+        containerRef.current = element; 
+        // Assign to magnetic ref if it exists
+        if (magneticProps && magneticProps.ref) {
+          (magneticProps.ref as React.MutableRefObject<HTMLDivElement | null>).current = element;
+        }
+      }}
       zElevation={zElevation}
       width={width}
       height={height}
@@ -630,19 +747,20 @@ export const GlassChart: React.FC<GlassChartProps> = ({
         {(tabs?.length || allowTypeSwitch || toolbarItems) && (
           <ChartControls>
             {/* Tabs for chart navigation */}
-            {tabs?.length && (
+            {tabs?.length ? (
               <TabsContainer>
                 <EnhancedGlassTabs
                   tabs={tabs}
                   activeTab={currentTab}
                   onChange={handleTabChange}
-                  variant="default"
                   size="small"
                   color="primary"
-                  physicsEnabled={!prefersReducedMotion}
+                  variant="default"
+                  showIndicator={true}
+                  physicsEnabled={false} // Disable physics to prevent loops
                 />
               </TabsContainer>
-            )}
+            ) : null}
 
             {/* Action buttons toolbar */}
             <ToolbarContainer>
@@ -744,6 +862,9 @@ export const GlassChart: React.FC<GlassChartProps> = ({
       </div>
     </ChartContainer>
   );
-};
+});
+
+// Add displayName
+GlassChart.displayName = 'GlassChart';
 
 export default GlassChart;

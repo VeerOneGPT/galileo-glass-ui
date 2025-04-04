@@ -127,6 +127,13 @@ export class SpringPhysics {
   }
   
   /**
+   * Gets the current configuration of the spring
+   */
+  public getConfig(): Required<SpringConfig> {
+    return { ...this.config };
+  }
+  
+  /**
    * Updates the spring config
    * @param config New spring configuration
    */

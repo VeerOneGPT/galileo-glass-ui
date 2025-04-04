@@ -4,14 +4,16 @@
  * This file contains tests for the GlassTimeline component to ensure it renders correctly
  * with different props and handles user interactions properly.
  */
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import 'jest-styled-components';
+import '@testing-library/jest-dom';
 import styled from 'styled-components';
-import { ThemeProvider } from '../../../theme';
+import { ThemeProvider } from '../../../theme/ThemeProvider';
 // Import the types only
-import { TimelineItem } from '../types';
+import { TimelineItem, TimelineRef } from '../types';
 import { parseDate } from '../TimelineUtils';
+import { GlassTimeline } from '../GlassTimeline';
+// import { vi } from 'vitest'; // Reverted - use jest
 
 // Define prop types for styled components
 interface MockContainerProps {
@@ -43,77 +45,145 @@ interface MockTimelineProps {
 }
 
 // Mock before importing
-jest.mock('../GlassTimeline', () => {
-  // Use TypeScript's import syntax for styled-components
-  // const styled = require('styled-components').default; // Remove require
+jest.mock('../components/TimelineEvent', () => 
+    jest.fn(({ item, isActive }) => (
+        <div data-testid={`event-${item.id}`} data-active={isActive}>{item.title}</div>
+    ))
+);
+// Correct mock path/name and structure, handle undefined date
+jest.mock('../components/TimelineMarkers', () => 
+    jest.fn(({ date }) => <div data-testid="marker">{date ? date.toISOString() : 'Invalid Date'}</div>)
+);
+// Mock TimelineControls component
+jest.mock('../components/TimelineControls', () => ({
+    __esModule: true, 
+    default: jest.fn(() => <div data-testid="timeline-controls">Mock Controls</div>)
+}));
 
-  // Define styled component with proper typing
-  const MockTimelineContainer = styled.div<MockContainerProps>`
-    flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
-    ${props => props.$glassVariant && `backdrop-filter: blur(8px);`}
-  `;
+jest.mock('../../../hooks/useGalileoSprings', () => ({
+    useGalileoSprings: jest.fn((count, configFn) => {
+        return Array.from({ length: count }, (_, i) => ({
+            style: { opacity: 1, transform: 'none' }, 
+            ref: React.createRef(),
+        }));
+    })
+}));
 
-  return {
-    // Use TypeScript arrow function with proper typing
-    GlassTimeline: (props: MockTimelineProps): JSX.Element => {
-      const { 
-        items, 
-        orientation, 
-        markerPosition, 
-        glassVariant, 
-        onItemClick, 
-        showAxis, 
-        animation, 
-        filter, 
-        renderContent 
-      } = props;
-      
-      // Filter items if a filter is provided 
-      const displayItems = filter?.categories 
-        ? items.filter(item => filter.categories.includes(item.category || ''))
-        : items;
-        
-      return (
-        <MockTimelineContainer 
-          data-testid="glass-timeline" 
-          $orientation={orientation}
-          $glassVariant={glassVariant}
-        >
-          {displayItems.map(item => (
-            <div 
-              key={item.id} 
-              data-testid="timeline-item"
-              onClick={() => onItemClick && onItemClick(item)}
-            >
-              <h3>{item.title}</h3>
-              <p>{item.content}</p>
-            </div>
-          ))}
-          {showAxis && <div data-testid="timeline-axis" />}
-          {animation === 'spring' && items.map(item => (
-            <div key={item.id} data-testid="timeline-item-animated" />
-          ))}
-          {markerPosition === 'left' && (
-            <div data-testid="timeline-marker" style={{ alignSelf: 'flex-start' }} />
-          )}
-          {renderContent && (
-            <div data-testid="custom-content" />
-          )}
-        </MockTimelineContainer>
-      );
+// Correct mock path for styles and update mocks within
+jest.mock('../styles', () => { 
+    // --- Import styled AND React INSIDE the factory --- 
+    const React = require('react'); 
+    const styled = require('styled-components');
+    
+    interface MockContainerProps {
+      $orientation?: string;
+      $glassVariant?: string;
+      $blurStrength?: string; 
+      $color?: string; 
+      className?: string;
+      style?: React.CSSProperties;
+      children?: React.ReactNode;
+      'data-testid'?: string;
     }
-  };
+    
+    const MockStyledTimelineControls = styled.default.div<MockContainerProps>` 
+      border: 1px solid red; 
+    `;
+
+    // Define the component function separately
+    const TimelineContainerComponent = (
+      { children, $orientation, $glassVariant, $blurStrength, $color, ...restProps }: MockContainerProps, 
+      ref: React.Ref<HTMLDivElement>
+    ) => (
+        <div ref={ref} {...restProps}>{children}</div>
+    );
+    const MockTimelineContainer = React.forwardRef(TimelineContainerComponent);
+
+    return {
+        StyledTimelineControls: MockStyledTimelineControls, 
+        TimelineContainer: MockTimelineContainer, 
+        TimelineEventContainer: styled.default.div``,
+        TimelineAxisContainer: styled.default.div``, 
+        TimelineToolbar: styled.default.div``,
+        TimelineActionButton: styled.default.button``, 
+        TimelineButton: styled.default.button``,
+        ZoomControls: styled.default.div``,
+        ZoomLabel: styled.default.div``, 
+        TimelineTrack: styled.default.div``,
+        EventGroup: styled.default.div``,
+        EventLine: styled.default.div``, 
+        EventContent: styled.default.div``,
+        EventTitle: styled.default.div``,
+        EventDate: styled.default.div``,
+        EventDescription: styled.default.div``,
+        MarkerContainer: styled.default.div``,
+        MarkerLine: styled.default.div``,
+        MarkerLabel: styled.default.div``,
+        TimelineAxis: styled.default.div``, 
+        TimelineEvents: styled.default.div``,
+        TimelineScrollContainer: styled.default.div``,
+    }
 });
 
-// Now import the mocked component
-import { GlassTimeline } from '../GlassTimeline';
-
-// Mock the ResizeObserver which is used in GlassTimeline
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({ // Use jest
+  observe: jest.fn(), // Use jest
+  unobserve: jest.fn(), // Use jest
+  disconnect: jest.fn(), // Use jest
 }));
+
+// Mock useMeasure hook
+jest.mock('@react-hook/size', () => ({
+  __esModule: true, 
+  default: jest.fn((target) => { // Use jest
+    return [600, 400];
+  }),
+}));
+
+// Mock useReducedMotion hook
+jest.mock('../../../hooks/useReducedMotion', () => ({
+  useReducedMotion: jest.fn(() => ({ isReducedMotion: false, isAnimationAllowed: () => true })), // Use jest
+}));
+
+// Mock the useDraggableListPhysics hook
+jest.mock('../../hooks/useDraggableListPhysics', () => ({
+  useDraggableListPhysics: jest.fn().mockImplementation((options: any) => {
+    const count = options?.itemCount ?? 0;
+    // REQUIRE React inside the factory
+    const React = require('react'); 
+    return {
+      styles: Array(count).fill({}),
+      getHandlers: jest.fn((index: number) => ({
+        onPointerDown: jest.fn(),
+        onKeyDown: jest.fn(),
+      })),
+      isDragging: false,
+      draggedIndex: null,
+      // Mock getElementRefs to return an array of refs
+      getElementRefs: jest.fn(() => {
+        return Array.from({ length: count }, (_, i) => (
+          React.createRef()
+        ));
+      })
+    };
+  }),
+}));
+
+// Mock Galileo Physics Engine if Timeline uses physics components
+// jest.mock('../../../animations/physics', () => ({ 
+//   useGalileoPhysicsEngine: jest.fn(() => ({ 
+//     addBody: jest.fn(), 
+//     removeBody: jest.fn(),
+//     // ... other methods
+//   })), 
+// }));
+
+// Mock glass mixins if needed
+// jest.mock('../../../theme/glass', () => ({ 
+//   glassSurface: () => 'background: rgba(255,255,255,0.1);',
+//   glassGlow: () => 'box-shadow: none;',
+//   glassHighlight: () => 'border: 1px solid white;' 
+// }));
 
 // Sample timeline items for testing
 const mockTimelineItems: TimelineItem[] = [
@@ -143,11 +213,7 @@ const mockTimelineItems: TimelineItem[] = [
 
 // Custom renderer to provide theme context
 const renderWithTheme = (ui: React.ReactElement) => {
-  return render(
-    <ThemeProvider>
-      {ui}
-    </ThemeProvider>
-  );
+  return render(<ThemeProvider>{ui}</ThemeProvider>);
 };
 
 describe('GlassTimeline Component', () => {
@@ -382,5 +448,98 @@ describe('GlassTimeline Component', () => {
     // Test parseDate utility function
     expect(parseDate('2023-01-10')).toBeInstanceOf(Date);
     expect(parseDate(new Date())).toBeInstanceOf(Date);
+  });
+
+  test('forwards ref correctly with imperative handle methods', () => {
+    const ref = React.createRef<TimelineRef>(); 
+    renderWithTheme(<GlassTimeline ref={ref} items={mockTimelineItems} />);
+    
+    expect(ref.current).toBeDefined();
+    expect(typeof ref.current?.scrollToDate).toBe('function');
+    expect(typeof ref.current?.scrollToItem).toBe('function');
+    expect(typeof ref.current?.getContainerElement).toBe('function');
+    expect(typeof ref.current?.getCurrentDate).toBe('function');
+    expect(typeof ref.current?.selectItem).toBe('function');
+  });
+
+  it('should forward ref and expose imperative handle methods', () => {
+    const TestComponent = () => {
+      const timelineRef = useRef<TimelineRef>(null);
+      
+      useEffect(() => {
+        expect(timelineRef.current?.scrollToDate).toBeInstanceOf(Function);
+        expect(timelineRef.current?.scrollToItem).toBeInstanceOf(Function);
+        expect(timelineRef.current?.getContainerElement).toBeInstanceOf(Function);
+        expect(timelineRef.current?.getCurrentDate).toBeInstanceOf(Function);
+        expect(timelineRef.current?.selectItem).toBeInstanceOf(Function);
+      }, []);
+      
+      return <GlassTimeline items={mockTimelineItems} ref={timelineRef} data-testid="timeline" />;
+    };
+    render(<TestComponent />);
+    const timelineElement = screen.getByTestId('timeline');
+    expect(timelineElement).toBeInTheDocument(); 
+  });
+
+  test('imperative handle selectItem updates active state', () => {
+    const ref = React.createRef<TimelineRef>();
+    renderWithTheme(<GlassTimeline ref={ref} items={mockTimelineItems} />);
+
+    const targetItemId = '2';
+    act(() => {
+      ref.current?.selectItem(targetItemId);
+    });
+
+    // Check if the correct item's mock component received the active prop
+    const eventItem1 = screen.getByTestId('event-1');
+    const eventItem2 = screen.getByTestId('event-2');
+    const eventItem3 = screen.getByTestId('event-3');
+
+    expect(eventItem1).toHaveAttribute('data-active', 'false');
+    expect(eventItem2).toHaveAttribute('data-active', 'true');
+    expect(eventItem3).toHaveAttribute('data-active', 'false');
+  });
+
+  test('imperative handle scrollToItem calls scrollIntoView on the item', () => {
+    const ref = React.createRef<TimelineRef>();
+    renderWithTheme(<GlassTimeline ref={ref} items={mockTimelineItems} />);
+    
+    const targetItemId = '3';
+    const targetItemElement = screen.getByTestId('event-3').closest('[data-testid^="timeline-item-"]'); // Find the parent item container
+    
+    // Mock scrollIntoView on the specific element we expect to be scrolled to
+    const scrollIntoViewMock = jest.fn();
+    targetItemElement.scrollIntoView = scrollIntoViewMock;
+
+    act(() => {
+      ref.current?.scrollToItem(targetItemId);
+    });
+
+    // Assert that scrollIntoView was called on the target element
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    // Optional: check arguments if needed, e.g., expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+  });
+  
+  test('handles keyboard navigation for selection', () => {
+    const onItemClick = jest.fn();
+    renderWithTheme(<GlassTimeline items={mockTimelineItems} onItemClick={onItemClick} />);
+    
+    const timelineContainer = screen.getByTestId('glass-timeline');
+    
+    // Focus the container to enable keyboard events
+    act(() => {
+      timelineContainer.focus();
+    });
+    
+    // Navigate down/right to the second item
+    fireEvent.keyDown(timelineContainer, { key: 'ArrowDown', code: 'ArrowDown' });
+    // Check if focus visually moved (if possible/implemented) - difficult in JSDOM
+
+    // Select the focused item
+    fireEvent.keyDown(timelineContainer, { key: 'Enter', code: 'Enter' });
+    
+    // Expect onItemClick to be called with the second item
+    expect(onItemClick).toHaveBeenCalledTimes(1);
+    expect(onItemClick).toHaveBeenCalledWith(expect.objectContaining({ id: '2' }));
   });
 });

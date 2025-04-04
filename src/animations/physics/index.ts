@@ -267,13 +267,15 @@ export type {
   PointerFollowGroupResult, 
 } from './usePointerFollowGroup';
 
-// Example components
+// Example components - Commented out as they shouldn't be exported by the library index
+/*
 export { default as MagneticEffectExample } from './examples/MagneticEffectExample';
 export { default as DirectionalFieldExample } from './examples/DirectionalFieldExample';
 export { default as MagneticElementExample } from './examples/MagneticElementExample';
 export { default as MagneticSystemExample } from './examples/MagneticSystemExample';
 export { PointerFollowExample } from './examples/PointerFollowExample';
 export { MagneticSnapExample } from './examples/MagneticSnapExample';
+*/
 
 // Snap points and alignment guides
 export {
@@ -410,22 +412,29 @@ export {
   type Transform3DResult
 } from './use3DTransform';
 
-// Remove the circular reference to unifiedPhysicsAPI
-// export { 
-//   GalileoPhysics,
-//   default as Physics
-// } from './unifiedPhysicsAPI';
-
-// Export the unified API as the default
-// export { default } from './unifiedPhysicsAPI';
-
-// Export the physics engine hook and types
+// Physics Engine Exports
 export { useGalileoPhysicsEngine } from './useGalileoPhysicsEngine';
+export { GalileoPhysicsSystem } from './galileoPhysicsSystem';
+
+// Types
 export type {
   PhysicsBodyOptions,
   PhysicsBodyState,
-  CollisionEvent,
+  GalileoPhysicsEngineAPI,
   Vector2D,
+  CollisionEvent,
   UnsubscribeFunction,
-  GalileoPhysicsEngineAPI
+  PhysicsConstraintOptions,
+  DistanceConstraintOptions,
+  HingeConstraintOptions
 } from './engineTypes';
+
+export type {
+  Vector,
+  PhysicsConfig,
+  PhysicsObjectConfig,
+  PhysicsObject,
+  PhysicsEventType,
+  PhysicsEvent,
+  PhysicsEventListener
+} from './galileoPhysicsSystem';

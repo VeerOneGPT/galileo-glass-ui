@@ -428,7 +428,7 @@ export const List = forwardRef<any, ListProps>(function List(props, ref) {
         staggerDelay: 50, 
         duration: 300,
         from: { opacity: 0, transform: 'translateY(10px)' },
-        to: { opacity: 1, transform: 'translateY(0px)' },
+        properties: { opacity: 1, transform: 'translateY(0px)' },
         animations: [],
       }
     ],
@@ -446,7 +446,7 @@ export const List = forwardRef<any, ListProps>(function List(props, ref) {
           staggerDelay: userStage?.staggerDelay ?? defaultStage.staggerDelay,
           duration: userStage?.duration ?? defaultStage.duration,
           from: userStage?.from ?? defaultStage.from,
-          to: userStage?.to ?? defaultStage.to,
+          properties: userStage?.properties ?? defaultStage.properties,
           easing: userStage?.easing ?? defaultStage.easing,
           staggerPattern: userStage?.staggerPattern ?? defaultStage.staggerPattern,
           staggerPatternFn: userStage?.staggerPatternFn ?? defaultStage.staggerPatternFn,

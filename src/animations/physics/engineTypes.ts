@@ -50,16 +50,96 @@ export interface PhysicsBodyState {
   userData?: any;
 }
 
-// Data provided by collision events
+/**
+ * Interface describing a collision event between two bodies.
+ */
 export interface CollisionEvent {
+  /** The ID of the first body involved in the collision. */
   bodyAId: string;
+  /** The ID of the second body involved in the collision. */
   bodyBId: string;
+  /** User data associated with the first body, if any. */
   bodyAUserData?: any;
+  /** User data associated with the second body, if any. */
   bodyBUserData?: any;
-  contactPoints?: Vector2D[]; // Points of contact
-  normal?: Vector2D; // Collision normal vector
-  penetration?: number; // Penetration depth
+  /** 
+   * The approximate point of contact in world coordinates. 
+   * Calculation depends on the shapes involved.
+   */
+  contactPoint?: Vector2D;
+  /** 
+   * The collision normal vector, pointing from bodyA towards bodyB.
+   */
+  normal?: Vector2D;
+  /** 
+   * The depth of penetration between the bodies at the time of collision.
+   */
+  penetration?: number;
+  /** 
+   * The relative velocity between the two bodies at the point of contact.
+   * Calculated as `velocityB - velocityA`.
+   */
+  relativeVelocity?: Vector2D;
+  /**
+   * The magnitude of the impulse applied to resolve the collision.
+   * This value represents the intensity of the collision impact (impactForce).
+   */
+  impulse?: number; 
 }
+
+// --- Constraint Types ---
+
+/** Base interface for all constraint options. */
+export interface BaseConstraintOptions {
+  id?: string; // Optional user-defined ID for the constraint
+  bodyAId: string; // ID of the first body
+  bodyBId: string; // ID of the second body
+  // Optional: Define points relative to the body centers where the constraint attaches
+  pointA?: Vector2D; // Default: { x: 0, y: 0 }
+  pointB?: Vector2D; // Default: { x: 0, y: 0 }
+  collideConnected?: boolean; // Should the connected bodies still collide? Default: false
+  stiffness?: number; // Spring stiffness for soft constraints (optional)
+  damping?: number; // Damping for soft constraints (optional)
+}
+
+/** Options for a Distance Constraint. */
+export interface DistanceConstraintOptions extends BaseConstraintOptions {
+  type: 'distance';
+  distance: number; // The target distance to maintain between pointA and pointB
+  // Stiffness and damping are inherited from BaseConstraintOptions
+}
+
+/** Options for a Spring Constraint (similar to Distance, but emphasizes stiffness/damping). */
+export interface SpringConstraintOptions extends BaseConstraintOptions {
+    type: 'spring';
+    restLength: number; // The natural length of the spring
+    // Requires stiffness and damping from BaseConstraintOptions
+    // Ensure stiffness and damping are required or have sensible defaults when type is 'spring'?
+}
+
+/** Options for a Hinge Constraint (Revolute Joint). */
+export interface HingeConstraintOptions extends BaseConstraintOptions {
+  type: 'hinge';
+  // Hinge connects bodies at a single world point (anchor)
+  // If specified, takes precedence over pointA/pointB
+  anchor?: Vector2D; 
+  // Optional: Enable motor
+  enableMotor?: boolean;
+  motorSpeed?: number; // Target angular speed
+  maxMotorTorque?: number; // Maximum torque the motor can apply
+  // Optional: Enable limits
+  enableLimit?: boolean;
+  lowerAngle?: number; // Lower angular limit (radians)
+  upperAngle?: number; // Upper angular limit (radians)
+}
+
+// Union type for all possible constraint configurations
+export type PhysicsConstraintOptions =
+    DistanceConstraintOptions |
+    HingeConstraintOptions |
+    SpringConstraintOptions; // <-- Add SpringConstraintOptions
+
+// --- Engine API --- 
 
 // The API object returned by useGalileoPhysicsEngine
 export interface GalileoPhysicsEngineAPI {
@@ -135,4 +215,19 @@ export interface GalileoPhysicsEngineAPI {
    * @returns An unsubscribe function.
    */
   onCollisionEnd: (callback: (event: CollisionEvent) => void) => UnsubscribeFunction;
+
+  // --- Constraints API --- 
+
+  /**
+   * Adds a constraint between two bodies.
+   * @param options Configuration options for the constraint.
+   * @returns The unique ID of the created constraint.
+   */
+  addConstraint: (options: PhysicsConstraintOptions) => string;
+
+  /**
+   * Removes a constraint from the simulation.
+   * @param id The ID of the constraint to remove.
+   */
+  removeConstraint: (id: string) => void;
 } 

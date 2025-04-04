@@ -134,21 +134,28 @@ export const withFallbackStrategies = <P extends object>(
       }
     }
     
+    // Ensure fallback and componentFallback are defined before proceeding
+    const safeComponentFallback = fallback?.getComponentFallback 
+        ? fallback.getComponentFallback()
+        : { useSimplifiedVersion: false, useReducedProps: false, disableFeatures: [], alternatives: {} }; // Provide defaults
+    
     // Prepare fallback props to pass to the component
     const fallbackProps = {
-      fallbackStrategies: fallback,
-      useFallback: componentFallback.useSimplifiedVersion,
-      reducedProps: componentFallback.useReducedProps,
-      disabledFeatures: componentFallback.disableFeatures,
-      alternatives: componentFallback.alternatives,
-      deviceTier: fallback.deviceTier,
-      isLowEndDevice: fallback.isLowEndDevice,
-      prefersReducedMotion: fallback.prefersReducedMotion,
+      fallbackStrategies: fallback, // Pass the whole hook result
+      useFallback: safeComponentFallback.useSimplifiedVersion,
+      reducedProps: safeComponentFallback.useReducedProps,
+      disabledFeatures: safeComponentFallback.disableFeatures,
+      alternatives: safeComponentFallback.alternatives,
+      deviceTier: fallback?.deviceTier, // Add optional chaining for fallback properties
+      isLowEndDevice: fallback?.isLowEndDevice,
+      prefersReducedMotion: fallback?.prefersReducedMotion,
       ...dynamicProps
     };
     
-    // Forward the component props along with fallback props
-    return <Component {...componentProps as P} {...fallbackProps} />;
+    // Forward ALL original props along with the calculated fallback props
+    // This ensures props expected by the wrapped component are preserved,
+    // even if they have the same name as HOC config props.
+    return <Component {...props} {...fallbackProps} />;
   };
   
   // Set display name

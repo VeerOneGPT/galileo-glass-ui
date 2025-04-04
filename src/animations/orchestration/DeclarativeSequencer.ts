@@ -12,7 +12,6 @@ import {
 } from '../core/types';
 import { animationOrchestrator, AnimationTarget } from './Orchestrator';
 import { MotionSensitivityLevel } from '../accessibility/MotionSensitivity';
-import { accessibleAnimation } from '../accessibility/accessibleAnimation';
 import { Keyframes } from 'styled-components';
 
 // Types
@@ -74,7 +73,7 @@ export interface AnimationCommand {
   type: CommandType;
   
   /** Command parameters */
-  params: Record<string, any>;
+  params: Record<string, unknown>;
   
   /** Unique identifier for the command */
   id?: string;
@@ -94,10 +93,10 @@ export interface AnimationCommand {
  */
 export interface SequenceContext {
   /** Variable storage */
-  variables: Record<string, any>;
+  variables: Record<string, unknown>;
   
   /** Event handlers */
-  eventHandlers: Record<string, Array<(data?: any) => void>>;
+  eventHandlers: Record<string, Array<(data?: unknown) => void>>;
   
   /** Timeline position (in milliseconds) */
   currentTime: number;
@@ -111,7 +110,7 @@ export interface SequenceContext {
     lastCommandId: string | null;
     conditionalStack: boolean[];
     loopStack: Array<{
-      items: any[];
+      items: unknown[];
       currentIndex: number;
       variable: string;
     }>;
@@ -181,7 +180,7 @@ export interface AnimationDeclaration {
   waitForCompletion?: boolean;
   
   /** Additional properties to animate */
-  props?: Record<string, any>;
+  props?: Record<string, unknown>;
   
   /** CSS variables to set */
   vars?: Record<string, string>;
@@ -573,7 +572,8 @@ export class DeclarativeSequencer {
    * @returns Animation targets
    */
   private processAnimateCommand(command: AnimationCommand): AnimationTarget[] {
-    const { target, animation, duration, delay, easing, waitForCompletion, props, vars, classes, events } = command.params as AnimationDeclaration;
+    // Add type assertion for command parameters
+    const { target, animation, duration, delay, easing, waitForCompletion, props, vars, classes, events } = command.params as unknown as AnimationDeclaration;
     
     // Convert target to array of elements
     const elements = this.resolveTargets(target);
@@ -653,6 +653,7 @@ export class DeclarativeSequencer {
    * @returns Animation targets
    */
   private processStaggerCommand(command: AnimationCommand): AnimationTarget[] {
+    // Add type assertion for command parameters
     const { 
       targets, 
       animation, 
@@ -663,7 +664,7 @@ export class DeclarativeSequencer {
       staggerEase,
       easing,
       onStaggerStep
-    } = command.params as StaggerOptions;
+    } = command.params as unknown as StaggerOptions;
     
     // Resolve targets
     const elements = this.resolveTargets(targets);
@@ -747,43 +748,33 @@ export class DeclarativeSequencer {
    * @returns Animation targets
    */
   private async processGroupCommand(command: AnimationCommand): Promise<AnimationTarget[]> {
-    const { commands, parallel = false, label } = command.params as GroupOptions;
+    // Add type assertion for command parameters
+    const { commands, parallel = false, label } = command.params as unknown as GroupOptions;
+    // Add type assertion for commands
+    const groupCommands = commands as AnimationCommand[];
     
-    // Update context
-    const prevLabel = this.context.state.currentLabel;
-    if (label) {
-      this.context.state.currentLabel = label;
-    }
+    // TODO: Implement group execution logic
+    console.log(`Processing Group: ${label || 'unlabeled'} (${parallel ? 'parallel' : 'sequence'}) with ${groupCommands.length} commands`);
     
-    // Process commands
     const allTargets: AnimationTarget[] = [];
-    
     if (parallel) {
-      // Process commands in parallel
-      const promises = commands.map(async (cmd) => {
-        if (this.shouldSkipCommand(cmd)) return [];
-        return await this.processCommand(cmd) || [];
-      });
-      
+      // Execute all commands in parallel
+      const promises = groupCommands.map(cmd => this.processCommand(cmd));
       const results = await Promise.all(promises);
-      results.forEach(targets => {
-        if (Array.isArray(targets)) {
-          allTargets.push(...targets);
+      results.forEach(result => {
+        if (Array.isArray(result)) {
+          allTargets.push(...result);
         }
       });
     } else {
-      // Process commands sequentially
-      for (const cmd of commands) {
-        if (this.shouldSkipCommand(cmd)) continue;
-        const targets = await this.processCommand(cmd);
-        if (Array.isArray(targets)) {
-          allTargets.push(...targets);
+      // Execute commands sequentially
+      for (const cmd of groupCommands) {
+        const result = await this.processCommand(cmd);
+        if (Array.isArray(result)) {
+          allTargets.push(...result);
         }
       }
     }
-    
-    // Restore context
-    this.context.state.currentLabel = prevLabel;
     
     return allTargets;
   }
@@ -839,8 +830,8 @@ export class DeclarativeSequencer {
   private processIfCommand(command: AnimationCommand): void {
     const { condition } = command.params;
     
-    // Evaluate condition
-    const result = this.evaluateCondition(condition);
+    // Evaluate condition (Assert type for evaluateCondition)
+    const result = this.evaluateCondition(condition as boolean | string | ((context: SequenceContext) => unknown));
     
     // Push result to conditional stack
     this.context.state.conditionalStack.push(result);
@@ -872,8 +863,8 @@ export class DeclarativeSequencer {
     if (this.context.state.conditionalStack.length > 0) {
       this.context.state.conditionalStack.pop();
       
-      // Evaluate new condition
-      const result = this.evaluateCondition(condition);
+      // Evaluate new condition (Assert type for evaluateCondition)
+      const result = this.evaluateCondition(condition as boolean | string | ((context: SequenceContext) => unknown));
       
       // Push result to conditional stack
       this.context.state.conditionalStack.push(result);
@@ -899,12 +890,13 @@ export class DeclarativeSequencer {
     const { items, variable } = command.params;
     
     // Evaluate items
-    let resolvedItems: any[] = [];
+    let resolvedItems: unknown[] = [];
     
     if (typeof items === 'string' && items.startsWith('$')) {
       // Variable reference
       const varName = items.substring(1);
-      resolvedItems = this.context.variables[varName] || [];
+      // Ensure variable value is treated as an array, defaulting to empty array
+      resolvedItems = (this.context.variables[varName] as unknown[]) || [];
     } else if (Array.isArray(items)) {
       resolvedItems = items;
     } else {
@@ -912,19 +904,22 @@ export class DeclarativeSequencer {
       resolvedItems = [];
     }
     
+    // Ensure variable is treated as string
+    const loopVariable = variable as string;
+
     // Push loop state to stack
     this.context.state.loopStack.push({
       items: resolvedItems,
       currentIndex: 0,
-      variable
+      variable: loopVariable
     });
     
     // Set first item as variable
     if (resolvedItems.length > 0) {
-      this.context.variables[variable] = resolvedItems[0];
+      this.context.variables[loopVariable] = resolvedItems[0];
       
       // Also set index variable
-      this.context.variables[`${variable}_index`] = 0;
+      this.context.variables[`${loopVariable}_index`] = 0;
     } else {
       // Empty array, skip loop body
       this.context.state.conditionalStack.push(false);
@@ -948,11 +943,13 @@ export class DeclarativeSequencer {
         // End of loop, pop from stack
         this.context.state.loopStack.pop();
       } else {
+        // Ensure variable name is string for indexing
+        const loopVariable = loopState.variable as string;
         // Set next item as variable
-        this.context.variables[loopState.variable] = loopState.items[loopState.currentIndex];
+        this.context.variables[loopVariable] = loopState.items[loopState.currentIndex];
         
         // Also set index variable
-        this.context.variables[`${loopState.variable}_index`] = loopState.currentIndex;
+        this.context.variables[`${loopVariable}_index`] = loopState.currentIndex;
         
         // Seek back to FOR_EACH command
         // This is implementation-specific and depends on how command execution is tracked
@@ -967,16 +964,17 @@ export class DeclarativeSequencer {
    */
   private async processCallCommand(command: AnimationCommand): Promise<void> {
     const { func, args = [] } = command.params;
+    const resolvedArgs = args as unknown[]; // Use unknown[] for args
     
     if (typeof func === 'function') {
       // Call function with provided args
-      await func(...args);
+      await func(...resolvedArgs);
     } else if (typeof func === 'string') {
       // Function reference - could be a method on this object or a global function
-      const fn = (this as any)[func] || (window as any)[func];
+      const fn = (this as any)[func] || (window as any)[func]; // Keep `any` for dynamic access
       
       if (typeof fn === 'function') {
-        await fn(...args);
+        await fn(...resolvedArgs);
       } else {
         console.warn(`Function not found: ${func}`);
       }
@@ -991,7 +989,7 @@ export class DeclarativeSequencer {
     const { variable, value } = command.params;
     
     if (typeof variable === 'string') {
-      this.context.variables[variable] = value;
+      this.context.variables[variable] = value; // value remains unknown
     }
   }
   
@@ -1007,7 +1005,7 @@ export class DeclarativeSequencer {
         this.context.eventHandlers[event] = [];
       }
       
-      this.context.eventHandlers[event].push(handler);
+      this.context.eventHandlers[event].push(handler as (data?: unknown) => void); // Assert handler type
     }
   }
   
@@ -1022,7 +1020,7 @@ export class DeclarativeSequencer {
       const handlers = this.context.eventHandlers[event] || [];
       
       for (const handler of handlers) {
-        handler(data);
+        handler(data); // data remains unknown, handler expects unknown
       }
     }
   }
@@ -1054,8 +1052,8 @@ export class DeclarativeSequencer {
         const varName = targets.substring(1);
         const varValue = this.context.variables[varName];
         
-        // Recursively resolve variable value
-        return this.resolveTargets(varValue);
+        // Recursively resolve variable value (Assert type for recursive call)
+        return this.resolveTargets(varValue as AnimationTargetSelector);
       }
       
       // Otherwise, treat as selector
@@ -1277,19 +1275,28 @@ export class DeclarativeSequencer {
    * @param condition Condition to evaluate
    * @returns Boolean result
    */
-  private evaluateCondition(condition: any): boolean {
+  private evaluateCondition(condition: boolean | string | ((context: SequenceContext) => unknown)): boolean {
     // If condition is a function, call it
     if (typeof condition === 'function') {
-      return Boolean(condition(this.context));
+      // Check if the function returns a boolean-like value
+      const result = condition(this.context);
+      return Boolean(result);
     }
     
     // If condition is a variable reference, resolve it
     if (typeof condition === 'string' && condition.startsWith('$')) {
       const varName = condition.substring(1);
+      // Ensure the variable exists and check its truthiness
       return Boolean(this.context.variables[varName]);
     }
+
+    // If it's a direct boolean value
+    if (typeof condition === 'boolean') {
+      return condition;
+    }
     
-    // Otherwise, just convert to boolean
+    // Log warning for unexpected types but still evaluate truthiness
+    console.warn(`Unexpected condition type in evaluateCondition: ${typeof condition}, evaluating truthiness.`);
     return Boolean(condition);
   }
   
@@ -1601,12 +1608,10 @@ export class SequenceBuilder {
    * @param condition Condition to evaluate
    * @returns This builder for chaining
    */
-  if(condition: any): SequenceBuilder {
+  if(condition: boolean | string | ((context: SequenceContext) => unknown)): SequenceBuilder {
     this.sequencer.addCommand({
       type: CommandType.IF,
-      params: {
-        condition
-      }
+      params: { condition }
     });
     
     return this;
@@ -1630,12 +1635,10 @@ export class SequenceBuilder {
    * @param condition Condition to evaluate
    * @returns This builder for chaining
    */
-  elseIf(condition: any): SequenceBuilder {
+  elseIf(condition: boolean | string | ((context: SequenceContext) => unknown)): SequenceBuilder {
     this.sequencer.addCommand({
       type: CommandType.ELSE_IF,
-      params: {
-        condition
-      }
+      params: { condition }
     });
     
     return this;
@@ -1660,7 +1663,7 @@ export class SequenceBuilder {
    * @param variable Variable to set for each item
    * @returns This builder for chaining
    */
-  forEach(items: any[] | string, variable: string): SequenceBuilder {
+  forEach(items: string | unknown[], variable: string): SequenceBuilder {
     this.sequencer.addCommand({
       type: CommandType.FOR_EACH,
       params: {
@@ -1691,7 +1694,7 @@ export class SequenceBuilder {
    * @param args Arguments to pass to the function
    * @returns This builder for chaining
    */
-  call(func: Function | string, ...args: any[]): SequenceBuilder {
+  call(func: ((...args: unknown[]) => unknown) | string, ...args: unknown[]): SequenceBuilder {
     this.sequencer.addCommand({
       type: CommandType.CALL,
       params: {

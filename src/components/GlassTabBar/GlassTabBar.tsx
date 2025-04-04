@@ -4,7 +4,7 @@
  * An advanced tab bar component with physics-based animations, glass styling,
  * and momentum scrolling for overflow tabs.
  */
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import { useThemeColor, ThemeColors } from '../../hooks/useGlassTheme';
 import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
 import { TabBarContainer, TabSelector } from './styled';
@@ -14,7 +14,7 @@ import ScrollButtons from './components/ScrollButtons';
 import useResponsive from './hooks/useResponsive';
 import useTabAnimations from './hooks/useTabAnimations';
 import { calculateVisibleTabs, calculateTotalBadgeCount, getNextEnabledTabIndex, scrollTabIntoView } from './utils/tabUtils';
-import { GlassTabBarProps, TabItem, ScrollPosition, ScrollAnimationRef } from './types';
+import { GlassTabBarProps, TabItem, ScrollPosition, ScrollAnimationRef, TabBarRef } from './types';
 import { useAnimationContext } from '../../contexts/AnimationContext';
 import { AnimationProps } from '../../types/animation';
 import { SpringConfig } from '../../animations/physics/springPhysics';
@@ -23,52 +23,56 @@ import { PhysicsConfig } from '../../animations/physics/galileoPhysicsSystem';
 /**
  * GlassTabBar Component
  */
-export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
-  tabs,
-  activeTab,
-  onChange,
-  orientation = 'horizontal',
-  variant = 'default',
-  glassVariant = 'frosted',
-  blurStrength = 'standard',
-  animationStyle = 'spring',
-  physics = {
-    tension: 280,
-    friction: 26,
-    mass: 1
-  },
-  alignment = 'center',
-  color = 'primary',
-  fullWidth = false,
-  scrollable = true,
-  showLabels = true,
-  elevated = false,
-  background = true,
-  width,
-  height,
-  borderRadius,
-  className,
-  style,
-  onContextMenu,
-  renderTab,
-  iconPosition = 'left',
-  verticalDisplayMode = 'expanded',
-  placement = 'top',
-  responsiveOrientation,
-  responsiveConfig,
-  collapseTabs = false,
-  renderCollapsedMenu,
-  keyboardNavigation = true,
-  tabIndex = 0,
-  ariaLabel = 'Tab Navigation',
-  tabStyle,
-  tabClassName,
-  activeTabClassName,
-  defaultBadgeAnimation,
-  badgeStyle,
-  animationConfig: propAnimationConfig,
-  disableAnimation: propDisableAnimation,
-}) => {
+export const GlassTabBar = forwardRef<TabBarRef, GlassTabBarProps & AnimationProps>((props, ref) => {
+  const {
+    tabs,
+    activeTab,
+    onChange,
+    orientation = 'horizontal',
+    variant = 'default',
+    glassVariant = 'frosted',
+    blurStrength = 'standard',
+    animationStyle = 'spring',
+    physics = {
+      tension: 280,
+      friction: 26,
+      mass: 1
+    },
+    alignment = 'center',
+    color = 'primary',
+    fullWidth = false,
+    scrollable = true,
+    showLabels = true,
+    elevated = false,
+    background = true,
+    width,
+    height,
+    borderRadius,
+    className,
+    style,
+    onContextMenu,
+    renderTab,
+    iconPosition = 'left',
+    verticalDisplayMode = 'expanded',
+    placement = 'top',
+    responsiveOrientation,
+    responsiveConfig,
+    collapseTabs = false,
+    renderCollapsedMenu,
+    keyboardNavigation = true,
+    tabIndex = 0,
+    ariaLabel = 'Tab Navigation',
+    tabStyle,
+    tabClassName,
+    activeTabClassName,
+    defaultBadgeAnimation,
+    badgeStyle,
+    animationConfig: propAnimationConfig,
+    disableAnimation: propDisableAnimation,
+    // Capture remaining props
+    ...restProps 
+  } = props;
+  
   const {
     effectiveOrientation,
     effectiveShowLabels,
@@ -83,7 +87,7 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
     orientation,
     responsiveConfig,
     showLabels,
-    iconPosition,
+    iconPosition: iconPosition as ('top' | 'left' | 'right'),
     verticalDisplayMode,
     fullWidth,
     width,
@@ -158,6 +162,55 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
     selectorStyle,
     disableAnimation: finalDisableAnimation
   });
+
+  // Expose imperative methods via the forwarded ref
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => tabsRef.current,
+    getTabElements: () => tabRefs.current,
+    getTabElement: (index: number) => {
+      if (index >= 0 && index < tabRefs.current.length) {
+        return tabRefs.current[index];
+      }
+      return null;
+    },
+    selectTab: (index: number) => {
+      if (index >= 0 && index < tabs.length && !tabs[index].disabled) {
+        // Create a synthetic mouse event
+        const syntheticEvent = {
+          currentTarget: tabRefs.current[index] || document.createElement('button'),
+          preventDefault: () => {},
+          stopPropagation: () => {}
+        } as React.MouseEvent<HTMLButtonElement>;
+        
+        // Call the onChange handler with the synthetic event
+        onChange(syntheticEvent, index);
+      }
+    },
+    scrollToTab: (index: number, smooth = true) => {
+      if (index >= 0 && index < tabRefs.current.length && tabRefs.current[index] && tabsRef.current) {
+        const scrollTarget = scrollTabIntoView({
+          tabElement: tabRefs.current[index]!,
+          containerElement: tabsRef.current,
+          orientation: effectiveOrientation
+        });
+        
+        if (scrollTarget) {
+          setScrollTarget(scrollTarget, smooth);
+        }
+      }
+    },
+    toggleBadge: (index: number, show: boolean) => {
+      // This would need to be implemented if you have the ability to
+      // dynamically show/hide badges. This is a stub implementation.
+      console.log(`Toggle badge at index ${index} to ${show ? 'show' : 'hide'}`);
+    },
+    updateBadge: (index: number, value: number | string) => {
+      // This would need to be implemented if you have the ability to
+      // dynamically update badge values. This is a stub implementation.
+      console.log(`Update badge at index ${index} to ${value}`);
+    },
+    isScrolling: () => isScrolling
+  }), [tabsRef, tabRefs, tabs, onChange, effectiveOrientation, isScrolling]);
   
   // Handle tab click
   const handleTabClick = (event: React.MouseEvent<HTMLButtonElement>, index: number) => {
@@ -573,10 +626,10 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
       }
     }
     
-    setSelectorStyle(newStyle);
+    setSelectorStyle(newStyle); // Update local state for non-animated rendering
     
-    // Apply any physics-based animations
-      updateSelectorPosition();
+    // Apply any physics-based animations - THIS CALL IS REMOVED/COMMENTED OUT FROM HERE
+    // updateSelectorPosition(); 
     
     // Also scroll active tab into view
     const scrollTarget = scrollTabIntoView({
@@ -588,7 +641,8 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
     if (scrollTarget) {
       setScrollTarget(scrollTarget);
     }
-  }, [activeTab, updateSelectorPosition, effectiveOrientation, scrollable, tabs.length, variant]);
+    // Removed updateSelectorPosition from dependencies
+  }, [activeTab, effectiveOrientation, scrollable, tabs.length, variant, tabsRef, tabRefs]);
   
   // Setup scroll event listener
   useEffect(() => {
@@ -728,6 +782,7 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
       role="tablist"
       aria-label={ariaLabel}
       aria-orientation={effectiveOrientation}
+      {...restProps}
     >
       {/* Selector indicator */}
       {variant !== 'default' && (
@@ -748,36 +803,18 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
             height: `${springProps.height}px`,
             transform: `translate3d(${
               // If using gesture animation transform for magnetic effect
-              animationStyle === 'magnetic' && transform.translateX !== 0
-                ? transform.translateX 
-                : springProps.left
+              animationStyle === 'magnetic' ? 
+                springProps.left + transform.translateX : 
+                springProps.left
             }px, ${
-              // If using gesture animation transform for magnetic effect  
-              animationStyle === 'magnetic' && transform.translateY !== 0
-                ? transform.translateY
-                : springProps.top
-            }px, 0) ${
-              // Add subtle scale effect for magnetic animation
-              animationStyle === 'magnetic' 
-                ? `scale(${1 + Math.abs(transform.translateX - selectorStyle.left) * 0.001 + 
-                          Math.abs(transform.translateY - selectorStyle.top) * 0.001})` 
-                : ''
-            }`,
-            // Use string literal for transition to avoid type errors
-            transition: animationStyle && animationStyle.toString() === 'none'
-              ? 'none' 
-              : 'filter 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease',
-            // Add dynamic glow intensity for magnetic effect
-            ...((!tabStyle?.selectorStyle?.boxShadow && animationStyle === 'magnetic' && variant === 'pills') ? {
-              boxShadow: `0 0 ${15 + Math.abs(transform.translateX - selectorStyle.left) * 0.1 + 
-                          Math.abs(transform.translateY - selectorStyle.top) * 0.1}px ${
-                          color === 'default' ? 'rgba(255, 255, 255, 0.3)' : `var(--color-${color}-shadow)`
-                        }`
-            } : {})
+              animationStyle === 'magnetic' ? 
+                springProps.top + transform.translateY : 
+                springProps.top
+            }px, 0)`
           } : {
             width: `${selectorStyle.width}px`,
             height: `${selectorStyle.height}px`,
-            transform: `translate3d(${selectorStyle.left}px, ${selectorStyle.top}px, 0)`,
+            transform: `translate3d(${selectorStyle.left}px, ${selectorStyle.top}px, 0)`
           }}
         />
       )}
@@ -785,89 +822,79 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
       {/* Magnetic trail effect */}
       {animationStyle === 'magnetic' && <MagneticTrailEffect />}
       
-      {/* Tabs - using visibleTabs for responsive behavior */}
-      {(collapseTabs ? visibleTabs : tabs).map((tab, index) => {
-        // Special handling for "more" menu tab
-        const isMoreTab = collapseTabs && index === visibleTabs.length - 1 && collapsedTabs.length > 0;
+      {/* Tab buttons */}
+      {visibleTabs.map((tab, index) => {
+        const isActive = index === activeTab;
         
-        // Calculate badge count for "More" tab
-        let moreBadgeCount;
-        if (isMoreTab) {
-          moreBadgeCount = calculateTotalBadgeCount(collapsedTabs);
-        }
+        // Check if this specific tab represents the "More" menu trigger
+        const isMoreTab = collapseTabs && collapsedTabs.length > 0 && index === visibleTabs.length - 1;
         
-        // Determine if this tab is active
-        let isActive;
-        if (isMoreTab) {
-          // "More" tab is active if any collapsed tab is active
-          const activeTabValue = tabs[activeTab]?.value;
-          isActive = collapsedTabs.some(tab => tab.value === activeTabValue);
-        } else {
-          // Regular tab is active if its index matches activeTab
-          const tabIndex = collapseTabs 
-            ? tabs.findIndex(t => t.value === tab.value)
-            : index;
-          isActive = tabIndex === activeTab;
-        }
+        // Setup ref tracking of all tab elements 
+        const setTabRef = (el: HTMLButtonElement | null) => {
+          tabRefs.current[index] = el;
+        };
         
-        // Render custom tab if renderTab function is provided
-        if (renderTab && !isMoreTab) {
-          return (
-            <React.Fragment key={tab.id || index}>
-              {renderTab(tab, index, isActive)}
-            </React.Fragment>
-          );
-        }
-        
-        // Default tab rendering
-        return (
+        // Conditionally render using renderTab prop or default TabItemComponent
+        return renderTab ? (
+          <React.Fragment key={`tab-${tab.value}`}>{renderTab(tab, index, isActive)}</React.Fragment>
+        ) : (
           <TabItemComponent
-            key={tab.id || `tab-${index}`}
-            ref={(el: HTMLButtonElement | null) => { if (el) tabRefs.current[index] = el; }}
-            tab={{
-              ...tab,
-              // Add badge count to "More" tab if it doesn't already have one
-              ...(isMoreTab && moreBadgeCount && !tab.badge ? { badge: moreBadgeCount } : {})
-            }}
+            key={`tab-${tab.value}`}
+            ref={setTabRef}
+            tab={tab}
             index={index}
             isActive={isActive}
             isMoreTab={isMoreTab}
+            handleClick={handleTabClick}
+            handleKeyDown={handleKeyDown}
+            handleContextMenu={onContextMenu}
             orientation={effectiveOrientation}
             variant={variant}
             color={color}
             fullWidth={effectiveFullWidth}
             alignment={alignment}
             glassVariant={glassVariant}
-            animationStyle={animationStyle}
             iconPosition={effectiveIconPosition}
-            tabStyle={tabStyle}
+            animationStyle={animationStyle}
             showLabels={effectiveShowLabels}
-            magneticProgress={
-              !isMoreTab && 
-              tabMagneticData.closestTabIndex === index && 
-              !isActive 
-                ? tabMagneticData.selectionProgress 
-                : undefined
-            }
-            handleClick={handleTabClick}
-            handleKeyDown={handleKeyDown}
-            handleContextMenu={onContextMenu}
             tabClassName={tabClassName}
             activeTabClassName={activeTabClassName}
-            keyboardNavigation={keyboardNavigation}
-            tabIndex={tabIndex}
+            tabIndex={isActive ? 0 : tabIndex}
+            magneticProgress={
+              tabMagneticData.closestTabIndex === index ? 
+              tabMagneticData.selectionProgress : undefined
+            }
             defaultBadgeAnimation={defaultBadgeAnimation}
             badgeStyle={badgeStyle}
-            showCollapsedMenu={showCollapsedMenu}
+            tabStyle={tabStyle}
           />
         );
       })}
       
+      {/* Scroll arrows for horizontal orientation */}
+      {scrollable && effectiveOrientation === 'horizontal' && (
+        <ScrollButtons
+          orientation={effectiveOrientation}
+          showLeftScroll={showLeftScroll}
+          showRightScroll={showRightScroll}
+          onScroll={handleScroll}
+        />
+      )}
+      
+      {/* Scroll arrows for vertical orientation */}
+      {scrollable && effectiveOrientation === 'vertical' && (
+        <ScrollButtons
+          orientation={effectiveOrientation}
+          showLeftScroll={showLeftScroll}
+          showRightScroll={showRightScroll}
+          onScroll={handleScroll}
+        />
+      )}
+      
       {/* Collapsed tabs menu */}
       {collapseTabs && collapsedTabs.length > 0 && (
-        renderCollapsedMenu ? (
-          renderCollapsedMenu(collapsedTabs, activeTab, handleCollapsedTabSelect)
-        ) : (
+        renderCollapsedMenu ? 
+          renderCollapsedMenu(collapsedTabs, activeTab, handleCollapsedTabSelect) : 
           <CollapsedMenu
             tabs={collapsedTabs}
             activeTab={activeTab}
@@ -879,20 +906,12 @@ export const GlassTabBar: React.FC<GlassTabBarProps & AnimationProps> = ({
             variant={variant}
             glassVariant={glassVariant}
           />
-        )
-      )}
-      
-      {/* Scroll buttons */}
-      {scrollable && (
-        <ScrollButtons
-          orientation={effectiveOrientation}
-          showLeftScroll={showLeftScroll}
-          showRightScroll={showRightScroll}
-          onScroll={handleScroll}
-        />
       )}
     </TabBarContainer>
   );
-};
+});
+
+// Add displayName for better debugging
+GlassTabBar.displayName = 'GlassTabBar';
 
 export default GlassTabBar;

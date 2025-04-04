@@ -493,6 +493,13 @@ export class SynchronizedGroup {
       this.orchestrator.stop(`${this.options.id}:${animationId}`);
     });
     
+    // Reset pause time
+    this.pauseTime = null; 
+    
+    // Reset group start time (effectively resetting progress)
+    // Note: This might need refinement depending on desired 'resume after cancel' behavior
+    this.groupStartTime = 0; // Uncommented/Added to reset progress
+    
     return this;
   }
   

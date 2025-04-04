@@ -10,8 +10,7 @@ import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
 
 // Physics-related imports
-import { useGalileoStateSpring, GalileoStateSpringOptions, GalileoSpringResult } from '../../hooks/useGalileoStateSpring';
-import { useInertialMovement } from '../../animations/physics/useInertialMovement';
+import { useGalileoStateSpring, GalileoSpringResult } from '../../hooks/useGalileoStateSpring';
 import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
 import {
   useAnimationSequence,
@@ -22,12 +21,11 @@ import {
 
 // Core styling imports
 import { glassSurface } from '../../core/mixins/glassSurface';
-import { glowEffects } from '../../core/mixins/effects/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 import { useAnimationContext } from '../../contexts/AnimationContext';
+import { useAccessibilitySettings } from '../../hooks/useAccessibilitySettings';
 
 // Hooks and utilities
-import { useReducedMotion } from '../../hooks/useReducedMotion';
 import ClearIcon from '../icons/ClearIcon';
 
 // Types
@@ -35,70 +33,13 @@ import {
   MultiSelectOption, 
   OptionGroup,
   MultiSelectProps,
-  FilterFunction
 } from './types';
 import { AnimationProps } from '../../types/animation';
-
-// --- Helper Functions (copied from Select/Autocomplete) ---
-const mapGlowIntensity = (progress: number): 'none' | 'subtle' | 'medium' => {
-  if (progress < 0.1) return 'none';
-  if (progress < 0.7) return 'subtle';
-  return 'medium';
-};
-
-const mapBorderOpacity = (progress: number): 'subtle' | 'medium' | 'strong' => {
-  if (progress < 0.1) return 'subtle';
-  if (progress < 0.8) return 'medium';
-  return 'strong';
-};
-
-const interpolateColor = (startColor: string, endColor: string, progress: number): string => {
-  try {
-    const parse = (color: string): number[] => {
-      if (color.startsWith('rgba')) {
-        const parts = color.match(/\d+\.?\d*/g)?.map(Number);
-        return parts?.length === 4 ? parts : [0, 0, 0, 1];
-      } else if (color.startsWith('#')) {
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        const a = hex.length === 8 ? parseInt(hex.substring(6, 8), 16) / 255 : 1;
-        return [r, g, b, a];
-      }
-      return [0, 0, 0, 1];
-    };
-    const start = parse(startColor);
-    const end = parse(endColor);
-    const r = Math.round(start[0] + (end[0] - start[0]) * progress);
-    const g = Math.round(start[1] + (end[1] - start[1]) * progress);
-    const b = Math.round(start[2] + (end[2] - start[2]) * progress);
-    const a = start[3] + (end[3] - start[3]) * progress;
-    return `rgba(${r}, ${g}, ${b}, ${a.toFixed(2)})`;
-  } catch (e) {
-    return endColor;
-  }
-};
-// --- End Helper Functions ---
 
 // Animation keyframes
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
-`;
-
-const popIn = keyframes`
-  0% { opacity: 0; transform: scale(0.8); }
-  70% { opacity: 1; transform: scale(1.05); }
-  100% { opacity: 1; transform: scale(1); }
-`;
-
-const shake = keyframes`
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
-  75% { transform: translateX(-4px); }
-  100% { transform: translateX(0); }
 `;
 
 // Styled components
@@ -418,23 +359,6 @@ const OptionItem = styled.li<{
   `}
 `;
 
-const OptionText = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  
-  /* For multi-line text with description */
-  .option-label {
-    font-weight: 500;
-  }
-  
-  .option-description {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    margin-top: 2px;
-  }
-`;
-
 const GroupHeader = styled.div<{ $size: 'small' | 'medium' | 'large' }>`
   padding: ${props => 
     props.$size === 'small' 
@@ -531,100 +455,65 @@ const Label = styled.label`
   color: rgba(255, 255, 255, 0.8);
 `;
 
-// Custom hook to manage 2D position with inertia
-interface Position2D {
-  x: number;
-  y: number;
-}
-
-interface UsePositionInertiaResult {
-  position: Position2D;
-  setPosition: (position: Position2D, animate?: boolean) => void;
-}
-
-const usePositionInertia = (
-  initialPosition: Position2D = { x: 0, y: 0 },
-  config: any = {}
-): UsePositionInertiaResult => {
-  const { position: xPosition, setPosition: setXPosition } = useInertialMovement({
-    initialPosition: initialPosition.x,
-    ...config
-  });
-  
-  const { position: yPosition, setPosition: setYPosition } = useInertialMovement({
-    initialPosition: initialPosition.y,
-    ...config
-  });
-  
-  const position = { x: xPosition, y: yPosition };
-  
-  const setPosition = (newPosition: Position2D, animate = true) => {
-    setXPosition(newPosition.x, animate ? undefined : 0);
-    setYPosition(newPosition.y, animate ? undefined : 0);
-  };
-  
-  return { position, setPosition };
-};
-
 // Define the actual component function that accepts props and ref
 const GlassMultiSelectInternal = <T = string>(
   props: MultiSelectProps<T> & AnimationProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) => {
   const {
-    options = [],
+    options,
     value: controlledValue,
     onChange,
-    onSelect,
-    onRemove,
-    onInputChange,
-    placeholder = 'Select options...',
+    placeholder = 'Select...',
     label,
-    helperText,
-    error = false,
-    errorMessage,
-    disabled = false,
+    id,
+    className,
     fullWidth = false,
     width,
     size = 'medium',
-    maxHeight = 300,
-    clearable = true,
+    disabled = false,
+    error = false,
+    errorMessage,
+    helperText,
     searchable = true,
+    clearable = true,
     creatable = false,
-    onCreateOption,
-    filterFunction,
+    closeOnSelect = true,
+    clearInputOnSelect = true,
+    keyboardNavigation = true,
     withGroups = false,
     groups = [],
-    closeOnSelect = false,
-    clearInputOnSelect = false,
-    id,
+    filterFunction,
+    onCreateOption,
+    onInputChange,
+    onSelect,
+    onRemove,
     autoFocus,
-    animate: propAnimate = true,
-    openUp = false,
-    className,
-    keyboardNavigation = true,
     ariaLabel,
+    maxHeight = '300px',
+    openUp = false,
+    animate = true,
     physics = {},
     onOpen,
     onClose,
     maxSelections,
-    maxDisplay,
     renderToken,
     renderOption,
     renderGroup,
-    virtualization,
     async: asyncProps,
-    animationConfig,
-    disableAnimation: propDisableAnimation,
+    dataTestId = 'glass-multi-select',
     ...rest
   } = props;
 
-  // Extract nested props with defaults
+  // Destructure only available props from physics object
+  const { animationPreset } = physics || {};
+
+  // Defined loading, loadingMessage, defaultNoOptionsMessage constants
   const loading = asyncProps?.loading ?? false;
   const loadingMessage = asyncProps?.loadingIndicator ?? 'Loading...';
-  const virtualized = virtualization?.enabled ?? false;
-  const itemHeight = virtualization?.itemHeight ?? 40;
   const defaultNoOptionsMessage = 'No options';
+
+  const { isReducedMotion } = useAccessibilitySettings();
 
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -660,16 +549,13 @@ const GlassMultiSelectInternal = <T = string>(
   // Animation Context & Settings
   const {
     modalSpringConfig: contextModalSpringConfig,
-    defaultSpring: contextDefaultSpring,
-    disableAnimation: contextDisableAnimation
   } = useAnimationContext();
-  const prefersReducedMotion = useReducedMotion();
 
-  // Calculate final disable state again
-  const finalDisableAnimation = propDisableAnimation ?? contextDisableAnimation ?? prefersReducedMotion ?? !propAnimate;
+  // Calculate final disable state again using isReducedMotion
+  const finalDisableAnimation = animate && !isReducedMotion;
 
-  // Dropdown immediate flag
-  const dropdownImmediate = finalDisableAnimation;
+  // Dropdown immediate flag using isReducedMotion
+  const dropdownImmediate = !animate || isReducedMotion;
 
   // Resolve final spring config for dropdown (using nested physics prop)
   const finalDropdownSpringConfig = useMemo<Partial<SpringConfig>>(() => {
@@ -681,13 +567,14 @@ const GlassMultiSelectInternal = <T = string>(
       resolvedContextConfig = contextModalSpringConfig ?? {};
     }
     // Merge config from the nested physics prop
-    const propPhysicsConfig = physics?.animationPreset === 'gentle' ? SpringPresets.GENTLE :
-                             physics?.animationPreset === 'snappy' ? SpringPresets.SNAPPY :
-                             physics?.animationPreset === 'bouncy' ? SpringPresets.BOUNCY :
-                             (typeof physics?.tension === 'number' && typeof physics?.friction === 'number' ? { tension: physics.tension, friction: physics.friction } : {}); // Use tension/friction if present
+    // Use physics.tension/friction directly if animationPreset isn't a standard string
+    const propPhysicsConfig = animationPreset === 'gentle' ? SpringPresets.GENTLE :
+                             animationPreset === 'snappy' ? SpringPresets.SNAPPY :
+                             animationPreset === 'bouncy' ? SpringPresets.BOUNCY :
+                             (typeof physics?.tension === 'number' && typeof physics?.friction === 'number' ? { tension: physics.tension, friction: physics.friction } : {}); 
                              
     return { ...baseConfig, ...resolvedContextConfig, ...propPhysicsConfig };
-  }, [contextModalSpringConfig, physics?.animationPreset, physics?.tension, physics?.friction]);
+  }, [contextModalSpringConfig, animationPreset, physics?.tension, physics?.friction]);
 
   // Use Galileo Spring for dropdown entrance/exit
   const dropdownAnimation: GalileoSpringResult = useGalileoStateSpring(
@@ -783,7 +670,8 @@ const GlassMultiSelectInternal = <T = string>(
   const handleClickOutside = useCallback(
     (event: MouseEvent) => {
       if (
-        rootRef.current && !rootRef.current.contains(event.target as Node)
+        rootRef.current && !rootRef.current.contains(event.target as Node) &&
+        dropdownContainerRef.current && !dropdownContainerRef.current.contains(event.target as Node)
       ) {
         setIsDropdownOpen(false);
         setFocused(false);
@@ -802,15 +690,16 @@ const GlassMultiSelectInternal = <T = string>(
   }, [isDropdownOpen, handleClickOutside]);
 
   // Event Handlers
-  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleInputFocus = () => {
     if (!disabled) {
       setFocused(true);
     }
   };
 
-  const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleInputBlur = () => {
     setTimeout(() => {
-        if (rootRef.current && !rootRef.current.contains(document.activeElement)) {
+        if (rootRef.current && !rootRef.current.contains(document.activeElement) && 
+            dropdownContainerRef.current && !dropdownContainerRef.current.contains(document.activeElement)) {
             setFocused(false);
             setIsDropdownOpen(false);
         }
@@ -948,7 +837,7 @@ const GlassMultiSelectInternal = <T = string>(
       type: 'stagger',
       targets: '.galileo-multiselect-token', // Target the class name
       from: { opacity: 0, transform: 'translateY(5px) scale(0.95)' },
-      to: { opacity: 1, transform: 'translateY(0px) scale(1)' },
+      properties: { opacity: 1, transform: 'translateY(0px) scale(1)' },
       duration: 300,
       staggerDelay: 30,
       easing: 'easeOutCubic',
@@ -970,7 +859,7 @@ const GlassMultiSelectInternal = <T = string>(
 
   // Trigger the entrance animation on mount/value change if enabled
   useEffect(() => {
-    if (propAnimate && !finalDisableAnimation && internalValue.length > 0 && !initialAnimationPlayed.current) {
+    if (animate && !finalDisableAnimation && internalValue.length > 0 && !initialAnimationPlayed.current) {
       // Small delay to ensure elements are rendered before targeting
       const timer = setTimeout(() => {
         playEntranceAnimation();
@@ -983,7 +872,7 @@ const GlassMultiSelectInternal = <T = string>(
         initialAnimationPlayed.current = false;
     }
   // Dependency: only run when animation state or value length changes
-  }, [propAnimate, finalDisableAnimation, internalValue.length, playEntranceAnimation]);
+  }, [animate, finalDisableAnimation, internalValue.length, playEntranceAnimation]);
 
   // --- End Token Entrance Animation Implementation ---
 
@@ -1059,11 +948,13 @@ const GlassMultiSelectInternal = <T = string>(
   return (
     <MultiSelectRoot
       ref={combinedRef}
+      className={`glass-multi-select ${className || ''}`}
       $fullWidth={fullWidth}
       $width={width}
-      $animate={propAnimate && !dropdownImmediate}
-      $reducedMotion={prefersReducedMotion}
-      className={className}
+      $animate={animate}
+      $reducedMotion={finalDisableAnimation}
+      data-testid={dataTestId || 'glass-multi-select'}
+      {...rest}
     >
       {label && <Label htmlFor={id || 'gms-input'}>{label}</Label>}
       <InputContainer
@@ -1074,7 +965,7 @@ const GlassMultiSelectInternal = <T = string>(
         onClick={handleContainerClick}
       >
         <TokensContainer>
-          {internalValue.map((option, index) => (
+          {internalValue.map((option) => (
              renderToken ? renderToken(option, (e: any) => handleTokenRemove(e, option)) :
              <Token
                 key={option.id}
@@ -1084,7 +975,7 @@ const GlassMultiSelectInternal = <T = string>(
                 $translateY={0}
                 $scale={1}
                 $isDragging={false}
-                $initialOpacity={propAnimate && !finalDisableAnimation ? 0 : 1}
+                $initialOpacity={animate && !finalDisableAnimation ? 0 : 1}
             >
                 <TokenLabel>{option.label}</TokenLabel>
                 {!(disabled || !!option.disabled) && (

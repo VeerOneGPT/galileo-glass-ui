@@ -4,7 +4,7 @@
  * A glass surface with heat distortion effects.
  */
 import React, { forwardRef, useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeContext';
@@ -114,28 +114,28 @@ const HeatGlassContainer = styled.div<{
   ${props =>
     props.$animate &&
     !props.$reducedMotion &&
-    `
-    animation: ${heatGlow} ${6 / props.$animationSpeed}s infinite;
-  `}
+    css`
+      animation: ${heatGlow} ${6 / props.$animationSpeed}s infinite;
+    `}
 
   /* Hover interactions */
   ${props =>
     props.$interactive &&
-    `
-    cursor: pointer;
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
-    
-    &:hover {
-      box-shadow: 0 0 ${15 + props.$intensity * 15}px ${props.$intensity * 10}px ${
+    css`
+      cursor: pointer;
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+      
+      &:hover {
+        box-shadow: 0 0 ${15 + props.$intensity * 15}px ${props.$intensity * 10}px ${
       props.$heatColor
     };
-      transform: translateY(-2px);
-    }
-    
-    &:active {
-      transform: translateY(0);
-    }
-  `}
+        transform: translateY(-2px);
+      }
+      
+      &:active {
+        transform: translateY(0);
+      }
+    `}
   
   /* Heat radial gradient background enhancement */
   &::before {
@@ -170,11 +170,11 @@ const HeatContent = styled.div<{
   ${props =>
     props.$animate &&
     !props.$reducedMotion &&
-    `
-    animation: ${heatDistort} ${6 / props.$animationSpeed}s infinite ease-in-out;
-    animation-delay: ${Math.random() * 2}s;
-    will-change: filter;
-  `}
+    css`
+      animation: ${heatDistort} ${6 / props.$animationSpeed}s infinite ease-in-out;
+      animation-delay: ${Math.random() * 2}s;
+      will-change: filter;
+    `}
 `;
 
 // SVG filters for heat distortion effect

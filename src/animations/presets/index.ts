@@ -21,6 +21,11 @@ export { animationTimings, animationEasings, AnimationIntensity } from './access
 // Export unified animation presets library
 export * from './animationPresets';
 
+// Explicitly re-export needed items if export * doesn't cover them
+export { getAnimationPreset, getPresetByName, AnimationCategory } from './animationPresets';
+export type { OrchestrationPreset } from './orchestrationAnimations';
+export type { GestureAnimationConfig } from './gestureAnimations';
+
 // Export chart animation presets directly
 // NOTE: These are defined in this file to avoid circular imports
 export const chartAnimationPresets = {

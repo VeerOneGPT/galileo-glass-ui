@@ -2,7 +2,8 @@
  * ChartDataUtils - Utilities for processing chart data
  */
 import { ChartType } from 'chart.js';
-import { ChartDataset , ChartAnimationOptions } from '../types';
+import { ChartDataset, ChartVariant } from '../types/ChartTypes';
+import { ChartAnimationOptions } from '../types/ChartProps';
 
 /**
  * Helper function to generate chart dataset colors
@@ -57,7 +58,7 @@ export const hexToRgb = (hex: string): string => {
 export const convertToChartJsDataset = (
   dataset: ChartDataset, 
   index: number, 
-  chartType: ChartType | string,
+  originalVariant: ChartVariant,
   palette: string[],
   animations?: ChartAnimationOptions
 ) => {
@@ -110,35 +111,51 @@ export const convertToChartJsDataset = (
     tension: 0.4, // Smooth lines a bit
   };
   
-  // Type-specific properties
-  switch (chartType) {
+  // Use the ORIGINAL intended variant for switching logic
+  switch (originalVariant) {
     case 'line':
+      const lineBgColor = typeof fillColor === 'string' && fillColor.startsWith('#') && safeFillOpacity > 0
+        ? `rgba(${hexToRgb(fillColor)}, ${safeFillOpacity})`
+        : 'transparent';
       return {
         ...baseDataset,
-        fill: safeFillOpacity > 0,
-        backgroundColor: safeFillOpacity > 0 
-          ? `${baseColor}${Math.round(safeFillOpacity * 255).toString(16).padStart(2, '0')}` 
-          : 'transparent',
+        fill: false, // ONLY false for explicit line charts
+        backgroundColor: lineBgColor,
       };
       
     case 'bar':
+      // Generate arrays for backgroundColor and hoverBackgroundColor per bar
+      const backgroundColors = data.map((point, i) => {
+        const color = point.color || palette[i % palette.length] || '#6366F1';
+        return typeof color === 'string' && color.startsWith('#') 
+          ? `${color}CC` // Apply standard opacity
+          : color;      // Use original if not hex (e.g., gradient)
+      });
+
+      const hoverBackgroundColors = data.map((point, i) => {
+        const color = point.color || palette[i % palette.length] || '#6366F1';
+        const baseBg = typeof color === 'string' && color.startsWith('#') ? `${color}CC` : color;
+        // Apply glow effect opacity if enabled and color is hex
+        return style?.glowEffect && typeof color === 'string' && color.startsWith('#')
+          ? `${color}E6` // Higher opacity for glow
+          : baseBg;     // Otherwise, use the standard background color
+      });
+
       return {
         ...baseDataset,
         borderRadius: 4,
-        hoverBackgroundColor: style?.glowEffect ? `${baseColor}E6` : `${baseColor}CC`,
+        backgroundColor: backgroundColors, 
+        hoverBackgroundColor: hoverBackgroundColors, 
       };
       
     case 'area':
-      // Area is a custom type that maps to 'line' with fill
+      const areaBgColor = typeof fillColor === 'string' && fillColor.startsWith('#')
+        ? `rgba(${hexToRgb(fillColor)}, ${safeFillOpacity})`
+        : fillColor;
       return {
         ...baseDataset,
-        fill: true,
-        type: 'line' as ChartType, // Explicitly cast to ChartType
-        backgroundColor: Array.isArray(fillColor) 
-          ? { colors: fillColor }
-          : typeof fillColor === 'string'
-            ? `${fillColor}${Math.round((safeFillOpacity) * 255).toString(16).padStart(2, '0')}`
-            : fillColor,
+        fill: true, // Explicitly true for area charts
+        backgroundColor: areaBgColor, 
       };
       
     case 'bubble':
@@ -150,14 +167,25 @@ export const convertToChartJsDataset = (
       
     case 'pie':
     case 'doughnut':
+      // Pie/Doughnut charts need a simpler structure:
+      // data: array of numbers
+      // backgroundColor: array of colors
+      // IMPORTANT: Expects datasets prop to contain ONE dataset, 
+      // and its data property to be DataPoint[] where the `y` values are positive numbers.
+      // Labels for segments are taken from chartData.labels, which GlassDataChart generates from DataPoint.label or DataPoint.x.
       return {
-        ...baseDataset,
+        label: label || `Dataset ${index + 1}`, 
+        data: data.map(point => point.y), 
         backgroundColor: data.map((point, i) => 
           point.color || palette[i % palette.length] || palette[0] || '#6366F1'
         ),
         borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
         hoverOffset: 10,
+        order: safeOrder,
+        hidden: hidden || false,
+        // Conditionally add cutout for doughnut
+        ...(originalVariant === 'doughnut' && { cutout: '50%' }), // Add standard cutout
       };
       
     case 'radar':
@@ -176,7 +204,16 @@ export const convertToChartJsDataset = (
       };
       
     default:
-      return baseDataset;
+      // Default case might need adjustment depending on desired fallback
+      // For safety, assume line chart properties if type is unknown
+       const defaultBgColor = typeof fillColor === 'string' && fillColor.startsWith('#') && safeFillOpacity > 0
+        ? `rgba(${hexToRgb(fillColor)}, ${safeFillOpacity})`
+        : 'transparent';
+      return { 
+          ...baseDataset,
+          fill: false, 
+          backgroundColor: defaultBgColor 
+      };
   }
 };
 
@@ -186,14 +223,15 @@ export const convertToChartJsDataset = (
 export const convertToChartJsDatasetWithEffects = (
   dataset: ChartDataset, 
   index: number, 
-  chartType: ChartType | string,
+  originalVariant: ChartVariant,
   palette: string[],
   animations?: ChartAnimationOptions
 ) => {
-  const baseDataset = convertToChartJsDataset(dataset, index, chartType, palette, animations);
+  // Pass the originalVariant down to the base converter
+  const baseDataset = convertToChartJsDataset(dataset, index, originalVariant, palette, animations);
   
-  // Add SVG filter effects based on chart type
-  if (chartType === 'line' || chartType === 'area') {
+  // Add SVG filter effects based on original chart type
+  if (originalVariant === 'line' || originalVariant === 'area') {
     return {
       ...baseDataset,
       borderWidth: dataset.style?.lineWidth || 2,
@@ -209,15 +247,15 @@ export const convertToChartJsDatasetWithEffects = (
   }
   
   // Add enhanced effects for bar charts
-  if (chartType === 'bar') {
+  if (originalVariant === 'bar') {
     return {
       ...baseDataset,
       // Add glass-like effects for bars
       borderRadius: dataset.style?.glassEffect ? 8 : 4,
-      // Add glow effect for bars
+      // Add glow effect for bars - Reference original dataset.style
       hoverBackgroundColor: dataset.style?.glowEffect 
         ? `${palette[index % palette.length] || '#6366F1'}E6` 
-        : baseDataset.hoverBackgroundColor,
+        : baseDataset.backgroundColor, // Fallback to base background color if no glow
       // Sequential animation delays
       animation: {
         delay: index * (animations?.staggerDelay || 50),

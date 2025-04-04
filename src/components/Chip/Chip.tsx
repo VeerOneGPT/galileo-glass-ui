@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useMemo, useRef } from 'react';
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';

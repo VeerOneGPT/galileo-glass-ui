@@ -16,6 +16,7 @@ import {
   createGlobalPauseControl,
   createAnimationPauseButton
 } from '../AnimationPauseController';
+import { AnimationProvider } from '../../../contexts/AnimationContext';
 
 // Mock for Web Animations API
 class AnimationMock implements Animation {
@@ -151,6 +152,15 @@ const TestComponent: React.FC = () => {
   );
 };
 
+// Wrapper component for tests that includes all required providers
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AnimationProvider>
+    <AnimationPauseControllerProvider>
+      {children}
+    </AnimationPauseControllerProvider>
+  </AnimationProvider>
+);
+
 describe('AnimationPauseController', () => {
   beforeEach(() => {
     // Clear localStorage before each test
@@ -163,9 +173,11 @@ describe('AnimationPauseController', () => {
   
   test('AnimationPauseControllerProvider renders children', () => {
     render(
-      <AnimationPauseControllerProvider>
-        <div data-testid="child">Child Content</div>
-      </AnimationPauseControllerProvider>
+      <AnimationProvider>
+        <AnimationPauseControllerProvider>
+          <div data-testid="child">Child Content</div>
+        </AnimationPauseControllerProvider>
+      </AnimationProvider>
     );
     
     expect(screen.getByTestId('child')).toBeInTheDocument();
@@ -174,9 +186,11 @@ describe('AnimationPauseController', () => {
   test('useAnimationPauseController provides context values', () => {
     const { result } = renderHook(() => useAnimationPauseController(), {
       wrapper: ({ children }) => (
-        <AnimationPauseControllerProvider>
-          {children}
-        </AnimationPauseControllerProvider>
+        <AnimationProvider>
+          <AnimationPauseControllerProvider>
+            {children}
+          </AnimationPauseControllerProvider>
+        </AnimationProvider>
       )
     });
     
@@ -188,9 +202,9 @@ describe('AnimationPauseController', () => {
   
   test('global pause controls animation state', () => {
     render(
-      <AnimationPauseControllerProvider>
+      <TestWrapper>
         <TestComponent />
-      </AnimationPauseControllerProvider>
+      </TestWrapper>
     );
     
     // Initially playing
@@ -214,9 +228,9 @@ describe('AnimationPauseController', () => {
   
   test('individual animation controls work', () => {
     render(
-      <AnimationPauseControllerProvider>
+      <TestWrapper>
         <TestComponent />
-      </AnimationPauseControllerProvider>
+      </TestWrapper>
     );
     
     // Initially playing
@@ -238,9 +252,9 @@ describe('AnimationPauseController', () => {
   
   test('animation speed controls work', () => {
     render(
-      <AnimationPauseControllerProvider>
+      <TestWrapper>
         <TestComponent />
-      </AnimationPauseControllerProvider>
+      </TestWrapper>
     );
     
     // Initially speed is 1
@@ -262,9 +276,9 @@ describe('AnimationPauseController', () => {
     const playSpy = jest.spyOn(mockAnimation, 'play');
     
     render(
-      <AnimationPauseControllerProvider>
+      <TestWrapper>
         <TestComponent />
-      </AnimationPauseControllerProvider>
+      </TestWrapper>
     );
     
     // Restart animation
@@ -278,9 +292,11 @@ describe('AnimationPauseController', () => {
   test('preferences are saved to localStorage', () => {
     const { result } = renderHook(() => useAnimationPauseController(), {
       wrapper: ({ children }) => (
-        <AnimationPauseControllerProvider>
-          {children}
-        </AnimationPauseControllerProvider>
+        <AnimationProvider>
+          <AnimationPauseControllerProvider>
+            {children}
+          </AnimationPauseControllerProvider>
+        </AnimationProvider>
       )
     });
     

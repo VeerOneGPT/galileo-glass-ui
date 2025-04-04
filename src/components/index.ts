@@ -58,6 +58,7 @@ export { Skeleton, GlassSkeleton } from './Skeleton';
 // Navigation components
 export { Tabs, TabPanel, GlassTabs } from './Tabs';
 export { GlassTabBar } from './GlassTabBar';
+export { GlassTabBar as TabBar } from './GlassTabBar';
 export { Pagination, GlassPagination } from './Pagination';
 export { Menu, GlassMenu } from './Menu';
 export { MenuItem, GlassMenuItem } from './MenuItem';
@@ -169,6 +170,7 @@ export * from './DateRangePicker';
 // Layout components with physics
 export * from './Masonry';
 export * from './Timeline';
+export * from './GlassStepper';
 
 // Glass Presets
 export {
@@ -222,3 +224,6 @@ export {
   formatWithUnits,
   formatChartDate
 };
+
+// Export DataChart as an alias of GlassDataChart
+export { GlassDataChart as DataChart };

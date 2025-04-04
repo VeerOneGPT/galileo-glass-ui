@@ -12,7 +12,7 @@ import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 import SpeedDialAction from './SpeedDialAction';
 import SpeedDialIcon from './SpeedDialIcon';
-import { SpeedDialProps } from './types';
+import { SpeedDialProps, SpeedDialActionProps } from './types';
 
 // Get color values based on theme color
 const getColorValues = (color: string): { bg: string; hover: string; active: string } => {
@@ -217,7 +217,7 @@ function SpeedDialComponent(props: SpeedDialProps, ref: React.ForwardedRef<HTMLD
     className,
     style,
     icon,
-    actions,
+    children,
     defaultOpen = false,
     open: controlledOpen,
     direction = 'up',
@@ -394,22 +394,31 @@ function SpeedDialComponent(props: SpeedDialProps, ref: React.ForwardedRef<HTMLD
         <SpeedDialContainer $direction={direction}>
           {/* Actions */}
           <ActionsContainer $open={open} $direction={direction}>
-            {actions.map((action, index) => (
-              <SpeedDialAction
-                key={action.name}
-                icon={action.icon}
-                tooltipTitle={action.tooltipTitle}
-                onClick={event => handleActionClick(event, action.name)}
-                glass={glassActions}
-                index={index}
-                totalActions={actions.length}
-                direction={direction}
-                transition={transition}
-                showTooltip={showTooltips}
-                size={size}
-                {...action}
-              />
-            ))}
+            {React.Children.toArray(children).map((child, index) => {
+              // Check if the action is a valid React element before rendering
+              if (!React.isValidElement(child)) {
+                console.warn('Invalid element passed as child to SpeedDial:', child);
+                return null;
+              }
+
+              // Extract props from the valid element
+              const actionProps = child.props as SpeedDialActionProps;
+
+              return (
+                <SpeedDialAction
+                  key={child.key || index}
+                  {...actionProps}
+                  onClick={event => handleActionClick(event, actionProps.tooltipTitle || `action-${index}`)}
+                  glass={glassActions}
+                  index={index}
+                  totalActions={React.Children.count(children)}
+                  direction={direction}
+                  transition={transition}
+                  showTooltip={showTooltips}
+                  size={size}
+                />
+              );
+            })}
           </ActionsContainer>
 
           {/* Main button */}

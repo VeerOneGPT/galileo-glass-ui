@@ -1,8 +1,10 @@
-import React from 'react';
-import { render, fireEvent, act, screen } from '@testing-library/react';
+import React, { useState, useRef, useCallback } from 'react';
+import { render, fireEvent, act, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { useMagneticElement } from '../useMagneticElement';
+import { useMagneticEffect } from '../useMagneticEffect';
 import { GalileoPhysicsSystem } from '../galileoPhysicsSystem';
+import { useReducedMotion } from '../../accessibility/useReducedMotion';
 
 // Mock the physics system to avoid browser API dependencies
 jest.mock('../galileoPhysicsSystem', () => {
@@ -16,13 +18,26 @@ jest.mock('../galileoPhysicsSystem', () => {
   };
 });
 
-// Mock the useMagneticEffect hook
+// --- Reverted Mock for useMagneticEffect ---
+// Control the state externally
+let mockMagneticEffectState = {
+  transform: {
+    x: 0,
+    y: 0,
+    scale: 1,
+    rotation: 0,
+    active: false,
+    force: 0,
+  },
+  // Provide a stable mock ref object. Tests can modify .current if needed.
+  elementRef: { current: null as HTMLDivElement | null }, 
+};
+
 jest.mock('../useMagneticEffect', () => ({
-  useMagneticEffect: jest.fn().mockImplementation(() => {
-    const ref = { current: null };
-    return ref;
-  })
+  // The factory now just returns the externally controlled state
+  useMagneticEffect: jest.fn().mockImplementation(() => mockMagneticEffectState),
 }));
+// --- End Reverted Mock ---
 
 // Mock the useReducedMotion hook
 jest.mock('../../accessibility/useReducedMotion', () => ({
@@ -60,13 +75,25 @@ class MockMutationObserver {
   }
 }
 
+// --- Reverted Helper to update mock state --- 
+const updateMockMagneticTransform = (newState: Partial<typeof mockMagneticEffectState.transform>) => {
+    mockMagneticEffectState = {
+        ...mockMagneticEffectState,
+        transform: { 
+            ...mockMagneticEffectState.transform, 
+            ...newState 
+        }
+    };
+    // NOTE: Rerender must be called *after* this in the test within an act block
+};
+// --- End Reverted Helper ---
+
 // Component for testing the hook
-const TestComponent = ({ options = {} }) => {
+const TestComponent = ({ options = {} }: { options?: any }) => {
   const { 
     elementRef, 
-    transform, 
+    transform,
     isActive, 
-    activeClass, 
     activate, 
     deactivate 
   } = useMagneticElement<HTMLDivElement>(options);
@@ -75,7 +102,7 @@ const TestComponent = ({ options = {} }) => {
     <div
       data-testid="magnetic-element"
       ref={elementRef}
-      className={activeClass || ''}
+      className={isActive ? (options?.activeClassName || 'active') : ''}
     >
       <p data-testid="x-value">{transform.x}</p>
       <p data-testid="y-value">{transform.y}</p>
@@ -95,17 +122,24 @@ describe('useMagneticElement', () => {
   let mockMutationObserverInstance: MockMutationObserver;
 
   beforeAll(() => {
-    // Replace the global MutationObserver with our mock
     global.MutationObserver = MockMutationObserver as unknown as typeof MutationObserver;
   });
 
   afterAll(() => {
-    // Restore the original MutationObserver
     global.MutationObserver = originalMutationObserver;
   });
 
   beforeEach(() => {
-    // Mock getBoundingClientRect
+    // Reset external mock state
+    mockMagneticEffectState = {
+      transform: { x: 0, y: 0, scale: 1, rotation: 0, active: false, force: 0 },
+      elementRef: { current: null },
+    };
+    // Use the imported module to clear the mock
+    (useMagneticEffect as jest.Mock).mockClear();
+    (useReducedMotion as jest.Mock).mockClear().mockReturnValue(false);
+    (GalileoPhysicsSystem as jest.Mock).mockClear();
+    // Reset getBoundingClientRect mock
     Element.prototype.getBoundingClientRect = jest.fn().mockReturnValue({
       width: 100,
       height: 50,
@@ -116,27 +150,10 @@ describe('useMagneticElement', () => {
       x: 200,
       y: 100
     });
-
-    // Mock getComputedStyle
-    window.getComputedStyle = jest.fn().mockReturnValue({
-      transform: 'matrix(1, 0, 0, 1, 0, 0)',
-      webkitTransform: ''
-    });
-    
-    // Clear the mock MutationObserver instance
-    mockMutationObserverInstance = undefined as any;
-    
-    // Capture the instance when it's created
-    (global.MutationObserver as jest.Mock).mockImplementation((callback: MutationCallback) => {
-      mockMutationObserverInstance = new MockMutationObserver(callback);
-      return mockMutationObserverInstance;
-    });
   });
 
-  it('renders with default values', () => {
+  it('renders with default values from mocked effect', () => {
     render(<TestComponent />);
-    
-    expect(screen.getByTestId('magnetic-element')).toBeInTheDocument();
     expect(screen.getByTestId('x-value').textContent).toBe('0');
     expect(screen.getByTestId('y-value').textContent).toBe('0');
     expect(screen.getByTestId('scale-value').textContent).toBe('1');
@@ -146,136 +163,102 @@ describe('useMagneticElement', () => {
     expect(screen.getByTestId('is-active-value').textContent).toBe('false');
   });
 
-  it('applies active className when active', () => {
-    render(<TestComponent options={{ activeClassName: 'magnetic-active' }} />);
-    
-    // Initially not active
-    expect(screen.getByTestId('magnetic-element')).not.toHaveClass('magnetic-active');
-    
-    // Simulate activation by updating transform state
-    expect(mockMutationObserverInstance).toBeDefined();
-    
-    // Mock transform to simulate active state
-    window.getComputedStyle = jest.fn().mockReturnValue({
-      transform: 'matrix(1, 0, 0, 1, 10, 20)',
-      webkitTransform: ''
+  it('applies active className when isActive state is true', async () => {
+    const activeClassName = 'magnetic-active';
+    // Get rerender function
+    const { rerender } = render(<TestComponent options={{ activeClassName }} />); 
+    expect(screen.getByTestId('magnetic-element')).not.toHaveClass(activeClassName);
+
+    // Update state and rerender within act
+    await act(async () => {
+        updateMockMagneticTransform({ x: 10, y: 15 }); 
+        rerender(<TestComponent options={{ activeClassName }} />);
+        // Add a small delay if needed for effects to propagate after rerender
+        // await new Promise(res => setTimeout(res, 0)); 
     });
     
-    // Trigger mutation callback to update state
-    act(() => {
-      mockMutationObserverInstance.triggerMutations([{ type: 'attributes', attributeName: 'style' }]);
+    await waitFor(() => {
+        expect(screen.getByTestId('is-active-value').textContent).toBe('true'); 
+        expect(screen.getByTestId('magnetic-element')).toHaveClass(activeClassName);
     });
-    
-    // Check if transform values updated (partial test - full DOM updates are harder to test)
-    expect(screen.getByTestId('is-active-value').textContent).toBe('true');
+
+    // Update state back and rerender within act
+    await act(async () => {
+        updateMockMagneticTransform({ x: 0, y: 0 });
+        rerender(<TestComponent options={{ activeClassName }} />);
+    });
+
+    await waitFor(() => {
+        expect(screen.getByTestId('is-active-value').textContent).toBe('false');
+        expect(screen.getByTestId('magnetic-element')).not.toHaveClass(activeClassName);
+    });
   });
 
-  it('calls callbacks when activation state changes', () => {
+  it('calls callbacks when activation state changes based on movement', async () => {
     const onActivate = jest.fn();
     const onDeactivate = jest.fn();
-    
-    render(
-      <TestComponent 
-        options={{ 
-          onActivate, 
-          onDeactivate,
-          maxDisplacement: 50
-        }} 
-      />
-    );
-    
-    // Verify MutationObserver was created
-    expect(mockMutationObserverInstance).toBeDefined();
-    
-    // Simulate inactive -> active transition
-    window.getComputedStyle = jest.fn().mockReturnValue({
-      transform: 'matrix(1, 0, 0, 1, 10, 15)',
-      webkitTransform: ''
+    // Get rerender function
+    const { rerender } = render(<TestComponent options={{ onActivate, onDeactivate }} />); 
+
+    // Trigger activation: update state and rerender
+    await act(async () => {
+        updateMockMagneticTransform({ x: 5, y: -5 });
+        rerender(<TestComponent options={{ onActivate, onDeactivate }} />);
     });
     
-    act(() => {
-      mockMutationObserverInstance.triggerMutations([{ type: 'attributes', attributeName: 'style' }]);
+    await waitFor(() => expect(onActivate).toHaveBeenCalledTimes(1));
+    expect(onDeactivate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('is-active-value').textContent).toBe('true');
+
+    // Trigger deactivation: update state and rerender
+    await act(async () => {
+        updateMockMagneticTransform({ x: 0, y: 0 });
+        rerender(<TestComponent options={{ onActivate, onDeactivate }} />);
     });
-    
-    // Verify onActivate was called
+
+    await waitFor(() => expect(onDeactivate).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('is-active-value').textContent).toBe('false');
+  });
+
+  it('handles manual activation and deactivation via hook functions', async () => {
+    const onActivate = jest.fn();
+    const onDeactivate = jest.fn();
+    render(<TestComponent options={{ onActivate, onDeactivate }}/>);
+
+    await act(async () => {
+        fireEvent.click(screen.getByTestId('activate-btn'));
+    });
+    expect(screen.getByTestId('is-active-value').textContent).toBe('true');
     expect(onActivate).toHaveBeenCalledTimes(1);
     expect(onDeactivate).not.toHaveBeenCalled();
-    
-    // Simulate active -> inactive transition
-    window.getComputedStyle = jest.fn().mockReturnValue({
-      transform: 'matrix(1, 0, 0, 1, 0, 0)',
-      webkitTransform: ''
+
+    await act(async () => {
+        fireEvent.click(screen.getByTestId('deactivate-btn'));
     });
-    
-    act(() => {
-      mockMutationObserverInstance.triggerMutations([{ type: 'attributes', attributeName: 'style' }]);
-    });
-    
-    // Verify onDeactivate was called
+    expect(screen.getByTestId('is-active-value').textContent).toBe('false');
     expect(onDeactivate).toHaveBeenCalledTimes(1);
   });
 
-  it('handles manual activation and deactivation', () => {
-    const createEventMock = jest.fn();
-    document.dispatchEvent = createEventMock;
-    
-    render(<TestComponent />);
-    
-    // Click activate button
-    fireEvent.click(screen.getByTestId('activate-btn'));
-    
-    // Verify event was dispatched
-    expect(createEventMock).toHaveBeenCalledTimes(1);
-    expect(createEventMock.mock.calls[0][0]).toBeInstanceOf(MouseEvent);
-    
-    // Click deactivate button
-    fireEvent.click(screen.getByTestId('deactivate-btn'));
-    
-    // Verify another event was dispatched
-    expect(createEventMock).toHaveBeenCalledTimes(2);
-    expect(createEventMock.mock.calls[1][0]).toBeInstanceOf(MouseEvent);
-  });
-  
   it('registers with physics system when registerWithPhysics is true', () => {
-    // Import the mock directly to access its methods
-    // const { GalileoPhysicsSystem } = require('../galileoPhysicsSystem'); // Remove this line
-    
     render(
-      <TestComponent 
-        options={{ 
+      <TestComponent
+        options={{
           registerWithPhysics: true,
-          interactWithOtherElements: true,
-          physicsConfig: {
-            mass: 2.0,
-            restitution: 0.5
-          }
-        }} 
+          physicsConfig: { mass: 2.0, restitution: 0.5 }
+        }}
       />
     );
-    
-    // Verify physics system was started
     expect(GalileoPhysicsSystem).toHaveBeenCalled();
-    
-    // Get the mock instance
     const mockInstance = (GalileoPhysicsSystem as jest.Mock).mock.results[0].value;
-    
-    // Verify start was called
     expect(mockInstance.start).toHaveBeenCalled();
-    
-    // Verify object was added with correct parameters
     expect(mockInstance.addObject).toHaveBeenCalledWith(expect.objectContaining({
-      position: expect.objectContaining({
-        x: 250, // center of element (left + width/2)
-        y: 125  // center of element (top + height/2)
-      }),
+      position: expect.objectContaining({ x: 250, y: 125 }),
       shape: 'circle',
-      radius: 50, // Max of width/2 and height/2
+      radius: 50,
       mass: 2.0,
       restitution: 0.5,
       isStatic: false,
-      userData: expect.objectContaining({
-        isMagneticElement: true
-      })
+      userData: expect.objectContaining({ isMagneticElement: true })
     }));
   });
 }); 

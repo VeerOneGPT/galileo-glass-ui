@@ -43,6 +43,9 @@ export {
 // Export useSequence hook
 export * from './useSequence';
 
+// Export useAnimationSequence hook (NEW)
+export * from './useAnimationSequence';
+
 // Export Animation State Machine
 export * from './AnimationStateMachine';
 

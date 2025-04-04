@@ -203,18 +203,26 @@ function TreeItemComponent(props: TreeItemProps, ref: React.ForwardedRef<HTMLLIE
 
   // UseLayoutEffect to measure height before animation
   useLayoutEffect(() => {
+    let rafId: number | null = null;
     if (isExpanded && childrenRef.current) {
-        // Temporarily set height to auto to measure natural height
-        // This might cause a flicker if not handled carefully, consider alternatives if problematic
-        const currentHeight = childrenRef.current.style.height;
-        childrenRef.current.style.height = 'auto';
-        const height = childrenRef.current.scrollHeight;
-        childrenRef.current.style.height = currentHeight; // Restore previous height immediately
-        setMeasuredHeight(height);
+      // Use requestAnimationFrame to defer measurement slightly
+      rafId = requestAnimationFrame(() => {
+        if (childrenRef.current) { // Check ref again inside RAF
+          const height = childrenRef.current.scrollHeight;
+          setMeasuredHeight(height);
+        }
+      });
     } else {
         // Set to 0 when collapsed or no children
         setMeasuredHeight(0);
     }
+
+    // Cleanup RAF on effect change or unmount
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, [isExpanded, children]); // Rerun when expansion state or children change
 
   // Define spring targets using useMemo

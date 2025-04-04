@@ -4,7 +4,7 @@
  * A comprehensive settings component that allows users to personalize their
  * motion preferences and other accessibility options.
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import styled from 'styled-components';
 
 import { 
@@ -16,7 +16,9 @@ import {
 import { 
   AnimationSpeedPreference,
   DurationAdjustmentMode,
-  getSpeedController
+  getSpeedController,
+  AnimationSpeedController,
+  AnimationSpeedControlConfig
 } from '../../animations/accessibility/AnimationSpeedController';
 import { MotionIntensityLevel } from '../../animations/accessibility/MotionIntensityProfiler';
 import { AlternativeType, getAlternativesRegistry } from '../../animations/accessibility/ReducedMotionAlternatives';
@@ -271,20 +273,34 @@ export interface AccessibilitySettingsProps {
   onClose?: () => void;
 }
 
+// Ref interface
+export interface AccessibilitySettingsRef {
+  /** Gets the main settings container DOM element */
+  getContainerElement: () => HTMLDivElement | null;
+  /** Programmatically sets the active settings tab */
+  setActiveTab: (tabId: 'general' | 'motion' | 'categories' | 'advanced') => void;
+  /** Programmatically saves the current settings */
+  saveSettings: () => void;
+  /** Programmatically resets settings to default */
+  resetSettings: () => void;
+}
+
 /**
  * AccessibilitySettings component
  * Provides a comprehensive UI for controlling all accessibility features
  */
-export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
+// Convert component to use forwardRef
+export const AccessibilitySettings = forwardRef<AccessibilitySettingsRef, AccessibilitySettingsProps>(({ 
   initialAccessLevel = SettingsAccessLevel.BASIC,
   autoSave = true,
   onSave,
   onReset,
   onChange,
   onClose,
-}) => {
+}, ref) => { // Add ref parameter
   // Get accessibility context
   const accessibility = useAccessibility();
+  const containerRef = useRef<HTMLDivElement>(null); // Ref for the root container
   
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('general');
@@ -292,131 +308,131 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
   // Access level state
   const [accessLevel, setAccessLevel] = useState<SettingsAccessLevel>(initialAccessLevel);
   
-  // Get speed controller
-  const speedController = getSpeedController();
-  const [speedSettings, setSpeedSettings] = useState(speedController.getConfig());
-  
-  // Initialize category-specific settings
-  const initialSettings = {
-    [AnimationCategory.ENTRANCE]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.EXIT]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.HOVER]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.FOCUS]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.ACTIVE]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.LOADING]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.BACKGROUND]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.SCROLL]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.ATTENTION]: { 
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.ESSENTIAL]: {
-      speed: AnimationSpeedPreference.NORMAL,
-      enabled: true
-    },
-    [AnimationCategory.INTERACTION]: {
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.GAME]: {
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-    [AnimationCategory.ANIMATION]: {
-      speed: AnimationSpeedPreference.NORMAL, 
-      enabled: true 
-    },
-  };
-  
-  // Initialize missing categories if necessary
-  if (!initialSettings[AnimationCategory.INTERACTION]) initialSettings[AnimationCategory.INTERACTION] = { speed: AnimationSpeedPreference.NORMAL, enabled: true };
-  if (!initialSettings[AnimationCategory.GAME]) initialSettings[AnimationCategory.GAME] = { speed: AnimationSpeedPreference.NORMAL, enabled: true };
-  if (!initialSettings[AnimationCategory.ANIMATION]) initialSettings[AnimationCategory.ANIMATION] = { speed: AnimationSpeedPreference.NORMAL, enabled: true };
+  // --- State for Speed Controller ---
+  const [speedController, setSpeedController] = useState<AnimationSpeedController | null>(null);
+  const [speedSettings, setSpeedSettings] = useState<AnimationSpeedControlConfig | null>(null);
+  const [categorySettings, setCategorySettings] = useState<Record<AnimationCategory, any> | null>(null);
+  const [isControllerReady, setIsControllerReady] = useState(false);
 
-  const [categorySettings, setCategorySettings] = useState<Record<AnimationCategory, any>>(initialSettings);
-  
-  // Initialize settings from current configuration
+  // Ref to prevent autoSave loop
+  const isSavingRef = useRef(false);
+
+  // --- Initialize Speed Controller and Settings --- 
   useEffect(() => {
-    // Initialize category settings from speed controller config
-    if (speedSettings.categoryPreferences) {
-      const updatedCategorySettings = { ...categorySettings };
-      
-      Object.entries(speedSettings.categoryPreferences).forEach(([category, preference]) => {
-        if (updatedCategorySettings[category as AnimationCategory]) {
-          updatedCategorySettings[category as AnimationCategory].speed = preference;
-        }
-      });
-      
-      setCategorySettings(updatedCategorySettings);
+    // Ensure this runs only on the client
+    if (typeof window !== 'undefined') {
+      const controller = getSpeedController();
+      setSpeedController(controller);
+      const currentConfig = controller.getConfig();
+      setSpeedSettings(currentConfig);
+
+      // Initialize category settings from controller config
+      const allCategories = Object.values(AnimationCategory); // Get all enum values
+      const initialCategories = Object.fromEntries(
+        allCategories.map(category => [
+          category,
+          { speed: AnimationSpeedPreference.NORMAL, enabled: true } // Default structure
+        ])
+      ) as Record<AnimationCategory, any>; // Cast to the correct type
+
+      // Override with controller's preferences if they exist
+      if (currentConfig.categoryPreferences) {
+        Object.entries(currentConfig.categoryPreferences).forEach(([category, preference]) => {
+          if (initialCategories[category as AnimationCategory]) {
+            initialCategories[category as AnimationCategory].speed = preference;
+          }
+        });
+      }
+      setCategorySettings(initialCategories);
+      setIsControllerReady(true);
     }
-  }, []);
-  
-  // Add listener to speed controller for changes
+  }, []); // Run only once on mount
+
+  // --- Add Listener to Speed Controller --- 
   useEffect(() => {
+    if (!speedController) return; // Wait for controller
+
     const unsubscribe = speedController.addListener((newConfig) => {
+      // Prevent state update if triggered by our own save
+      if (isSavingRef.current) {
+          return;
+      }
       setSpeedSettings(newConfig);
+      // TODO: Optionally update category settings state here if needed based on newConfig
+      // This requires the listener payload or controller API to provide category info
     });
     
     return unsubscribe;
-  }, [speedController]);
+  }, [speedController]); // Dependency on controller instance
   
   // Handle saving settings
   const handleSave = useCallback(() => {
-    // Update speed controller with current settings
-    speedController.updateConfig(speedSettings);
-    
-    // Call onSave callback if provided
-    if (onSave) {
-      onSave({
-        accessibility: {
-          reducedMotion: accessibility.reducedMotion,
-          highContrast: accessibility.highContrast,
-          reduceTransparency: accessibility.reduceTransparency,
-          disableAnimations: accessibility.disableAnimations,
-          fontScale: accessibility.fontScale,
-          enhancedFocus: accessibility.enhancedFocus,
-          screenReaderSupport: accessibility.screenReaderSupport,
-          keyboardNavigation: accessibility.keyboardNavigation,
-        },
-        speed: speedSettings,
-        categorySettings,
-      });
+    if (!speedController || !speedSettings || !categorySettings || isSavingRef.current) return;
+
+    try {
+        isSavingRef.current = true; // Signal that we are saving
+        
+        // Update speed controller with current settings
+        speedController.updateConfig(speedSettings); 
+        
+        // Explicitly update category preferences if managed separately
+        // (Check if updateConfig handles this already)
+        // Object.entries(categorySettings).forEach(([cat, settings]) => {
+        //    if (speedController.getCategorySpeedPreference(cat as AnimationCategory) !== settings.speed) {
+        //        speedController.setCategorySpeedPreference(cat as AnimationCategory, settings.speed);
+        //    }
+        // });
+
+        if (onSave) {
+          onSave({
+            accessibility: {
+              reducedMotion: accessibility.reducedMotion,
+              highContrast: accessibility.highContrast,
+              reduceTransparency: accessibility.reduceTransparency,
+              disableAnimations: accessibility.disableAnimations,
+              fontScale: accessibility.fontScale,
+              enhancedFocus: accessibility.enhancedFocus,
+              screenReaderSupport: accessibility.screenReaderSupport,
+              keyboardNavigation: accessibility.keyboardNavigation,
+            },
+            speed: speedSettings, // Pass the full speed settings state
+            categorySettings, // Pass the category settings state
+          });
+        }
+    } finally {
+        // Ensure the flag is reset even if errors occur (though ideally shouldn't)
+        // Using requestAnimationFrame to reset *after* potential sync listener call
+        requestAnimationFrame(() => {
+             isSavingRef.current = false; 
+        });
     }
-  }, [accessibility, speedSettings, categorySettings, onSave, speedController]);
+  }, [accessibility, speedController, speedSettings, categorySettings, onSave]);
   
   // Auto-save when settings change if enabled
   useEffect(() => {
-    if (autoSave) {
+    if (autoSave && isControllerReady) {
       handleSave();
     }
-  }, [accessibility, speedSettings, categorySettings, autoSave, handleSave]);
+  }, [
+    // Keep dependencies that should trigger save
+    accessibility.reducedMotion,
+    accessibility.highContrast,
+    accessibility.reduceTransparency,
+    accessibility.disableAnimations,
+    accessibility.fontScale,
+    accessibility.enhancedFocus,
+    accessibility.keyboardNavigation,
+    speedSettings, // Depends on object reference stability
+    categorySettings, // Depends on object reference stability
+    autoSave,
+    handleSave,
+    isControllerReady,
+  ]);
   
   // Handle reset
   const handleReset = useCallback(() => {
+    if (!speedController) return;
+
     // Reset accessibility context
     accessibility.setReducedMotion(false);
     accessibility.setHighContrast(false);
@@ -429,6 +445,7 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
     
     // Reset speed controller
     speedController.resetAllPreferences();
+    // The listener should update the local state (speedSettings, categorySettings)
     
     // Call onReset callback if provided
     if (onReset) {
@@ -438,42 +455,74 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
   
   // Update category speed preference
   const handleCategorySpeedChange = useCallback((category: AnimationCategory, preference: AnimationSpeedPreference) => {
-    setCategorySettings(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        speed: preference,
-      },
-    }));
+    if (!speedController) return;
+
+    setCategorySettings(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [category]: {
+          ...prev[category],
+          speed: preference,
+        },
+      }
+    });
     
-    // Update speed controller
+    // Update speed controller which triggers listener and updates speedSettings
     speedController.setCategorySpeedPreference(category, preference);
   }, [speedController]);
   
   // Update category enabled state
   const handleCategoryEnabledChange = useCallback((category: AnimationCategory, enabled: boolean) => {
-    setCategorySettings(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        enabled,
-      },
-    }));
+    // Note: Enabling/disabling categories might not be directly supported by the controller
+    // We'll manage this state locally for now.
+    setCategorySettings(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [category]: {
+          ...prev[category],
+          enabled,
+        },
+      }
+    });
   }, []);
   
   // Update global speed preference
   const handleGlobalSpeedChange = useCallback((preference: AnimationSpeedPreference) => {
-    setSpeedSettings(prev => ({
-      ...prev,
-      globalSpeedPreference: preference,
-    }));
-    
-    // Update speed controller
+    if (!speedController) return;
+
+    // Update speed controller which triggers listener and updates speedSettings
     speedController.setGlobalSpeedPreference(preference);
+
+    // We no longer need to setSpeedSettings directly here,
+    // the listener handles updating speedSettings state.
+    // setSpeedSettings(prev => {
+    //   if (!prev) return null;
+    //   return {
+    //     ...prev,
+    //     globalSpeedPreference: preference,
+    //   }
+    // });
   }, [speedController]);
-  
+
+  // --- Imperative Handle ---
+  useImperativeHandle(ref, () => ({
+    getContainerElement: () => containerRef.current,
+    setActiveTab: (tabId) => setActiveTab(tabId),
+    saveSettings: handleSave,
+    resetSettings: handleReset,
+  }), [containerRef, setActiveTab, handleSave, handleReset]); // Dependencies
+
+  // --- Conditional Rendering based on controller readiness ---
+  if (!isControllerReady || !speedSettings || !categorySettings) {
+    // Render loading state or null while controller initializes
+    return <div>Loading Accessibility Settings...</div>; // Or return null;
+  }
+
+  // --- Main Render Logic ---
   return (
-    <SettingsContainer>
+    <SettingsContainer ref={containerRef}> 
       <SettingsHeader>
         <SettingsTitle>Accessibility & Motion Settings</SettingsTitle>
         <SettingsDescription>
@@ -728,7 +777,7 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
               <input 
                 id="backgroundAnimations"
                 type="checkbox" 
-                checked={categorySettings[AnimationCategory.BACKGROUND].enabled} 
+                checked={categorySettings[AnimationCategory.BACKGROUND]?.enabled ?? true} 
                 onChange={(e) => handleCategoryEnabledChange(AnimationCategory.BACKGROUND, e.target.checked)}
               />
               <span className="slider"></span>
@@ -1002,6 +1051,10 @@ export const AccessibilitySettings: React.FC<AccessibilitySettingsProps> = ({
       </ButtonGroup>
     </SettingsContainer>
   );
-};
+}); // Close forwardRef
 
-export default AccessibilitySettings;
+// Add displayName
+AccessibilitySettings.displayName = 'AccessibilitySettings';
+
+// Export default is likely needed if this was the primary export
+// export default AccessibilitySettings;

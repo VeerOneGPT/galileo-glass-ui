@@ -5,10 +5,12 @@
  * with different props and handles user interactions properly.
  */
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '../../../test/utils/test-utils';
 import 'jest-styled-components';
 import { ThemeProvider } from '../../../theme';
 import { GlassMultiSelect } from '../GlassMultiSelect';
+import { AnimationProvider } from '../../../contexts/AnimationContext';
+import { MultiSelectOption } from '../types';
 
 // Sample options for testing
 const mockOptions = [
@@ -26,11 +28,13 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }));
 
-// Helper function to render with theme
-const renderWithTheme = (ui: React.ReactElement) => {
+// Helper function to render with theme AND ANIMATION PROVIDER
+const renderWithProviders = (ui: React.ReactElement) => {
   return render(
     <ThemeProvider>
+      <AnimationProvider>
       {ui}
+      </AnimationProvider>
     </ThemeProvider>
   );
 };
@@ -45,7 +49,7 @@ describe('GlassMultiSelect Component', () => {
   });
 
   it('renders correctly with default props', () => {
-    renderWithTheme(
+    renderWithProviders(
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
@@ -65,7 +69,7 @@ describe('GlassMultiSelect Component', () => {
       getOptionById('node')
     ].filter(Boolean); // Filter out any undefined values
     
-    renderWithTheme(
+    renderWithProviders(
       <GlassMultiSelect 
         options={mockOptions}
         value={selectedValues}
@@ -78,74 +82,81 @@ describe('GlassMultiSelect Component', () => {
     expect(screen.getByText('Node.js')).toBeInTheDocument();
   });
 
-  it('opens dropdown on click', () => {
-    renderWithTheme(
-      <GlassMultiSelect 
-        options={mockOptions}
-        value={[]}
-        onChange={() => { /* No-op */ }}
-      />
+  it('opens dropdown on click and closes on click outside', async () => {
+    renderWithProviders(
+      <GlassMultiSelect options={mockOptions} value={[]} onChange={() => {}} />
     );
-    
-    // Dropdown should initially be closed
+    const input = screen.getByRole('textbox');
+
+    // Initially closed
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    
-    // Click to open dropdown
-    fireEvent.click(screen.getByTestId('glass-multi-select'));
-    
-    // Dropdown should be open
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-    
-    // Options should be visible
-    expect(screen.getByText('React')).toBeInTheDocument();
-    expect(screen.getByText('Vue')).toBeInTheDocument();
+
+    // Click input to open
+    await act(async () => {
+      fireEvent.click(input);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    // Click outside (on body) to close
+    await act(async () => {
+      fireEvent.mouseDown(document.body);
+    });
+     await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
-  it('calls onChange when option is selected', () => {
+  it('calls onChange when option is selected', async () => {
     const onChange = jest.fn();
-    
-    renderWithTheme(
-      <GlassMultiSelect 
-        options={mockOptions}
-        value={[]}
-        onChange={onChange}
-      />
+    renderWithProviders(
+      <GlassMultiSelect options={mockOptions} value={[]} onChange={onChange} />
     );
-    
+    const input = screen.getByRole('textbox');
+
     // Open dropdown
-    fireEvent.click(screen.getByTestId('glass-multi-select'));
-    
+    await act(async () => {
+      fireEvent.click(input);
+    });
+    const listbox = await screen.findByRole('listbox'); // Wait for listbox
+
     // Select an option
-    fireEvent.click(screen.getByText('React'));
-    
-    // onChange should be called with the selected value
+    await act(async () => {
+      const option = screen.getByText('React');
+      fireEvent.click(option);
+    });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith([getOptionById('react')]);
+    // Dropdown should close after selection
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
-  it('removes token when remove button is clicked', () => {
+  it('removes token when remove button is clicked', async () => {
     const onChange = jest.fn();
-    const initialValue = [getOptionById('react'), getOptionById('vue')].filter(Boolean);
-    
-    renderWithTheme(
-      <GlassMultiSelect 
-        options={mockOptions}
-        value={initialValue}
-        onChange={onChange}
-      />
+    const initialValue = [getOptionById('react'), getOptionById('vue')].filter(Boolean) as MultiSelectOption<string>[];
+    renderWithProviders(
+      <GlassMultiSelect options={mockOptions} value={initialValue} onChange={onChange} />
     );
     
-    // Find remove buttons
-    const removeButtons = screen.getAllByRole('button', { name: /remove/i });
-    
+    // Wait for tokens to be rendered
+    const removeButtons = await screen.findAllByRole('button', { name: /remove/i });
+    expect(removeButtons.length).toBe(2);
+
     // Click the first remove button (React)
-    fireEvent.click(removeButtons[0]);
-    
-    // onChange should be called with the remaining value
+    await act(async () => {
+      fireEvent.click(removeButtons[0]);
+    });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith([getOptionById('vue')].filter(Boolean));
   });
 
   it('applies glass styling based on variant', () => {
-    renderWithTheme(
+    renderWithProviders(
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}
@@ -157,26 +168,32 @@ describe('GlassMultiSelect Component', () => {
     expect(component).toHaveStyleRule('backdrop-filter', expect.stringContaining('blur'));
   });
 
-  it('filters options based on input', () => {
-    renderWithTheme(
-      <GlassMultiSelect 
-        options={mockOptions}
-        value={[]}
-        onChange={() => { /* No-op */ }}
-      />
+  it('filters options based on input', async () => {
+    renderWithProviders(
+      <GlassMultiSelect options={mockOptions} value={[]} onChange={() => {}} />
     );
+    const input = screen.getByRole('textbox');
+
+    // Open dropdown by focusing and typing (more realistic)
+    await act(async () => {
+        fireEvent.change(input, { target: { value: 'v' } });
+    });
     
-    // Open dropdown
-    fireEvent.click(screen.getByTestId('glass-multi-select'));
-    
-    // Type in search input
-    const input = screen.getByRole('combobox');
-    fireEvent.change(input, { target: { value: 'react' } });
-    
-    // Only React should be visible, Vue and Angular should not
-    expect(screen.getByText('React')).toBeInTheDocument();
-    expect(screen.queryByText('Vue')).not.toBeInTheDocument();
-    expect(screen.queryByText('Angular')).not.toBeInTheDocument();
+    // Wait for dropdown and filtering
+    await waitFor(() => {
+        expect(screen.getByRole('listbox')).toBeInTheDocument();
+        expect(screen.getByText('Vue')).toBeInTheDocument();
+        expect(screen.queryByText('React')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    // Clear input
+     await act(async () => {
+        fireEvent.change(input, { target: { value: '' } });
+    });
+     await waitFor(() => {
+        expect(screen.getByText('React')).toBeInTheDocument();
+        expect(screen.getByText('Vue')).toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
   it('groups options by category when groupBy is provided', () => {
@@ -186,7 +203,7 @@ describe('GlassMultiSelect Component', () => {
       group: option.category // Use the category as the group property
     }));
 
-    renderWithTheme(
+    renderWithProviders(
       <GlassMultiSelect 
         options={groupedOptions}
         value={[]}
@@ -207,40 +224,64 @@ describe('GlassMultiSelect Component', () => {
     expect(screen.getByText('BACKEND')).toBeInTheDocument();
   });
 
-  it('supports keyboard navigation', () => {
-    renderWithTheme(
-      <GlassMultiSelect 
-        options={mockOptions}
-        value={[]}
-        onChange={() => { /* No-op */ }}
-      />
+  it('supports keyboard navigation', async () => {
+    const onChange = jest.fn();
+    renderWithProviders(
+      <GlassMultiSelect options={mockOptions} value={[]} onChange={onChange} />
     );
-    
-    // Focus the component
-    const component = screen.getByTestId('glass-multi-select');
-    component.focus();
-    
-    // Press down arrow to open dropdown
-    fireEvent.keyDown(component, { key: 'ArrowDown' });
-    
-    // Dropdown should be open
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
-    
-    // Press down arrow to navigate options
-    fireEvent.keyDown(component, { key: 'ArrowDown' });
-    
-    // Press Enter to select option
-    fireEvent.keyDown(component, { key: 'Enter' });
-    
+    const input = screen.getByRole('textbox'); // Target the input
+
+    // Press ArrowDown to open and focus first item
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'ArrowDown' });
+    });
+    let listbox = await screen.findByRole('listbox');
+    let options = await screen.findAllByRole('option');
+    expect(listbox).toBeInTheDocument();
+    await waitFor(() => {
+      expect(options[0]).toHaveAttribute('aria-selected', 'true'); // Or check focus/highlight class
+      expect(options[0]).toHaveTextContent('React');
+    }, { timeout: 1000 });
+
+    // Press ArrowDown again to focus second item
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'ArrowDown' });
+    });
+     await waitFor(() => {
+      expect(options[0]).not.toHaveAttribute('aria-selected', 'true');
+      expect(options[1]).toHaveAttribute('aria-selected', 'true');
+      expect(options[1]).toHaveTextContent('Vue');
+    }, { timeout: 1000 });
+
+    // Press Enter to select focused item (Vue)
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Enter' });
+    });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith([getOptionById('vue')]);
+    // Listbox should close
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
+
+    // Re-open with ArrowDown
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'ArrowDown' });
+    });
+    listbox = await screen.findByRole('listbox'); // Wait again
+    expect(listbox).toBeInTheDocument();
+
     // Press Escape to close dropdown
-    fireEvent.keyDown(component, { key: 'Escape' });
-    
-    // Dropdown should be closed
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.keyDown(input, { key: 'Escape' });
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    }, { timeout: 1000 });
   });
 
   it('disables the component when disabled prop is true', () => {
-    renderWithTheme(
+    renderWithProviders(
       <GlassMultiSelect 
         options={mockOptions}
         value={[]}

@@ -4,16 +4,15 @@ Ensuring animations are accessible to all users, including those with motion sen
 
 ## Table of Contents
 
-- [`useReducedMotion` Hook](#usereducedmotion-hook)
-  - [Purpose](#purpose)
-  - [Signature & Return Value](#signature--return-value)
-  - [Key Concepts](#key-concepts)
-  - [Example Usage](#example-usage)
-- [Motion Sensitivity](#motion-sensitivity)
-  - [Levels](#levels)
-  - [Configuration](#configuration)
-- [Animation Categories](#animation-categories)
-- [Alternative Animations](#alternative-animations)
+- [`useReducedMotion` Hook (Basic)](#usereducedmotion-hook-basic)
+- [`useEnhancedReducedMotion` Hook](#useenhancedreducedmotion-hook)
+  - [Purpose](#purpose-enhanced)
+  - [Signature & Return Value](#signature--return-value-enhanced)
+  - [Key Concepts](#key-concepts-enhanced)
+  - [Example Usage](#example-usage-enhanced)
+- [Motion Sensitivity Levels (Concept)](#motion-sensitivity-levels-concept)
+- [Animation Categories (Concept)](#animation-categories-concept)
+- [Alternative Animations (Concept)](#alternative-animations-concept)
 - [Other Accessibility Considerations](#other-accessibility-considerations)
   - [Focus Indicators](#focus-indicators)
   - [Keyboard Navigation](#keyboard-navigation)
@@ -22,184 +21,201 @@ Ensuring animations are accessible to all users, including those with motion sen
 
 ---
 
-## `useReducedMotion` Hook
+## `useReducedMotion` Hook (Basic)
 
-The primary tool for managing animation accessibility is the enhanced `useReducedMotion` hook.
+The simplest way to check the user's core preference.
 
 ### Purpose
 
-- Detect the user's operating system preference for reduced motion (`prefers-reduced-motion` media query).
-- Allow users to override the system setting with an application-specific reduced motion preference (stored in `localStorage`).
-- Provide fine-grained control over animation behavior based on `MotionSensitivityLevel`.
-- Enable configuration of animation behavior per `AnimationCategory`.
-- Determine appropriate `AlternativeType` for animations when reduced motion is active.
-- Provide utility functions to check if an animation is allowed and adjust its parameters (duration, distance) based on sensitivity settings.
+- Detect the user's operating system preference for reduced motion via the `prefers-reduced-motion` media query.
 
 ### Signature & Return Value
 
 ```typescript
-import { 
-  useReducedMotion, 
-  EnhancedReducedMotionOptions, 
-  EnhancedReducedMotionResult 
-} from 'galileo-glass-ui';
+import { useReducedMotion } from '@veerone/galileo-glass-ui/hooks';
 
-function useReducedMotion(
-  options?: EnhancedReducedMotionOptions
-): EnhancedReducedMotionResult;
+function useReducedMotion(): boolean;
+```
 
-// Key return values in EnhancedReducedMotionResult:
-interface EnhancedReducedMotionResult {
-  // System preference (from media query)
-  systemReducedMotion: boolean;
-  // App-level preference (from localStorage)
-  appReducedMotion: boolean;
-  // Combined preference (true if either system or app is true)
-  prefersReducedMotion: boolean; 
-  // Current sensitivity level (LOW, MEDIUM, HIGH)
-  motionSensitivity: MotionSensitivityLevel; 
-  // Detailed config based on sensitivity level
-  sensitivityConfig: MotionSensitivityConfig; 
-  // User's preferred general alternative type (e.g., FADE)
-  preferredAlternativeType: AlternativeType; 
-  // Preferences per animation category
-  categoryPreferences: Record<AnimationCategory, CategoryPreference>; 
+- **Returns:** A boolean (`true` if the user prefers reduced motion, `false` otherwise).
 
-  // Functions to control settings:
-  setAppReducedMotion: (value: boolean) => void;
-  setMotionSensitivity: (level: MotionSensitivityLevel) => void;
-  setPreferredAlternativeType: (type: AlternativeType) => void;
-  setCategoryPreference: (category: AnimationCategory, prefs: Partial<CategoryPreference>) => void;
-  resetPreferences: () => void;
+### Usage
 
-  // Utility functions for components:
-  isAnimationAllowed: (category: AnimationCategory) => boolean;
-  getAlternativeForCategory: (category: AnimationCategory) => AlternativeType;
-  getAdjustedDuration: (baseDuration: number, category?: AnimationCategory) => number;
-  getDistanceScale: (category?: AnimationCategory) => number;
+Use this hook for simple conditional logic where you only need to know the basic OS-level preference.
+
+```typescript
+import React from 'react';
+import { useReducedMotion } from '@veerone/galileo-glass-ui/hooks';
+import { GlassBox } from '@veerone/galileo-glass-ui/components';
+
+function SimpleAnimatedComponent() {
+  const prefersReduced = useReducedMotion();
+
+  return (
+    <GlassBox style={{ 
+      transition: prefersReduced ? 'none' : 'transform 0.3s ease-out',
+      // ... other styles
+    }}>
+      Content
+    </GlassBox>
+  );
 }
 ```
 
-- **Options (`EnhancedReducedMotionOptions`)**: Allows setting defaults for sensitivity, alternative types, and initial category preferences. `respectAppSettings` (default `true`) determines if the app-level setting overrides the system one.
+---
 
-### Key Concepts
+## `useEnhancedReducedMotion` Hook
 
-- **System vs. App Preference:** The hook distinguishes between the OS-level setting (`systemReducedMotion`) and an optional app-level toggle (`appReducedMotion`). `prefersReducedMotion` is the combined value used by most components.
-- **Persistence:** App-level settings (reduced motion toggle, sensitivity, category preferences) are stored in `localStorage` to persist across sessions.
-- **Granular Control:** When `useGranularControl` (default `true`) is enabled in options, the hook uses `MotionSensitivityLevel` and `categoryPreferences` to determine if/how animations run, rather than just turning them all off.
-- **Utility Functions:** Components primarily use `prefersReducedMotion` to conditionally skip animations or use the utility functions (`isAnimationAllowed`, `getAdjustedDuration`, etc.) to modify animation behavior based on user preferences.
+Provides a more sophisticated detection mechanism considering multiple factors beyond the basic media query.
 
-### Example Usage
+### Purpose {#purpose-enhanced}
 
-**1. Setting up a Global Provider (Optional but Recommended)**
+- Detect the user's preference for reduced motion using multiple signals (media query, user agent, power saving mode, performance hints, user override).
+- Provide a confidence score for the detection.
+- Recommend a `MotionSensitivityLevel` based on the combined signals.
+- Allow users to explicitly override the detected preference via `localStorage`.
 
-It's often useful to call `useReducedMotion` once near the top of your app and provide its result via context, so settings can be controlled globally.
+### Signature & Return Value {#signature--return-value-enhanced}
 
 ```typescript
-// Example: src/contexts/AccessibilityContext.tsx
-import React, { createContext, useContext, ReactNode } from 'react';
 import { 
-  useReducedMotion, 
-  EnhancedReducedMotionResult, 
-  MotionSensitivityLevel,
-  // ... other necessary imports
-} from 'galileo-glass-ui';
+  useEnhancedReducedMotion, 
+  EnhancedReducedMotionOptions, // Type for hook options
+  EnhancedReducedMotionInfo, // Type for return value
+  ReducedMotionDetectionMethod, // Enum for detection methods
+  MotionSensitivityLevel // Enum for sensitivity levels
+} from '@veerone/galileo-glass-ui/hooks'; // Assuming types are exported here
 
-const AccessibilityContext = createContext<EnhancedReducedMotionResult | undefined>(undefined);
+// Hook signature
+function useEnhancedReducedMotion(
+  options?: EnhancedReducedMotionOptions
+): EnhancedReducedMotionInfo;
 
-export const AccessibilityProvider = ({ children }: { children: ReactNode }) => {
-  const reducedMotion = useReducedMotion({ /* Default options if needed */ });
-  return (
-    <AccessibilityContext.Provider value={reducedMotion}>
-      {children}
-    </AccessibilityContext.Provider>
-  );
-};
+// Options structure (from source)
+interface EnhancedReducedMotionOptions {
+  useMediaQuery?: boolean; // Default: true
+  useUserAgent?: boolean; // Default: true
+  usePowerSaving?: boolean; // Default: true
+  useUserPreference?: boolean; // Default: true
+  usePerformance?: boolean; // Default: true
+  useHardwareAcceleration?: boolean; // Default: true
+  useAccessibilityTools?: boolean; // Default: true
+  confidenceThresholds?: Partial<Record<ReducedMotionDetectionMethod, number>>;
+  autoApplyFallbacks?: boolean; // Default: true (Note: Actual fallback application might be handled elsewhere)
+}
 
-export const useAccessibility = (): EnhancedReducedMotionResult => {
-  const context = useContext(AccessibilityContext);
-  if (!context) {
-    throw new Error('useAccessibility must be used within an AccessibilityProvider');
-    // Or return default fallback values if preferred
-  }
-  return context;
-};
+// Key return values (EnhancedReducedMotionInfo - from source)
+interface EnhancedReducedMotionInfo {
+  // The final calculated preference (true if signals suggest reduced motion)
+  prefersReducedMotion: boolean; 
+  // The detection method with the highest confidence that indicated reduced motion
+  detectionMethod: ReducedMotionDetectionMethod;
+  // Other methods that also indicated reduced motion
+  additionalDetectionMethods: ReducedMotionDetectionMethod[];
+  // Normalized confidence score (0-1) based on active detection methods
+  confidence: number;
+  // Recommended sensitivity level based on confidence
+  recommendedSensitivityLevel: MotionSensitivityLevel;
+  // Function to set/clear an app-level override in localStorage
+  setUserOverride: (value: boolean | null) => void;
+}
 ```
 
-**2. Using Preferences in a Component**
+### Key Concepts {#key-concepts-enhanced}
+
+- **Multiple Signals:** Goes beyond `prefers-reduced-motion` to infer user needs from power saving mode, device performance hints, user agent, etc.
+- **Confidence Score:** Aggregates signals to provide a confidence level (0-1) in the `prefersReducedMotion` result.
+- **Recommended Sensitivity:** Suggests a `MotionSensitivityLevel` (e.g., `LOW`, `MEDIUM`, `HIGH`) based on the confidence score. Components *can* use this recommendation to adjust animation intensity.
+- **User Override:** Provides `setUserOverride` function to let users explicitly enable/disable reduced motion for the application, storing the choice in `localStorage`. This override takes precedence over all other detection methods.
+- **No Direct Control Functions:** Unlike the previous documentation, this hook **does not** directly return functions like `setMotionSensitivity`, `setCategoryPreference`, `isAnimationAllowed`, `getAdjustedDuration`, etc. It provides the *information* (preference, confidence, recommended level), and components or other systems would need to *use* that information to implement granular control or fallbacks.
+
+### Example Usage {#example-usage-enhanced}
 
 ```typescript
-// Example: src/components/MyAnimatedComponent.tsx
+// Example: Using the enhanced hook to potentially adjust behavior
 import React from 'react';
-import { useGalileoStateSpring, AnimationCategory } from 'galileo-glass-ui';
-import { useAccessibility } from '../contexts/AccessibilityContext'; // Import custom hook
-import { Box } from '@mui/material';
+import { 
+  useEnhancedReducedMotion, 
+  MotionSensitivityLevel 
+} from '@veerone/galileo-glass-ui/hooks';
+import { GlassButton, GlassBox, GlassTypography } from '@veerone/galileo-glass-ui/components';
 
-const MyAnimatedComponent = () => {
+function EnhancedMotionComponent() {
   const { 
     prefersReducedMotion, 
-    isAnimationAllowed, 
-    getAdjustedDuration, 
-    // ... other needed values
-  } = useAccessibility();
+    recommendedSensitivityLevel,
+    confidence,
+    detectionMethod,
+    setUserOverride
+  } = useEnhancedReducedMotion();
 
-  const category = AnimationCategory.TRANSITION; // Assign a category
-
-  const { value } = useGalileoStateSpring(1, {
-    from: 0,
-    // Skip animation if not allowed or globally preferred
-    immediate: !isAnimationAllowed(category) || prefersReducedMotion, 
-    config: { 
-      tension: 170, 
-      friction: 26, 
-      // Adjust duration based on sensitivity
-      // Note: Spring physics duration isn't directly set, 
-      // but adjusting tension/friction based on sensitivity might be an approach.
-      // This example focuses on the immediate flag.
+  // Example: Adjust animation duration based on sensitivity recommendation
+  let animationDuration = 300; // Default duration
+  if (prefersReducedMotion) {
+    switch (recommendedSensitivityLevel) {
+      case MotionSensitivityLevel.LOW:
+        animationDuration = 600; // Slower
+        break;
+      case MotionSensitivityLevel.MEDIUM:
+        animationDuration = 450; // Slightly slower
+        break;
+      // HIGH or NONE might use default or slightly faster
     }
-  });
+  }
 
-  // Example of adjusting a CSS transition duration
-  const cssDuration = getAdjustedDuration(300, category); // Get adjusted duration
+  // Example: Conditionally render a simpler animation or static state
+  const showFullAnimation = !prefersReducedMotion || recommendedSensitivityLevel === MotionSensitivityLevel.HIGH;
 
   return (
-    <Box sx={{ 
-      opacity: value, 
-      transition: isAnimationAllowed(category) ? `opacity ${cssDuration}ms ease-out` : 'none',
-    }}> 
-      Animated Content
-    </Box>
+    <GlassBox style={{ padding: '16px' }}>
+      <GlassTypography>Prefers Reduced Motion: {prefersReducedMotion.toString()}</GlassTypography>
+      <GlassTypography>Confidence: {confidence.toFixed(2)}</GlassTypography>
+      <GlassTypography>Primary Detection: {detectionMethod}</GlassTypography>
+      <GlassTypography>Recommended Sensitivity: {recommendedSensitivityLevel}</GlassTypography>
+      
+      <GlassBox 
+        style={{
+          marginTop: '16px',
+          height: '50px',
+          width: '50px',
+          backgroundColor: 'blue',
+          transition: showFullAnimation ? `transform ${animationDuration}ms ease-out` : 'none',
+          transform: showFullAnimation ? 'translateX(50px)' : 'none'
+        }}
+      />
+      
+      <GlassBox style={{ marginTop: '16px' }}>
+        <GlassButton onClick={() => setUserOverride(true)}>Force Reduced</GlassButton>
+        <GlassButton onClick={() => setUserOverride(false)}>Force Normal</GlassButton>
+        <GlassButton onClick={() => setUserOverride(null)}>Use Detection</GlassButton>
+      </GlassBox>
+    </GlassBox>
   );
-};
+}
 ```
 
 ---
 
-## Motion Sensitivity
+## Motion Sensitivity Levels (Concept) {#motion-sensitivity-levels-concept}
 
-Provides finer control than a simple on/off switch for reduced motion.
+The library defines conceptual levels of motion sensitivity that *can* be used to adjust animations when reduced motion is preferred. The `useEnhancedReducedMotion` hook *recommends* a level, but doesn't enforce its application.
 
 ### Levels
 
-- `MotionSensitivityLevel.LOW`: Significant reduction in animation speed, distance, and complexity. Favors simpler alternatives.
-- `MotionSensitivityLevel.MEDIUM`: Moderate reduction. Default level when reduced motion is enabled.
-- `MotionSensitivityLevel.HIGH`: Minimal reduction. Allows most animations but might slightly reduce speed or distance.
+- `MotionSensitivityLevel.LOW`: Suggests significant reduction in animation speed, distance, and complexity. Favors simpler alternatives.
+- `MotionSensitivityLevel.MEDIUM`: Suggests moderate reduction. Often the default level when reduced motion is detected.
+- `MotionSensitivityLevel.HIGH`: Suggests minimal reduction. Allows most animations but might slightly reduce speed or distance.
+- `MotionSensitivityLevel.NONE`: No sensitivity adjustment recommended (implies `prefersReducedMotion` is false).
+- *(Other potential levels like `MEDIUM_HIGH`, `LOW_MEDIUM` might exist internally)*
 
 ### Configuration
-
-Each level corresponds to a `MotionSensitivityConfig` which defines:
-- `speedMultiplier`: Factor to adjust animation durations (e.g., 1.5 might mean 50% longer).
-- `distanceScale`: Enum (`SHORT`, `MEDIUM`, `LONG`) influencing travel distance.
-- `maxComplexity`: Maximum allowed `AnimationComplexity` (`MINIMAL`, `STANDARD`, `ENHANCED`).
-- `categorySettings`: Overrides for specific `AnimationCategory` values.
-
-Components use `sensitivityConfig` (from `useReducedMotion`) along with `getAdjustedDuration` and `getDistanceScale` to modify animations.
+*(Internal Concept)*: Internally, each level likely maps to configuration values (speed multipliers, distance scales, complexity limits) that components *could* use to adjust their behavior, but these configuration details are not directly exposed or controlled via the `useEnhancedReducedMotion` hook itself.
 
 ---
 
-## Animation Categories
+## Animation Categories (Concept) {#animation-categories-concept}
 
-Animations can be categorized to allow different handling based on user preferences:
+Animations *can* be conceptually categorized to allow different handling based on user preferences or sensitivity levels. Components implementing animations *should* consider these categories.
 
 - `ESSENTIAL`: Crucial for understanding state or interaction (e.g., focus indicators, loading spinners).
 - `TRANSITION`: Navigational or state change transitions (e.g., page loads, modal entrance).
@@ -211,21 +227,21 @@ Animations can be categorized to allow different handling based on user preferen
 - `DECORATIVE`: Purely aesthetic animations with no functional purpose.
 - `BACKGROUND`: Subtle background effects.
 
-Users can potentially disable or request alternatives for specific categories via `setCategoryPreference`.
+**Note:** The current `useEnhancedReducedMotion` hook does *not* provide direct mechanisms to set preferences per category. This would require additional state management or context.
 
 ---
 
-## Alternative Animations
+## Alternative Animations (Concept) {#alternative-animations-concept}
 
-When `prefersReducedMotion` is true, components should ideally provide an alternative way to convey information or state changes. `useReducedMotion` helps manage this via `AlternativeType`:
+When `prefersReducedMotion` is true, components should ideally provide an alternative way to convey information or state changes. Common alternative types include:
 
 - `FADE`: Replace motion with a cross-fade.
 - `STATIC`: Remove the animation entirely, jump to the end state.
 - `SIMPLIFIED`: Use a less complex version of the animation.
 - `ALTERNATIVE_PROPERTY`: Animate a different property (e.g., background color instead of position).
-- `NONE`: No specific alternative suggested (component decides).
+- `NONE`: No specific alternative.
 
-Components use `getAlternativeForCategory` to determine which alternative to apply.
+**Note:** The current hooks do not directly manage or select alternative animations. Components are responsible for implementing appropriate fallbacks based on the `prefersReducedMotion` value and potentially the `recommendedSensitivityLevel`.
 
 ---
 
@@ -233,8 +249,8 @@ Components use `getAlternativeForCategory` to determine which alternative to app
 
 ### Focus Indicators
 - Ensure focus indicators are always clearly visible, even during animations.
-- Focus ring animations should respect `prefersReducedMotion` (e.g., using `useGalileoStateSpring` with the `immediate` flag).
-- The `FocusIndicator` component aims to handle this automatically.
+- Focus ring animations should respect `prefersReducedMotion` (e.g., the basic `useReducedMotion` hook can be used to make the animation `immediate`).
+- The `GlassFocusRing` component aims to handle this automatically (Verify its implementation).
 
 ### Keyboard Navigation
 - All interactions achievable via pointer (mouse/touch) must also be achievable via keyboard.
@@ -243,17 +259,16 @@ Components use `getAlternativeForCategory` to determine which alternative to app
 
 ### Pause/Stop Controls
 - For continuous, looping, or potentially distracting animations (especially `DECORATIVE` or `BACKGROUND`), provide controls to pause, stop, or hide them, as required by WCAG 2.2.2 Pause, Stop, Hide.
-- `useAnimationSequence` provides `pause()` and `stop()` controls.
+- Hooks like `useAnimationSequence` provide `pause()` and `stop()` controls.
 
 ---
 
 ## Best Practices
 
-- **Use `useReducedMotion`:** Rely on the hook to detect preferences rather than manually checking the media query.
-- **Categorize Animations:** Assign meaningful `AnimationCategory` values when implementing animations.
-- **Provide Alternatives:** When motion is significant, design a non-motion alternative (fade, static state, property change).
-- **Test Thoroughly:** Test animations with `prefersReducedMotion` enabled (system setting) and with different app-level sensitivity settings.
-- **Prefer System Settings:** Avoid overriding system preferences unless providing explicit user control within the application.
-- **Check `isAnimationAllowed`:** Before running potentially non-essential animations, check `isAnimationAllowed(category)`.
-- **Adjust Parameters:** Use `getAdjustedDuration` and `getDistanceScale` to subtly modify animations based on sensitivity, rather than just turning them off, for a smoother experience.
+- **Use `useReducedMotion` (Basic):** For simple checks of the OS preference.
+- **Use `useEnhancedReducedMotion`:** When more nuanced detection or user overrides are needed. Use the returned `prefersReducedMotion` and `recommendedSensitivityLevel` to *inform* animation adjustments.
+- **Categorize Animations:** Conceptually assign `AnimationCategory` values when implementing animations to guide decisions about importance and fallbacks.
+- **Provide Alternatives:** When motion is significant, design a non-motion alternative (fade, static state, property change) and implement it conditionally based on `prefersReducedMotion`.
+- **Test Thoroughly:** Test animations with `prefersReducedMotion` enabled (system setting) and by using the `setUserOverride` function from `useEnhancedReducedMotion`.
+- **Prefer System Settings:** Avoid overriding system preferences unless providing explicit user control (like the `setUserOverride` functionality).
 - **Keep Essential Motion:** Don't disable motion that is essential for understanding the UI state or interaction, unless a clear alternative is provided. 

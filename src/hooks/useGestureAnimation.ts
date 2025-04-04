@@ -89,12 +89,10 @@ export function useGestureAnimation(
     const gestureAnimation = new GestureAnimation(finalConfig);
     gestureAnimationRef.current = gestureAnimation;
     
-    // Initial transform state
-    setTransformState(gestureAnimation.getTransform());
-    
     // Clean up
     return () => {
-      gestureAnimation.destroy();
+      // Use ref.current in cleanup to ensure the correct instance is destroyed
+      gestureAnimationRef.current?.destroy(); 
       gestureAnimationRef.current = null;
     };
   }, [

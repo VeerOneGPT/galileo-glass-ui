@@ -5,7 +5,7 @@
  * detailed metrics collection, analysis, and reporting capabilities.
  */
 // Import CSS type definitions
-import '../../types/css';
+import '../../types/css.js';
 import {
   detectFeatures,
   FeatureLevel,

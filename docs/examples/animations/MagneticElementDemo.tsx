@@ -2,9 +2,12 @@ import React, { useRef } from 'react';
 import {
   useMagneticElement,
   MagneticElementOptions,
-  MagneticElementResult,
+  // MagneticElementResult, // Unused?
 } from '../../../src/animations/physics/useMagneticElement';
-import { Box, Paper, Typography } from '@mui/material'; // Using MUI for layout/text in example
+// Replace MUI imports
+import { Box } from '../../../src/components/Box'; 
+import { Paper } from '../../../src/components/Paper'; 
+import { Typography } from '../../../src/components/Typography'; 
 
 // Configuration for the magnetic effect
 const magneticOptions: MagneticElementOptions = {
@@ -23,17 +26,17 @@ export const MagneticElementDemo: React.FC = () => {
   const { elementRef, isActive, transform } = useMagneticElement<HTMLDivElement>(magneticOptions);
 
   return (
-    <Paper elevation={2} sx={{ padding: 3, margin: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    <Paper elevation={2} style={{ padding: '24px', margin: '16px' }}>
+      <Typography variant="h6" style={{ marginBottom: '8px' }}>
         Magnetic Element Demo
       </Typography>
-      <Typography variant="body2" sx={{ marginBottom: 3 }}>
+      <Typography variant="body2" style={{ marginBottom: '24px' }}>
         Move your mouse pointer near the blue square. It will be attracted
         towards the pointer. Current active state: {isActive ? 'Active' : 'Inactive'}
       </Typography>
       <Box
         // ref={containerRef} // Container ref might not be needed for basic use
-        sx={{
+        style={{
           width: '100%',
           height: '200px',
           display: 'flex',
@@ -47,10 +50,10 @@ export const MagneticElementDemo: React.FC = () => {
       >
         <Box
           ref={elementRef} // Assign the ref returned by the hook
-          sx={{
+          style={{
             width: 50,
             height: 50,
-            backgroundColor: isActive ? 'secondary.main' : 'primary.main', // Change color when active
+            backgroundColor: isActive ? '#6366F1' : '#1976d2', // Change color when active
             borderRadius: '8px',
             display: 'flex',
             alignItems: 'center',

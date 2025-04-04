@@ -7,10 +7,21 @@ import {
   AnimationProvider,
 } from '../../../src/contexts/AnimationContext'; // Corrected relative path
 import { SpringPresets } from '../../../src/animations/physics/springPhysics'; // Corrected relative path
-import { Button, Box, FormControlLabel, Checkbox, Select, MenuItem, Typography, Paper } from '@mui/material'; // Using MUI for UI controls
+// Replace MUI imports where possible
+import { Paper } from '../../../src/components/Paper';
+import { Box } from '../../../src/components/Box';
+import { Typography } from '../../../src/components/Typography';
+import { Button } from '../../../src/components/Button';
+// Import Galileo equivalents from correct paths
+import { GlassFormControl } from '../../../src/components/Form/FormControl'; 
+import { GlassCheckbox } from '../../../src/components/Checkbox/Checkbox'; 
+import { GlassSelect } from '../../../src/components/Select/Select'; 
+// MenuItem is not needed for GlassSelect
 
 // Helper to get preset names (assuming SpringPresets is an object)
 const presetNames = Object.keys(SpringPresets || {});
+// Prepare options for GlassSelect
+const selectOptions = presetNames.map(name => ({ value: name, label: name }));
 
 export const ConfigurablePhysicsButtonDemo: React.FC = () => {
   const [isDisabled, setIsDisabled] = useState(false);
@@ -29,51 +40,50 @@ export const ConfigurablePhysicsButtonDemo: React.FC = () => {
     reducedMotion: isDisabled, // Directly control via isDisabled state
   };
 
-  const { ref, style, eventHandlers } = usePhysicsInteraction<HTMLButtonElement>(physicsOptions);
+  const { ref, style } = usePhysicsInteraction<HTMLButtonElement>(physicsOptions);
 
   return (
-    <Paper elevation={2} sx={{ padding: 3, margin: 2 }}>
-      <Typography variant="h6" gutterBottom>
+    // Use Galileo Paper, Box, Typography, Button
+    <Paper elevation={2} style={{ padding: '24px', margin: '16px' }}>
+      <Typography variant="h6" style={{ marginBottom: '8px' }}>
         Configurable Physics Button
       </Typography>
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', marginBottom: 3 }}>
+      <Box style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px' }}>
         <Button
           ref={ref}
-          style={style} // Apply physics styles
-          {...eventHandlers} // Apply interaction handlers
-          variant="contained"
-          sx={{ minWidth: 150, minHeight: 40 }} // Ensure size
+          style={{ // Apply physics styles and base styles
+            minWidth: 150, 
+            minHeight: 40, 
+            ...(style as React.CSSProperties) // Spread hook styles
+          }} 
+          variant="contained" // Keep variant if Button supports it
         >
           Physics Button
         </Button>
       </Box>
 
-      <Typography variant="subtitle1" gutterBottom>Controls:</Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <FormControlLabel
-          control={<Checkbox checked={isDisabled} onChange={(e) => setIsDisabled(e.target.checked)} />}
+      <Typography variant="subtitle1" style={{ marginBottom: '8px' }}>Controls:</Typography>
+      {/* Use Galileo form controls */}
+      <Box style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <GlassFormControl
           label="Disable Animation (reducedMotion: true)"
+          control={<GlassCheckbox checked={isDisabled} onChange={(event, checked) => setIsDisabled(checked)} />}
         />
-        <FormControlLabel
-          control={<Checkbox checked={affectsScale} onChange={(e) => setAffectsScale(e.target.checked)} />}
+        <GlassFormControl
           label="Affect Scale"
+          control={<GlassCheckbox checked={affectsScale} onChange={(event, checked) => setAffectsScale(checked)} />}
         />
-        {/* Add controls for scaleAmplitude, preset selection etc. */} 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, marginTop: 1}}>
+        <Box style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px'}}>
            <Typography variant="body2">Preset:</Typography>
-           <Select 
+           {/* Use GlassSelect with options prop */}
+           <GlassSelect 
               value={configPreset}
-              onChange={(e) => setConfigPreset(e.target.value as string)}
+              onChange={(value) => setConfigPreset(value as string)}
+              options={selectOptions}
               size="small"
-              sx={{ minWidth: 120 }}
-           >
-             {presetNames.map((name) => (
-               <MenuItem key={name} value={name}>{name}</MenuItem>
-             ))}
-           </Select>
+           />
         </Box>
-        {/* Example showing context default */} 
-        <Typography variant="caption" sx={{ marginTop: 2}}>
+        <Typography variant="caption" style={{ marginTop: '16px'}}>
             Base Context Default Spring: {JSON.stringify(baseContext.defaultSpring)}
         </Typography>
       </Box>

@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useRef, useEffect, useCallback } from 'react';
+import React, { forwardRef, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import styled, { css } from 'styled-components';
 
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
@@ -198,7 +198,7 @@ const GlassContainer = styled.div<{
       blurStrength: `${props.$blurStrength}px`,
       backgroundOpacity: props.$opacity,
       borderOpacity: props.$borderOpacity,
-      themeContext: createThemeContext({}, props.$isDarkMode),
+      themeContext: createThemeContext({ isDarkMode: props.$isDarkMode }),
     })}
 
   /* Apply edge highlight if enabled */
@@ -208,7 +208,7 @@ const GlassContainer = styled.div<{
       thickness: 1,
       opacity: 0.5,
       position: 'all',
-      themeContext: createThemeContext({}, props.$isDarkMode),
+      themeContext: createThemeContext({ isDarkMode: props.$isDarkMode }),
     })}
   
   /* Apply glow effect if enabled */
@@ -217,7 +217,7 @@ const GlassContainer = styled.div<{
     glassGlow({
       intensity: 'medium',
       color: props.$glowColor,
-      themeContext: createThemeContext({}, props.$isDarkMode),
+      themeContext: createThemeContext({ isDarkMode: props.$isDarkMode }),
     })}
 `;
 

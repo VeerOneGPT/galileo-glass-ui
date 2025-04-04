@@ -20,7 +20,7 @@ interface UseResponsiveProps {
     large?: ResponsiveTabConfig;
   };
   showLabels: boolean;
-  iconPosition: 'top' | 'left';
+  iconPosition: 'top' | 'left' | 'right';
   verticalDisplayMode: 'compact' | 'expanded' | 'icon-only';
   fullWidth: boolean;
   width?: string | number;
@@ -31,7 +31,7 @@ interface ResponsiveResult {
   effectiveOrientation: 'horizontal' | 'vertical';
   screenSize: 'small' | 'medium' | 'large';
   effectiveShowLabels: boolean;
-  effectiveIconPosition: 'top' | 'left';
+  effectiveIconPosition: 'top' | 'left' | 'right';
   effectiveVerticalDisplayMode: 'compact' | 'expanded' | 'icon-only';
   effectiveFullWidth: boolean;
   effectiveWidth?: string | number;

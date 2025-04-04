@@ -78,8 +78,8 @@ export const useGlassEffects = () => {
         : blurStrength
       : blurStrength;
 
-    // Create theme context
-    const themeContext = createThemeContext({}, forceDarkMode);
+    // Pass only the theme object (empty for now) to createThemeContext
+    const themeContext = createThemeContext({ isDarkMode: forceDarkMode });
 
     // Create glass surface CSS
     return glassSurface({
@@ -102,8 +102,8 @@ export const useGlassEffects = () => {
       isSelected = false,
     } = options;
 
-    // Create theme context
-    const themeContext = createThemeContext({}, forceDarkMode);
+    // Pass only the theme object (empty for now) to createThemeContext
+    const themeContext = createThemeContext({ isDarkMode: forceDarkMode });
 
     // Create glass glow CSS
     return glassGlow({
@@ -120,8 +120,8 @@ export const useGlassEffects = () => {
   const createInnerGlow = (options: GlassEffectsOptions = {}) => {
     const { glowColor = 'primary', forceDarkMode = false, isSelected = false } = options;
 
-    // Create theme context
-    const themeContext = createThemeContext({}, forceDarkMode);
+    // Pass only the theme object (empty for now) to createThemeContext
+    const themeContext = createThemeContext({ isDarkMode: forceDarkMode });
 
     // Create inner glow CSS
     return innerGlow({
@@ -138,8 +138,8 @@ export const useGlassEffects = () => {
   const createEdgeHighlight = (options: GlassEffectsOptions = {}) => {
     const { glowColor = 'primary', forceDarkMode = false, isSelected = false } = options;
 
-    // Create theme context
-    const themeContext = createThemeContext({}, forceDarkMode);
+    // Pass only the theme object (empty for now) to createThemeContext
+    const themeContext = createThemeContext({ isDarkMode: forceDarkMode });
 
     // Create edge highlight CSS
     return edgeHighlight({

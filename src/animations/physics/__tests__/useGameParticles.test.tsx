@@ -319,7 +319,7 @@ describe('useGameParticles', () => {
       
       expect(mocks.mockTriggerEvent).toHaveBeenCalledWith(
         GameEventType.SPARKLE, 
-        mockEvent
+        { x: 100, y: 100 } 
       );
     });
     

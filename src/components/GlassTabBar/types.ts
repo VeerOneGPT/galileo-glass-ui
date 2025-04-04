@@ -173,7 +173,7 @@ export interface GlassTabBarProps {
   /** Optional render prop for custom tab content */
   renderTab?: (tab: TabItem, index: number, isActive: boolean) => React.ReactNode;
   /** Icon position for tabs with both icons and labels (vertical orientation only) */
-  iconPosition?: 'top' | 'left';
+  iconPosition?: 'top' | 'left' | 'right';
   /** Display mode for vertical tabs */
   verticalDisplayMode?: 'compact' | 'expanded' | 'icon-only';
   /** Placement of the tab bar in a parent container */
@@ -233,7 +233,7 @@ export interface ResponsiveTabConfig {
   /** Display mode for vertical tabs */
   verticalDisplayMode?: 'compact' | 'expanded' | 'icon-only';
   /** Icon position */
-  iconPosition?: 'top' | 'left';
+  iconPosition?: 'top' | 'left' | 'right';
   /** Whether tabs should take full width */
   fullWidth?: boolean;
   /** Maximum number of visible tabs before collapsing */
@@ -370,4 +370,33 @@ export interface TabIconProps {
   $showLabel: boolean;
   $orientation?: string;
   $iconPosition?: string;
+}
+
+/**
+ * TabBarRef interface - methods and properties exposed via forwarded ref
+ */
+export interface TabBarRef {
+  /** Get the container element of the tab bar */
+  getContainerElement: () => HTMLDivElement | null;
+  
+  /** Get the DOM elements of all tab buttons */
+  getTabElements: () => (HTMLButtonElement | null)[];
+  
+  /** Get the DOM element of a specific tab button by index */
+  getTabElement: (index: number) => HTMLButtonElement | null;
+  
+  /** Programmatically select a tab by index */
+  selectTab: (index: number) => void;
+  
+  /** Scroll to bring a specific tab into view */
+  scrollToTab: (index: number, smooth?: boolean) => void;
+  
+  /** Show or hide a badge on a specific tab */
+  toggleBadge: (index: number, show: boolean) => void;
+  
+  /** Update the badge count/content on a specific tab */
+  updateBadge: (index: number, value: number | string) => void;
+  
+  /** Check if scrolling is active */
+  isScrolling: () => boolean;
 }

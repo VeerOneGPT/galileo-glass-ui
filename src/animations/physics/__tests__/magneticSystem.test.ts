@@ -2,6 +2,7 @@
  * Tests for the magnetic system
  */
 
+import { act } from '@testing-library/react'; // Import act for async operations
 import { 
   MagneticSystemManager, 
   createMagneticSystem, 
@@ -33,25 +34,22 @@ describe('MagneticSystemManager', () => {
   let system: MagneticSystemManager;
   
   beforeEach(() => {
-    // Reset for each test
+    // Enable Jest fake timers
+    jest.useFakeTimers(); 
+
+    // Reset system
     system = new MagneticSystemManager({
       id: 'test-system',
       usePhysicsSystem: false // Disable physics system for tests
     });
     
-    // Mock requestAnimationFrame
-    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
-      setTimeout(() => cb(performance.now()), 0);
-      return 0;
-    });
-    
-    // Mock cancelAnimationFrame
-    jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+    jest.clearAllMocks(); // Clear other mocks if any
   });
   
   afterEach(() => {
     system.destroy();
-    jest.clearAllMocks();
+    // Disable Jest fake timers
+    jest.useRealTimers(); 
   });
   
   test('should create a magnetic system', () => {
@@ -88,23 +86,78 @@ describe('MagneticSystemManager', () => {
     expect(updatedElement?.isAttractor).toBe(true);
   });
   
-  test('should apply force to elements', () => {
+  test('should apply force to elements (API check)', () => {
+    // Keep this as an API check, actual force tested in update loop test
     const element = new MockElement() as unknown as HTMLElement;
     const id = system.registerElement({ element });
-    
     const result = system.applyForce(id, { x: 10, y: 5 });
     expect(result).toBe(true);
-    
-    // Force application happens internally, can't easily test directly
-    // but we can ensure the method completes successfully
   });
   
-  test('should start and stop the system', () => {
+  test('should start and stop the system using rAF', () => {
+    // Use Jest's mock functions for rAF/cAF
+    const rafSpy = jest.spyOn(window, 'requestAnimationFrame');
+    const cafSpy = jest.spyOn(window, 'cancelAnimationFrame');
+
     system.start();
-    expect(window.requestAnimationFrame).toHaveBeenCalled();
+    expect(rafSpy).toHaveBeenCalledTimes(1);
+    const rafId = rafSpy.mock.results[0].value; 
+
+    system.stop();
+    expect(cafSpy).toHaveBeenCalledWith(rafId);
+
+    rafSpy.mockRestore();
+    cafSpy.mockRestore();
+  });
+  
+  test('update loop should modify element state over time and move towards attractor', () => {
+    const element = new MockElement() as unknown as HTMLElement;
+    // Place element away from origin initially
+    const elementRect = {
+        left: 100, top: 100, right: 200, bottom: 200, width: 100, height: 100, x: 100, y: 100,
+        toJSON: function() { return this; } // Add toJSON method
+    };
+    element.getBoundingClientRect = jest.fn(() => elementRect);
+    const id = system.registerElement({ 
+        element, 
+        strength: 1, 
+        isAttractor: false
+    });
+    
+    // Add an attractor at the origin
+    const attractorElement = new MockElement() as unknown as HTMLElement;
+    const attractorRect = {
+        left: -50, top: -50, right: 50, bottom: 50, width: 100, height: 100, x: -50, y: -50,
+        toJSON: function() { return this; } // Add toJSON method
+    };
+    attractorElement.getBoundingClientRect = jest.fn(() => attractorRect);
+    const attractorId = system.registerElement({ 
+        element: attractorElement, 
+        strength: 1, 
+        isAttractor: true 
+    });
+
+    system.start();
+
+    const initialState = system.getElement(id)!;
+    const initialPos = { x: initialState.position.x, y: initialState.position.y };
+    const initialDistanceSq = initialPos.x ** 2 + initialPos.y ** 2;
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
     
     system.stop();
-    expect(window.cancelAnimationFrame).toHaveBeenCalled();
+
+    const finalState = system.getElement(id)!;
+    const finalPos = { x: finalState.position.x, y: finalState.position.y };
+    const finalDistanceSq = finalPos.x ** 2 + finalPos.y ** 2;
+
+    expect(finalState).toBeDefined();
+    expect(finalPos.x).not.toBeCloseTo(initialPos.x);
+    expect(finalPos.y).not.toBeCloseTo(initialPos.y);
+    expect(finalState.velocity.x !== 0 || finalState.velocity.y !== 0).toBe(true);
+    expect(finalDistanceSq).toBeLessThan(initialDistanceSq);
   });
   
   test('createMagneticSystem should return a new system', () => {
@@ -145,23 +198,18 @@ describe('Element interactions', () => {
   let system: MagneticSystemManager;
   
   beforeEach(() => {
-    // Reset for each test
+    jest.useFakeTimers(); // Enable fake timers here too
     system = new MagneticSystemManager({
       id: 'interaction-test-system',
-      usePhysicsSystem: false, // Disable physics system for tests
+      usePhysicsSystem: false,
       enableElementInteraction: true,
       interactionStrength: 1
-    });
-    
-    // Mock requestAnimationFrame
-    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
-      setTimeout(() => cb(performance.now()), 0);
-      return 0;
     });
   });
   
   afterEach(() => {
     system.destroy();
+    jest.useRealTimers(); // Disable fake timers
     jest.clearAllMocks();
   });
   
@@ -188,6 +236,42 @@ describe('Element interactions', () => {
     expect(config.interactionRadius).toBe(300);
   });
   
-  // Since we can't easily test the magnetic calculations directly,
-  // we verify the API structure and behavior
+  test('should cause interacting elements to move when enabled', () => {
+    const element1 = new MockElement() as unknown as HTMLElement;
+    const element2 = new MockElement() as unknown as HTMLElement;
+
+    // Position elements apart initially
+    element1.getBoundingClientRect = jest.fn(() => ({ 
+      left: 50, top: 50, right: 150, bottom: 150, width: 100, height: 100, x: 50, y: 50, 
+      toJSON: function() { return this; } // Add toJSON method
+    }));
+    element2.getBoundingClientRect = jest.fn(() => ({ 
+      left: 250, top: 250, right: 350, bottom: 350, width: 100, height: 100, x: 250, y: 250, 
+      toJSON: function() { return this; } // Add toJSON method
+    }));
+
+    const id1 = system.registerElement({ element: element1, strength: 0.1, isAttractor: false });
+    const id2 = system.registerElement({ element: element2, strength: 0.1, isAttractor: false });
+
+    const initialState1 = system.getElement(id1)!;
+    const initialState2 = system.getElement(id2)!;
+    const initialPos1 = { ...initialState1.position };
+    const initialPos2 = { ...initialState2.position };
+
+    system.start();
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    system.stop();
+
+    const finalState1 = system.getElement(id1)!;
+    const finalState2 = system.getElement(id2)!;
+
+    expect(finalState1.position.x).not.toBeCloseTo(initialPos1.x);
+    expect(finalState1.position.y).not.toBeCloseTo(initialPos1.y);
+    expect(finalState2.position.x).not.toBeCloseTo(initialPos2.x);
+    expect(finalState2.position.y).not.toBeCloseTo(initialPos2.y);
+  });
 });

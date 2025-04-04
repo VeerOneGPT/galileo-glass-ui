@@ -71,6 +71,39 @@ A comprehensive guide to implementing beautiful chart components using the Galil
 
 ---
 
+## GlassDataChart Component [Documentation Pending]
+
+*(Specific documentation for the `GlassDataChart` component (exported as `DataChart`) needs to be added here. This should cover its core API, data format, supported chart types (Line, Bar, Area, etc.), props for enabling features like tooltips, legends, and the physics-based zoom/pan implemented in Feature #8. It should also clarify the component's intended modularity or configuration options, addressing feedback from issue #22.)*
+
+```tsx
+// Example placeholder
+import React from 'react';
+import { DataChart } from 'galileo-glass-ui';
+
+const sampleData = { /* ... data structure ... */ };
+const chartOptions = { /* ... options ... */ };
+
+function MyChart() {
+  return (
+    <DataChart
+      type="line"
+      data={sampleData}
+      options={chartOptions}
+      // Props for zoom/pan (as implemented in #8)
+      interaction={{
+        zoom: { enabled: true, mode: 'x' },
+        pan: { enabled: true, mode: 'x' }
+      }}
+      animation={{ physicsEnabled: true }} 
+      width="100%"
+      height={300}
+    />
+  );
+}
+```
+
+---
+
 ## Overview
 This document presents a comprehensive plan to **update all chart components** in order to fully leverage the Galileo Glass UI/UX system. The goals include achieving visual consistency, enhancing interactivity, ensuring smooth animations, and providing proper theming throughout the chart library.
 
@@ -695,12 +728,13 @@ const GlassChartContainer = styled.div<{ $depth?: 1 | 2 | 3 | 4; theme: any }>`
   width: 100%;
   height: 100%;
 
-  background-color: ${props => props.theme.isDarkMode 
-    ? 'rgba(30, 30, 34, 0.5)' 
+  background-color: ${props => props.theme.isDarkMode
+    ? 'rgba(30, 30, 34, 0.5)'
     : 'rgba(255, 255, 255, 0.7)'
   };
 `;
 ```
+**Note on `clear` variant:** The `clear` glass variant provides a fully transparent background. To ensure readability, axis labels, titles, and grid lines automatically switch to a darker color scheme when this variant is active.
 
 ### 2. Interactive Glass Elements
 ```tsx
@@ -899,7 +933,7 @@ import styled from 'styled-components';
 import { glassSurface } from '../../design/mixins/surfaces';
 import { innerGlow } from '../../design/mixins/depth/innerEffects';
 
-const GlassBar = styled.rect<{ 
+const GlassBar = styled.rect<{
   $color: string;
   $interactive?: boolean;
   $selected?: boolean;
@@ -941,6 +975,7 @@ const GlassBar = styled.rect<{
   transition: fill 0.3s ease, filter 0.3s ease;
 `;
 ```
+**Note on Area Charts:** The `area` chart variant now correctly renders a fill beneath the line by default. The opacity can be controlled using the `fillOpacity` property within the dataset's `style` object.
 
 ### 8. Implementing Glass Icons in Charts
 ```tsx
@@ -1266,24 +1301,26 @@ const SimplifiedChartExample = ({ data, isDark, theme }) => {
 ## Troubleshooting Common Issues
 
 ### Chart Not Rendering Properly
-1. **Check container dimensions** – The container must have an explicit height.  
-2. **Verify data structure** – Ensure the data object follows the required format.  
-3. **Fallback to SimpleChart** – Use `SimpleChart` if issues persist.  
-4. **Browser console** – Investigate errors or warnings.  
-5. **Theme integration** – Confirm theme props are correctly passed.
+1. **Check container dimensions** – The container must have an explicit height.
+2. **Verify data structure** – Ensure the data object follows the required format (especially for Pie/Doughnut charts, which require a simpler structure - rendering issues with these types have been recently resolved).
+3. **Check Chart.js Registrations:** Ensure all necessary components (Scales like `CategoryScale`, `LinearScale`, `RadialLinearScale`; Elements like `PointElement`, `ArcElement`, `LineElement`, `BarElement`; `Filler`, `Tooltip`, `Legend`) are imported from `chart.js` and registered using `Chart.register()` in your component or application setup. Missing registrations are a common cause of errors for specific chart types (e.g., `"radialLinear" is not a registered scale` for Radar/PolarArea charts).
+4. **Restart Dev Server:** If you encounter errors like `"[component] is not a registered scale/element"` *after* verifying registrations in code, try restarting your development server (e.g., Storybook, Vite, Next.js dev). Build caches can sometimes cause registration changes not to apply immediately.
+5. **Fallback to SimpleChart** – Use `SimpleChart` if issues persist.
+6. **Browser console** – Investigate errors or warnings.
+7. **Theme integration** – Confirm theme props are correctly passed.
 
 ### Chart Size Issues
-1. **Explicit container dimensions** – Always set a specific height on the container.  
-2. **Use `width="100%"` and `height="100%"`** – Let the chart fill its container.  
-3. **Check for overflow** – Parent containers might be clipping the chart.  
-4. **Responsive breakpoints** – Adjust container height at various screen sizes.  
+1. **Explicit container dimensions** – Always set a specific height on the container.
+2. **Use `width="100%"` and `height="100%"`** – Let the chart fill its container.
+3. **Check for overflow** – Parent containers might be clipping the chart.
+4. **Responsive breakpoints** – Adjust container height at various screen sizes.
 5. **ResizeObserver** – Implement manual monitoring if needed.
 
 ### Performance Issues
-1. **Reduce data points** – Large datasets can slow rendering and animations.  
-2. **Simplify chart type** – Bar or simple line charts perform better than complex ones.  
-3. **Prevent excessive re-renders** – Utilize `React.memo` and stable data references.  
-4. **Disable animations** – Consider reduced-motion or performance detection toggles.  
+1. **Reduce data points** – Large datasets can slow rendering and animations.
+2. **Simplify chart type** – Bar or simple line charts perform better than complex ones.
+3. **Prevent excessive re-renders** – Utilize `React.memo` and stable data references.
+4. **Disable animations** – Consider reduced-motion or performance detection toggles.
 5. **Server-side rendering** – Pre-render static charts when possible.
 
 ---
