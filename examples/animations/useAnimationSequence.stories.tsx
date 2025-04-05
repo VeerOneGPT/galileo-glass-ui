@@ -1,19 +1,38 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
 import { Meta, StoryObj } from '@storybook/react';
+
+// --- Corrected Imports --- 
 import { 
-  useAnimationSequence,
-  useReducedMotion,
-  StaggerPattern,
-  PlaybackState
-} from '../../src/hooks';
+  GlassBox,             // Import UI Components
+  GlassButton, 
+  GlassTypography 
+} from '@veerone/galileo-glass-ui';
+
+// Import hooks directly
+import { useAnimationSequence } from '../../src/animations/orchestration/useAnimationSequence';
+import { useReducedMotion } from '../../src/animations/accessibility/useReducedMotion';
+
+import { 
+  StaggerPattern,       // Import Enums from types.ts
+  PlaybackState,
+  TimingRelationship
+} from '../../src/animations/types';
+
 import type { 
-  PlaybackDirection,
-  TimingRelationship,
-  AnimationSequenceConfig, 
-  AnimationStage
-} from '../../src/hooks';
+  AnimationSequenceConfig // Import Config Type from hook file
+} from '../../src/animations/orchestration/useAnimationSequence';
+
+import type { 
+  AnimationStage,         // Import Stage Types from types.ts
+  StyleAnimationStage,
+  StaggerAnimationStage,
+  GroupAnimationStage,
+  EventAnimationStage
+} from '../../src/animations/types';
+
 import { AnimationCategory } from '../../src/animations/accessibility/MotionSensitivity'; 
+// --- End Corrected Imports --- 
 
 // Styled Components from the original demo
 const DemoContainer = styled.div`
@@ -130,18 +149,48 @@ const ExampleHeader = styled.h3`
   align-items: center;
 `;
 
+const CheckboxContainer = styled.div<{$checked: boolean}>`
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--glass-text-color-secondary);
+  border-radius: 4px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background-color: ${props => props.$checked ? 'var(--glass-primary-color)' : 'rgba(255, 255, 255, 0.1)'};
+
+  &::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 14px;
+    color: white;
+    transition: transform 0.2s ease;
+    opacity: ${props => props.$checked ? 1 : 0};
+    transform: ${props => props.$checked ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0)'};
+  }
+`;
+
 // The main component logic from the demo, adapted for Storybook
 const AnimationSequenceStoryComponent: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useReducedMotion();
-  const [appReducedMotion, setAppReducedMotion] = useState(prefersReducedMotion);
+  
+  // --- Revert to using the object returned by useReducedMotion --- 
+  const reducedMotionInfo = useReducedMotion(); // Assume object return
+  // State holds the full result object, but we mostly care about the boolean property
+  const [appReducedMotionState, setAppReducedMotionState] = useState(reducedMotionInfo);
+  // --- END Revert --- 
+  
   const [elements, setElements] = useState<string[]>([]);
   const animationElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Update local state if system preference changes
+  // Update local state object if system preference changes
   useEffect(() => {
-    setAppReducedMotion(prefersReducedMotion);
-  }, [prefersReducedMotion]);
+    setAppReducedMotionState(reducedMotionInfo);
+  }, [reducedMotionInfo]);
 
   // Clear existing refs and map before creating new elements
   useEffect(() => {
@@ -376,7 +425,7 @@ const AnimationSequenceStoryComponent: React.FC = () => {
     onComplete: () => console.log('Sequence completed')
   };
 
-  // Use the hook
+  // Use the hook (now imported directly)
   const sequence = useAnimationSequence({ id: 'demo-sequence-story', ...sequenceConfig });
 
   // Reset elements' initial styles when sequence stops or restarts
@@ -401,6 +450,28 @@ const AnimationSequenceStoryComponent: React.FC = () => {
       }
   }, [sequence.playbackState, elements]);
 
+  // Callback to update playback state display
+  const updatePlaybackStateDisplay = useCallback(() => {
+    if (sequence.playbackState) {
+      const state = sequence.playbackState;
+      // console.log(`Sequence state: ${state}`); // Keep console log if desired
+    }
+  }, [sequence.playbackState]);
+
+  useEffect(() => {
+    updatePlaybackStateDisplay();
+  }, [updatePlaybackStateDisplay]);
+
+  // Handler updates the object state
+  const handleToggleReducedMotion = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = event.target.checked;
+    setAppReducedMotionState(prevState => ({ 
+        ...prevState, // Keep other potential properties from the hook result
+        prefersReducedMotion: isChecked 
+    }));
+    // If the hook needs manual update:
+    // sequence?.setReducedMotion(isChecked); // Check if hook has such method
+  };
 
   return (
     <DemoContainer>
@@ -476,24 +547,24 @@ const AnimationSequenceStoryComponent: React.FC = () => {
             />
           </div>
           
-          <ToggleContainer>
-            <ToggleSwitch 
-              $checked={appReducedMotion}
-              // Use onClick on the switch itself
-              onClick={(e) => {
-                e.preventDefault(); // Prevent label default behavior
-                setAppReducedMotion(!appReducedMotion);
-              }}
-            />
-            {/* Hidden checkbox for accessibility */}
-            <input 
+          <ControlRow>
+            <label htmlFor="reducedMotionToggle" style={{ marginRight: '8px', cursor: 'pointer' }}>
+              Reduce Motion (App Override):
+            </label>
+            {/* Access boolean property from state object */}
+            <CheckboxContainer $checked={appReducedMotionState.prefersReducedMotion}> 
+              <input 
                 type="checkbox" 
-                checked={appReducedMotion} 
-                onChange={() => setAppReducedMotion(!appReducedMotion)} 
-                style={{ opacity: 0, position: 'absolute', zIndex: -1 }} 
-             />
-            <span>Reduced Motion</span>
-          </ToggleContainer>
+                id="reducedMotionToggle"
+                // Access boolean property from state object
+                checked={appReducedMotionState.prefersReducedMotion} 
+                onChange={handleToggleReducedMotion}
+                style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+              />
+            </CheckboxContainer>
+            {/* Display system preference from the original hook result */}
+            <span style={{ marginLeft: '12px' }}>(System: {reducedMotionInfo.prefersReducedMotion ? 'On' : 'Off'})</span>
+          </ControlRow>
         </ControlRow>
         
         <ProgressBarContainer>

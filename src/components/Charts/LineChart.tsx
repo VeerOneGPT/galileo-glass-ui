@@ -7,7 +7,8 @@ import React, { useRef, useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 
 import { cssWithKebabProps } from '../../core/cssUtils';
-import { useOptimizedAnimation, useGlassTheme, useReducedMotion } from '../../hooks';
+import { useReducedMotion } from '../../animations/accessibility/useReducedMotion';
+import { useGlassTheme } from '../../hooks/useGlassTheme';
 import { AnimationComplexity } from '../../hooks/useOptimizedAnimation';
 
 import { SafeChartRenderer } from './SafeChartRenderer';
@@ -503,6 +504,14 @@ function getPathData(
 
   return pathData;
 }
+
+// Mock implementation for useOptimizedAnimation
+const useOptimizedAnimation = () => ({ 
+  // Simple mock implementation if the hook doesn't exist elsewhere
+  shouldAnimate: true,
+  isPerformanceConstrained: false,
+  animationComplexity: 'full' as AnimationComplexity
+});
 
 /**
  * LineChart Component

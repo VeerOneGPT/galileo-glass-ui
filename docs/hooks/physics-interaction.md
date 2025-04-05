@@ -136,7 +136,11 @@ export interface PhysicsInteractionOptions {
   reducedMotion?: boolean;
   /** Motion sensitivity level */
   motionSensitivityLevel?: MotionSensitivityLevel; // 'LOW', 'MEDIUM', 'HIGH'
-  /** Ref to the target element (alternative to returned ref) */
+  /** 
+   * Optional ref to the target element. If provided, the hook will use this ref 
+   * instead of returning a new one. Useful when combining with other hooks 
+   * or existing refs. Ensure the ref points to an HTMLElement or SVGElement.
+   */
   elementRef?: React.RefObject<HTMLElement | SVGElement>;
   /** Whether to enable the global ambient tilt effect. Defaults to false. */
   enableAmbientTilt?: boolean;

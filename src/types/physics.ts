@@ -1,4 +1,14 @@
 /**
+ * Common types related to the Galileo Physics Engine.
+ */
+
+// Basic 2D point
+export type Point = { x: number; y: number };
+
+// Extended 3D point 
+export type Point3D = { x: number; y: number; z: number };
+
+/**
  * Configuration options for the ambient tilt effect.
  */
 export interface AmbientTiltOptions {

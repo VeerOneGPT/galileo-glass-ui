@@ -2,6 +2,8 @@
  * Types for the GlassMultiSelect component
  */
 import React from 'react';
+import { AnimationProps } from '../../animations/types'; // Import common animation props
+import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics'; // Import spring types
 
 /**
  * An option for the multi-select component
@@ -225,4 +227,10 @@ export interface MultiSelectProps<T = string> {
    * Optional test ID for targeting elements in tests.
    */
   dataTestId?: string;
+
+  /** 
+   * Configure the animation for removing selected items (tokens).
+   * Accepts a spring configuration object or a preset name.
+   */
+  itemRemoveAnimation?: Partial<SpringConfig> | keyof typeof SpringPresets;
 }

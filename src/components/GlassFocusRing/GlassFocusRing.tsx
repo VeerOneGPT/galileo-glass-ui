@@ -5,43 +5,62 @@ import { useGlassEffects, useStyleUtils } from '../../theme/ThemeProvider';
 import { conditionalAnimation } from '../../animations';
 import { createThemeContext } from '../../core/themeContext';
 import { glassSurface } from '../../core/mixins';
-import { AnimationFunction } from '../../animations/types'; // Corrected import
+
+// --- Define Prop Types ---
+type AnimationPreset = 'pulse' | 'fade' | 'static';
+type RingThickness = 'sm' | 'md' | 'lg';
 
 interface GlassFocusRingProps {
   children: React.ReactNode;
-  /** Offset of the focus ring from the element bounds. */
+  /** Offset of the focus ring from the element bounds. Default: theme.spacing.xs or 2px. */
   offset?: number;
-  /** Border radius adjustment (e.g., add to child's radius). */
+  /** Border radius adjustment (e.g., add to child's radius). Default: theme.spacing.sm or 4px. */
   radiusAdjust?: number;
-  /** Color preset or specific color for the ring. */
-  color?: string; // Add presets later
-  /** Disable the focus ring. */
+  /** Color preset or specific color string for the ring. Default: 'primary'. */
+  color?: string;
+  /** Disable the focus ring. Default: false. */
   disabled?: boolean;
-  /** Optional: Define animation preset/config. */
-  animationConfig?: any; // Define type later
-  ringThickness?: number;
-  pulseAnimation?: boolean;
-  /** Custom duration for the pulse animation (e.g., '1.5s'). Overrides theme. */
+  /** Animation preset for the focus ring. Default: 'pulse'. */
+  animationPreset?: AnimationPreset;
+  /** Thickness preset for the focus ring. Default: 'md'. */
+  thickness?: RingThickness;
+  /** Custom duration for the 'pulse' animation (e.g., '1.5s'). Overrides theme/defaults. */
   animationDuration?: string;
-  /** Custom easing for the pulse animation. Overrides theme. */
-  animationEasing?: AnimationFunction; // Corrected type
+  /** Custom CSS easing function for the 'pulse' animation. Overrides theme/defaults. */
+  animationEasing?: string;
 }
+// --- End Prop Types ---
 
-// RESTORE original keyframes
-const focusRingAnimation = keyframes`
+// --- Keyframes ---
+// Pulse animation (existing)
+const focusRingPulseAnimation = keyframes`
   0% { transform: scale(0.95); opacity: 0.7; }
   50% { transform: scale(1.05); opacity: 1; }
   100% { transform: scale(0.95); opacity: 0.7; }
 `;
 
+// Simple fade animation (can rely on transition, but define for clarity)
+const focusRingFadeAnimation = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+// --- End Keyframes ---
+
 // Define animation options for conditionalAnimation
-const pulseAnimationOptions = {
-    duration: '1500ms', // Use string format for duration
-    easing: 'ease-in-out',
-    iterations: Infinity,
-    category: 'focus' as const, // Add category
-    // fillMode, delay, direction default as needed
+// Base options for transitions (used for fade/static)
+const baseTransitionOptions = {
+    duration: '200ms', // Match CSS transition duration
+    easing: 'ease-out',
+    category: 'focus' as const,
 };
+
+// Pulse options (keep separate as it uses different keyframes/timing)
+const pulseAnimationOptions = (duration: string, easing: string) => ({
+    duration: duration,
+    easing: easing,
+    iterations: Infinity,
+    category: 'focus' as const,
+});
 
 const FocusRingElement = styled.div<{
   $show: boolean;
@@ -49,6 +68,7 @@ const FocusRingElement = styled.div<{
   $radiusAdjust: number;
   $color: string;
   $thickness: number;
+  $animationPreset: AnimationPreset;
   $animationCss?: FlattenSimpleInterpolation;
   theme?: DefaultTheme;
 }>`
@@ -61,11 +81,13 @@ const FocusRingElement = styled.div<{
   border: ${props => props.$thickness}px solid ${props => props.$color};
   box-shadow: 0 0 8px 2px ${props => props.$color}4D;
   opacity: ${props => props.$show ? 1 : 0};
-  transform: scale(${props => props.$show ? 1 : 0.95});
-  transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  // Apply initial scale only for pulse, otherwise rely on opacity transition
+  transform: scale(${props => props.$show && props.$animationPreset === 'pulse' ? 1 : 0.95});
+  transition: opacity 0.2s ease-out, transform 0.2s ease-out; // Keep base transition
   pointer-events: none;
   z-index: ${props => props.theme?.zIndex?.overlay || 10};
 
+  // Apply keyframe animation CSS from conditionalAnimation hook
   ${props => props.$animationCss}
 `;
 
@@ -76,7 +98,7 @@ const FocusWrapper = styled.div`
   outline: none; // Hide default browser focus outline on the wrapper
 `;
 
-// Helper function to parse theme values (e.g., '4px', '2') to numbers
+// Helper function to parse theme value
 const parseThemeValue = (value: string | number | undefined): number | undefined => {
   if (typeof value === 'number') return value;
   if (typeof value === 'string') {
@@ -92,18 +114,26 @@ export const GlassFocusRing: React.FC<GlassFocusRingProps> = ({
   radiusAdjust: radiusAdjustProp,
   color = 'primary',
   disabled = false,
-  animationConfig, // Still unused
-  ringThickness: ringThicknessProp,
-  pulseAnimation = true,
-  animationDuration: durationProp, // Added prop
-  animationEasing: easingProp,   // Added prop
+  animationPreset = 'pulse', // Default to 'pulse'
+  thickness = 'md',        // Default to 'md'
+  animationDuration: durationProp,
+  animationEasing: easingProp,
 }) => {
-  const theme = useTheme(); // Get theme context
+  const theme = useTheme();
 
   // Define defaults using theme, parse to number, fall back if missing/invalid
   const offset = offsetProp ?? (parseThemeValue(theme?.spacing?.xs) ?? 2);
   const radiusAdjust = radiusAdjustProp ?? (parseThemeValue(theme?.spacing?.sm) ?? 4);
-  const ringThickness = ringThicknessProp ?? (parseThemeValue(theme?.borderWidths?.medium) ?? 2);
+
+  // Map thickness preset to pixel value
+  const ringThickness = useMemo(() => {
+    switch (thickness) {
+      case 'sm': return parseThemeValue(theme?.borderWidths?.thin) ?? 1;
+      case 'lg': return parseThemeValue(theme?.borderWidths?.thick) ?? 3;
+      case 'md':
+      default: return parseThemeValue(theme?.borderWidths?.medium) ?? 2;
+    }
+  }, [thickness, theme]);
 
   const [isFocused, setIsFocused] = useState(false);
   const { getColor } = useStyleUtils();
@@ -111,28 +141,39 @@ export const GlassFocusRing: React.FC<GlassFocusRingProps> = ({
 
   const ringColor = getColor(color) || color;
 
-  // Get animation values from props, theme, or defaults
-  const animationDuration = durationProp 
-      ?? theme?.animations?.focusRing?.duration 
+  // Get animation values from props, theme, or defaults (specifically for pulse)
+  const pulseDuration = durationProp
+      ?? theme?.animations?.focusRing?.duration
       ?? '1500ms'; // Default duration
-  const animationEasing = easingProp 
-      ?? theme?.animations?.focusRing?.easing 
+  const pulseEasing = easingProp
+      ?? theme?.animations?.focusRing?.easing
       ?? 'ease-in-out'; // Default easing
 
-  // Memoize the animation options object
-  const pulseAnimationOptions = useMemo(() => ({
-      duration: animationDuration,
-      easing: animationEasing,
-      iterations: Infinity,
-      category: 'focus' as const, 
-  }), [animationDuration, animationEasing]); // Dependencies
+  // Memoize the pulse animation options object
+  const memoizedPulseOptions = useMemo(() => pulseAnimationOptions(pulseDuration, pulseEasing), [
+      pulseDuration, pulseEasing
+  ]);
 
-  // Use conditionalAnimation hook with memoized options
-  const pulseAnimationStyles = conditionalAnimation(
-      isFocused && pulseAnimation,
-      focusRingAnimation,
-      pulseAnimationOptions // Use memoized options
-  );
+  // Determine animation based on preset
+  const animationStyles = useMemo(() => {
+    switch (animationPreset) {
+      case 'pulse':
+        return conditionalAnimation(
+            isFocused, // Apply only when focused
+            focusRingPulseAnimation,
+            memoizedPulseOptions
+        );
+      case 'fade':
+         // For fade, we mostly rely on the CSS transition.
+         // We could apply a simple fade-in keyframe, but opacity transition handles it.
+         // Return undefined or empty css`` if no explicit keyframe animation is needed.
+         return css``;
+      case 'static':
+      default:
+        // No animation keyframes for static
+        return css``;
+    }
+  }, [isFocused, animationPreset, memoizedPulseOptions]);
 
   const handleFocus = (e: React.FocusEvent<HTMLDivElement>) => {
     if (!disabled) {
@@ -167,7 +208,8 @@ export const GlassFocusRing: React.FC<GlassFocusRingProps> = ({
           $radiusAdjust={radiusAdjust}
           $color={ringColor}
           $thickness={ringThickness}
-          $animationCss={pulseAnimationStyles}
+          $animationPreset={animationPreset} // Pass preset for styling
+          $animationCss={animationStyles} // Pass generated styles
           aria-hidden="true"
         />
       )}

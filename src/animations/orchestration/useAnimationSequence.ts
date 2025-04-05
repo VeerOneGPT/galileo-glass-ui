@@ -18,73 +18,44 @@ import { Easings, InterpolationFunction, EasingFunction } from '../physics/inter
 import { useReducedMotion } from '../accessibility/useReducedMotion';
 import { AnimationCategory } from '../accessibility/MotionSensitivity';
 
-// --- LOCAL TYPE DEFINITIONS & ENUMS (DEFINED ONCE) --- 
+// --- ADD Imports for types moved to types.ts ---
+import { 
+  PlaybackDirection, StaggerPattern, TimingRelationship, PlaybackState,
+  SequenceIdCallback, ProgressCallback, AnimationIdCallback, InternalCallback,
+  GenericEasingFunctionFactory, EasingDefinitionType,
+  SequenceLifecycle,
+  BaseAnimationStage, StyleAnimationStage, CallbackAnimationStage, EventAnimationStage, GroupAnimationStage, StaggerAnimationStage, AnimationStage,
+  ConfigCallback
+} from '../types';
+// --- END Added Imports ---
 
-export enum PlaybackDirection { FORWARD = 'forward', BACKWARD = 'backward', ALTERNATE = 'alternate', ALTERNATE_REVERSE = 'alternate-reverse' }
-export enum StaggerPattern { SEQUENTIAL = 'sequential', FROM_CENTER = 'from-center', FROM_EDGES = 'from-edges', RANDOM = 'random', WAVE = 'wave', CASCADE = 'cascade', RIPPLE = 'ripple', CUSTOM = 'custom' }
-export enum TimingRelationship { START_TOGETHER = 'start-together', END_TOGETHER = 'end-together', OVERLAP = 'overlap', GAP = 'gap', CHAIN = 'chain' }
-export enum PlaybackState { IDLE = 'idle', PLAYING = 'playing', PAUSED = 'paused', FINISHED = 'finished', CANCELLING = 'cancelling' }
+// --- REMOVE Local Type Definitions & Enums (Moved to types.ts) --- 
+/*
+export enum PlaybackDirection { ... }
+export enum StaggerPattern { ... }
+export enum TimingRelationship { ... }
+export enum PlaybackState { ... }
 
-// Callback Types
-type SequenceIdCallback = (sequenceId: string) => void;
-type ProgressCallback = (progress: number, sequenceId: string) => void;
-type AnimationIdCallback = (animationId: string, sequenceId: string) => void;
-type ConfigCallback = InternalCallback | undefined;
-type InternalCallback = SequenceIdCallback | ProgressCallback | AnimationIdCallback;
+type SequenceIdCallback = ...;
+type ProgressCallback = ...;
+type AnimationIdCallback = ...;
+type InternalCallback = ...;
 
-// Easing Types
-// Define GenericEasingFunctionFactory ONCE
-type GenericEasingFunctionFactory = (...args: unknown[]) => EasingFunction | InterpolationFunction;
-type EasingDefinitionType = keyof typeof Easings | InterpolationFunction | GenericEasingFunctionFactory | { type: string; [key: string]: unknown };
+type GenericEasingFunctionFactory = ...;
+type EasingDefinitionType = ...;
 
-// Stage/Sequence Interfaces (Defined locally)
-export interface SequenceLifecycle {
-  onStart?: SequenceIdCallback;
-  onUpdate?: ProgressCallback;
-  onComplete?: SequenceIdCallback;
-  onPause?: SequenceIdCallback;
-  onResume?: SequenceIdCallback;
-  onCancel?: SequenceIdCallback;
-  onAnimationStart?: AnimationIdCallback;
-  onAnimationComplete?: AnimationIdCallback;
-}
-export interface BaseAnimationStage { id: string; duration: number; 
-  easing?: EasingDefinitionType;
-  easingArgs?: unknown[];
-  startTime?: number;
-  direction?: PlaybackDirection;
-  repeatCount?: number;
-  repeatDelay?: number;
-  yoyo?: boolean;
-  dependsOn?: string[];
-  reducedMotionAlternative?: Omit<BaseAnimationStage, 'id' | 'reducedMotionAlternative'>;
-  category?: AnimationCategory;
-  onStart?: SequenceIdCallback; // Use SequenceIdCallback for onStart
-  onUpdate?: ProgressCallback;
-  onComplete?: SequenceIdCallback; // Use SequenceIdCallback for onComplete
-}
-export interface StyleAnimationStage extends BaseAnimationStage {
-  type: 'style'; 
-  targets: Element | Element[] | NodeListOf<Element> | string; 
-  from?: Record<string, unknown>; // Optional starting styles
-  properties: Record<string, unknown>; // Target styles (CHANGED from 'to')
-  exclude?: string[]; 
-}
-export interface CallbackAnimationStage extends BaseAnimationStage { type: 'callback'; callback: ProgressCallback; } // Use ProgressCallback
-export interface EventAnimationStage extends BaseAnimationStage { type: 'event'; callback: SequenceIdCallback; duration: 0; } // Use SequenceIdCallback
-export interface GroupAnimationStage extends BaseAnimationStage { type: 'group'; children: AnimationStage[]; relationship?: TimingRelationship; relationshipValue?: number; }
-export interface StaggerAnimationStage extends BaseAnimationStage { 
-  type: 'stagger'; 
-  targets: Element | Element[] | NodeListOf<Element> | string; 
-  from: Record<string, unknown>; 
-  properties: Record<string, unknown>; // NEW
-  staggerDelay: number; 
-  staggerPattern?: StaggerPattern; 
-  staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number; 
-  staggerOverlap?: number; 
-}
-export type AnimationStage = StyleAnimationStage | CallbackAnimationStage | EventAnimationStage | GroupAnimationStage | StaggerAnimationStage;
+export interface SequenceLifecycle { ... }
+export interface BaseAnimationStage { ... }
+export interface StyleAnimationStage extends BaseAnimationStage { ... }
+export interface CallbackAnimationStage extends BaseAnimationStage { ... }
+export interface EventAnimationStage extends BaseAnimationStage { ... }
+export interface GroupAnimationStage extends BaseAnimationStage { ... }
+export interface StaggerAnimationStage extends BaseAnimationStage { ... }
+export type AnimationStage = ...;
+*/
+// --- END Removal --- 
 
+// Keep interfaces specific to this hook's implementation/return value
 export interface AnimationSequenceConfig extends SequenceLifecycle {
   id?: string; stages: AnimationStage[]; duration?: number; autoplay?: boolean; 
   repeatCount?: number; yoyo?: boolean; direction?: PlaybackDirection; category?: AnimationCategory; 

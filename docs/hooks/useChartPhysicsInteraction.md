@@ -2,6 +2,8 @@
 
 **Status:** Internal Hook (Used by `GlassDataChart`)
 
+**CRITICAL: This hook is an internal implementation detail of the `GlassDataChart` component and is NOT intended for direct public use.**
+
 ## Overview
 
 The `useChartPhysicsInteraction` hook provides physics-based zoom and pan interactions for Chart.js instances, specifically integrated within the `GlassDataChart` component. It adds smooth, inertial transitions using the Galileo physics system (`useGalileoStateSpring` for zoom, `requestAnimationFrame` for pan inertia).
@@ -109,4 +111,35 @@ If used directly, you would need to:
 3. Manually attach wheel and mouse/pointer event listeners to the chart canvas, calling the appropriate handlers returned by the hook (like `handleWheel`, `handlePanStart`, `handlePanMove`, `handlePanEnd` - *Note: these handlers are internal to the hook implementation shown previously and not directly returned by the hook's signature defined here; direct usage would require modifying the hook or replicating its listener logic*).
 4. Use the returned `zoomLevel`, `applyZoom`, `resetZoom` to control the chart state or UI elements (like external zoom buttons).
 
-**Again, prefer configuring the `interaction` prop on `GlassDataChart` for the intended functionality.** 
+**Again, prefer configuring the `interaction` prop on `GlassDataChart` for the intended functionality.**
+
+## Usage
+
+**Do not import or use this hook directly.**
+
+To enable and configure physics-based zoom and pan on a `GlassDataChart`:
+
+1.  Use the `interaction` prop on the `<GlassDataChart>` component.
+2.  Set the relevant property within the `interaction` object (e.g., `enablePhysicsZoomPan: true`). Consult the `GlassDataChartProps` type definition or the `GlassDataChart` documentation for the exact property name and configuration options available in your version.
+
+```tsx
+import { GlassDataChart } from '@veerone/galileo-glass-ui';
+
+function MyChartComponent() {
+  const chartData = { /* ... */ };
+
+  return (
+    <GlassDataChart
+      data={chartData}
+      interaction={{
+        showTooltips: true,
+        enablePhysicsZoomPan: true, // Example property - check documentation for exact name
+        // Add other interaction configurations as needed
+      }}
+      // ... other props
+    />
+  );
+}
+```
+
+Refer to the main `GlassDataChart` component documentation for details on configuring its interactions. 

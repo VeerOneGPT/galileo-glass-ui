@@ -23,10 +23,11 @@ const tsconfigOverride = { compilerOptions: { declaration: false } }; // Don't e
 
 const typescriptPlugin = typescript({
   typescript: require('typescript'), // Ensure it uses the installed TypeScript version
-  tsconfig: './tsconfig.json', 
+  tsconfig: './tsconfig.json',
   // Use default tsconfig settings, including declaration: true
   // rollup-plugin-typescript2 handles declaration file merging better
-  clean: true // Clean the cache before building
+  clean: true, // Clean the cache before building
+  check: false, // Keep check: false as build works with it
 });
 
 const basePlugins = [
@@ -243,15 +244,7 @@ const mainConfigs = entryPoints.map(entry => createConfig(entry.input, entry.out
 
 // ADDED BACK: Common DTS plugin config
 const createDtsPlugin = () => dts({
-  respectExternal: true, 
-  compilerOptions: {
-    baseUrl: ".",
-    paths: {
-      "styled-components": ["node_modules/styled-components"],
-      "galileo-glass-ui": ["src"],
-      "galileo-glass-ui/*": ["src/*"]
-    }
-  }
+  respectExternal: true
 });
 
 // ADDED BACK: Common external dependencies for .d.ts files

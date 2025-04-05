@@ -13,7 +13,7 @@ import {
   StateTransition 
 } from '../useGameAnimation';
 import { AnimationCategory } from '../../accessibility/MotionSensitivity';
-import { StaggerPattern } from '../../orchestration/useAnimationSequence';
+import { StaggerPattern } from '../../types';
 
 // Mock dependencies
 jest.mock('../../physics/GameParticleSystem', () => ({

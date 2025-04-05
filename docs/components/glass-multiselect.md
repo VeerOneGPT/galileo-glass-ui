@@ -118,6 +118,7 @@ interface MultiSelectOption<T = string> {
 | `id` | `string` | `undefined` | DOM ID for input element. |
 | `ariaLabel` | `string` | `undefined` | ARIA label for accessibility. |
 | `autoFocus` | `boolean` | `false` | Auto-focus input on mount. |
+| `itemRemoveAnimation` | `Partial<SpringConfig> \| keyof typeof SpringPresets` | `'DEFAULT'` | Configuration for the exit animation of selected tokens upon removal. |
 
 ## Physics-Based Animation
 
@@ -324,3 +325,9 @@ The `GlassMultiSelect` component implements several accessibility features:
 - `GlassSelect`: For single-option selection
 - `GlassAutocomplete`: For enhanced text input with suggestions
 - `GlassChip`: For displaying selections in a compact form
+
+### Animation Configuration
+
+- **General Animations:** Use the `physics` prop (e.g., `physics={{ animationPreset: 'gentle' }}`) to configure the overall feel, like the entrance animation of tokens.
+- **Item Removal Animation:** Use the `itemRemoveAnimation` prop to specifically configure how selected tokens animate out when removed. You can provide a preset name (e.g., `'SNAPPY'`) or a custom spring configuration object (e.g., `{ tension: 100, friction: 20 }`).
+- **Disabling Animations:** Set `animate={false}` or rely on the user's `prefers-reduced-motion` setting.

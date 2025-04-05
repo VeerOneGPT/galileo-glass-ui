@@ -168,3 +168,15 @@ While direct style props are limited, you can customize `GlassTabs` using standa
     ```
 
 Remember that excessively specific overrides targeting internal structure might break with future library updates. 
+
+### Variants (`variant`)
+
+Controls how tabs are sized and handle overflow:
+
+-   `'equal'` (Default): Tabs stretch equally to fill the container width.
+-   `'auto'`: Tabs take their natural width based on content.
+-   `'scrollable'`: Tabs take their natural width, and the container becomes scrollable if tabs overflow. **When overflowing, horizontal scroll buttons will appear automatically.**
+
+### Vertical Alignment (`verticalAlign`)
+
+Controls the vertical alignment of tab items within the list container. Accepts standard CSS `align-items` values like `'center'`, `'flex-start'`, `'flex-end'`, `'stretch'`. Default: `'center'`. 

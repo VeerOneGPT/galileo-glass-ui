@@ -1,9 +1,10 @@
 /**
  * Common type definitions for the animation system
- * @deprecated Import from core/types.ts directly to avoid circular dependencies
+ * Centralizing types here.
  */
 import { Keyframes } from 'styled-components';
-import { 
+import {
+  // Core types re-exported
   AnimationComplexity,
   MotionSensitivityLevel,
   AnimationPreset,
@@ -11,10 +12,19 @@ import {
   AnimationOptions,
   AnimationFunction
 } from './core/types';
+import {
+  // Imports needed for consolidated types
+  Easings,
+  InterpolationFunction,
+  EasingFunction
+} from './physics/interpolation';
+import { AnimationCategory } from './accessibility/MotionSensitivity';
 import { SpringConfig, SpringPresets } from './physics/springPhysics';
+// Import Point from canonical location
+import { Point, Point3D } from '../types/physics';
 
 // Re-export types from core for backward compatibility
-export type { 
+export type {
   AnimationComplexity,
   MotionSensitivityLevel,
   AnimationPreset,
@@ -22,6 +32,11 @@ export type {
   AnimationOptions,
   AnimationFunction
 };
+
+// Don't re-export Point to avoid circular dependencies
+// export type { Point };
+
+// --- Keep Existing Utility Types ---
 
 /**
  * Animation timing
@@ -90,31 +105,130 @@ export interface ZSpaceAnimationOptions {
   delay?: string;
 }
 
+// --- START Consolidated Animation Stage & Supporting Definitions ---
+
+// Enums
+export enum PlaybackDirection { FORWARD = 'forward', BACKWARD = 'backward', ALTERNATE = 'alternate', ALTERNATE_REVERSE = 'alternate-reverse' }
+export enum StaggerPattern { SEQUENTIAL = 'sequential', FROM_CENTER = 'from-center', FROM_EDGES = 'from-edges', RANDOM = 'random', WAVE = 'wave', CASCADE = 'cascade', RIPPLE = 'ripple', CUSTOM = 'custom' }
+export enum TimingRelationship { START_TOGETHER = 'start-together', END_TOGETHER = 'end-together', OVERLAP = 'overlap', GAP = 'gap', CHAIN = 'chain' }
+export enum PlaybackState { IDLE = 'idle', PLAYING = 'playing', PAUSED = 'paused', FINISHED = 'finished', CANCELLING = 'cancelling' }
+
+// Callback Types
+export type SequenceIdCallback = (sequenceId: string) => void;
+export type ProgressCallback = (progress: number, sequenceId: string) => void;
+export type AnimationIdCallback = (animationId: string, sequenceId: string) => void;
+export type InternalCallback = SequenceIdCallback | ProgressCallback | AnimationIdCallback;
+export type ConfigCallback = InternalCallback | undefined;
+
+// Easing Types
+export type GenericEasingFunctionFactory = (...args: unknown[]) => EasingFunction | InterpolationFunction;
+export type EasingDefinitionType = keyof typeof Easings | InterpolationFunction | GenericEasingFunctionFactory | { type: string; [key: string]: unknown };
+
+// Point Interface
 /**
- * Animation stage
+ * Simple 2D/3D coordinate point.
+ * Note: This type is now imported from '../types/physics' instead of being defined here.
  */
-export interface AnimationStage {
+// export interface Point {
+//   x: number;
+//   y: number;
+//   z?: number;
+// }
+
+// Sequence Lifecycle Interface
+export interface SequenceLifecycle {
+  onStart?: SequenceIdCallback;
+  onUpdate?: ProgressCallback;
+  onComplete?: SequenceIdCallback;
+  onPause?: SequenceIdCallback;
+  onResume?: SequenceIdCallback;
+  onCancel?: SequenceIdCallback;
+  onAnimationStart?: AnimationIdCallback;
+  onAnimationComplete?: AnimationIdCallback;
+}
+
+// Base Animation Stage Interface
+export interface BaseAnimationStage {
   id: string;
   duration: number;
-  delay?: number;
-  easing?: string;
-  onStart?: () => void;
-  onComplete?: () => void;
-  elements?: string[];
+  delay?: number; // Optional delay property
+  easing?: EasingDefinitionType;
+  easingArgs?: unknown[];
+  startTime?: number; // Used by sequence runners
+  direction?: PlaybackDirection; // Used by sequence runners
+  repeatCount?: number;
+  repeatDelay?: number;
+  yoyo?: boolean;
+  dependsOn?: string[];
+  reducedMotionAlternative?: Omit<BaseAnimationStage, 'id' | 'reducedMotionAlternative'>;
+  category?: AnimationCategory;
+  onStart?: SequenceIdCallback;
+  onUpdate?: ProgressCallback;
+  onComplete?: SequenceIdCallback;
+  order?: number; // For sorting stages (used by useOrchestration)
+  position?: Point; // For gestalt patterns (used by useOrchestration)
+  elementType?: string; // For gestalt grouping
+  group?: string; // For coordinated animations
+  dependencies?: string[]; // Stages that must complete first
+  animation?: { // Optional animation config (used locally in useOrchestration)
+    easing?: string; // Note: May conflict/overlap with BaseAnimationStage.easing (EasingDefinitionType)
+    keyframes?: string;
+  };
 }
 
-/**
- * Animation sequence
- */
-export interface AnimationSequence {
-  stages: AnimationStage[];
-  totalDuration?: number;
-  loop?: boolean;
-  alternateDirection?: boolean;
+// Specific Animation Stage Interfaces
+export interface StyleAnimationStage extends BaseAnimationStage {
+  type: 'style';
+  targets: Element | Element[] | NodeListOf<Element> | string;
+  from?: Record<string, unknown>;
+  properties: Record<string, unknown>;
+  exclude?: string[];
 }
 
+export interface CallbackAnimationStage extends BaseAnimationStage {
+  type: 'callback';
+  callback: ProgressCallback;
+}
+
+export interface EventAnimationStage extends BaseAnimationStage {
+  type: 'event';
+  callback: SequenceIdCallback;
+  duration: 0;
+}
+
+export interface GroupAnimationStage extends BaseAnimationStage {
+  type: 'group';
+  children: AnimationStage[]; // Recursive type
+  relationship?: TimingRelationship;
+  relationshipValue?: number;
+}
+
+export interface StaggerAnimationStage extends BaseAnimationStage {
+  type: 'stagger';
+  targets: Element | Element[] | NodeListOf<Element> | string;
+  from?: Record<string, unknown>; // Make optional? Keep required for now based on useAnimationSequence code.
+  properties: Record<string, unknown>;
+  staggerDelay: number; // Specific to stagger
+  staggerPattern?: StaggerPattern; // Specific to stagger
+  staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number; // Specific to stagger
+  staggerOverlap?: number; // Specific to stagger
+}
+
+// Union Type for Animation Stage
+export type AnimationStage =
+  | StyleAnimationStage
+  | CallbackAnimationStage
+  | EventAnimationStage
+  | GroupAnimationStage
+  | StaggerAnimationStage;
+
+// --- END Consolidated Animation Stage & Supporting Definitions ---
+
+
+// --- Keep Remaining Existing Types/Functions ---
+
 /**
- * Gestalt animation pattern
+ * Gestalt animation pattern (Seems distinct from StaggerPattern)
  */
 export enum GestaltPattern {
   PROXIMITY = 'proximity',
@@ -148,25 +262,9 @@ export function createKeyframes(name: string, frames: Keyframes): KeyframeDefini
 
 /**
  * Common Animation Props Interface
- *
- * Defines standard properties to control animation behavior across components.
  */
 export interface AnimationProps {
-  /**
-   * Optional spring physics configuration or preset name.
-   * Overrides default animation settings for the component.
-   */
   animationConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
-  
-  /**
-   * If true, explicitly disables animations for this component instance,
-   * overriding other settings like reduced motion preferences.
-   */
   disableAnimation?: boolean;
-  
-  /**
-   * Optional override for the motion sensitivity level for this component instance.
-   * Influences how animations adapt to performance or user preference.
-   */
   motionSensitivity?: MotionSensitivityLevel;
 }

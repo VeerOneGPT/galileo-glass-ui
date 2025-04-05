@@ -32,6 +32,8 @@ The `useOrchestration` hook is designed to:
 
 **Note:** This hook primarily focuses on calculating *when* each stage should start (`delay`) based on the chosen pattern. It does not directly perform the animations themselves; it assumes other mechanisms (like CSS transitions triggered by state changes, or other animation hooks) are responsible for the actual visual changes associated with each stage.
 
+**Known Issue:** There might be a type discrepancy where the hook internally expects a slightly different `AnimationStage` type than the one exported, potentially requiring workarounds like adding a default `delay: 0` to stage definitions even when using patterns that calculate delay automatically.
+
 ---
 
 ## Core Concepts {#core-concepts}
@@ -40,10 +42,15 @@ The `useOrchestration` hook is designed to:
 The hook takes a single configuration object (`OrchestrationOptions`) that defines the stages, the desired timing pattern, and other control parameters.
 
 #### Stages (`AnimationStage`)
-The core input is the `stages` array. Each object in the array represents an `AnimationStage` to be timed by the orchestrator. Importantly, this is a generic definition; the hook uses properties like `id`, `delay`, `duration`, `dependencies`, `position`, and `elementType` from these stage objects to calculate the final timing, but it doesn't interpret other properties specific to how the animation might be implemented.
+The core input is the `stages` array. Each object in the array represents an `AnimationStage` to be timed by the orchestrator. 
+- **Definition:** Stages should conform to the base `AnimationStage` interface (defined in the hook's source), including properties like `id`, `duration`, and `delay`. 
+- **`delay` Property:** Even if using a `pattern` like `'staggered'` that calculates delays, you might need to include a default `delay: 0` in your stage definitions to satisfy the current type requirements (see Known Issue above). The hook's pattern logic will override this default value.
+- **`animation` Property:** Optional property `animation: { easing?: TimingFunction; keyframes?: string; }` can be defined directly on the stage object. Avoid nesting animation details within other properties when using standard patterns.
 
 #### Patterns (`OrchestrationPattern`)
-You specify how the timing between stages should be calculated using the `pattern` option (e.g., `'sequential'`, `'parallel'`, `'staggered'`, `'wave'`, `'gestalt'`). The hook calculates the final `delay` for each stage based on the chosen pattern and potentially other stage properties or options (`staggerDelay`, `gestaltOptions`).
+You specify how the timing between stages should be calculated using the `pattern` option (e.g., `'sequential'`, `'parallel'`, `'staggered'`, `'wave'`, `'gestalt'`). 
+- **How it Works:** The hook calculates the final `delay` for each stage based on the chosen pattern and potentially other stage properties or options (`staggerDelay`, `gestaltOptions`). 
+- **Example (`staggered`):** When using `pattern: 'staggered'`, provide a `staggerDelay` in the main options. Define your stages with just `id`, `duration`, and potentially a default `delay: 0`. Do *not* manually set incremental delays on the stages themselves.
 
 #### Gestalt Patterns (`GestaltPatternOptions`)
 If `pattern` is set to `'gestalt'`, you can provide `gestaltOptions` to influence timing based on perceptual principles. This requires stages to have relevant properties like `position` (for proximity, continuity, converge/diverge) or `elementType` (for similarity).
@@ -65,13 +72,28 @@ import {
 
 // Simplified return type - actual return includes more internal state
 interface OrchestrationResult {
-  processedStages: AnimationStage[];
+  activeStages: string[];
+  completedStages: string[];
   isPlaying: boolean;
+  sequenceComplete: boolean;
+  iteration: number;
   progress: number;
   totalDuration: number;
-  // Controls like play, pause, stop are managed internally or via active prop
-  // And might not be directly exposed in the return value.
-  // Refer to the hook's implementation for the exact return structure.
+
+  // Control functions
+  start: () => void;
+  stop: () => void;
+  pause: () => void;
+  resume: () => void;
+  reset: () => void;
+  restart: () => void;
+  skipToStage: (stageId: string) => void;
+
+  // Status helpers
+  isStageActive: (stageId: string) => boolean;
+  isStageCompleted: (stageId: string) => boolean;
+  getStagesByStatus: () => { pending: string[]; active: string[]; completed: string[] };
+  getStageInfo: (stageId: string) => AnimationStage & { /* status info */ } | null;
 }
 
 function useOrchestration(
@@ -155,18 +177,29 @@ interface AnimationStage {
 
 ## Return Value
 
-The hook returns an object containing the state of the orchestration. Key values include:
+The hook returns an object containing state information and control functions:
 
-- `processedStages` (`AnimationStage[]`): The input stages array with calculated `delay` values based on the chosen pattern and options.
-- `isPlaying` (`boolean`): Whether the orchestration is currently active and playing.
-- `activeStages` (`string[]`): Array of IDs of stages currently considered active (started but not ended).
-- `completedStages` (`string[]`): Array of IDs of stages that have completed.
-- `iteration` (`number`): Current repetition count.
-- `sequenceComplete` (`boolean`): True if the entire sequence (including repeats) is finished.
-- `progress` (`number`): Overall progress of the current iteration (0 to 1, based on time elapsed relative to `totalDuration`).
-- `totalDuration` (`number`): The calculated maximum duration of a single iteration of the sequence based on stage delays and durations.
-
-*(Note: Direct playback controls like `play()`, `pause()`, `stop()` are not explicitly returned. Control is primarily managed via the `active` prop and the hook's internal state based on timers.)*
+*   **State:**
+    *   `activeStages` (`string[]`): IDs of stages currently in progress.
+    *   `completedStages` (`string[]`): IDs of stages that have finished.
+    *   `isPlaying` (`boolean`): Is the orchestration currently playing (not paused or stopped)?
+    *   `sequenceComplete` (`boolean`): Has the entire sequence (including repeats) finished?
+    *   `iteration` (`number`): Current repetition number (starts at 1).
+    *   `progress` (`number`): Overall progress of the current sequence iteration (0 to 1).
+    *   `totalDuration` (`number`): Calculated total duration of one sequence iteration (ms).
+*   **Controls:**
+    *   `start()`: Begins the orchestration (or resumes if paused).
+    *   `stop()`: Stops execution immediately and clears timers.
+    *   `pause()`: Pauses execution, retaining progress.
+    *   `resume()`: Resumes execution from the paused state.
+    *   `reset()`: Stops execution, clears timers, and resets all stage progress and iteration count.
+    *   `restart()`: Equivalent to `reset()` followed by `start()`.
+    *   `skipToStage(stageId)`: Jumps execution to the beginning of the specified stage.
+*   **Status Helpers:**
+    *   `isStageActive(stageId)`: Checks if a specific stage is running.
+    *   `isStageCompleted(stageId)`: Checks if a specific stage has finished.
+    *   `getStagesByStatus()`: Returns an object categorizing all stage IDs by status (pending, active, completed).
+    *   `getStageInfo(stageId)`: Returns detailed information (including progress) about a specific stage.
 
 ---
 

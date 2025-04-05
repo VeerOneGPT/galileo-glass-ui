@@ -2,12 +2,11 @@ import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { 
   useAnimationSequence, 
-  AnimationSequenceConfig, 
-  StyleAnimationStage // Import necessary types
-} from './useAnimationSequence'; 
-// NOTE: For type checking against build output, this import path would ideally
-// represent the public export (e.g., '@veerone/galileo-glass-ui/hooks'), 
-// but direct import is used here for Jest execution pre-build.
+  AnimationSequenceConfig 
+} from './useAnimationSequence';
+// Fix: Import from animations/types instead of ../../types, which doesn't have StyleAnimationStage
+import type { StyleAnimationStage } from '../types';
+// Remove the duplicate import
 
 describe('useAnimationSequence (with properties)', () => {
   

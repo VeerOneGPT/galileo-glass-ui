@@ -6,7 +6,7 @@
  * and natural-feeling responses through physics simulation.
  */
 
-import { useRef, useState, useEffect, useCallback, RefObject } from 'react';
+import { useRef, useState, useEffect, useCallback, RefObject, useMemo } from 'react';
 import { useReducedMotion } from '../../accessibility/useReducedMotion';
 import { 
   GestureType, 
@@ -114,6 +114,20 @@ export interface GestureTransform {
   velocityY: number;                    // Y velocity
   velocityScale: number;                // Scale velocity
   velocityRotation: number;             // Rotation velocity
+}
+
+/**
+ * Return type for the useGesturePhysics hook
+ */
+export interface GesturePhysicsResult {
+  transform: GestureTransform;
+  cssTransform: string;
+  style: React.CSSProperties;
+  elementRef: RefObject<HTMLElement>;
+  reset: (animate?: boolean) => void;
+  setTransform: (target: Partial<GestureTransform>) => void;
+  animateTo: (target: Partial<GestureTransform>, config?: any) => void;
+  isGestureActive: boolean;
 }
 
 /**
@@ -249,7 +263,7 @@ const DEFAULT_TRANSFORM: GestureTransform = {
 /**
  * Custom hook for gesture physics
  */
-export function useGesturePhysics(options: GesturePhysicsOptions) {
+export function useGesturePhysics(options: GesturePhysicsOptions): GesturePhysicsResult {
   // Extract options and merge with defaults
   const { 
     elementRef,
@@ -1076,17 +1090,28 @@ export function useGesturePhysics(options: GesturePhysicsOptions) {
     }
   }, [animateToTransform, setGestureTransform]);
   
-  // Prepare transform for CSS
-  const cssTransform = `
-    translate3d(${transform.x}px, ${transform.y}px, 0)
-    scale(${transform.scale})
-    rotate(${transform.rotation}deg)
-  `;
+  // Memoize the style object to avoid unnecessary re-renders
+  const style = useMemo((): React.CSSProperties => {
+    const isDragging = Object.values(gestureStateRef.current).some(state => 
+        state.active && 
+        (state.initialEvent?.type === GestureType.PAN || 
+         state.initialEvent?.type === GestureType.PINCH || 
+         state.initialEvent?.type === GestureType.ROTATE)
+    );
+
+    return {
+      transform: `translate3d(${transform.x}px, ${transform.y}px, 0) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+      userSelect: isDragging ? 'none' as const : 'auto' as const,
+      touchAction: 'none',
+      cursor: isDragging ? 'grabbing' : 'grab',
+      willChange: 'transform', // Performance hint
+    };
+  }, [transform]);
   
   return {
     // Transform state and refs
     transform,
-    cssTransform,
+    cssTransform: style.transform,
     elementRef,
     
     // Direct control methods
@@ -1098,11 +1123,7 @@ export function useGesturePhysics(options: GesturePhysicsOptions) {
     isGestureActive: Object.values(gestureStateRef.current).some(state => state.active),
     
     // CSS styles that can be directly applied to the element
-    style: {
-      transform: cssTransform,
-      touchAction: disableScroll ? 'none' : 'auto',
-      userSelect: 'none'
-    }
+    style,
   };
 }
 

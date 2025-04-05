@@ -15,9 +15,9 @@ import { SpringPresets, SpringConfig } from '../../animations/physics/springPhys
 import {
   useAnimationSequence,
   AnimationSequenceConfig,
-  StaggerAnimationStage,
   SequenceControls,
 } from '../../animations/orchestration/useAnimationSequence';
+import { StaggerAnimationStage } from '../../animations/types';
 
 // Core styling imports
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -455,6 +455,105 @@ const Label = styled.label`
   color: rgba(255, 255, 255, 0.8);
 `;
 
+// Interface for the wrapper props
+interface AnimatedTokenWrapperProps<T> {
+  option: MultiSelectOption<T>;
+  onRemove: (id: string | number) => void; // Callback to actually remove from state
+  removeConfig: Partial<SpringConfig>;
+  isDisabled?: boolean;
+  reducedMotion?: boolean;
+  // Add renderToken prop if custom rendering needs animation applied
+  renderToken?: MultiSelectProps<T>['renderToken']; 
+  // Need original remove handler for custom renderToken
+  originalOnRemoveHandler: (e: React.MouseEvent, option: MultiSelectOption<T>) => void;
+}
+
+// Internal component to handle exit animation for each token
+function AnimatedTokenWrapper<T>({ 
+  option, 
+  onRemove, 
+  removeConfig, 
+  isDisabled, 
+  reducedMotion,
+  renderToken,
+  originalOnRemoveHandler
+}: AnimatedTokenWrapperProps<T>) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  // Animation for opacity and scale
+  const { value: animProgress, start } = useGalileoStateSpring(isExiting ? 0 : 1, {
+    ...removeConfig,
+    immediate: reducedMotion,
+    onRest: (result) => {
+      // Only trigger actual removal when exit animation completes
+      if (isExiting && result.finished) {
+        onRemove(option.id);
+      }
+    },
+  });
+
+  // Effect to trigger animation when isExiting becomes true
+  useEffect(() => {
+    if (isExiting) {
+      start({ to: 0 }); // Start animation towards exit state (0)
+    } else {
+      // Optional: Handle entrance/reset if needed, though entrance is separate
+       start({ to: 1, from: 0 }); // Simple fade-in on initial render if needed
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExiting]); // Removed `start` dependency based on hook implementation
+  
+  // Trigger exit (called by the remove button click)
+  const triggerExit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isDisabled) {
+      setIsExiting(true);
+    }
+  };
+
+  // Apply animated styles
+  const animatedStyle = {
+    opacity: animProgress,
+    transform: `scale(${0.8 + animProgress * 0.2})`, // Scale from 1 down to 0.8
+  };
+
+  // If using custom renderer, wrap it
+  if (renderToken) {
+      return (
+          <div style={animatedStyle} className="galileo-multiselect-token-wrapper">
+              {renderToken(option, triggerExit)} 
+          </div>
+      );
+  }
+
+  // Default rendering using original Token component
+  return (
+    <div style={animatedStyle} className="galileo-multiselect-token-wrapper">
+      <Token
+        className="galileo-multiselect-token" // Keep class for entrance animation targetting
+        $isDisabled={!!isDisabled} // Pass disabled state
+        // Static transform props, animation is handled by wrapper style
+        $translateX={0}
+        $translateY={0}
+        $scale={1} 
+        $isDragging={false}
+        // $initialOpacity={1} // Opacity handled by wrapper
+      >
+        <TokenLabel>{option.label}</TokenLabel>
+        {!(isDisabled) && (
+          <RemoveButton
+            className="remove-button"
+            onClick={triggerExit} // Call triggerExit here
+            aria-label={`Remove ${option.label}`}
+          >
+            <ClearIcon />
+          </RemoveButton>
+        )}
+      </Token>
+    </div>
+  );
+}
+
 // Define the actual component function that accepts props and ref
 const GlassMultiSelectInternal = <T = string>(
   props: MultiSelectProps<T> & AnimationProps,
@@ -502,6 +601,7 @@ const GlassMultiSelectInternal = <T = string>(
     renderGroup,
     async: asyncProps,
     dataTestId = 'glass-multi-select',
+    itemRemoveAnimation,
     ...rest
   } = props;
 
@@ -548,6 +648,7 @@ const GlassMultiSelectInternal = <T = string>(
 
   // Animation Context & Settings
   const {
+    defaultSpring: contextDefaultSpring,
     modalSpringConfig: contextModalSpringConfig,
   } = useAnimationContext();
 
@@ -575,6 +676,25 @@ const GlassMultiSelectInternal = <T = string>(
                              
     return { ...baseConfig, ...resolvedContextConfig, ...propPhysicsConfig };
   }, [contextModalSpringConfig, animationPreset, physics?.tension, physics?.friction]);
+
+  // Resolve final spring config for item removal
+  const finalItemRemoveSpringConfig = useMemo<Partial<SpringConfig>>(() => {
+    const baseConfig = SpringPresets.DEFAULT;
+    let resolvedContextConfig = {};
+    if (typeof contextDefaultSpring === 'string' && contextDefaultSpring in SpringPresets) {
+      resolvedContextConfig = SpringPresets[contextDefaultSpring as keyof typeof SpringPresets];
+    } else if (typeof contextDefaultSpring === 'object') {
+      resolvedContextConfig = contextDefaultSpring ?? {};
+    }
+    let propConfig = {};
+    if (typeof itemRemoveAnimation === 'string' && itemRemoveAnimation in SpringPresets) {
+      propConfig = SpringPresets[itemRemoveAnimation as keyof typeof SpringPresets];
+    } else if (typeof itemRemoveAnimation === 'object') {
+      propConfig = itemRemoveAnimation ?? {};
+    }
+
+    return { ...baseConfig, ...resolvedContextConfig, ...propConfig };
+  }, [contextDefaultSpring, itemRemoveAnimation]);
 
   // Use Galileo Spring for dropdown entrance/exit
   const dropdownAnimation: GalileoSpringResult = useGalileoStateSpring(
@@ -757,25 +877,37 @@ const GlassMultiSelectInternal = <T = string>(
     else setIsDropdownOpen(false);
   };
 
-  const handleTokenRemove = (e: React.MouseEvent, optionToRemove: MultiSelectOption<T>) => {
-    e.stopPropagation();
-    if (optionToRemove.disabled || disabled) return;
-    const newValue = internalValue.filter(v => v.id !== optionToRemove.id);
+  // NEW: Callback to perform the actual state update AFTER animation
+  const handleRemoveTokenActual = useCallback((idToRemove: string | number) => {
+    const newValue = internalValue.filter(v => v.id !== idToRemove);
     if (controlledValue === undefined) setInternalValue(newValue);
     if (onChange) onChange(newValue);
-    if (onRemove) onRemove(optionToRemove);
-    inputRef.current?.focus();
-  };
+    // Find the original option for the onRemove callback
+    const removedOption = internalValue.find(v => v.id === idToRemove);
+    if (removedOption && onRemove) onRemove(removedOption);
+  }, [internalValue, controlledValue, onChange, onRemove]);
 
-  const handleClearAll = (e: React.MouseEvent) => {
+   // MODIFIED: Original remove handler (now just triggers animation via wrapper)
+   // This function is passed down to the wrapper IF a custom renderToken is used,
+   // otherwise the wrapper's internal triggerExit is used directly.
+   const handleTokenRemoveTrigger = useCallback((e: React.MouseEvent, optionToRemove: MultiSelectOption<T>) => {
+     e.stopPropagation();
+     // Logic is now inside AnimatedTokenWrapper's triggerExit
+     // We pass this down mainly for the custom renderToken case where it needs the original signature
+     console.warn("handleTokenRemoveTrigger called - should be handled by wrapper's triggerExit");
+   }, []);
+
+  // ADD BACK: handleClearAll
+  const handleClearAll = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (controlledValue === undefined) setInternalValue([]);
     if (onChange) onChange([]);
     setInputValue('');
     inputRef.current?.focus();
-  };
+  }, [controlledValue, onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // ADD BACK: handleKeyDown
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!keyboardNavigation || disabled) return;
     switch (e.key) {
       case 'ArrowDown':
@@ -812,12 +944,18 @@ const GlassMultiSelectInternal = <T = string>(
         if (!inputValue && internalValue.length > 0) {
           e.preventDefault();
           const lastOption = internalValue[internalValue.length - 1];
-          handleTokenRemove(e as any, lastOption);
+          // Backspace triggers exit on the last token wrapper
+          // We need a way to reference the last wrapper to call its triggerExit
+          // This approach is getting complex. A simpler way might be needed,
+          // or we find the element and simulate a click on its remove button.
+          // For now, let's just remove it immediately for Backspace:
+           handleRemoveTokenActual(lastOption.id);
         }
         break;
       default: break;
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyboardNavigation, disabled, isDropdownOpen, flatOptions, focusedOptionIndex, inputValue, internalValue, handleOptionClick, handleRemoveTokenActual]); // Added dependencies
 
   // Scroll into view logic
   useEffect(() => {
@@ -875,6 +1013,11 @@ const GlassMultiSelectInternal = <T = string>(
   }, [animate, finalDisableAnimation, internalValue.length, playEntranceAnimation]);
 
   // --- End Token Entrance Animation Implementation ---
+
+  // --- Token Add/Remove Animation ---
+  // REMOVE the useTransition block entirely
+  // const tokenTransitions = useTransition(...) 
+  // --- End Token Add/Remove Animation ---
 
   // Render function for dropdown content
   const renderDropdown = () => {
@@ -965,29 +1108,18 @@ const GlassMultiSelectInternal = <T = string>(
         onClick={handleContainerClick}
       >
         <TokensContainer>
+          {/* Render with AnimatedTokenWrapper */}
           {internalValue.map((option) => (
-             renderToken ? renderToken(option, (e: any) => handleTokenRemove(e, option)) :
-             <Token
-                key={option.id}
-                className="galileo-multiselect-token"
-                $isDisabled={disabled || !!option.disabled}
-                $translateX={0}
-                $translateY={0}
-                $scale={1}
-                $isDragging={false}
-                $initialOpacity={animate && !finalDisableAnimation ? 0 : 1}
-            >
-                <TokenLabel>{option.label}</TokenLabel>
-                {!(disabled || !!option.disabled) && (
-                    <RemoveButton
-                        className="remove-button"
-                        onClick={(e) => handleTokenRemove(e, option)}
-                        aria-label={`Remove ${option.label}`}
-                    >
-                        <ClearIcon />
-                    </RemoveButton>
-                )}
-            </Token>
+            <AnimatedTokenWrapper<T>
+              key={option.id} // Key must be here for React list diffing
+              option={option}
+              onRemove={handleRemoveTokenActual} // Pass the actual remove callback
+              removeConfig={finalItemRemoveSpringConfig}
+              isDisabled={disabled || !!option.disabled}
+              reducedMotion={finalDisableAnimation}
+              renderToken={renderToken} // Pass custom renderer down
+              originalOnRemoveHandler={handleTokenRemoveTrigger} // Pass original handler signature if needed by custom renderer
+            />
           ))}
           {searchable && (
             <Input

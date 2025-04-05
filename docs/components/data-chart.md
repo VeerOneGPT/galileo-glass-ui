@@ -121,7 +121,19 @@ Supports standard chart types: `line`, `bar`, `area`, `pie`, `doughnut`, `scatte
 ### Interactivity (`interaction` prop and callbacks)
 
 *   **Tooltips:** Configure via `interaction.showTooltips`, `interaction.tooltipStyle`, `interaction.tooltipFollowCursor`.
-*   **Zoom/Pan (v1.0.14+):** Enable and configure via `interaction.zoomPanEnabled`, `interaction.zoomMode`, `interaction.physics`.
+*   **Physics-Based Zoom/Pan (v1.0.14+):** Enable and configure using properties within the `interaction` object. **Do not use the internal `useChartPhysicsInteraction` hook directly.**
+    *   `interaction.zoomPanEnabled`: Set to `true` to enable physics-based zoom and pan.
+    *   `interaction.zoomMode`: Control which axes allow zoom/pan (`'x'`, `'y'`, or `'xy'`).
+    *   `interaction.physics`: Configure the spring physics parameters (`tension`, `friction`, `mass`) for the zoom/pan animations.
+    *   Example:
+        ```tsx
+        interaction={{
+          zoomPanEnabled: true, 
+          zoomMode: 'xy',
+          physics: { tension: 300, friction: 30 },
+          // other interaction props like showTooltips...
+        }}
+        ```
 *   **Data Point Click:** Use the `onDataPointClick={(datasetIndex, dataIndex, dataPoint) => ...}` prop.
 *   **Selection Change:** Use `onSelectionChange={(selectedIndices) => ...}` (primarily for pie/doughnut).
 *   **Zoom/Pan Callback:** Use `onZoomPan={(chartInstance) => ...}`.

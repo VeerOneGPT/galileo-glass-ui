@@ -27,69 +27,52 @@ async function build() {
   
   // Get the configs from the default export
   let configs = configModule.default;
+
+  // --- Reverted DEBUG ---
+  // console.log('🧪 DEBUG: Isolating build to DTS configs...');
+  // const configs = allConfigs.filter(config => 
+  //   config.plugins && config.plugins.some(plugin => plugin && plugin.name === 'dts')
+  // );
+  // console.log(`Found ${configs.length} DTS configurations to process.`);
+  // --- END Reverted DEBUG ---
   
-  // Ensure configs is an array
   if (!Array.isArray(configs)) {
-    console.warn('Warning: Configuration is not an array, converting to array.');
     configs = [configs];
   }
   
-  console.log(`🔍 Found ${configs.length} build configurations`);
-  
-  // Process each config separately
+  console.log(`🔍 Found ${configs.length} build configuration(s) to process`);
+
   for (let i = 0; i < configs.length; i++) {
     const config = configs[i];
+    const input = Array.isArray(config.input) ? config.input.join(', ') : config.input;
+    console.log(`\n📦 Building (${i + 1}/${configs.length}): ${input}`);
+    
     try {
-      // Skip null or invalid configs
-      if (!config || !config.input) {
-        console.warn(`Skipping invalid config at index ${i}:`, config);
-        continue;
-      }
-      
-      const inputFile = path.relative(rootDir, 
-        typeof config.input === 'string' ? config.input : 
-        Array.isArray(config.input) ? config.input[0] : 'unknown');
-      
-      console.log(`📦 Building (${i + 1}/${configs.length}): ${inputFile}`);
-      
-      // Create bundle
       const bundle = await rollup(config);
       
       // Ensure output is an array
-      const outputs = Array.isArray(config.output) ? config.output : [config.output];
+      const outputOptionsArray = Array.isArray(config.output) ? config.output : [config.output];
       
-      // Write all outputs
-      for (const output of outputs) {
-        if (!output || !output.file) {
-          console.warn(`Skipping invalid output configuration:`, output);
-          continue;
-        }
-        
-        const outputFile = path.relative(rootDir, output.file);
-        console.log(`📝 Writing ${output.format} to ${outputFile}`);
-        
-        // Ensure directory exists
-        const outputDir = path.dirname(output.file);
-        if (!fs.existsSync(outputDir)) {
-          fs.mkdirSync(outputDir, { recursive: true });
-        }
-        
-        await bundle.write(output);
+      // Generate bundle + sourcemap
+      for (const outputOptions of outputOptionsArray) {
+        console.log(`  📄 Generating output: ${outputOptions.file} (${outputOptions.format})`);
+        await bundle.write(outputOptions);
       }
       
-      // Clean up
+      // Close the bundle to release resources
       await bundle.close();
-      console.log(`✅ Completed building ${inputFile}`);
+      console.log(`✅ Successfully built: ${input}`);
     } catch (error) {
-      console.error(`❌ Error building config ${i}:`, error);
-      process.exit(1);
+      console.error(`❌ Error building config ${i} for ${input}: `);
+      console.error(error);
+      process.exit(1); // Exit with error on first failure
     }
   }
-  
-  console.log('🎉 Galileo Glass UI build completed successfully!');
+
+  console.log('\n✨ Build completed successfully! ✨');
 }
 
-build().catch(err => {
-  console.error('Build failed:', err);
+build().catch((error) => {
+  console.error('Build script failed:', error);
   process.exit(1);
 }); 

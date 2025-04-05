@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, CSSProperties } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { useReducedMotion } from './useReducedMotion';
-import { useGlassTheme } from '../hooks'; // Correct import path for useGlassTheme
+import { useGlassTheme } from './useGlassTheme'; // Corrected import path
 
-interface UseGlassFocusOptions {
+export interface UseGlassFocusOptions {
   /** Ref of the element to apply the focus ring to. */
   elementRef: React.RefObject<HTMLElement>;
   /** Style variant for the ring (e.g., 'primary', 'secondary'). Uses theme colors. */
@@ -18,7 +18,7 @@ interface UseGlassFocusOptions {
   disabled?: boolean;
 }
 
-interface UseGlassFocusReturn {
+export interface UseGlassFocusReturn {
   /** Boolean indicating if the element currently has focus. */
   isFocused: boolean;
   /** Props to spread onto the focus ring element. */

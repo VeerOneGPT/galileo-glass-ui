@@ -25,7 +25,7 @@ This release focuses on exposing the underlying Galileo physics engine to develo
 
 *   **Documentation:**
     *   Added documentation for the new Physics Engine API in `docs/physics/engine-api.md`.
-    *   Created an example implementation in `docs/examples/animations/CustomPhysicsDemo.tsx` (Note: May require path adjustments or have minor lint issues).
+    *   Created an example implementation in `examples/animations/CustomPhysicsDemo.stories.tsx` (Note: May require path adjustments or have minor lint issues).
     *   Updated `README.md` and other core documentation files to reference the new API.
 
 ## 🐛 Bug Fixes
@@ -39,7 +39,7 @@ This release focuses on exposing the underlying Galileo physics engine to develo
 *   **Performance:** Formal performance profiling under heavy load is pending.
 *   **Point Application:** `applyForce`/`applyImpulse` do not support application at an offset point (torque) due to limitations in the underlying `GalileoPhysicsSystem`.
 *   **Angular Mapping:** Mapping of `angle`/`angularVelocity` between the public API and internal systems relies on assumptions (using z-axis of internal Vector) and may require refinement in `PhysicsObject` definition.
-*   **Example (`CustomPhysicsDemo.tsx`):** May require import path adjustments for final project structure. Faced persistent (potentially inaccurate) linter errors during refinement, specifically regarding the `title` attribute.
+*   **Example (`examples/animations/CustomPhysicsDemo.stories.tsx`):** May require import path adjustments for final project structure. Faced persistent (potentially inaccurate) linter errors during refinement, specifically regarding the `title` attribute.
 *   **Build Warnings:** Root cause of TypeScript declaration generation warnings during build still exists (previously worked around by patching).
 
 ## 🚀 Upgrade Instructions

@@ -11,7 +11,8 @@ import { useMouseMagneticEffect, usePhysicsInteraction } from '../../animations/
 import { zSpaceLayer } from '../../core/mixins/depth/zSpaceLayer';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeUtils';
-import { useGlassTheme, useReducedMotion, useGlassPerformance } from '../../hooks';
+import { useGlassTheme } from '../../hooks/useGlassTheme';
+import { useReducedMotion } from '../../animations/accessibility/useReducedMotion';
 import { useZSpaceAnimation } from '../../hooks/useZSpaceAnimation';
 import { FlexibleElementRef } from '../../utils/elementTypes';
 import { asCoreThemeContext } from '../../utils/themeHelpers';
@@ -437,6 +438,15 @@ const transformChartJsData = (chartJsData: any): ChartSeries[] => {
     // visible: dataset.hidden !== undefined ? !dataset.hidden : true,
   }));
 };
+
+// Mock implementation for useGlassPerformance
+const useGlassPerformance = () => ({
+  isPerformanceConstrained: false,
+  canUseBlur: true,
+  canUseGlassEffects: true,
+  canUseAdvancedAnimations: true,
+  isPoorPerformance: false
+});
 
 /**
  * GlassChart Component

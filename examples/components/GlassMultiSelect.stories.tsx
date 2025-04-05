@@ -25,6 +25,11 @@ const meta: Meta<typeof GlassMultiSelect> = {
     placeholder: { control: 'text' },
     disabled: { control: 'boolean' },
     physics: { control: 'object' }, // Example: { animationPreset: 'gentle' }
+    itemRemoveAnimation: {
+      control: 'select',
+      options: ['DEFAULT', 'GENTLE', 'SNAPPY', 'BOUNCY'], // Example presets
+      description: 'Animation preset for removing selected items.',
+    },
     // Add other relevant props if needed
   },
 };
@@ -67,4 +72,32 @@ export const CorrectApiUsage: Story = {
   render: () => <MultiSelectControlled />,
   // We render a controlled component, so args might not be needed here
   // unless we want to set initial state via args for the wrapper.
+};
+
+// Story demonstrating item removal animation
+export const WithRemoveAnimation: Story = {
+  args: {
+    options: sampleOptions,
+    label: 'Remove Animation (Snappy)',
+    placeholder: 'Select options...',
+    itemRemoveAnimation: 'SNAPPY', // Use a specific preset
+  },
+  render: (args) => {
+    const [selected, setSelected] = useState<MultiSelectOption<string>[]>([]);
+    return <GlassMultiSelect<string> {...args} value={selected} onChange={setSelected} />;
+  },
+};
+
+// Story demonstrating custom item removal animation config
+export const WithCustomRemoveAnimation: Story = {
+  args: {
+    options: sampleOptions,
+    label: 'Remove Animation (Custom Spring)',
+    placeholder: 'Select options...',
+    itemRemoveAnimation: { tension: 100, friction: 20 }, // Custom config
+  },
+  render: (args) => {
+    const [selected, setSelected] = useState<MultiSelectOption<string>[]>([]);
+    return <GlassMultiSelect<string> {...args} value={selected} onChange={setSelected} />;
+  },
 }; 

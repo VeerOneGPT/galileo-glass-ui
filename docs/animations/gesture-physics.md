@@ -13,64 +13,123 @@ Galileo Glass UI incorporates a gesture physics system that allows UI elements t
 
 ## `useGesturePhysics` Hook
 
-This hook is likely the central piece for connecting gesture inputs to physics-based animations.
+This hook is the primary mechanism for adding physics-driven responses to gestures like panning, swiping, pinching, and tapping on an element.
 
 ### Purpose
 
-- Simplify the detection and interpretation of user gestures on an element.
-- Calculate gesture velocity and displacement.
-- Translate gesture information into physics parameters (forces, velocities) to drive animation hooks like `useMultiSpring` or specialized inertial movement hooks.
-- Manage the state of the gesture interaction (dragging, flicking, pinching).
+- Detect and interpret common user gestures on a specific HTML element.
+- Calculate real-time gesture properties like displacement and velocity.
+- Manage internal physics simulations (inertial movement for pan/swipe, springs for pinch/rotate) based on gesture inputs and configuration.
+- Provide the necessary `style` properties (primarily `transform`, `touchAction`, `userSelect`) to apply to the target element for visual feedback.
 
-### Signature (Conceptual)
-
-*(The exact API might involve separate hooks for different gesture types like dragging vs. pinching, or a single more complex hook.)*
+### Signature (Conceptual - Based on Implementation)
 
 ```typescript
-import { useGesturePhysics, GesturePhysicsOptions } from 'galileo-glass-ui';
+import {
+  useGesturePhysics,
+  type GesturePhysicsOptions,
+  type GestureTransform
+} from '@veerone/galileo-glass-ui'; // Adjust path
 
-function useGesturePhysics<T extends HTMLElement = HTMLElement>(
-  options?: GesturePhysicsOptions
+function useGesturePhysics(
+  options: GesturePhysicsOptions
 ): {
-  ref: React.RefObject<T>;
-  // State reflecting gesture activity:
-  isDragging: boolean;
-  isScrolling: boolean;
-  isPinching: boolean;
-  // Calculated gesture properties:
-  delta: { x: number, y: number }; // Change since last frame
-  velocity: { x: number, y: number };
-  distance: number; // Total distance moved during gesture
-  direction: number; // Angle of movement
-  scaleDelta?: number; // For pinching
-  rotationDelta?: number; // For rotation gestures
-  // Event handlers to attach:
-  // eventHandlers: Record<string, (e: any) => void>; // Note: Actual hooks like usePhysicsInteraction handle events internally.
-  // Functions to connect to animation hooks:
-  applyToSpring?: (springApi: MultiSpringResult<any>) => void; // Example
+  // Ref Management:
+  // Note: The hook *requires* the elementRef option to be passed.
+  // It does not return a ref itself.
+  elementRef: React.RefObject<HTMLElement>; // From options
+
+  // Style Output:
+  style: React.CSSProperties; // Apply this to the element
+  cssTransform: string; // The CSS transform string (e.g., "translate3d(...) scale(...) ...")
+
+  // State & Control:
+  transform: GestureTransform; // Current physics state (x, y, scale, rotation, velocities)
+  isGestureActive: boolean; // Is any gesture currently active?
+  setTransform: (newTransform: Partial<GestureTransform>) => void; // Manually set state
+  animateTo: (targetTransform: Partial<GestureTransform>, options?: { duration?: number }) => void; // Animate to a state
+  reset: (animate?: boolean) => void; // Reset to initial state
 };
 
 interface GesturePhysicsOptions {
-  axis?: 'x' | 'y' | 'both'; // Constrain dragging/scrolling
-  momentum?: boolean; // Enable inertial movement after gesture end
-  momentumStrength?: number;
-  friction?: number; // How quickly inertial movement slows down
-  bounds?: { top?: number; left?: number; right?: number; bottom?: number };
-  lockDirection?: boolean; // Lock to initial axis of movement
-  threshold?: number; // Minimum distance before gesture is considered active
-  enablePinch?: boolean;
-  enableRotate?: boolean;
-  // ... other configuration
+  // **Required**: Ref to the target element.
+  // Important: Must point to a non-null HTMLElement when the hook initializes.
+  elementRef: React.RefObject<HTMLElement>;
+
+  // Gesture Configurations (optional):
+  pan?: Partial<GestureConfig>;
+  swipe?: Partial<GestureConfig>;
+  pinch?: Partial<GestureConfig>;
+  rotate?: Partial<GestureConfig>;
+  tap?: Partial<GestureConfig>;
+  longPress?: Partial<GestureConfig>;
+  doubleTap?: Partial<GestureConfig>;
+
+  // General Physics & Behavior (optional):
+  mass?: number;
+  tension?: number;
+  friction?: number;
+  inertia?: boolean; // Global inertia toggle
+  preset?: GesturePhysicsPreset; // e.g., 'natural', 'responsive'
+  boundaries?: { /* ... boundary definitions ... */ };
+  usePointerEvents?: boolean; // Default: true
+  preventDefaultEvents?: boolean; // Default: true
+  disableScroll?: boolean; // Default: false
+
+  // Callbacks (optional):
+  onGestureStart?: (type: GestureType, event: GestureEventData) => void;
+  onGestureChange?: (type: GestureType, event: GestureEventData, state: any) => void;
+  onGestureEnd?: (type: GestureType, event: GestureEventData) => void;
+  // **Important**: Use this callback to react to physics updates.
+  onTransformChange?: (transform: GestureTransform) => void;
 }
+
+// GestureConfig defines settings per gesture type (enabled, threshold, etc.)
+// GestureTransform holds the physics state (x, y, scale, rotation, velocities)
 ```
 
-### Return Value
+### Return Value Explained
 
-- `ref`: Attach to the element that should respond to gestures.
-- `isDragging`, `isPinching`, etc.: State flags indicating the current gesture type.
-- `delta`, `velocity`, etc.: Real-time information about the gesture's movement.
-- `eventHandlers`: *Note: In the actual implemented hooks (like `usePhysicsInteraction`), event handlers are typically managed internally and not returned for manual attachment.* Conceptual handlers (`onPointerDown`, `onPointerMove`, etc.) would be attached to the target element.
-- `applyToSpring` (or similar): Functions or mechanisms to link the gesture output to drive animation hooks.
+- **`elementRef`**: This is passed *in* via options, not returned.
+- **`style`**: A `React.CSSProperties` object. You **must** apply this to your target element's `style` prop. It contains crucial properties like `touchAction: 'none'` (to prevent browser interference), `userSelect: 'none'`, and the calculated `transform`. 
+    *(Note: There might be a type issue where `style.userSelect` is returned as `string` but needs to be `UserSelect | undefined`. A temporary workaround might be needed: `style={{ ...hookStyle, userSelect: hookStyle.userSelect as any }}`)*.
+- **`cssTransform`**: The raw CSS `transform` string, useful if applying styles differently.
+- **`transform`**: An object containing the current physics state (position, scale, rotation, velocities).
+- **`isGestureActive`**: Boolean flag indicating if a gesture is currently interacting with the element.
+- **`setTransform`, `animateTo`, `reset`**: Functions to programmatically control the element's physics state.
+
+### Applying the Transform
+
+There are two main ways to apply the visual transform:
+
+1.  **Directly via `style` prop (Recommended):**
+    ```tsx
+    const { style } = useGesturePhysics({ elementRef });
+    return <DraggableElement ref={elementRef} style={style} />;
+    ```
+    The hook updates the `style.transform` property internally.
+
+2.  **Using `onTransformChange` (Alternative):**
+    ```tsx
+    const [dynamicStyle, setDynamicStyle] = useState({});
+    useGesturePhysics({
+      elementRef,
+      onTransformChange: (t) => {
+        setDynamicStyle(prev => ({
+          ...prev,
+          transform: `translate3d(...) scale(...) ...` // Construct transform from t.x, t.y, etc.
+        }));
+      }
+    });
+    return <DraggableElement ref={elementRef} style={dynamicStyle} />;
+    ```
+    This gives more control but requires managing the style state yourself.
+
+### Important Considerations
+
+- **Ref Initialization:** Ensure the `elementRef` passed in the options points to a valid `HTMLElement` when the hook runs. If the ref might be initially null (e.g., from `useRef(null)`), initialize the hook inside a `useEffect` that runs when the ref is populated.
+- **Invalid Options:** Options like `boundsRef` or `press` seen in some examples are *not* valid for `useGesturePhysics`.
+- **CSS:** The target element should ideally have `will-change: transform;` for performance.
 
 ## Inertial Movement (`useInertialMovement`)
 

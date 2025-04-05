@@ -5,13 +5,14 @@
  * for performance-constrained environments while still maintaining
  * the Glass UI visual identity.
  */
-import React, { useMemo } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 
 import { cssWithKebabProps } from '../../core/cssUtils';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { createThemeContext } from '../../core/themeUtils';
-import { useGlassTheme, useReducedMotion } from '../../hooks';
+import { useGlassTheme } from '../../hooks/useGlassTheme';
+import { useReducedMotion } from '../../animations/accessibility/useReducedMotion';
 
 import { BaseChartProps } from './types';
 

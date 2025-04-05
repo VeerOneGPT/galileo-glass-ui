@@ -1,26 +1,21 @@
-// NOTE: This example uses internal paths for the documentation.
-// In your own code, you should import from the public package like this:
-//
-// import { Box, useGalileoPhysicsEngine } from '@veerone/galileo-glass-ui';
-// import type { 
-//   PhysicsBodyState, 
-//   PhysicsBodyOptions,
-//   Vector2D,
-//   GalileoPhysicsEngineAPI 
-// } from '@veerone/galileo-glass-ui/physics';
-
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Box } from '../../../src/components/Box';
+import type { Meta, StoryObj } from '@storybook/react';
 import styled from 'styled-components';
-import { 
-    useGalileoPhysicsEngine 
-} from '../../../src/animations/physics/useGalileoPhysicsEngine';
-import { 
-    PhysicsBodyState, 
-    PhysicsBodyOptions, 
+
+import {
+    GalileoPhysicsEngineAPI,
     Vector2D,
-    GalileoPhysicsEngineAPI
-} from '../../../src/animations/physics/engineTypes';
+    PhysicsBodyOptions,
+    PhysicsBodyState
+} from '@veerone/galileo-glass-ui';
+
+// Correct: Import hook from the hooks subpath using its exported alias
+import { usePhysicsEngine } from '@veerone/galileo-glass-ui/hooks';
+
+import {
+    GlassBox, // Use GlassBox
+    GlassButton // Use GlassButton
+} from '@veerone/galileo-glass-ui';
 
 interface BodyRepresentation {
   id: string;
@@ -31,16 +26,20 @@ interface BodyRepresentation {
   height?: number;
 }
 
-const SimulationContainer = styled(Box)`
+// Use GlassBox with styled()
+const SimulationContainer = styled(GlassBox)`
   position: relative;
-  width: 600px;
+  width: 100%; // Make responsive
+  max-width: 600px;
   height: 400px;
   border: 1px solid #ccc;
   overflow: hidden;
   background-color: #f0f0f0;
+  margin: auto; // Center if needed
 `;
 
-const PhysicsBodyElement = styled(Box)<{
+// Use GlassBox with styled()
+const PhysicsBodyElement = styled(GlassBox)<{
   $left: number;
   $top: number;
   $width?: number;
@@ -64,12 +63,13 @@ const PhysicsBodyElement = styled(Box)<{
   justify-content: center;
   font-size: 10px;
   color: white;
-  overflow: hidden; // Prevent content spillover
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 `;
 
-const ControlsContainer = styled(Box)`
+// Use GlassBox with styled()
+const ControlsContainer = styled(GlassBox)`
   position: absolute;
   bottom: 10px;
   left: 10px;
@@ -78,64 +78,51 @@ const ControlsContainer = styled(Box)`
   background: rgba(255, 255, 255, 0.8);
   padding: 5px;
   border-radius: 4px;
+  z-index: 10;
 `;
 
-const Button = styled.button`
-  padding: 4px 8px;
-  font-size: 12px;
-  cursor: pointer;
-`;
-
-const CustomPhysicsDemo: React.FC = () => {
-  // Example custom config (using public API configuration)
+// Story Component Wrapper
+const CustomPhysicsEngineDemo: React.FC = () => {
   const physicsConfig = {
-    gravity: { x: 0, y: 200 }, // Adjusted gravity for demo (removed z component)
-    // fixedTimeStep: 1 / 120, // Example: Smoother simulation
+    gravity: { x: 0, y: 200 },
   };
-  const engine = useGalileoPhysicsEngine(physicsConfig); 
+  const engine = usePhysicsEngine(physicsConfig);
   const [bodies, setBodies] = useState<Map<string, BodyRepresentation>>(new Map());
-  const rafRef = useRef<number>(null);
-  const latestBodiesRef = useRef(bodies); // Ref to access latest bodies map in callbacks
+  const rafRef = useRef<number | null>(null);
+  const latestBodiesRef = useRef(bodies);
 
-  // Update ref whenever bodies state changes
   useEffect(() => {
     latestBodiesRef.current = bodies;
   }, [bodies]);
 
-  // Add initial bodies
   useEffect(() => {
     if (!engine) return;
 
-    // Add a static floor
+    // Add initial bodies
     const floorId = engine.addBody({
       id: 'floor',
       shape: { type: 'rectangle', width: 600, height: 20 },
       position: { x: 300, y: 390 },
       isStatic: true,
-      userData: { name: 'Floor', width: 600, height: 20 } // Store shape info for rendering
+      userData: { name: 'Floor', width: 600, height: 20 }
     });
-
-    // Add a dynamic circle
     const ballId = engine.addBody({
       id: 'ball1',
       shape: { type: 'circle', radius: 20 },
       position: { x: 300, y: 50 },
-      restitution: 0.7, // Bouncy
+      restitution: 0.7,
       friction: 0.05,
-      userData: { name: 'Bouncing Ball', radius: 20 } // Store shape info
+      userData: { name: 'Bouncing Ball', radius: 20 }
     });
-
-    // Add a dynamic box
     const boxId = engine.addBody({
       id: 'box1',
       shape: { type: 'rectangle', width: 40, height: 40 },
       position: { x: 250, y: 100 },
       mass: 2,
       friction: 0.1,
-      userData: { name: 'Falling Box', width: 40, height: 40 } // Store shape info
+      userData: { name: 'Falling Box', width: 40, height: 40 }
     });
-    
-    // Add initial representations for rendering
+
     const initialBodies = new Map<string, BodyRepresentation>();
     [floorId, ballId, boxId].forEach(id => {
         const state = engine.getBodyState(id);
@@ -151,34 +138,20 @@ const CustomPhysicsDemo: React.FC = () => {
         }
     });
     setBodies(initialBodies);
-    
-    // --- Example Collision Listener ---
+
     const unsubscribeCollision = engine.onCollisionStart((event) => {
         console.log('[Demo] Collision Start:',
              `(${event.bodyAUserData?.name ?? event.bodyAId})`, '<=>',
              `(${event.bodyBUserData?.name ?? event.bodyBId})`
          );
-        
-        // Example: Impulse on collision with floor - Apply carefully
-        // const dynamicBodyId = event.bodyAId === floorId ? event.bodyBId : event.bodyBId === floorId ? event.bodyAId : null;
-        // if(dynamicBodyId) {
-        //     // Apply slight upward impulse only if hitting floor from above
-        //     if(event.normal?.y && event.normal.y < -0.8) { // Check normal direction
-        //         console.log(`Applying impulse to ${dynamicBodyId}`);
-        //         engine.applyImpulse(dynamicBodyId, {x: 0, y: -150}); // Reduced impulse
-        //     }
-        // }
     });
-    
-    // Cleanup function: Unsubscribe from events.
-    // Body removal is handled implicitly by the hook's own cleanup.
+
     return () => {
         unsubscribeCollision();
     }
 
-  }, [engine]); // Engine reference is stable
+  }, [engine]);
 
-  // Animation loop to synchronize rendering with physics state
   useEffect(() => {
     if (!engine) return;
 
@@ -187,31 +160,26 @@ const CustomPhysicsDemo: React.FC = () => {
       setBodies(prevBodies => {
           const newMap = new Map(prevBodies);
           let changed = false;
-          
-          // Update existing or add new
+
           allStates.forEach((state, id) => {
               const existingRep = newMap.get(id);
-              // Basic check for significant change to avoid unnecessary updates
-              const positionChanged = !existingRep || 
-                  Math.hypot(state.position.x - existingRep.state.position.x, state.position.y - existingRep.state.position.y) > 0.5 || // Check distance moved
-                  Math.abs(state.angle - existingRep.state.angle) > 0.02; // Check angle change
-              
-              if (!existingRep || positionChanged) { // Update if new or changed significantly
+              const positionChanged = !existingRep ||
+                  Math.hypot(state.position.x - existingRep.state.position.x, state.position.y - existingRep.state.position.y) > 0.5 ||
+                  Math.abs(state.angle - existingRep.state.angle) > 0.02;
+
+              if (!existingRep || positionChanged) {
                   newMap.set(id, {
-                      // Reuse existing shape info if available
                       radius: existingRep?.radius ?? state.userData?.radius,
                       width: existingRep?.width ?? state.userData?.width,
                       height: existingRep?.height ?? state.userData?.height,
-                      // Update state
                       id: state.id,
                       state: state,
-                      isStatic: state.isStatic, 
+                      isStatic: state.isStatic,
                   });
                   changed = true;
               }
           });
 
-          // Remove bodies that no longer exist in the engine state
           if (prevBodies.size !== allStates.size) {
               prevBodies.forEach((_, id) => {
                   if (!allStates.has(id)) {
@@ -220,8 +188,7 @@ const CustomPhysicsDemo: React.FC = () => {
                   }
               });
           }
-
-          return changed ? newMap : prevBodies; // Only update state if changes occurred
+          return changed ? newMap : prevBodies;
       });
       rafRef.current = requestAnimationFrame(animate);
     };
@@ -235,7 +202,6 @@ const CustomPhysicsDemo: React.FC = () => {
     };
   }, [engine]);
 
-  // --- Interaction Callbacks ---
   const handleAddCircle = useCallback(() => {
     const x = 50 + Math.random() * 500;
     const y = 50 + Math.random() * 100;
@@ -252,16 +218,16 @@ const CustomPhysicsDemo: React.FC = () => {
   const handleApplyForceToRandom = useCallback(() => {
     const bodyIds = Array.from(latestBodiesRef.current.keys()).filter(id => id !== 'floor');
     if (bodyIds.length === 0) return;
-    
+
     const randomId = bodyIds[Math.floor(Math.random() * bodyIds.length)];
     const force: Vector2D = {
-        x: (Math.random() - 0.5) * 10000, // Apply significant force
+        x: (Math.random() - 0.5) * 10000,
         y: (Math.random() - 0.5) * 10000
     };
     console.log(`Applying force to ${randomId}:`, force);
     engine.applyForce(randomId, force);
 
-  }, [engine]); // engine dependency is stable
+  }, [engine]);
 
   return (
     <SimulationContainer>
@@ -276,15 +242,31 @@ const CustomPhysicsDemo: React.FC = () => {
           $angle={body.state.angle}
           $isStatic={body.isStatic}
         >
-          {body.state.userData?.name ?? body.id.substring(0, 6)} {/* Show name or Short ID */}
+          {body.state.userData?.name ?? body.id.substring(0, 6)}
         </PhysicsBodyElement>
       ))}
       <ControlsContainer>
-        <Button onClick={handleAddCircle}>Add Circle</Button>
-        <Button onClick={handleApplyForceToRandom}>Apply Force</Button>
+         {/* Use GlassButton with correct size prop */}
+        <GlassButton onClick={handleAddCircle} size="small">Add Circle</GlassButton>
+        <GlassButton onClick={handleApplyForceToRandom} size="small">Apply Force</GlassButton>
       </ControlsContainer>
     </SimulationContainer>
   );
 };
 
-export default CustomPhysicsDemo; 
+// Storybook Meta
+const meta: Meta<typeof CustomPhysicsEngineDemo> = {
+    title: 'Examples/Animations/useGalileoPhysicsEngine',
+    component: CustomPhysicsEngineDemo,
+    parameters: {
+        layout: 'centered',
+    },
+    tags: ['autodocs'],
+};
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+// Default Story
+export const Default: Story = {}; 

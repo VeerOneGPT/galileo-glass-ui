@@ -9,7 +9,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimationCategory } from '../accessibility/MotionSensitivity';
 import { useReducedMotion } from '../accessibility/useReducedMotion';
-import { useAnimationSequence, StaggerPattern, PlaybackDirection } from '../orchestration/useAnimationSequence';
+import { useAnimationSequence } from '../orchestration/useAnimationSequence';
+import { StaggerPattern, PlaybackDirection } from '../types';
 import { Easings } from '../physics/interpolation';
 
 /**

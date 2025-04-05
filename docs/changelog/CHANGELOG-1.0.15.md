@@ -62,8 +62,3 @@ Version 1.0.15 is a patch release focused primarily on addressing API and docume
 ## Breaking Changes
 
 - None identified in this patch release based on the implemented fixes.
-
-## Upcoming Features (Planned for Future Releases)
-
-- Address deferred Task 3 (`useScrollBasedAnimation` fix).
-- Add skipped unit tests for various components and hooks. 

@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 
 import { useReducedMotion } from './useReducedMotion';
+import type { AnimationStage } from '../animations/types';
+import type { Point, Point3D } from '../types/physics';
 
 /**
  * Animation timing patterns
@@ -40,93 +42,6 @@ export type GestaltRelationship =
   | 'figure-ground'; // Foreground elements before background
 
 /**
- * Animation stage in the orchestration sequence
- */
-export interface AnimationStage {
-  /**
-   * The ID of the animation stage
-   */
-  id: string;
-
-  /**
-   * The delay before this stage starts (in milliseconds)
-   */
-  delay: number;
-
-  /**
-   * The duration of this stage (in milliseconds)
-   */
-  duration: number;
-
-  /**
-   * The callback function to execute when this stage starts
-   */
-  onStart?: () => void;
-
-  /**
-   * The callback function to execute when this stage ends
-   */
-  onEnd?: () => void;
-
-  /**
-   * Whether this stage is completed
-   */
-  completed?: boolean;
-
-  /**
-   * The order of this stage in the sequence
-   */
-  order?: number;
-
-  /**
-   * The animation configuration (e.g., easing, keyframes)
-   */
-  animation?: {
-    easing?: TimingFunction;
-    keyframes?: string;
-  };
-
-  /**
-   * Group identifier for coordinated animations
-   */
-  group?: string;
-
-  /**
-   * Spatial position for gestalt-based animations
-   */
-  position?: { x: number; y: number; z?: number };
-
-  /**
-   * Dependency IDs - stages that must complete before this one starts
-   */
-  dependencies?: string[];
-
-  /**
-   * Element type or category for gestalt-based grouping
-   */
-  elementType?: string;
-
-  /**
-   * Priority level for gestalt pattern analysis
-   */
-  priority?: number;
-
-  /**
-   * Visual relationship to other elements
-   */
-  relationship?: GestaltRelationship;
-}
-
-/**
- * Location point interface for gestalt pattern calculations
- */
-export interface Point {
-  x: number;
-  y: number;
-  z?: number;
-}
-
-/**
  * Gestalt pattern calculation options
  */
 export interface GestaltPatternOptions {
@@ -152,8 +67,9 @@ export interface GestaltPatternOptions {
 
   /**
    * Focal point for converge/diverge patterns
+   * Using Point3D to support 3D coordinates
    */
-  focalPoint?: Point;
+  focalPoint?: Point3D;
 
   /**
    * Minimum distance threshold for proximity calculations
@@ -172,8 +88,9 @@ export interface GestaltPatternOptions {
 
   /**
    * Custom path for continuity pattern
+   * Using Point3D to support 3D coordinates
    */
-  continuityPath?: Point[];
+  continuityPath?: Point3D[];
 }
 
 /**
@@ -181,7 +98,7 @@ export interface GestaltPatternOptions {
  */
 export interface OrchestrationOptions {
   /**
-   * The animation stages to orchestrate
+   * The animation stages to orchestrate (Using canonical AnimationStage type)
    */
   stages: AnimationStage[];
 
@@ -260,6 +177,11 @@ export interface OrchestrationOptions {
    */
   analyzeRelationships?: boolean;
 }
+
+// Helper function for safely checking if a point has z coordinate
+const hasZCoordinate = (point: Point | Point3D): point is Point3D => {
+  return 'z' in point;
+};
 
 /**
  * Enhanced hook for orchestrating complex animation sequences
@@ -428,10 +350,14 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
           // Calculate distance from focal point
           const focal = gestaltOpts.focalPoint!;
+          // Handle both 2D and 3D points
+          const zComponent = (hasZCoordinate(stage.position) && hasZCoordinate(focal)) ? 
+            Math.pow(stage.position.z - focal.z, 2) : 0;
+
           const distance = Math.sqrt(
             Math.pow(stage.position.x - focal.x, 2) +
-              Math.pow(stage.position.y - focal.y, 2) +
-              (stage.position.z && focal.z ? Math.pow(stage.position.z - focal.z, 2) : 0)
+            Math.pow(stage.position.y - focal.y, 2) +
+            zComponent
           );
 
           // Further elements start earlier so they all arrive at the same time
@@ -454,10 +380,14 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
           // Calculate distance from focal point
           const focal = gestaltOpts.focalPoint!;
+          // Handle both 2D and 3D points
+          const zComponent = (hasZCoordinate(stage.position) && hasZCoordinate(focal)) ? 
+            Math.pow(stage.position.z - focal.z, 2) : 0;
+
           const distance = Math.sqrt(
             Math.pow(stage.position.x - focal.x, 2) +
               Math.pow(stage.position.y - focal.y, 2) +
-              (stage.position.z && focal.z ? Math.pow(stage.position.z - focal.z, 2) : 0)
+              zComponent
           );
 
           // Closer elements start earlier
@@ -539,12 +469,14 @@ export const useOrchestration = (options: OrchestrationOptions) => {
           updatedStages.forEach(otherStage => {
             if (processed.has(otherStage.id) || !stage.position || !otherStage.position) return;
 
+            // Handle both 2D and 3D points
+            const zComponent = (hasZCoordinate(stage.position) && hasZCoordinate(otherStage.position)) ? 
+              Math.pow(stage.position.z - otherStage.position.z, 2) : 0;
+
             const distance = Math.sqrt(
               Math.pow(stage.position.x - otherStage.position.x, 2) +
                 Math.pow(stage.position.y - otherStage.position.y, 2) +
-                (stage.position.z !== undefined && otherStage.position.z !== undefined
-                  ? Math.pow(stage.position.z - otherStage.position.z, 2)
-                  : 0)
+                zComponent
             );
 
             if (distance < proximityThreshold) {
@@ -623,12 +555,14 @@ export const useOrchestration = (options: OrchestrationOptions) => {
             let pathPosition = 0;
 
             opts.continuityPath!.forEach((pathPoint, index) => {
+              // Handle both 2D and 3D points
+              const zComponent = (hasZCoordinate(stage.position!) && hasZCoordinate(pathPoint)) ? 
+                Math.pow(stage.position!.z - pathPoint.z, 2) : 0;
+
               const distance = Math.sqrt(
                 Math.pow(stage.position!.x - pathPoint.x, 2) +
                   Math.pow(stage.position!.y - pathPoint.y, 2) +
-                  (stage.position!.z !== undefined && pathPoint.z !== undefined
-                    ? Math.pow(stage.position!.z - pathPoint.z, 2)
-                    : 0)
+                  zComponent
               );
 
               if (distance < minDistance) {
@@ -762,10 +696,10 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
       case 'figure-ground':
         // Foreground elements animate before background elements
-        if (updatedStages.every(stage => stage.position && stage.position.z !== undefined)) {
+        if (updatedStages.every(stage => stage.position && hasZCoordinate(stage.position))) {
           // Sort by z-index (higher z = closer to viewer = foreground)
           const sortedByZ = [...updatedStages].sort((a, b) => {
-            if (!a.position?.z || !b.position?.z) return 0;
+            if (!a.position || !b.position || !hasZCoordinate(a.position) || !hasZCoordinate(b.position)) return 0;
             return b.position.z - a.position.z; // Higher z-values first
           });
 
@@ -788,22 +722,23 @@ export const useOrchestration = (options: OrchestrationOptions) => {
   // Apply reduced motion modifications to stage animations
   function applyReducedMotion(stages: AnimationStage[]): AnimationStage[] {
     return stages.map(stage => {
-      // Reduce duration to minimize motion time
       const reducedDuration = Math.min(stage.duration, 300);
+      // Use nullish coalescing for optional delay
+      const reducedDelay = Math.min(stage.delay ?? 0, 100);
 
-      // Simplify delays to make transitions more immediate
-      const reducedDelay = Math.min(stage.delay, 100);
+      // Explicitly construct the animation object to help TS
+      const reducedAnimation = {
+        ...(stage.animation || {}), // Keep existing animation props if any
+        easing: 'ease-out' as const, // Use simple easing, assert type
+      };
 
+      // Return the modified stage, ensuring it conforms to AnimationStage
       return {
         ...stage,
         duration: reducedDuration,
         delay: reducedDelay,
-        // Add reduced motion flag for reference
-        animation: {
-          ...stage.animation,
-          easing: 'ease-out', // Use a simple easing function
-        },
-      };
+        animation: reducedAnimation,
+      } as AnimationStage; // Add type assertion if needed, though structure should match
     });
   }
 
@@ -814,7 +749,7 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
     stages.forEach(stage => {
       // Round delay to nearest 16ms (frame boundary)
-      const frameAlignedDelay = Math.round(stage.delay / 16) * 16;
+      const frameAlignedDelay = Math.round((stage.delay ?? 0) / 16) * 16;
 
       if (!stagesToBatch[frameAlignedDelay]) {
         stagesToBatch[frameAlignedDelay] = [];
@@ -826,7 +761,7 @@ export const useOrchestration = (options: OrchestrationOptions) => {
     // Apply optimizations
     return stages.map(stage => {
       // Align delays to frame boundaries
-      const frameAlignedDelay = Math.round(stage.delay / 16) * 16;
+      const frameAlignedDelay = Math.round((stage.delay ?? 0) / 16) * 16;
 
       return {
         ...stage,
@@ -837,9 +772,9 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
   // Start a specific stage
   const startStage = useCallback((stage: AnimationStage) => {
-    // Call the onStart callback if provided
+    // Call the onStart callback with stage ID
     if (stage.onStart) {
-      stage.onStart();
+      stage.onStart(stage.id);
     }
 
     // Mark stage as active
@@ -857,9 +792,9 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
     // Set up end timer
     stageTimers.current[`${stage.id}-end`] = setTimeout(() => {
-      // Call the onEnd callback if provided
-      if (stage.onEnd) {
-        stage.onEnd();
+      // Call onComplete (instead of onEnd) with stage ID
+      if (stage.onComplete) {
+        stage.onComplete(stage.id);
       }
 
       // Mark stage as inactive and completed
@@ -1026,8 +961,9 @@ export const useOrchestration = (options: OrchestrationOptions) => {
 
           // Set timer for remaining duration
           stageTimers.current[`${stage.id}-end`] = setTimeout(() => {
-            if (stage.onEnd) {
-              stage.onEnd();
+            // Use onComplete instead of onEnd, pass ID
+            if (stage.onComplete) {
+              stage.onComplete(stage.id);
             }
 
             setActiveStages(prev => prev.filter(id => id !== stage.id));

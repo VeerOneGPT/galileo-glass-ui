@@ -506,48 +506,32 @@ export const PhysicsZoomPan: Story = {
 };
 
 // --- Add Story for Physics Zoom/Pan Configuration (Task 9) ---
-export const ConfiguredPhysicsZoomPan: Story = {
-  ...Template,
+export const ConfigurablePhysicsZoomPan: Story = {
   args: {
-    title: "Configurable Physics Zoom & Pan",
-    subtitle: "Use Ctrl+Wheel to zoom, Shift+Drag or Middle-Click+Drag to pan",
-    variant: "line",
-    datasets: denseData, // Use data with many points
-    glassVariant: "frosted",
-    color: "primary",
-    animation: { physicsEnabled: true }, // Keep general physics enabled if desired
+    datasets: denseData,
+    variant: 'line',
+    title: 'Chart with Custom Zoom/Pan Physics',
+    subtitle: 'Zoom with mouse wheel, pan with middle-click drag',
+    height: 500,
+    glassVariant: 'frosted',
     interaction: {
-      // -- Physics Zoom/Pan Configuration --
-      zoomPanEnabled: true,         // Explicitly enable physics zoom/pan
-      zoomMode: 'xy',               // Allow zooming/panning on both axes
-      physics: {                    // Configure the physics parameters
-        tension: 180,               // Spring stiffness (higher = faster snap)
-        friction: 22,               // Spring damping (higher = less oscillation)
-        mass: 1,                    // Mass (affects inertia)
-        minZoom: 0.3,               // Allow zooming out to 30%
-        maxZoom: 10,                // Allow zooming in to 1000%
-        wheelSensitivity: 0.05,     // Make wheel zooming less sensitive
-        inertiaDuration: 700,       // Increase pan inertia duration (ms)
-      },
-      // -- Other Interaction Options --
-      showTooltips: true,
-      tooltipStyle: 'dynamic',      // Use dynamic tooltip style
-      tooltipFollowCursor: false,
-      physicsHoverEffects: true,    // Keep element hover effects enabled if needed
-    },
-    // Optional: Callback for zoom/pan events
-    onZoomPan: (chart: any) => { 
-      // console.log('Zoom/Pan Event', chart.scales.x.min, chart.scales.x.max);
-    },
-    height: 350, // Increase height slightly for better visibility
-  },
-  parameters: { 
-    docs: { 
-      description: { 
-        story: 'Demonstrates enabling and configuring physics-based zoom and pan via the `interaction` prop. Use Ctrl+MouseWheel to zoom and Shift+Drag or Middle-Click+Drag to pan.'
+      zoomPanEnabled: true,
+      tooltipStyle: 'glass',
+      physics: {
+        tension: 500, // Higher tension for snappier zoom
+        friction: 20,  // Less friction for more overshoot
+        mass: 0.8,     // Lighter mass
+        minZoom: 0.5,
+        maxZoom: 6,
+        wheelSensitivity: 0.08, // More sensitive wheel zoom
+        inertiaDuration: 800 // Longer pan inertia
       }
+    },
+    axis: {
+      showXGrid: true,
+      showYGrid: true,
     }
-  }
+  },
 };
 // --- End Task 9 Story ---
 

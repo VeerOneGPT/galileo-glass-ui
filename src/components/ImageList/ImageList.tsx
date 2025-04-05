@@ -8,11 +8,15 @@ import styled from 'styled-components';
 
 // Import animation sequence hook and types
 import { 
-  useAnimationSequence, 
-  type AnimationSequenceConfig, 
-  type StaggerAnimationStage, 
-  type SequenceControls // Import SequenceControls
-} from '../../animations/orchestration/useAnimationSequence'; 
+  useAnimationSequence,
+  AnimationSequenceConfig,
+  SequenceControls
+} from '../../animations/orchestration/useAnimationSequence';
+import { 
+  StaggerAnimationStage,
+  StyleAnimationStage,
+  AnimationStage
+} from '../../animations/types';
 import { Easings } from '../../animations/physics/interpolation'; // Import Easings
 
 // Hook for reduced motion

@@ -6,12 +6,14 @@ import { glassGlow } from '../../core/mixins/glowEffects';
 import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { 
-  useAnimationSequence, 
+  useAnimationSequence,
   AnimationSequenceConfig,
+} from '../../animations/orchestration/useAnimationSequence';
+import {
   AnimationStage,
   StyleAnimationStage,
   StaggerAnimationStage,
-} from '../../animations/orchestration/useAnimationSequence';
+} from '../../animations/types';
 
 // Physics/Animation Imports
 import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';

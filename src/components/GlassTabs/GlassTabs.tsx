@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle, useCallback } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { glassSurface } from "../../core/mixins/glassSurface";
 import { createThemeContext } from "../../core/themeContext";
@@ -27,6 +27,57 @@ const glowEffect = keyframes`
   0%, 100% { box-shadow: 0 0 5px rgba(var(--glass-primary-rgb), 0.3); }
   50% { box-shadow: 0 0 15px rgba(var(--glass-primary-rgb), 0.6); }
 `;
+
+// --- New Scroll Button Styles ---
+const ScrollButton = styled.button`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2; // Ensure buttons are above tabs
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  padding: 0;
+  line-height: 0; // Ensure icon is centered
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: rgba(255, 255, 255, 1);
+  }
+
+  &:active {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  // SVG icon styling
+  svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+`;
+
+const LeftScrollButton = styled(ScrollButton)`
+  left: 8px; // Position near the left edge
+`;
+
+const RightScrollButton = styled(ScrollButton)`
+  right: 8px; // Position near the right edge
+`;
+// --- End Scroll Button Styles ---
 
 // Tab Container
 const TabsContainer = styled.div`
@@ -60,20 +111,16 @@ const TabList = styled.div<{ $variant: GlassTabsVariant; $verticalAlign: GlassTa
 
   ${({ $variant }) => ($variant === 'scrollable') && css`
     overflow-x: auto;
-    /* Simple scrollbar styling */
+    /* Hide default scrollbar */
+    scrollbar-width: none; /* Firefox */
     &::-webkit-scrollbar {
-      height: 4px;
+      display: none; /* Safari and Chrome */
     }
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    &::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 2px;
-    }
-    &::-webkit-scrollbar-thumb:hover {
-      background: rgba(255, 255, 255, 0.4);
-    }
+    /* Add padding to prevent buttons from overlapping content edge */
+    padding-left: 40px; 
+    padding-right: 40px;
+    /* Ensure container clips content, needed for absolute positioned buttons */
+    overflow: hidden; // Change from auto to hidden to clip, scrolling is handled programmatically/manually
   `}
 
   &::before {
@@ -88,6 +135,20 @@ const TabList = styled.div<{ $variant: GlassTabsVariant; $verticalAlign: GlassTa
     );
     pointer-events: none;
   }
+`;
+
+// Inner container for scrolling when variant is 'scrollable'
+const ScrollableTabInner = styled.div`
+    display: flex;
+    gap: 8px; // Match TabList gap
+    overflow-x: auto; // Enable scrolling on this inner div
+    /* Hide scrollbar */
+    scrollbar-width: none; /* Firefox */
+    &::-webkit-scrollbar {
+        display: none; /* Safari and Chrome */
+    }
+    /* Ensure it takes up space */
+    width: 100%;
 `;
 
 // Tab Button Styled Component
@@ -228,6 +289,7 @@ export interface GlassTabsRef {
  * 
  * A tabbed interface with glass styling and animated indicator.
  * Features interactive hover effects and smooth transitions.
+ * Includes optional scroll buttons for the 'scrollable' variant.
  */
 // Convert component to use forwardRef
 export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({ 
@@ -243,8 +305,13 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
   const { isReducedMotion } = useAccessibilitySettings();
   const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const listRef = useRef<HTMLDivElement>(null);
+  const scrollableInnerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null); // Ref for the root container
   
+  // State for Scroll Buttons
+  const [showLeftButton, setShowLeftButton] = useState(false);
+  const [showRightButton, setShowRightButton] = useState(false);
+
   // State to hold the target indicator style
   const [targetIndicatorStyle, setTargetIndicatorStyle] = useState({ left: 0, width: 0 });
 
@@ -264,36 +331,110 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
   const { value: animatedWidth, start: startWidth } = usePhysicsAnimation(physicsConfig);
   // --- End Refactored Physics Animation ---
 
+  // --- Scroll Button Visibility Logic ---
+  const updateScrollButtonVisibility = useCallback(() => {
+    if (variant !== 'scrollable' || !scrollableInnerRef.current) {
+      setShowLeftButton(false);
+      setShowRightButton(false);
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = scrollableInnerRef.current;
+    const isOverflowing = scrollWidth > clientWidth;
+    const scrollEndReached = Math.abs(scrollWidth - clientWidth - scrollLeft) < 1; // Check if near the end
+
+    setShowLeftButton(isOverflowing && scrollLeft > 0);
+    setShowRightButton(isOverflowing && !scrollEndReached);
+
+  }, [variant]); // Dependency on variant
+
+  // Effect for ResizeObserver and initial check
+  useEffect(() => {
+    const scrollElement = scrollableInnerRef.current;
+    if (variant !== 'scrollable' || !scrollElement) return;
+
+    // Initial check
+    updateScrollButtonVisibility();
+
+    // Resize observer
+    const resizeObserver = new ResizeObserver(() => {
+      updateScrollButtonVisibility();
+    });
+    resizeObserver.observe(scrollElement);
+
+    // Add scroll event listener
+    scrollElement.addEventListener('scroll', updateScrollButtonVisibility);
+
+    return () => {
+      resizeObserver.disconnect();
+      scrollElement.removeEventListener('scroll', updateScrollButtonVisibility);
+    };
+  }, [variant, updateScrollButtonVisibility, tabs]); // Re-run if variant or tabs change
+
+  // --- Scroll Button Click Handlers ---
+  const handleScrollLeft = () => {
+    if (scrollableInnerRef.current) {
+      scrollableInnerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+    }
+  };
+
+  const handleScrollRight = () => {
+    if (scrollableInnerRef.current) {
+      scrollableInnerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+    }
+  };
+  // --- End Scroll Button Click Handlers ---
+
   // Update target indicator style state AND trigger animations
   useEffect(() => {
     const activeTabElement = tabRefs.current.get(activeTab);
-    if (activeTabElement && listRef.current) {
-      const listRect = listRef.current.getBoundingClientRect();
-      // Use offsetLeft relative to the scrollable container for accurate positioning
-      const targetLeft = activeTabElement.offsetLeft; 
-      const targetWidth = activeTabElement.offsetWidth;
-      
-      // Adjust for padding within the TabList
-      const adjustedLeft = targetLeft + 4; // Consider the 4px padding
-      const adjustedWidth = targetWidth - 8; // Consider the 4px padding on each side
+    // Use scrollableInnerRef for offset calculation if variant is scrollable
+    const referenceElement = variant === 'scrollable' ? scrollableInnerRef.current : listRef.current;
 
-      setTargetIndicatorStyle({ 
+    if (activeTabElement && referenceElement) {
+      // Calculate relative offset within the scrollable container
+      const targetLeft = activeTabElement.offsetLeft; // offsetLeft is relative to the offsetParent
+      const targetWidth = activeTabElement.offsetWidth;
+
+      // No extra padding adjustment needed if using inner container
+      const adjustedLeft = targetLeft;
+      const adjustedWidth = targetWidth;
+
+      setTargetIndicatorStyle({
         left: adjustedLeft < 0 ? 0 : adjustedLeft,
         width: adjustedWidth < 0 ? 0 : adjustedWidth
       });
 
       if (!isReducedMotion) {
+        // Need to adjust the physics animation target based on the scroll position
+        const scrollOffset = scrollableInnerRef.current?.scrollLeft ?? 0;
+        const visualLeft = adjustedLeft - (variant === 'scrollable' ? scrollOffset : 0);
+
+        // Note: Physics animation might jitter if scroll happens simultaneously.
+        // Consider disabling physics indicator if scrolling becomes too complex.
+        // For now, let's try animating based on the offsetLeft within the scrollable div.
         startLeft(adjustedLeft < 0 ? 0 : adjustedLeft);
         startWidth(adjustedWidth < 0 ? 0 : adjustedWidth);
+      } else {
+         // Immediately set style for reduced motion
+         setTargetIndicatorStyle({
+            left: adjustedLeft < 0 ? 0 : adjustedLeft,
+            width: adjustedWidth < 0 ? 0 : adjustedWidth
+         });
       }
     }
-  }, [activeTab, tabs, startLeft, startWidth, isReducedMotion]); // Dependencies remain similar
-  
-  // Handle tab change
+  }, [activeTab, tabs, startLeft, startWidth, isReducedMotion, variant]); // Add variant
+
+  // Handle tab change - Scroll into view if needed
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     if (onChange) {
       onChange(tabId);
+    }
+    // Scroll the active tab into view if using scrollable variant
+    if (variant === 'scrollable') {
+        const tabElement = tabRefs.current.get(tabId);
+        tabElement?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   };
   
@@ -339,6 +480,31 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
     }
   };
   
+  const renderTabs = () => (
+     tabs.map((tab, index) => (
+        <TabButton
+          key={tab.id}
+          ref={(ref) => registerTabRef(tab.id, ref)}
+          role="tab"
+          aria-selected={activeTab === tab.id}
+          aria-controls={`panel-${tab.id}`}
+          id={`tab-${tab.id}`}
+          $isActive={activeTab === tab.id}
+          $variant={variant} // Pass variant to styled component
+          onClick={() => handleTabChange(tab.id)}
+          onKeyDown={(e) => handleKeyDown(e, tab.id, index)}
+          tabIndex={activeTab === tab.id ? 0 : -1}
+        >
+          {tab.label}
+        </TabButton>
+     ))
+  );
+
+  // Indicator style calculation depends on whether motion is reduced
+  const indicatorStyle = isReducedMotion ?
+    { left: `${targetIndicatorStyle.left}px`, width: `${targetIndicatorStyle.width}px`, transform: 'translateZ(0)'} :
+    { left: `${animatedLeft}px`, width: `${animatedWidth}px`, transform: 'translateZ(0)'};
+
   return (
     <TabsContainer 
       ref={containerRef} // Assign ref to root container
@@ -350,31 +516,38 @@ export const GlassTabs = forwardRef<GlassTabsRef, GlassTabsProps>(({
         $variant={variant} // Pass variant to styled component
         $verticalAlign={verticalAlign} // Pass verticalAlign to styled component
       >
-        {tabs.map((tab, index) => (
-          <TabButton
-            key={tab.id}
-            ref={(ref) => registerTabRef(tab.id, ref)}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={`panel-${tab.id}`}
-            id={`tab-${tab.id}`}
-            $isActive={activeTab === tab.id}
-            $variant={variant} // Pass variant to styled component
-            onClick={() => handleTabChange(tab.id)}
-            onKeyDown={(e) => handleKeyDown(e, tab.id, index)}
-            tabIndex={activeTab === tab.id ? 0 : -1}
-          >
-            {tab.label}
-          </TabButton>
-        ))}
-        {!isReducedMotion && targetIndicatorStyle.width > 0 && (
-          <ActiveIndicator 
-             style={{
-                left: `${animatedLeft}px`,
-                width: `${animatedWidth}px`,
-                transform: 'translateZ(0)',
-             }}
-           />
+        {/* Conditionally render scroll buttons */}
+        {variant === 'scrollable' && showLeftButton && (
+          <LeftScrollButton onClick={handleScrollLeft} aria-label="Scroll tabs left" disabled={!showLeftButton}>
+             {/* Simple SVG Arrow Left */}
+             <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+          </LeftScrollButton>
+        )}
+
+        {/* Render tabs inside a scrollable div only if variant is scrollable */}
+        {variant === 'scrollable' ? (
+            <ScrollableTabInner ref={scrollableInnerRef}>
+                 {renderTabs()}
+                 {/* Render indicator inside the scrollable area */}
+                 {targetIndicatorStyle.width > 0 && (
+                    <ActiveIndicator style={indicatorStyle} />
+                 )}
+            </ScrollableTabInner>
+        ) : (
+            <>
+                {renderTabs()}
+                 {/* Render indicator directly in TabList if not scrollable */}
+                 {targetIndicatorStyle.width > 0 && (
+                    <ActiveIndicator style={indicatorStyle} />
+                 )}
+            </>
+        )}
+
+        {variant === 'scrollable' && showRightButton && (
+          <RightScrollButton onClick={handleScrollRight} aria-label="Scroll tabs right" disabled={!showRightButton}>
+            {/* Simple SVG Arrow Right */}
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+          </RightScrollButton>
         )}
       </TabList>
       

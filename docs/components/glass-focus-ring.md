@@ -49,17 +49,17 @@ export default FocusableButton;
 
 ## Props (`GlassFocusRingProps`)
 
-| Prop                | Type                     | Default                      | Description                                                                                                |
-| :------------------ | :----------------------- | :--------------------------- | :--------------------------------------------------------------------------------------------------------- |
-| `children`          | `React.ReactNode`        | **Required**                 | The single focusable React element to wrap.                                                                |
-| `offset`            | `number`                 | `theme.spacing.xs` (e.g., 2) | Offset (in px) of the focus ring from the wrapped element's bounds.                                        |
-| `radiusAdjust`      | `number`                 | `theme.spacing.sm` (e.g., 4) | Value (in px) added to the child's `border-radius` to calculate the ring's radius.                       |
-| `color`             | `string`                 | `'primary'`                  | Theme color preset (`'primary'`, `'secondary'`, etc.) or a valid CSS color string for the ring.            |
-| `disabled`          | `boolean`                | `false`                      | If true, disables the focus ring effect.                                                                   |
-| `ringThickness`     | `number`                 | `theme.borderWidths.medium` (e.g., 2) | Thickness (in px) of the focus ring border.                                                              |
-| `pulseAnimation`    | `boolean`                | `true`                       | Whether to apply the pulsing animation to the ring when focused.                                           |
-| `animationDuration` | `string`                 | `theme.animations.focusRing.duration` (e.g., '1500ms') | Custom duration for the pulse animation (CSS time format, e.g., '1.5s'). Overrides theme default. |
-| `animationEasing`   | `string`                 | `theme.animations.focusRing.easing` (e.g., 'ease-in-out') | Custom CSS easing function for the pulse animation. Overrides theme default.                             |
+| Prop                | Type                                       | Default         | Description                                                                      |
+| :------------------ | :----------------------------------------- | :-------------- | :------------------------------------------------------------------------------- |
+| `children`          | `React.ReactNode`                          | **Required**    | The focusable element(s) to wrap.                                                |
+| `offset`            | `number`                                   | `theme.spacing.xs` or `2` | Pixel offset of the ring from the child element's bounds.                        |
+| `radiusAdjust`      | `number`                                   | `theme.spacing.sm` or `4` | Added to the child's border-radius to determine the ring's radius.           |
+| `color`             | `string`                                   | `'primary'`     | Theme color preset or valid CSS color string for the ring.                       |
+| `thickness`         | `'sm' \| 'md' \| 'lg'`                       | `'md'`          | Controls the ring's border thickness (maps to `theme.borderWidths`).         |
+| `animationPreset`   | `'pulse' \| 'fade' \| 'static'`               | `'pulse'`       | Determines the animation style when focused (`fade` relies on CSS transition). |
+| `animationDuration` | `string`                                   | `'1500ms'`      | Custom duration for the `pulse` animation (CSS time format, e.g., `'1.5s'`).   |
+| `animationEasing`   | `string`                                   | `'ease-in-out'` | Custom CSS easing function for the `pulse` animation.                          |
+| `disabled`          | `boolean`                                  | `false`         | Disables the focus ring entirely.                                                |
 
 ## Advanced Usage: `useGlassFocus` Hook
 
