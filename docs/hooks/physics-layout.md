@@ -210,7 +210,7 @@ export interface PhysicsLayoutResult {
 
 ## How it Works
 
-1.  **Initialization:** The hook initializes an internal physics engine (`useGalileoPhysicsEngine`) and creates physics bodies corresponding to `itemCount`.
+1.  **Initialization:** The hook initializes an internal physics engine (`useGalileoPhysicsEngine`, also available as `usePhysicsEngine`) and creates physics bodies corresponding to `itemCount`.
 2.  **Ref Measurement:** The `getItemProps` function provides a `ref` callback. When this is attached to a real DOM element by your rendering logic, the hook measures the element's size (`offsetWidth`, `offsetHeight`).
 3.  **Target Calculation:** Based on the `layoutType`, measured element sizes, and layout options (`gridOptions`, `stackOptions`), the hook calculates a target position for each physics body.
 4.  **Force Application:** On each animation frame, the hook applies spring forces (using `physicsConfig`) to pull each body towards its target. For `freeform`, repulsion and other forces are applied.

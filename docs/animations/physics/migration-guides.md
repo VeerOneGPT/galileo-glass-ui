@@ -26,7 +26,7 @@ The bug is fixed in the core engine, but for maximum compatibility (especially i
 
 ```typescript
 import { 
-  useGalileoPhysicsEngine, 
+  useGalileoPhysicsEngine,
   getPhysicsBodyState 
 } from '@veerone/galileo-glass-ui';
 

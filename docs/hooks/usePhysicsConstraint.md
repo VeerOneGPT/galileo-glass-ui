@@ -15,7 +15,8 @@ import { usePhysicsConstraint } from '@veerone/galileo-glass-ui/hooks';
 
 // Also import necessary engine types if defining options in the component
 import { 
-  useGalileoPhysicsEngine, 
+  useGalileoPhysicsEngine, // Original hook name
+  // or usePhysicsEngine, // Alias for useGalileoPhysicsEngine
   type GalileoPhysicsEngineAPI,
   type PhysicsConstraintOptions,
   type SpringConstraintOptions 
@@ -24,18 +25,20 @@ import {
 
 ## Usage
 
-Pass the engine instance from `useGalileoPhysicsEngine` and the constraint configuration object to the hook. Ensure the body IDs in the options are valid before the hook runs.
+Pass the engine instance from `useGalileoPhysicsEngine` (or its alias `usePhysicsEngine`) and the constraint configuration object to the hook. Ensure the body IDs in the options are valid before the hook runs.
 
 ```typescript
 import React, { useState, useEffect } from 'react';
 import { 
-  useGalileoPhysicsEngine, 
+  useGalileoPhysicsEngine, // Original hook name
+  // or usePhysicsEngine, // Alias - both work the same
   usePhysicsConstraint, 
   type SpringConstraintOptions 
 } from '@veerone/galileo-glass-ui/hooks'; // Assuming engine types are also exported here
 
 function MyComponentWithConstraint() {
   const engine = useGalileoPhysicsEngine();
+  // Alternative: const engine = usePhysicsEngine(); 
   const [bodyId1, setBodyId1] = useState<string | null>(null);
   const [bodyId2, setBodyId2] = useState<string | null>(null);
 
@@ -89,7 +92,7 @@ usePhysicsConstraint = (
 ) => void;
 ```
 
-*   **`engine`**: The engine instance returned by `useGalileoPhysicsEngine`. The hook will do nothing if the engine is `null` or `undefined`.
+*   **`engine`**: The engine instance returned by `useGalileoPhysicsEngine` (or its alias `usePhysicsEngine`). The hook will do nothing if the engine is `null` or `undefined`.
 *   **`options`**: The constraint configuration object (`DistanceConstraintOptions`, `SpringConstraintOptions`, `HingeConstraintOptions`).
     *   Must include `bodyAId` and `bodyBId` which must correspond to existing bodies in the engine.
     *   If `options` is `null` or `undefined`, or if `bodyAId`/`bodyBId` are missing/invalid, any constraint previously managed by *this instance* of the hook will be automatically removed.

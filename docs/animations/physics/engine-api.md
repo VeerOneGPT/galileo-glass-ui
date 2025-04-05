@@ -2,6 +2,8 @@
 
 This document describes the lower-level API for interacting directly with the Galileo physics engine, introduced in version 1.0.8. This API complements the specialized interaction hooks (like `useGesturePhysics`) by providing direct control over physics bodies and simulation events.
 
+> **Note on Hook Names:** The physics engine hook is implemented as `useGalileoPhysicsEngine` and is also available via the alias `usePhysicsEngine`. Both names can be used interchangeably throughout your code. This documentation primarily uses the original name `useGalileoPhysicsEngine`, but you can substitute `usePhysicsEngine` in any example.
+
 **Note:** This API is intended for advanced use cases like custom game mechanics or complex physics visualizations. For common UI interactions, prefer using the specialized hooks.
 
 ## Import Options
@@ -11,7 +13,7 @@ You can import the physics engine in two ways:
 1. Through the main package (recommended):
 ```typescript
 import { 
-  useGalileoPhysicsEngine, 
+  useGalileoPhysicsEngine,
   type PhysicsBodyOptions, 
   type Vector2D,
   type PhysicsBodyState,
@@ -27,7 +29,7 @@ import {
 2. Through the physics subpath (alternative):
 ```typescript
 import { 
-  useGalileoPhysicsEngine, 
+  usePhysicsEngine, 
   type PhysicsBodyOptions, 
   type Vector2D,
   type PhysicsBodyState,
@@ -40,13 +42,13 @@ import {
 } from '@veerone/galileo-glass-ui/physics';
 ```
 
-## `useGalileoPhysicsEngine` Hook
+## `useGalileoPhysicsEngine` Hook (also available as `usePhysicsEngine`)
 
-The primary entry point to the engine is the `useGalileoPhysicsEngine` hook.
+The primary entry point to the engine is the `useGalileoPhysicsEngine` hook, which is also available as `usePhysicsEngine` (an alias). Both names can be used interchangeably.
 
 ```typescript
 import { 
-  useGalileoPhysicsEngine, 
+  useGalileoPhysicsEngine,
   type PhysicsBodyOptions, 
   type Vector2D,
   type PhysicsBodyState,
@@ -781,7 +783,7 @@ export default PhysicsDemo;
 ## Examples
 
 See the example implementation:
-[`docs/examples/animations/CustomPhysicsDemo.tsx`](../examples/animations/CustomPhysicsDemo.tsx)
+[`examples/animations/CustomPhysicsDemo.stories.tsx`](../examples/animations/CustomPhysicsDemo.stories.tsx)
 
 ### Example Usage
 
