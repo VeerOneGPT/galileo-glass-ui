@@ -19,6 +19,8 @@ The Galileo animation system is built around a few core concepts:
    - `useGalileoStateSpring` and `useMultiSpring` for state transitions
 
 3. **Orchestration:** The `useAnimationSequence` hook allows coordinating complex multi-step and multi-element animations.
+   - Now with improved TypeScript support in v1.0.19 through the new `PublicAnimationStage` type system
+   - Simplified API makes creating complex animation sequences more intuitive
 
 4. **Accessibility:** Features like `useReducedMotion` ensure animations respect user preferences and device capabilities.
 
@@ -37,4 +39,4 @@ The Galileo animation system is built around a few core concepts:
 Choose the appropriate section based on your needs:
 - For custom physics simulations or game-like mechanics, start with the Physics Engine API.
 - For common UI interactions, use the Core Physics Hooks.
-- For complex animations, refer to Animation Orchestration. 
+- For complex animations, refer to Animation Orchestration.

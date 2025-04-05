@@ -109,6 +109,41 @@ useGalileoPhysicsEngine = (config?: PhysicsEngineConfig): GalileoPhysicsEngineAP
     ```
 *   **Returns:** An object implementing the `GalileoPhysicsEngineAPI` interface. The object reference is stable.
 
+### Animation Loop / State Updates
+
+**Important:** The `useGalileoPhysicsEngine` hook does **not** provide built-in `onUpdate` or `tick` events for subscribing to per-frame physics updates. To get the state of physics bodies for rendering or other effects, you must implement your own animation loop, typically using `requestAnimationFrame`:
+
+```typescript
+useEffect(() => {
+  if (!engine) return;
+
+  let animationFrameId: number;
+
+  const updateLoop = () => {
+    const allStates = engine.getAllBodyStates(); // Get current state of all bodies
+    
+    // Iterate through states and update your component visuals
+    allStates.forEach((state, bodyId) => {
+      // Example: Find corresponding DOM element and apply transform
+      const element = document.getElementById(bodyId); 
+      if (element) {
+        element.style.transform = `translate(${state.position.x}px, ${state.position.y}px) rotate(${state.angle}rad)`;
+      }
+    });
+
+    animationFrameId = requestAnimationFrame(updateLoop);
+  };
+
+  animationFrameId = requestAnimationFrame(updateLoop); // Start the loop
+
+  return () => {
+    cancelAnimationFrame(animationFrameId); // Stop the loop on unmount
+  };
+}, [engine]);
+```
+
+Referencing the implementation of hooks like `usePhysicsLayout` can provide further examples of this pattern.
+
 ## `GalileoPhysicsEngineAPI` Interface
 
 The hook returns an object with the following methods:

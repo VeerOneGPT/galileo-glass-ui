@@ -105,7 +105,18 @@ export interface ZSpaceAnimationOptions {
   delay?: string;
 }
 
-// --- START Consolidated Animation Stage & Supporting Definitions ---
+// --- Common Animation Stage Types ---
+
+// Type alias for flexible animation targets
+type AnimationTarget =
+  | string // CSS Selector
+  | Element
+  | NodeListOf<Element>
+  | React.RefObject<Element | null> // Add React RefObject
+  | (() => Element | null) // Add function returning element or null
+  | (Element | null)[] // Add array of elements or null
+  | React.RefObject<Element | null>[] // Add array of RefObjects
+  | (() => Element | null)[]; // Add array of functions
 
 // Enums
 export enum PlaybackDirection { FORWARD = 'forward', BACKWARD = 'backward', ALTERNATE = 'alternate', ALTERNATE_REVERSE = 'alternate-reverse' }
@@ -124,17 +135,6 @@ export type ConfigCallback = InternalCallback | undefined;
 export type GenericEasingFunctionFactory = (...args: unknown[]) => EasingFunction | InterpolationFunction;
 export type EasingDefinitionType = keyof typeof Easings | InterpolationFunction | GenericEasingFunctionFactory | { type: string; [key: string]: unknown };
 
-// Point Interface
-/**
- * Simple 2D/3D coordinate point.
- * Note: This type is now imported from '../types/physics' instead of being defined here.
- */
-// export interface Point {
-//   x: number;
-//   y: number;
-//   z?: number;
-// }
-
 // Sequence Lifecycle Interface
 export interface SequenceLifecycle {
   onStart?: SequenceIdCallback;
@@ -147,7 +147,79 @@ export interface SequenceLifecycle {
   onAnimationComplete?: AnimationIdCallback;
 }
 
-// Base Animation Stage Interface
+// --- START Public Animation Stage Types (for useAnimationSequence) ---
+
+// Base Animation Stage Interface for public API
+export interface PublicBaseAnimationStage {
+  id: string;
+  duration: number;
+  delay?: number;
+  easing?: EasingDefinitionType;
+  easingArgs?: unknown[];
+  startTime?: number;
+  direction?: PlaybackDirection;
+  repeatCount?: number;
+  repeatDelay?: number;
+  yoyo?: boolean;
+  dependsOn?: string[];
+  reducedMotionAlternative?: Omit<PublicBaseAnimationStage, 'id' | 'reducedMotionAlternative'>;
+  category?: AnimationCategory;
+  onStart?: SequenceIdCallback;
+  onUpdate?: ProgressCallback;
+  onComplete?: SequenceIdCallback;
+}
+
+// Specific Public Animation Stage Interfaces
+export interface PublicStyleAnimationStage extends PublicBaseAnimationStage {
+  type: 'style';
+  targets: AnimationTarget;
+  from?: Record<string, unknown>;
+  properties: Record<string, unknown>;
+  exclude?: string[];
+}
+
+export interface PublicCallbackAnimationStage extends PublicBaseAnimationStage {
+  type: 'callback';
+  callback: ProgressCallback;
+}
+
+export interface PublicEventAnimationStage extends PublicBaseAnimationStage {
+  type: 'event';
+  callback: SequenceIdCallback;
+  duration: 0;
+}
+
+export interface PublicGroupAnimationStage extends PublicBaseAnimationStage {
+  type: 'group';
+  children: PublicAnimationStage[]; // Recursive type
+  relationship?: TimingRelationship;
+  relationshipValue?: number;
+}
+
+export interface PublicStaggerAnimationStage extends PublicBaseAnimationStage {
+  type: 'stagger';
+  targets: AnimationTarget;
+  from?: Record<string, unknown>;
+  properties: Record<string, unknown>;
+  staggerDelay: number;
+  staggerPattern?: StaggerPattern;
+  staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number;
+  staggerOverlap?: number;
+}
+
+// Union Type for Public Animation Stage
+export type PublicAnimationStage =
+  | PublicStyleAnimationStage
+  | PublicCallbackAnimationStage
+  | PublicEventAnimationStage
+  | PublicGroupAnimationStage
+  | PublicStaggerAnimationStage;
+
+// --- END Public Animation Stage Types ---
+
+// --- START Internal Animation Stage Types (for useOrchestration and internal use) ---
+
+// Base Animation Stage Interface for internal use - includes orchestration specific properties
 export interface BaseAnimationStage {
   id: string;
   duration: number;
@@ -179,7 +251,7 @@ export interface BaseAnimationStage {
 // Specific Animation Stage Interfaces
 export interface StyleAnimationStage extends BaseAnimationStage {
   type: 'style';
-  targets: Element | Element[] | NodeListOf<Element> | string;
+  targets: AnimationTarget;
   from?: Record<string, unknown>;
   properties: Record<string, unknown>;
   exclude?: string[];
@@ -205,13 +277,13 @@ export interface GroupAnimationStage extends BaseAnimationStage {
 
 export interface StaggerAnimationStage extends BaseAnimationStage {
   type: 'stagger';
-  targets: Element | Element[] | NodeListOf<Element> | string;
-  from?: Record<string, unknown>; // Make optional? Keep required for now based on useAnimationSequence code.
+  targets: AnimationTarget;
+  from?: Record<string, unknown>;
   properties: Record<string, unknown>;
-  staggerDelay: number; // Specific to stagger
-  staggerPattern?: StaggerPattern; // Specific to stagger
-  staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number; // Specific to stagger
-  staggerOverlap?: number; // Specific to stagger
+  staggerDelay: number;
+  staggerPattern?: StaggerPattern;
+  staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number;
+  staggerOverlap?: number;
 }
 
 // Union Type for Animation Stage
@@ -222,8 +294,7 @@ export type AnimationStage =
   | GroupAnimationStage
   | StaggerAnimationStage;
 
-// --- END Consolidated Animation Stage & Supporting Definitions ---
-
+// --- END Internal Animation Stage Types ---
 
 // --- Keep Remaining Existing Types/Functions ---
 

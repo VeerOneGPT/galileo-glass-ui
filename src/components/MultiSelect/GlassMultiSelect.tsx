@@ -1038,7 +1038,7 @@ const GlassMultiSelectInternal = <T = string>(
                                 const isDisabled = option.disabled || disabled;
                                 const currentIndex = flatOptions.findIndex(opt => opt.id === option.id);
                                 const isFocused = currentIndex === focusedOptionIndex;
-                                const optionContent = renderOption ? renderOption(option, { selected: isSelected, focused: isFocused, disabled: !!isDisabled }) :
+                                const optionContent = renderOption ? renderOption(option, { isSelected: isSelected, isFocused: isFocused, disabled: !!isDisabled }) :
                                     <>{option.label} {isSelected && <span>✓</span>}</>; 
                                 return (
                                     <OptionItem

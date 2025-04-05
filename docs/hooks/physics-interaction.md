@@ -116,6 +116,7 @@ export interface PhysicsInteractionOptions {
   dampingRatio?: number;
   /** Animation config preset or object (overrides stiffness/dampingRatio if provided) */
   animationConfig?: AnimationProps['animationConfig']; // e.g., 'gentle', { tension: 150, friction: 12 }
+  // Valid Preset Names: 'DEFAULT', 'GENTLE', 'WOBBLY', 'STIFF', 'SLOW', 'MASSIVE', 'RESPONSIVE', 'SNAPPY', 'BOUNCY', 'HEAVY', 'REDUCED_MOTION', 'HOVER_QUICK', 'FOCUS_HIGHLIGHT', 'PRESS_FEEDBACK', 'MODAL_TRANSITION', 'MENU_POPOVER', 'NOTIFICATION_SLIDE'
   /** Max displacement in pixels (Default: 10) */
   maxDisplacement?: number;
   /** Applies effect to Z-axis rotation */
@@ -146,6 +147,12 @@ export interface PhysicsInteractionOptions {
   enableAmbientTilt?: boolean;
   /** Specific configuration options for the ambient tilt effect if enabled. */
   ambientTiltOptions?: AmbientTiltOptions; // See useAmbientTilt hook docs
+  /** 
+   * Bounds for constraining the physics effect. 
+   * Requires an object with coordinate values: { top, left, right, bottom }.
+   * **Note:** Do not pass a React Ref directly. Calculate bounds from the ref first.
+   */
+  bounds?: { top?: number; right?: number; bottom?: number; left?: number; zNear?: number; zFar?: number };
   // ... other advanced options (material, collisions, gravity, etc. - may be experimental)
 }
 ```

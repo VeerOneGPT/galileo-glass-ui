@@ -1,215 +1,174 @@
-# GlassDataGrid
+# GlassDataGrid Component
 
-`GlassDataGrid` provides a sophisticated table component for displaying and interacting with tabular data. It features glass styling, smooth sorting animations, and optional physics-based row reordering.
+## Overview
 
-## Import
+The `GlassDataGrid` component provides a way to display tabular data with integrated glass morphism styling, sorting, and optional physics-based row dragging. It uses custom internal logic for its features.
 
-```tsx
-import { GlassDataGrid } from '@veerone/galileo-glass-ui';
-import type { ColumnDefinition, SortState } from '@veerone/galileo-glass-ui'; // Import types
-```
+**Note:** This component does *not* use TanStack Table (React Table).
 
-## Usage
+## Core Props
 
-```tsx
-import React, { useState, useCallback } from 'react';
-import { GlassDataGrid } from '@veerone/galileo-glass-ui';
-import type { ColumnDefinition, SortState } from '@veerone/galileo-glass-ui';
+| Prop                 | Type                                          | Required | Default     | Description                                                                                   |
+| :------------------- | :-------------------------------------------- | :------- | :---------- | :-------------------------------------------------------------------------------------------- |
+| `data`               | `TData[]`                                     | Yes      | -           | An array of data objects to display in the grid.                                            |
+| `columns`            | `ColumnDefinition<TData>[]`                   | Yes      | -           | An array of column definition objects (see below).                                            |
+| `initialSort?`       | `{ columnId: string, direction: 'asc' \| 'desc' }` | No       | `undefined` | Defines the initial sort state of the grid.                                                 |
+| `enableRowDragging?` | `boolean`                                     | No       | `false`     | Enables physics-based row dragging functionality. Requires `onRowOrderChange`.              |
+| `onRowOrderChange?`  | `(newOrder: TData[]) => void`                 | No       | `undefined` | Callback function triggered after a row drag operation, receiving the full data in its new order. |
+| `getRowId?`          | `(row: TData) => string \| number`            | No       | `undefined` | Function to get a unique ID for each row, used for React keys if `row.id` is not present.    |
+| `height?`            | `string \| number`                            | No       | `undefined` | Sets a fixed height for the grid container, enabling vertical scrolling if content overflows. |
+| `className?`         | `string`                                      | No       | `""`        | Optional CSS class name for the main grid wrapper (`GlassSurface`).                           |
+| `style?`             | `React.CSSProperties`                         | No       | `undefined` | Optional inline styles for the main grid wrapper (`GlassSurface`).                            |
 
-// Define the data structure
-interface UserData {
-  id: number;
-  firstName: string;
-  lastName: string;
-  age: number;
-  status: 'Active' | 'Inactive';
+*(Replace `TData` with the actual type/interface defining the shape of your row data objects)*
+
+## Column Definition (`columns` prop)
+
+The `columns` array takes objects defining each column's display and behavior.
+
+```typescript
+// Assumed internal type structure based on component usage
+interface ColumnDefinition<TData = any> {
+  id: string; // Unique identifier for the column
+  header: React.ReactNode; // Content for the header cell
+  accessorKey: keyof TData; // Key in TData object to access cell data
+  cellRenderer?: (value: TData[keyof TData], row: TData) => React.ReactNode; // Optional custom cell rendering function
+  sortable?: boolean; // Enable sorting for this column (default: false)
+  // Properties like size, minSize, maxSize are NOT supported
 }
 
-// Define column configurations
-const columns: ColumnDefinition<UserData>[] = [
-  { id: 'firstName', accessorKey: 'firstName', header: 'First Name', sortable: true },
-  { id: 'lastName', accessorKey: 'lastName', header: 'Last Name', sortable: true },
-  { id: 'age', accessorKey: 'age', header: 'Age', sortable: true, width: 80 },
-  { 
+interface YourRowDataType {
+  id: string;
+  firstName: string;
+  status: 'active' | 'inactive';
+  age: number;
+}
+
+const columns: ColumnDefinition<YourRowDataType>[] = [
+  // Example: Basic column, sortable
+  {
+    id: 'firstName', // Unique ID
+    header: 'First Name', // Header text
+    accessorKey: 'firstName', // Key in YourRowDataType
+    sortable: true, // Enable sorting
+  },
+  // Example: Column with custom cell rendering
+  {
+    id: 'status',
+    header: 'Status',
+    accessorKey: 'status',
+    cellRenderer: (value, row) => ( // value is row.status
+      <span style={{ color: value === 'active' ? 'lightgreen' : 'orange' }}>
+        {value.toUpperCase()}
+      </span>
+    ),
+    sortable: true,
+  },
+  // Example: Non-sortable column
+  {
+    id: 'age',
+    header: 'Age',
+    accessorKey: 'age',
+    sortable: false, // Explicitly disable sorting
+  },
+];
+```
+
+**`ColumnDefinition` Properties:**
+
+*   `id: string`: **Required**. A unique string identifier for the column.
+*   `header: React.ReactNode`: **Required**. Content displayed in the table header (TH). Can be a string or JSX.
+*   `accessorKey: keyof TData`: **Required**. The key within your row data object (`TData`) whose value should be displayed in the cell by default.
+*   `cellRenderer?: (value: TData[keyof TData], row: TData) => React.ReactNode`: Optional function to provide custom rendering for a cell. It receives the cell's value (from `accessorKey`) and the entire row data object. If omitted, the raw value is displayed.
+*   `sortable?: boolean`: Set to `true` to allow users to sort the table by clicking this column's header. Defaults to `false`.
+
+## Features
+
+### Sorting
+
+*   **Enabling:** Set `sortable: true` in the `ColumnDefinition` for columns you want to be sortable.
+*   **Interaction:** Users can click the column header to cycle through ascending ('asc'), descending ('desc'), and unsorted states. Accessibility is supported via keyboard (Enter/Space on focused header).
+*   **Initial Sort:** Use the `initialSort` prop on `<GlassDataGrid>` to set the default sort order when the component mounts (e.g., `initialSort={{ columnId: 'name', direction: 'asc' }}`).
+*   **State:** Sorting state is managed internally by the component. There are no external `onSortChange` handlers.
+
+### Row Dragging (Physics-based)
+
+*   **Enabling:** Set `enableRowDragging={true}` on the `<GlassDataGrid>` component.
+*   **Requirement:** You **must** also provide the `onRowOrderChange` callback prop.
+*   **Functionality:** When enabled, a drag handle (`⠿`) appears in a new first column. Users can click and drag rows (or use keyboard navigation) to reorder them. The reordering uses physics animations via `useDraggableListPhysics`.
+*   **Callback:** After the user finishes dragging and the animation settles, the `onRowOrderChange` function is called with a *new array* containing the original data items in their new visual order. You typically use this callback to update your application's state.
+
+### Unsupported Features
+
+The current version of `GlassDataGrid` **does not** include built-in support for:
+
+*   Filtering
+*   Pagination
+*   Row Selection (checkboxes, etc.)
+*   Column Resizing
+*   Column Visibility Control
+*   Grouping
+*   Expandable Rows
+
+## Basic Example
+
+```jsx
+import React, { useState, useCallback, useMemo } from 'react';
+import { GlassDataGrid } from '@veerone/galileo-glass-ui';
+// Define your data structure
+interface UserData {
+  id: string;
+  name: string;
+  role: string;
+  status: 'active' | 'inactive';
+}
+
+// Define the column structure
+// Note: ColumnDefinition is an assumed type, adjust if the library exports it
+const columns: { id: string; header: string; accessorKey: keyof UserData; sortable?: boolean; cellRenderer?: (value: any, row: UserData) => React.ReactNode }[] = [
+  { id: 'name', accessorKey: 'name', header: 'Name', sortable: true },
+  { id: 'role', accessorKey: 'role', header: 'Role', sortable: true },
+  {
     id: 'status',
     accessorKey: 'status',
     header: 'Status',
+    sortable: true,
     cellRenderer: (value) => (
-      <span style={{ 
-        color: value === 'Active' ? '#10B981' : '#EF4444',
-        fontWeight: 'bold' 
-      }}>
+      <span style={{ color: value === 'active' ? 'lightgreen' : 'orange' }}>
         {value}
       </span>
     )
   },
-  { 
-    id: 'fullName',
-    accessorKey: 'firstName', // Not a direct key, uses renderer
-    header: 'Full Name',
-    cellRenderer: (_, row) => `${row.firstName} ${row.lastName}`
-  }
 ];
 
-function MyDataTable() {
-  // Sample data state
-  const [data, setData] = useState<UserData[]>([
-    { id: 1, firstName: 'Elara', lastName: 'Vance', age: 28, status: 'Active' },
-    { id: 2, firstName: 'Kael', lastName: 'Storm', age: 34, status: 'Inactive' },
-    { id: 3, firstName: 'Lin', lastName: 'Chen', age: 22, status: 'Active' },
+function MyGrid() {
+  // Manage the data state
+  const [userData, setUserData] = useState<UserData[]>([
+    { id: 'u1', name: 'Alice', role: 'Admin', status: 'active' },
+    { id: 'u2', name: 'Bob', role: 'User', status: 'inactive' },
+    { id: 'u3', name: 'Charlie', role: 'User', status: 'active' },
   ]);
 
-  // Handle row reordering
-  const handleRowOrderChange = useCallback((newData: UserData[]) => {
-    console.log('New row order:', newData);
-    setData(newData); // Update local state with the new order
+  // Callback for row dragging
+  const handleRowOrderChange = useCallback((newDataOrder: UserData[]) => {
+    console.log("New row order:", newDataOrder);
+    setUserData(newDataOrder); // Update state with the new order
   }, []);
 
-  // Define initial sorting
-  const initialSort: SortState = { columnId: 'age', direction: 'asc' };
-
-  return (
-    <GlassDataGrid<UserData>
-      data={data}
-      columns={columns}
-      initialSort={initialSort}
-      enableRowDragging={true} // Enable drag-and-drop
-      onRowOrderChange={handleRowOrderChange}
-      height="400px" // Set a height to enable scrolling
-    />
-  );
-}
-```
-
-## ColumnDefinition Interface
-
-Defines the configuration for each column in the grid.
-
-```tsx
-interface ColumnDefinition<TData extends Record<string, any>> {
-  /** Unique identifier for the column. */
-  id: string;
-  
-  /** The key in the row data object corresponding to this column. */
-  accessorKey: keyof TData;
-  
-  /** The content displayed in the column header. */
-  header: React.ReactNode;
-  
-  /** Optional function to customize cell rendering. Receives cell value and the full row data object. */
-  cellRenderer?: (value: TData[keyof TData], row: TData) => React.ReactNode;
-  
-  /** Optional flag indicating if the column is sortable. Defaults to false. */
-  sortable?: boolean;
-  
-  /** Optional minimum width for the column (e.g., 100, '10%'). */
-  minWidth?: number | string;
-  
-  /** Optional maximum width for the column. */
-  maxWidth?: number | string;
-  
-  /** Optional explicit width for the column. */
-  width?: number | string;
-}
-```
-
-## SortState Interface
-
-Represents the current sorting state of the grid.
-
-```tsx
-interface SortState {
-  /** The ID of the column currently being sorted. */
-  columnId: string | null;
-  
-  /** The sort direction ('asc' or 'desc'). */
-  direction: 'asc' | 'desc';
-}
-```
-
-## Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `data` | `TData[]` | required | Array of data objects to display. `TData` should match the generic type. |
-| `columns` | `ColumnDefinition<TData>[]` | required | Array of column definitions. |
-| `initialSort` | `SortState` | `undefined` | Optional initial sorting state for the grid. |
-| `enableRowDragging` | `boolean` | `false` | If true, enables physics-based row dragging. |
-| `onRowOrderChange` | `(newData: TData[]) => void` | `undefined` | Callback fired after a row drag operation completes, providing the newly ordered data array. Required if `enableRowDragging` is true. |
-| `className` | `string` | `undefined` | Additional CSS class for the root container. |
-| `style` | `React.CSSProperties` | `undefined` | Additional inline styles for the root container. |
-| `height` | `number \| string` | `undefined` | Sets a fixed height for the grid container, enabling vertical scrolling. |
-
-## Physics-Based Animations
-
-`GlassDataGrid` utilizes physics for:
-
-1.  **Sorting Indicator Animation**: When a column is sorted, the indicator icon (▲/▼) animates smoothly using spring physics (`useVectorSpring`), providing a subtle visual cue.
-
-2.  **Row Dragging**: When `enableRowDragging` is true, the component uses the `useDraggableListPhysics` hook. This enables:
-    *   **Smooth Dragging**: Rows follow the cursor with physics-based interpolation.
-    *   **Reordering Animation**: Other rows animate smoothly to their new positions when the dragged row moves over them.
-    *   **Drop Animation**: The dragged row animates into its final position upon release.
-    *   **Note**: This feature is currently pointer-based (mouse/touch) and does not support keyboard reordering.
-
-## Features
-
-- **Glass Styling**: The grid container uses the `GlassSurface` component for standard glass effects, integrating with the theme context.
-- **Sorting**: Click sortable column headers (or use keyboard: Tab to focus, Enter/Space to activate) to toggle sort direction (asc -> desc -> none). Uses `useSortableData` hook internally.
-- **Custom Cell Rendering**: Use the `cellRenderer` property in `ColumnDefinition` for custom content display.
-- **Row Reordering**: Optional drag-and-drop row reordering with physics.
-- **Scrolling**: If a `height` is provided, the table body becomes scrollable.
-
-## Accessibility
-
-- Sortable column headers are focusable and can be activated via keyboard (Enter/Space).
-- `role="columnheader"` and `aria-sort` attributes are applied for screen reader compatibility.
-- Row dragging handles have `role="button"` and `aria-grabbed` state, but full keyboard accessibility for reordering is not yet implemented.
-
-## Best Practices
-
-1.  **Provide Unique IDs**: Ensure data items have a unique `id` property if possible, although the component falls back to using array index for keys.
-2.  **Memoization**: For large datasets or complex `cellRenderer` functions, consider memoizing data and columns to prevent unnecessary re-renders.
-3.  **State Management**: When using `enableRowDragging`, ensure the `onRowOrderChange` callback updates your component's data state to reflect the new order.
-4.  **Scrolling**: For large datasets, provide a `height` prop to enable scrolling and improve performance.
-
-## Related Components
-
-- `GlassSurface`: Used internally for the container styling.
-- `useSortableData`: Hook used for sorting logic.
-- `useDraggableListPhysics`: Hook used for row dragging physics.
-
-```typescript
-interface GlassDataGridProps {
-  // data: RowDataType[];
-  // columns: ColumnDefinitionType[];
-  // onRowOrderChange?: (newData: RowDataType[]) => void;
-  // ... other standard grid props
-}
-```
-
-## Usage
-
-*(TODO: Add usage example)*
-
-```typescript
-// Example placeholder
-import { GlassDataGrid } from '@veerone/galileo-glass-ui';
-
-function MyComponent() {
-  // const data = ...
-  // const columns = ...
   return (
     <GlassDataGrid
-      // data={data}
-      // columns={columns}
+      data={userData}
+      columns={columns}
+      initialSort={{ columnId: 'name', direction: 'asc' }} // Start sorted by name
+      enableRowDragging={true} // Turn on dragging
+      onRowOrderChange={handleRowOrderChange} // Provide the callback
+      getRowId={row => row.id} // Important for stable dragging/keys
+      height={400} // Example fixed height for scrolling
     />
   );
 }
+
+export default MyGrid;
 ```
 
-## Implementation Notes (Deferred)
-
-*   Will likely use `usePhysicsLayout` or a similar hook internally.
-*   Needs careful state management to sync grid data with physics simulation.
-*   Requires integration with drag-and-drop libraries or custom implementation. 
+**Disclaimer:** While this documentation is based on recent source code analysis, ensure you are using the correct version of the library (`@veerone/galileo-glass-ui`). The internal `ColumnDefinition` type might be exported or differ slightly in the published package.

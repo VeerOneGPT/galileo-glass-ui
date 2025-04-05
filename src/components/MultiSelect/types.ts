@@ -5,6 +5,19 @@ import React from 'react';
 import { AnimationProps } from '../../animations/types'; // Import common animation props
 import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics'; // Import spring types
 
+// Define a specific type for itemRemoveAnimation configuration
+type ItemRemoveAnimationConfig =
+  | false // Disable animation
+  | keyof typeof SpringPresets // Preset name ('DEFAULT', 'GENTLE', etc.)
+  | {
+      type: 'spring';
+      preset: keyof typeof SpringPresets; // Preset name
+    }
+  | {
+      type: 'spring';
+      config: Partial<SpringConfig>; // Custom spring config
+    };
+
 /**
  * An option for the multi-select component
  */
@@ -115,6 +128,30 @@ export interface MultiSelectProps<T = string> {
   /** Whether the dropdown should be opened upward */
   openUp?: boolean;
   
+  /** Whether to allow searching by typing in the input */
+  searchable?: boolean;
+
+  /** Whether to show a clear button to remove all selected options */
+  clearable?: boolean;
+
+  /** Whether to close the dropdown after selecting an option */
+  closeOnSelect?: boolean;
+  
+  /** Whether to clear the input after selecting an option */
+  clearInputOnSelect?: boolean;
+  
+  /** Whether to enable keyboard navigation */
+  keyboardNavigation?: boolean;
+
+  /** Whether to group options by their group property */
+  withGroups?: boolean;
+  
+  /** Array of group configurations (required if withGroups is true) */
+  groups?: OptionGroup[];
+
+  /** Handler for when the input value changes */
+  onInputChange?: (value: string) => void;
+  
   /** Custom filter function for filtering options */
   filterFunction?: FilterFunction<T>;
   
@@ -130,107 +167,53 @@ export interface MultiSelectProps<T = string> {
   /** Maximum number of options to display before showing "and X more" */
   maxDisplay?: number;
   
-  /** Custom renderer for the selected options/tokens */
-  renderToken?: (option: MultiSelectOption<T>, onRemove: (event: React.MouseEvent) => void) => React.ReactNode;
-  
-  /** Custom renderer for option in the dropdown */
-  renderOption?: (option: MultiSelectOption<T>, state: { 
-    selected: boolean;
-    focused: boolean;
-    disabled: boolean;
-  }) => React.ReactNode;
-  
+  /** Configuration for physics animations */
+  physics?: { animationPreset?: string, tension?: number, friction?: number };
+
+  /** Configuration for asynchronous loading */
+  async?: {
+    loading?: boolean;
+    loadingIndicator?: React.ReactNode;
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+  };
+
+  /** Custom renderer for selected option tokens */
+  renderToken?: (
+    option: MultiSelectOption<T>,
+    onRemove: (e: React.MouseEvent) => void
+  ) => React.ReactNode;
+
+  /** Custom renderer for options in the dropdown list */
+  renderOption?: (
+    option: MultiSelectOption<T>,
+    state: { isSelected: boolean; isFocused: boolean; disabled: boolean }
+  ) => React.ReactNode;
+
   /** Custom renderer for group headers */
   renderGroup?: (group: OptionGroup) => React.ReactNode;
-  
-  /** Whether to close the dropdown after selecting an option */
-  closeOnSelect?: boolean;
-  
-  /** Whether to clear the input after selecting an option */
-  clearInputOnSelect?: boolean;
-  
-  /** Whether to enable keyboard navigation */
-  keyboardNavigation?: boolean;
-  
-  /** Whether to show a clear button to remove all selected options */
-  clearable?: boolean;
-  
-  /** Whether to allow searching by typing in the input */
-  searchable?: boolean;
-  
-  /** Whether to automatically bring focus to the component on mount */
-  autoFocus?: boolean;
-  
-  /** ID of the component for accessibility */
-  id?: string;
-  
-  /** aria-label for the component */
-  ariaLabel?: string;
-  
-  /** Whether to group options by their group property */
-  withGroups?: boolean;
-  
-  /** Array of group configurations (required if withGroups is true) */
-  groups?: OptionGroup[];
-  
-  /** Handler for when the dropdown is opened */
-  onOpen?: () => void;
-  
-  /** Handler for when the dropdown is closed */
-  onClose?: () => void;
-  
-  /** Handler for when the input value changes */
-  onInputChange?: (value: string) => void;
-  
-  /** Virtualization settings for the option list */
-  virtualization?: {
-    /** Number of items to render at once (default: 30) */
-    itemCount?: number;
-    /** Height of each item (required for virtualization) */
-    itemHeight: number;
-    /** Whether to use virtualization (automatic if option count > 100) */
-    enabled?: boolean;
-  };
-  
-  /** Physics animation settings */
-  physics?: {
-    /** Spring tension for animations (higher = faster) */
-    tension?: number;
-    /** Spring friction for animations (higher = less bouncy) */
-    friction?: number;
-    /** Token animation preset */
-    animationPreset?: 'gentle' | 'default' | 'snappy' | 'bouncy';
-    /** Whether to use physics for token dragging rearrangement */
-    dragToReorder?: boolean;
-    /** Whether tokens should have subtle hover animations */
-    hoverEffects?: boolean;
-  };
-  
-  /** Async loading settings */
-  async?: {
-    /** Whether the options are loading */
-    loading?: boolean;
-    /** Loading indicator element */
-    loadingIndicator?: React.ReactNode;
-    /** Handler for loading more options on scroll */
-    onLoadMore?: () => void;
-    /** Whether all options have been loaded */
-    hasMore?: boolean;
-    /** Function to fetch options based on input */
-    fetchOptions?: (input: string) => Promise<MultiSelectOption<T>[]>;
-  };
-  
-  /** Whether to enable mobile-optimized touch handling */
-  touchFriendly?: boolean;
 
-  /**
-   * Optional test ID for targeting elements in tests.
-   */
+  /** Callback when the dropdown opens */
+  onOpen?: () => void;
+
+  /** Callback when the dropdown closes */
+  onClose?: () => void;
+
+  /** DOM ID for the input element */
+  id?: string;
+
+  /** ARIA label for accessibility */
+  ariaLabel?: string;
+
+  /** Auto-focus input on mount */
+  autoFocus?: boolean;
+
+  /** Test ID for targeting in tests */
   dataTestId?: string;
 
-  /** 
-   * Configure the animation for removing selected items (tokens).
-   * Accepts a spring configuration object or a preset name.
+  /**
+   * Configuration for the exit animation of selected tokens upon removal.
+   * Can be `false`, a preset name (e.g., 'GENTLE'), or a config object.
    */
-  itemRemoveAnimation?: Partial<SpringConfig> | keyof typeof SpringPresets;
+  itemRemoveAnimation?: ItemRemoveAnimationConfig; // Use the new specific type
 }

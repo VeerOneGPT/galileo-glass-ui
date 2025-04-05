@@ -57,6 +57,16 @@ export { GlassFocusRing } from './components';
 export { Box, GlassBox } from './components/Box';
 export { TextField, GlassTextField } from './components/TextField';
 
+// Final Corrected EXPORTS for Select and MenuItem components
+export { Select } from './components/Select/Select'; 
+export { MenuItem } from './components/MenuItem/MenuItem';
+
+// Export Switch
+export { Switch, GlassSwitch } from './components/Switch';
+
+// Export DatePicker/Localization utilities
+export { DatePicker, GlassDatePicker, GlassLocalizationProvider, createDateFnsAdapter } from './components/DatePicker';
+
 //------------------------------------------------------------------------------
 // CORE & THEME EXPORTS
 //------------------------------------------------------------------------------
@@ -151,6 +161,13 @@ export {
 // Export 3D Transform and Magnetic Element hooks directly from source
 export { use3DTransform } from './animations/physics/use3DTransform';
 export { useMagneticElement } from './animations/physics/useMagneticElement';
+
+// Export 3D Transform types
+export type {
+  Transform3DOptions,
+  Transform3DState,
+  Transform3DResult
+} from './animations/physics/use3DTransform';
 
 //------------------------------------------------------------------------------
 // UTILITY EXPORTS
@@ -255,14 +272,40 @@ export type {
   GesturePhysicsResult
 } from './animations/physics/gestures/useGesturePhysics';
 
+// Export MagneticElementOptions type
+export type { MagneticElementOptions } from './animations/physics/useMagneticElement';
+
 // Animation types
 export type {
+  AnimationProps,
+  AnimationTiming,
+  AnimationEasing,
+  AnimationPresetReference,
+  AccessibleAnimationOptions,
+  AnimationPairing,
+  AnimationPresets,
+  OptimizedAnimationOptions,
+  ZSpaceAnimationOptions,
+  
+  // Public Animation Stage Types
+  PublicBaseAnimationStage,
+  PublicAnimationStage,
+  PublicStyleAnimationStage,
+  PublicCallbackAnimationStage,
+  PublicEventAnimationStage,
+  PublicGroupAnimationStage,
+  PublicStaggerAnimationStage,
+  
+  // For backwards compatibility/internal use
   AnimationStage,
+  BaseAnimationStage,
   StyleAnimationStage,
   CallbackAnimationStage,
   EventAnimationStage,
   GroupAnimationStage,
   StaggerAnimationStage,
+  
+  // Enum and common types
   PlaybackDirection,
   StaggerPattern,
   TimingRelationship,

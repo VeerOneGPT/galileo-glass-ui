@@ -118,7 +118,7 @@ interface MultiSelectOption<T = string> {
 | `id` | `string` | `undefined` | DOM ID for input element. |
 | `ariaLabel` | `string` | `undefined` | ARIA label for accessibility. |
 | `autoFocus` | `boolean` | `false` | Auto-focus input on mount. |
-| `itemRemoveAnimation` | `Partial<SpringConfig> \| keyof typeof SpringPresets` | `'DEFAULT'` | Configuration for the exit animation of selected tokens upon removal. |
+| `itemRemoveAnimation` | `ItemRemoveAnimationConfig` | `'DEFAULT'` | Configuration for the exit animation of selected tokens upon removal. See details below. |
 
 ## Physics-Based Animation
 
@@ -329,5 +329,32 @@ The `GlassMultiSelect` component implements several accessibility features:
 ### Animation Configuration
 
 - **General Animations:** Use the `physics` prop (e.g., `physics={{ animationPreset: 'gentle' }}`) to configure the overall feel, like the entrance animation of tokens.
-- **Item Removal Animation:** Use the `itemRemoveAnimation` prop to specifically configure how selected tokens animate out when removed. You can provide a preset name (e.g., `'SNAPPY'`) or a custom spring configuration object (e.g., `{ tension: 100, friction: 20 }`).
+- **Item Removal Animation:** Use the `itemRemoveAnimation` prop to specifically configure how selected tokens animate out when removed. See configuration options below.
 - **Disabling Animations:** Set `animate={false}` or rely on the user's `prefers-reduced-motion` setting.
+
+### `itemRemoveAnimation` Prop Configuration
+
+The `itemRemoveAnimation` prop accepts several types of values to configure the exit animation:
+
+1.  **`false` or `null`:** Disables the removal animation entirely.
+2.  **Preset Name (string):** A string matching one of the `SpringPresets` keys (e.g., `'DEFAULT'`, `'GENTLE'`, `'SNAPPY'`).
+3.  **Structured Spring Object:** An object specifying the animation type and its configuration:
+    *   `{ type: 'spring', preset: SpringPresetName }` (e.g., `{ type: 'spring', preset: 'WOBBLY' }`)
+    *   `{ type: 'spring', config: Partial<SpringConfig> }` (e.g., `{ type: 'spring', config: { tension: 100, friction: 18 } }`)
+
+**Type Definition (`ItemRemoveAnimationConfig`):**
+
+```typescript
+// Assumed type based on implementation (Confirm if exported)
+type SpringPresetName = keyof typeof SpringPresets; // e.g., 'DEFAULT', 'GENTLE', ...
+interface SpringConfig { tension: number; friction: number; mass?: number; ... }
+
+type ItemRemoveAnimationConfig =
+  | false
+  | null
+  | SpringPresetName
+  | { type: 'spring'; preset: SpringPresetName }
+  | { type: 'spring'; config: Partial<SpringConfig> };
+```
+
+**Note (v1.0.18):** The type definition in v1.0.18 was incorrect (`Partial<SpringConfig> | keyof typeof SpringPresets`). If using v1.0.18, you might need to use `as any` to bypass type errors when providing a structured object.

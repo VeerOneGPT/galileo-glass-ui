@@ -18,7 +18,7 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 ---
 
 ## ✨ Why Galileo Glass UI?
-
+h
 *   **Unique Aesthetic:** Stand out with sophisticated glass morphism styling, featuring configurable blurs, reflections, glows, and dynamic transparency.
 *   **Dynamic & Realistic Interactions:** Go beyond static interfaces. Leverage the significantly enhanced physics engine (**new constraints**, layout hook) and intuitive hooks (`usePhysicsInteraction` with **magnetic/repel**, `useAmbientTilt`, `usePhysicsLayout`) to create engaging, natural-feeling user experiences.
 *   **Performant Animations:** Achieve smooth, 60fps animations thanks to a purpose-built system that adapts to user device capabilities and replaces heavy dependencies.
@@ -63,7 +63,7 @@ This version focuses on resolving type definition issues, fixing numerous TypeSc
 - **Storybook Fixes:** Corrected import paths in example stories.
 - **Enhancements:** Introduced item removal animations for `GlassMultiSelect`.
 
-> For full details, see the [**v1.0.18 Changelog**](./docs/changelog/CHANGELOG-1.0.18.md).
+> For full details, see the [**v1.0.19 Changelog**](./docs/changelog/CHANGELOG-1.0.19.md).
 
 ---
 
@@ -251,7 +251,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
     <tr valign="top">
-      <td><a href="./docs/changelog/CHANGELOG-1.0.18.md">v1.0.18 Changelog</a></td>
+      <td><a href="./docs/changelog/CHANGELOG-1.0.19.md">v1.0.19 Changelog</a></td>
       <td></td>
       <td><a href="./docs/animations/presets.md">Animation Presets</a></td>
       <td></td>
@@ -335,7 +335,7 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
 
 ---
 
-## 📦 Component Library (Updated for v1.0.18)
+## 📦 Component Library (Updated for v1.0.19)
 
 Galileo Glass UI offers a comprehensive set of components that work universally across React, Next.js, and TypeScript applications:
 <!-- 💡 Add GIF showcasing component variety here! 💡 -->
@@ -587,7 +587,7 @@ const OverlayComponent = styled.div`
 </details>
 
 <details>
-<summary><b>🧲 Physics Interactions (Magnetic/Repel v1.0.18+)</b></summary>
+<summary><b>🧲 Physics Interactions (Magnetic/Repel v1.0.19+)</b></summary>
 <br>
 <!-- 💡 Add GIF for Magnetic Button interaction here! 💡 -->
 
@@ -618,7 +618,7 @@ function InteractiveButton() {
 }
 ```
 
-> **Magnetic & Repel Interactions** (v1.0.18+) create natural attraction or repulsion effects using the enhanced `usePhysicsInteraction` hook.
+> **Magnetic & Repel Interactions** (v1.0.19+) create natural attraction or repulsion effects using the enhanced `usePhysicsInteraction` hook.
 </details>
 
 <details>
@@ -691,7 +691,7 @@ function StaggeredList() {
 </details>
 
 <details>
-<summary><b>📐 Physics Layout (v1.0.18+)</b></summary>
+<summary><b>📐 Physics Layout (v1.0.19+)</b></summary>
 <br>
 
 ```jsx
@@ -752,7 +752,7 @@ function PhysicsGridLayout() {
   );
 }
 ```
-> **Physics Layout** (v1.0.18+) uses the `usePhysicsLayout` hook to arrange elements dynamically with smooth, physics-based transitions.
+> **Physics Layout** (v1.0.19+) uses the `usePhysicsLayout` hook to arrange elements dynamically with smooth, physics-based transitions.
 
 </details>
 

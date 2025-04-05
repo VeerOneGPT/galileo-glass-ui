@@ -25,7 +25,10 @@ import {
   GenericEasingFunctionFactory, EasingDefinitionType,
   SequenceLifecycle,
   BaseAnimationStage, StyleAnimationStage, CallbackAnimationStage, EventAnimationStage, GroupAnimationStage, StaggerAnimationStage, AnimationStage,
-  ConfigCallback
+  ConfigCallback,
+  // Add imports for the public types
+  PublicAnimationStage, PublicStyleAnimationStage, PublicCallbackAnimationStage, 
+  PublicEventAnimationStage, PublicGroupAnimationStage, PublicStaggerAnimationStage
 } from '../types';
 // --- END Added Imports ---
 
@@ -57,15 +60,48 @@ export type AnimationStage = ...;
 
 // Keep interfaces specific to this hook's implementation/return value
 export interface AnimationSequenceConfig extends SequenceLifecycle {
-  id?: string; stages: AnimationStage[]; duration?: number; autoplay?: boolean; 
-  repeatCount?: number; yoyo?: boolean; direction?: PlaybackDirection; category?: AnimationCategory; 
-  useWebAnimations?: boolean; playbackRate?: number;
+  id?: string; 
+  stages: PublicAnimationStage[] | AnimationStage[]; // Accept both public and internal types
+  duration?: number; 
+  autoplay?: boolean; 
+  repeatCount?: number; 
+  yoyo?: boolean; 
+  direction?: PlaybackDirection; 
+  category?: AnimationCategory; 
+  useWebAnimations?: boolean; 
+  playbackRate?: number;
 }
 interface DependencyResolution { order: string[]; parallelGroups: string[][]; }
 interface StageTiming { id: string; startTime: number; endTime: number; duration: number; }
 interface StageRuntime { id: string; stage: AnimationStage; progress: number; startTime: number; endTime: number; state: PlaybackState; animations: number[] | null; targets: HTMLElement[]; currentIteration: number; totalIterations: number; isReduced: boolean; }
-export interface SequenceControls { play: () => void; pause: () => void; stop: () => void; reverse: () => void; restart: () => void; seek: (time: number) => void; seekProgress: (progress: number) => void; seekLabel: (label: string) => void; getProgress: () => number; addStage: (stage: AnimationStage) => void; removeStage: (stageId: string) => void; updateStage: (stageId: string, updates: Partial<AnimationStage>) => void; setPlaybackRate: (rate: number) => void; getPlaybackState: () => PlaybackState; addCallback: (type: keyof SequenceLifecycle, callback: InternalCallback) => void; removeCallback: (type: keyof SequenceLifecycle, callback: InternalCallback) => void; }
-export interface AnimationSequenceResult extends SequenceControls { progress: number; playbackState: PlaybackState; duration: number; direction: PlaybackDirection; playbackRate: number; reducedMotion: boolean; stages: AnimationStage[]; id: string; }
+export interface SequenceControls { 
+  play: () => void; 
+  pause: () => void; 
+  stop: () => void; 
+  reverse: () => void; 
+  restart: () => void; 
+  seek: (time: number) => void; 
+  seekProgress: (progress: number) => void; 
+  seekLabel: (label: string) => void; 
+  getProgress: () => number; 
+  addStage: (stage: PublicAnimationStage) => void; 
+  removeStage: (stageId: string) => void; 
+  updateStage: (stageId: string, updates: Partial<PublicAnimationStage>) => void; 
+  setPlaybackRate: (rate: number) => void; 
+  getPlaybackState: () => PlaybackState; 
+  addCallback: (type: keyof SequenceLifecycle, callback: InternalCallback) => void; 
+  removeCallback: (type: keyof SequenceLifecycle, callback: InternalCallback) => void; 
+}
+export interface AnimationSequenceResult extends SequenceControls { 
+  progress: number; 
+  playbackState: PlaybackState; 
+  duration: number; 
+  direction: PlaybackDirection; 
+  playbackRate: number; 
+  reducedMotion: boolean; 
+  stages: PublicAnimationStage[]; // Use PublicAnimationStage for the public API
+  id: string; 
+}
 
 // Local placeholder for getEasingEntry
 function getEasingEntry(definition: EasingDefinitionType): EasingFunction | InterpolationFunction | GenericEasingFunctionFactory | object | undefined {
@@ -86,9 +122,115 @@ function applyStyles(_target: HTMLElement, _styles: Record<string, unknown>): vo
 function createStaggerDelays(_targets: unknown, delay: number): number[] { /*console.warn("createStaggerDelays called"); */ return Array.isArray(_targets) ? _targets.map((_, i) => i * delay) : [0]; }
 function getStageWithReducedMotion(stage: AnimationStage, _prefersReduced: boolean, _isAllowed: (category?: AnimationCategory) => boolean): { stage: AnimationStage, isReduced: boolean } { /*console.warn('getStageWithReducedMotion potentially unsafe', prefersReduced);*/ return { stage, isReduced: false }; }
 
-// --- END LOCAL DEFINITIONS & UTILS --- 
+// Add a utility function to convert PublicAnimationStage to internal AnimationStage
+function convertToInternalStage(stage: PublicAnimationStage | AnimationStage): AnimationStage {
+  // If it already has internal properties, assume it's an internal stage
+  if ('order' in stage || 'position' in stage || 'elementType' in stage || 
+      'group' in stage || 'dependencies' in stage || 'animation' in stage) {
+    return stage as AnimationStage;
+  }
+
+  // Create the base properties that all stage types share
+  const baseStage: Partial<BaseAnimationStage> = {
+    id: stage.id,
+    duration: stage.duration,
+    delay: stage.delay,
+    easing: stage.easing,
+    easingArgs: stage.easingArgs,
+    startTime: stage.startTime,
+    direction: stage.direction,
+    repeatCount: stage.repeatCount,
+    repeatDelay: stage.repeatDelay,
+    yoyo: stage.yoyo,
+    dependsOn: stage.dependsOn,
+    category: stage.category,
+    onStart: stage.onStart,
+    onUpdate: stage.onUpdate,
+    onComplete: stage.onComplete
+  };
+
+  // Add the reducedMotionAlternative if it exists
+  if (stage.reducedMotionAlternative) {
+    baseStage.reducedMotionAlternative = stage.reducedMotionAlternative;
+  }
+
+  // Convert based on stage type
+  switch (stage.type) {
+    case 'style': {
+      const publicStage = stage as PublicStyleAnimationStage;
+      return {
+        ...baseStage,
+        type: 'style',
+        targets: publicStage.targets,
+        from: publicStage.from,
+        properties: publicStage.properties,
+        exclude: publicStage.exclude
+      } as StyleAnimationStage;
+    }
+    case 'callback': {
+      const publicStage = stage as PublicCallbackAnimationStage;
+      return {
+        ...baseStage,
+        type: 'callback',
+        callback: publicStage.callback
+      } as CallbackAnimationStage;
+    }
+    case 'event': {
+      const publicStage = stage as PublicEventAnimationStage;
+      return {
+        ...baseStage,
+        type: 'event',
+        callback: publicStage.callback,
+        duration: 0 // Event stages always have duration 0
+      } as EventAnimationStage;
+    }
+    case 'group': {
+      const publicStage = stage as PublicGroupAnimationStage;
+      // Recursively convert children
+      const convertedChildren = publicStage.children.map(convertToInternalStage);
+      return {
+        ...baseStage,
+        type: 'group',
+        children: convertedChildren,
+        relationship: publicStage.relationship,
+        relationshipValue: publicStage.relationshipValue
+      } as GroupAnimationStage;
+    }
+    case 'stagger': {
+      const publicStage = stage as PublicStaggerAnimationStage;
+      return {
+        ...baseStage,
+        type: 'stagger',
+        targets: publicStage.targets,
+        from: publicStage.from,
+        properties: publicStage.properties,
+        staggerDelay: publicStage.staggerDelay,
+        staggerPattern: publicStage.staggerPattern,
+        staggerPatternFn: publicStage.staggerPatternFn,
+        staggerOverlap: publicStage.staggerOverlap
+      } as StaggerAnimationStage;
+    }
+    default:
+      // Default case (shouldn't happen with proper typing)
+      console.warn(`Unknown stage type: ${(stage as any).type}`);
+      return stage as AnimationStage;
+  }
+}
+
+// Add a helper to convert the internal stages back to public stages for the result
+function convertToPublicStages(stages: AnimationStage[]): PublicAnimationStage[] {
+  return stages.map(stage => {
+    // We don't need to fully convert back, since the public types are a subset
+    // Just ensure we don't expose the internal-only properties
+    const { order, position, elementType, group, dependencies, animation, ...publicProps } = stage;
+    return publicProps as PublicAnimationStage;
+  });
+}
 
 export function useAnimationSequence(config: AnimationSequenceConfig): AnimationSequenceResult {
+  // Convert public stages to internal stages
+  const internalStages = (config.stages || []).map(convertToInternalStage);
+  
   const { 
     prefersReducedMotion, 
     isAnimationAllowed 
@@ -96,8 +238,8 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   
   const sequenceId = config.id || `sequence-${Date.now()}`;
   
-  // Refs
-  const stagesRef = useRef<AnimationStage[]>(config.stages);
+  // Refs - now initialized with converted internal stages
+  const stagesRef = useRef<AnimationStage[]>(internalStages);
   const runtimeStagesRef = useRef<Map<string, StageRuntime>>(new Map());
   const timelineRef = useRef<StageTiming[]>([]);
   const resolutionRef = useRef<DependencyResolution | null>(null);
@@ -451,9 +593,18 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   }, [duration, seek]); 
   const seekLabel = useCallback((_label: string) => { console.warn("seekLabel not fully implemented"); /* TODO */ }, []);
   const getProgress = useCallback(() => { return progress; }, [progress]);
-  const addStage = useCallback((_stage: AnimationStage) => { console.warn("addStage not fully implemented"); /* TODO */ }, []);
+  const addStage = useCallback((publicStage: PublicAnimationStage) => { 
+    console.warn("addStage not fully implemented");
+    // Convert the public stage to internal format
+    const internalStage = convertToInternalStage(publicStage);
+    // TODO: Add implementation for adding a stage dynamically
+  }, []);
   const removeStage = useCallback((_stageId: string) => { console.warn("removeStage not fully implemented"); /* TODO */ }, []);
-  const updateStage = useCallback((_stageId: string, _updates: Partial<AnimationStage>) => { console.warn("updateStage not fully implemented"); /* TODO */ }, []);
+  const updateStage = useCallback((stageId: string, updates: Partial<PublicAnimationStage>) => { 
+    console.warn("updateStage not fully implemented");
+    // TODO: Add implementation for updating a stage dynamically
+    // The updates should be applied to the matching stage in stagesRef.current
+  }, []);
   const setPlaybackRate = useCallback((rate: number) => { console.warn("setPlaybackRate not fully implemented"); playbackRateRef.current = Math.max(0.01, rate); }, []);
   const getPlaybackState = useCallback(() => { return playbackState; }, [playbackState]);
   const addCallback = useCallback((type: keyof SequenceLifecycle, callback: InternalCallback) => {
@@ -464,17 +615,34 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   }, []);
   // --- END CONTROL DEFINITIONS ---
   
-  // Controls object - Ensure all defined controls are included
-  const controls = useMemo<SequenceControls>(() => ({
-      play, pause, stop, reverse, restart, seek, seekProgress, seekLabel, 
-      getProgress, addStage, removeStage, updateStage, setPlaybackRate, 
-      getPlaybackState, addCallback, removeCallback 
-  }), [ // Add all controls as dependencies
-      play, pause, stop, reverse, restart, seek, seekProgress, seekLabel, 
-      getProgress, addStage, removeStage, updateStage, setPlaybackRate, 
-      getPlaybackState, addCallback, removeCallback 
+  // Use useMemo for all controls/return result
+  const controls: AnimationSequenceResult = useMemo(() => {
+    return {
+      // Return sequence state
+      progress,
+      playbackState,
+      duration,
+      direction: directionRef.current,
+      playbackRate: playbackRateRef.current,
+      reducedMotion: prefersReducedMotion,
+      stages: convertToPublicStages(stagesRef.current), // Convert to public stages for API
+      id: sequenceId,
+      
+      // Return all control functions 
+      play, pause, stop, reverse, restart, 
+      seek, seekProgress, seekLabel, getProgress,
+      addStage, removeStage, updateStage, 
+      setPlaybackRate, getPlaybackState,
+      addCallback, removeCallback
+    };
+  }, [
+    // Dependencies (no changes needed here)
+    progress, playbackState, duration, prefersReducedMotion, sequenceId,
+    play, pause, stop, reverse, restart, seek, seekProgress, seekLabel, getProgress,
+    addStage, removeStage, updateStage, setPlaybackRate, getPlaybackState,
+    addCallback, removeCallback
   ]);
-
+  
   // Initialize on mount & handle config changes
   useEffect(() => {
     initTimeline();
@@ -493,18 +661,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
     }; 
   }, [config.autoplay, play, playbackState]); // Added playbackState dependency
   
-  // Final result
-  return {
-    ...controls,
-    progress,
-    playbackState,
-    duration,
-    direction: directionRef.current,
-    playbackRate: playbackRateRef.current,
-    reducedMotion: prefersReducedMotion,
-    stages: stagesRef.current,
-    id: sequenceId
-  };
+  return controls;
 }
 
 export default useAnimationSequence;

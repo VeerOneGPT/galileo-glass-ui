@@ -319,4 +319,232 @@ export default OrchestrationDemo;
 - **Use `active` Prop for Control:** Since `play`/`pause`/`stop` aren't returned, manage playback primarily by toggling the `active` prop in your component's state.
 - **Coordinate with Actual Animations:** Remember this hook calculates timing. You need a separate mechanism (CSS transitions based on `activeStages`, other animation libraries triggered by `onStart`/`onEnd`, etc.) to perform the visual animations.
 - **Unique Stage IDs:** Use unique and descriptive `id` values for stages, especially if using `dependencies`.
-- **Consider Performance:** For very large numbers of stages, be mindful of the complexity of pattern calculations, especially complex gestalt patterns. 
+- **Consider Performance:** For very large numbers of stages, be mindful of the complexity of pattern calculations, especially complex gestalt patterns.
+
+---
+
+## `useAnimationSequence` Hook (Primary Orchestration Hook)
+
+**Note:** While `useOrchestration` exists, `useAnimationSequence` is the primary hook intended for creating complex, multi-stage animations with fine-grained control over properties, timing, and targets.
+
+### Purpose
+
+The `useAnimationSequence` hook allows you to define a sequence of animations (stages) targeting specific elements and control the overall playback.
+
+### Signature
+
+```typescript
+import { 
+  useAnimationSequence, 
+  type AnimationSequenceConfig, 
+  type PublicAnimationStage, // Updated to use public types
+  type SequenceControls,
+  type AnimationSequenceResult // Updated - now returned by the hook
+} from '@veerone/galileo-glass-ui'; // Or specific path if needed
+
+function useAnimationSequence(
+  config: AnimationSequenceConfig
+): AnimationSequenceResult; // Returns more than just controls
+```
+
+### Configuration (`AnimationSequenceConfig`)
+
+- `stages` (`PublicAnimationStage[]`, **Required**): An array defining the animation stages (see below).
+- `id?` (`string`, optional): Unique identifier for the sequence.
+- `duration?` (`number`, optional): Override total duration.
+- `autoplay?` (`boolean`, optional): Start playing immediately. Default: `false`.
+- `repeatCount?` (`number`, optional): Number of repetitions. Default: `0` (no repeats).
+- `yoyo?` (`boolean`, optional): Alternate direction on repeat. Default: `false`.
+- `direction?` (`PlaybackDirection`, optional): Direction of playback.
+- `category?` (`AnimationCategory`, optional): For accessibility.
+- `playbackRate?` (`number`, optional): Speed multiplier. Default: `1`.
+- Additional lifecycle callbacks: `onStart`, `onUpdate`, `onComplete`, etc.
+
+### Stage Definition (`PublicAnimationStage`) - v1.0.19+
+
+Starting with v1.0.19, Galileo Glass provides a simplified public API for animation stages. This is a discriminated union based on the `type` property. All stages require at minimum `id: string`, `type: string`, and `duration: number`.
+
+**Previous Issue (SOLVED in v1.0.19):** The generated `.d.ts` files for v1.0.18 had issues correctly representing the stage types, which led to TypeScript errors. This has been fixed in v1.0.19 with the introduction of separate public and internal type structures.
+
+**Common Stage Properties (Inherited from `PublicBaseAnimationStage`):**
+
+*   `id: string` (**Required**)
+*   `type: string` (**Required** - e.g., 'style', 'stagger', etc.)
+*   `duration: number` (**Required** - milliseconds)
+*   `delay?: number` (milliseconds)
+*   `easing?: EasingDefinitionType` (e.g., 'easeOutQuad', custom function)
+*   `easingArgs?: unknown[]` (Arguments for custom easing functions)
+*   `startTime?: number` (Absolute start time, alternative to delay)
+*   `direction?: PlaybackDirection`
+*   `repeatCount?: number`
+*   `repeatDelay?: number`
+*   `yoyo?: boolean`
+*   `dependsOn?: string[]` (Stage IDs that must complete first)
+*   `reducedMotionAlternative?: Partial<PublicBaseAnimationStage>` (Simplified animation for reduced motion)
+*   `category?: AnimationCategory` (For accessibility)
+*   `onStart?: (id: string) => void` (Callback when stage starts)
+*   `onUpdate?: (progress: number, id: string) => void` (Callback during stage)
+*   `onComplete?: (id: string) => void` (Callback when stage completes)
+
+**Stage Types:**
+
+1.  **`PublicStyleAnimationStage` (`type: 'style'`)**
+    *   Animates CSS properties.
+    *   `targets: AnimationTarget` (**Required**): Elements to animate.
+    *   `properties: Record<string, unknown>` (**Required**): Target CSS property values (e.g., `{ opacity: 1, transform: 'translateY(0)' }`).
+    *   `from?: Record<string, unknown>` (Optional): Starting CSS property values.
+    *   `exclude?: string[]` (Optional): Properties to exclude if using defaults.
+
+2.  **`PublicStaggerAnimationStage` (`type: 'stagger'`)**
+    *   Animates CSS properties across multiple targets with a delay between each.
+    *   `targets: AnimationTarget` (**Required**)
+    *   `properties: Record<string, unknown>` (**Required**)
+    *   `staggerDelay: number` (**Required** - ms delay between each target animation start).
+    *   `from?: Record<string, unknown>` (Optional)
+    *   `staggerPattern?: StaggerPattern` (Optional: `'sequential'`, `'from-center'`, etc.)
+    *   `staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number` (Optional custom function)
+    *   `staggerOverlap?: number` (Optional: ms)
+
+3.  **`PublicGroupAnimationStage` (`type: 'group'`)**
+    *   Groups multiple child stages to run relative to each other.
+    *   `children: PublicAnimationStage[]` (**Required**)
+    *   `relationship?: TimingRelationship` (Optional: `'start-together'`, `'end-together'`, `'chain'`, etc.)
+    *   `relationshipValue?: number` (Optional: Overlap/gap in ms for relationship)
+
+4.  **`PublicCallbackAnimationStage` (`type: 'callback'`)**
+    *   Calls a function repeatedly during its duration.
+    *   `callback: (progress: number, id: string) => void` (**Required**)
+
+5.  **`PublicEventAnimationStage` (`type: 'event'`)**
+    *   Calls a function once at its scheduled time.
+    *   `callback: (id: string) => void` (**Required**)
+    *   `duration: 0` (**Required**)
+
+### Benefits of Using Public Types (v1.0.19+)
+
+The new public API types offer several advantages:
+
+1. **Simplified Interface**: Only exposes properties relevant to users, removing internal implementation details
+2. **Better TypeScript Support**: Eliminates previous type errors when defining animation stages
+3. **Improved Documentation**: Clearer structure makes it easier to understand what's required
+4. **Future-Proof**: Internal implementation can change without breaking user code
+
+### Defining Targets (`AnimationTarget` - Fixed in v1.0.19)
+
+The `targets` property (for `style` and `stagger` stages) accepts various formats:
+
+*   **CSS Selector String:** e.g., `'.my-class'`, `'#my-id'`
+*   **Direct Element:** `elementRef.current`
+*   **NodeList:** `document.querySelectorAll('.items')`
+*   **React Ref Object:** `elementRef` (where `elementRef = useRef<Element>(null)`) 
+*   **Function Returning Element:** `() => document.getElementById('dynamic-id')`
+*   **Array of Elements/Refs/Functions:** Mix and match the above, including `null` values in arrays, e.g., `[ref1, ref2.current, () => el, null]`
+
+### Return Value (`AnimationSequenceResult`)
+
+The hook returns an object with both controls and state information:
+
+*   **State:**
+    *   `progress: number`: Current playback progress (0-1)
+    *   `playbackState: PlaybackState`: Current state ('idle', 'playing', 'paused', 'finished')
+    *   `duration: number`: Calculated total duration
+    *   `direction: PlaybackDirection`: Current playback direction
+    *   `playbackRate: number`: Current playback speed
+    *   `reducedMotion: boolean`: Whether reduced motion is active
+    *   `stages: PublicAnimationStage[]`: The current stage configurations
+    *   `id: string`: Sequence identifier
+
+*   **Controls:**
+    *   `play(): void`: Start/resume playback
+    *   `pause(): void`: Pause playback
+    *   `stop(): void`: Stop and reset to beginning
+    *   `reverse(): void`: Toggle playback direction
+    *   `restart(): void`: Stop then start from beginning
+    *   `seek(time: number): void`: Jump to specific time (ms)
+    *   `seekProgress(progress: number): void`: Jump to specific progress (0-1)
+    *   `seekLabel(label: string): void`: Jump to labeled position
+    *   `getProgress(): number`: Get current progress (0-1)
+    *   `getPlaybackState(): PlaybackState`: Get current state
+    *   `addStage(stage: PublicAnimationStage): void`: Add a stage dynamically
+    *   `removeStage(stageId: string): void`: Remove a stage
+    *   `updateStage(stageId: string, updates: Partial<PublicAnimationStage>): void`: Modify a stage
+    *   `setPlaybackRate(rate: number): void`: Change playback speed
+    *   `addCallback(type: keyof SequenceLifecycle, callback: Function): void`: Add a callback
+    *   `removeCallback(type: keyof SequenceLifecycle, callback: Function): void`: Remove a callback
+
+### Usage Example
+
+```tsx
+import React, { useRef } from 'react';
+import { 
+  useAnimationSequence, 
+  PublicAnimationStage,
+  StaggerPattern,
+  PlaybackDirection,
+  AnimationCategory
+} from '@veerone/galileo-glass-ui';
+
+const AnimationDemo = () => {
+  const containerRef = useRef(null);
+  
+  // Define stages using PublicAnimationStage types
+  const stages: PublicAnimationStage[] = [
+    {
+      id: 'fade-in',
+      type: 'style',
+      targets: '.element', // Or could use refs
+      from: { opacity: 0 },
+      properties: { opacity: 1 },
+      duration: 500,
+      easing: 'easeOutQuad'
+    },
+    {
+      id: 'slide-in',
+      type: 'stagger',
+      targets: '.element',
+      from: { transform: 'translateY(20px)' },
+      properties: { transform: 'translateY(0)' },
+      duration: 600,
+      staggerDelay: 100,
+      staggerPattern: StaggerPattern.FROM_CENTER,
+      dependsOn: ['fade-in'] // Wait for fade-in to complete
+    }
+  ];
+  
+  // Use the hook with defined stages
+  const sequence = useAnimationSequence({
+    id: 'demo-sequence',
+    stages,
+    direction: PlaybackDirection.FORWARD,
+    repeatCount: 0, // Don't repeat
+    category: AnimationCategory.ENTRANCE,
+    onComplete: () => console.log('Animation complete!')
+  });
+  
+  return (
+    <div>
+      <div ref={containerRef} className="container">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="element">Item {i}</div>
+        ))}
+      </div>
+      
+      <div className="controls">
+        <button onClick={sequence.play} disabled={sequence.playbackState === 'playing'}>
+          Play
+        </button>
+        <button onClick={sequence.pause} disabled={sequence.playbackState !== 'playing'}>
+          Pause
+        </button>
+        <button onClick={sequence.stop}>
+          Reset
+        </button>
+        <button onClick={sequence.restart}>
+          Restart
+        </button>
+        <div>Progress: {Math.round(sequence.progress * 100)}%</div>
+      </div>
+    </div>
+  );
+};
+``` 
