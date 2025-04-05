@@ -10,7 +10,7 @@ import { glassSurface } from '../../core/mixins';
 type AnimationPreset = 'pulse' | 'fade' | 'static';
 type RingThickness = 'sm' | 'md' | 'lg';
 
-interface GlassFocusRingProps {
+export interface GlassFocusRingProps {
   children: React.ReactNode;
   /** Offset of the focus ring from the element bounds. Default: theme.spacing.xs or 2px. */
   offset?: number;

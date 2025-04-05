@@ -166,7 +166,8 @@ export { useMagneticElement } from './animations/physics/useMagneticElement';
 export type {
   Transform3DOptions,
   Transform3DState,
-  Transform3DResult
+  Transform3DResult,
+  Vector3D
 } from './animations/physics/use3DTransform';
 
 //------------------------------------------------------------------------------
@@ -196,10 +197,10 @@ export const version = '1.0.4';
 //------------------------------------------------------------------------------
 
 // Core types
-export type { GlassSurfaceOptions } from './core/mixins/glassSurface';
+export type { GlassSurfaceProps } from './core/types';
 
 export type {
-  GlassSurfaceProps,
+  GlassSurfaceProps as GlassSurfaceOptions,
   Theme,
   ThemeVariant,
   ColorMode,
@@ -243,39 +244,34 @@ export type {
 // Export useGlassFocus types
 export type { UseGlassFocusOptions, UseGlassFocusReturn } from './hooks/useGlassFocus';
 
-// Animation sequence types
+// Export Magnetic Element types
+export type { MagneticElementOptions } from './animations/physics/useMagneticElement';
+
+// Export Point types from canonical source
+export type { Point, Point3D } from './types/physics';
+
+// Spring physics exports
+export { SpringPhysics, createSpring, convertSpringParams, SpringPresets, DefaultSprings } from './animations/physics/springPhysics';
+export type { SpringConfig, SpringPresetName } from './animations/physics/springPhysics';
+
+// Export useVectorSpring
+export { useVectorSpring } from './animations/physics/useVectorSpring';
+export type { VectorSpringOptions } from './animations/physics/useVectorSpring';
+// Fix for VectorSpringResult - use correct type name
+export type { VectorSpringHookResult as VectorSpringResult } from './animations/physics/useVectorSpring';
+
+// Export animation types from proper location
+export { useGlassTheme } from './hooks/useGlassTheme';
+export type { GlassThemeContextValue } from './hooks/useGlassTheme';
+
+// Animation sequence types - export from their canonical source
 export type {
   AnimationSequenceConfig,
   SequenceControls,
   AnimationSequenceResult
 } from './animations/orchestration/useAnimationSequence';
 
-// Orchestration types
-export type {
-  OrchestrationPattern,
-  TimingFunction,
-  GestaltRelationship,
-  GestaltPatternOptions,
-  OrchestrationOptions
-} from './hooks/useOrchestration';
-
-// Physics interaction types
-export type {
-  PhysicsInteractionOptions,
-  PhysicsInteractionType
-} from './hooks/usePhysicsInteraction';
-
-// Gesture physics types
-export type {
-  GesturePhysicsOptions,
-  GestureTransform,
-  GesturePhysicsResult
-} from './animations/physics/gestures/useGesturePhysics';
-
-// Export MagneticElementOptions type
-export type { MagneticElementOptions } from './animations/physics/useMagneticElement';
-
-// Animation types
+// Animation types from animations/types.ts
 export type {
   AnimationProps,
   AnimationTiming,
@@ -286,7 +282,6 @@ export type {
   AnimationPresets,
   OptimizedAnimationOptions,
   ZSpaceAnimationOptions,
-  
   // Public Animation Stage Types
   PublicBaseAnimationStage,
   PublicAnimationStage,
@@ -295,24 +290,29 @@ export type {
   PublicEventAnimationStage,
   PublicGroupAnimationStage,
   PublicStaggerAnimationStage,
-  
-  // For backwards compatibility/internal use
-  AnimationStage,
-  BaseAnimationStage,
-  StyleAnimationStage,
-  CallbackAnimationStage,
-  EventAnimationStage,
-  GroupAnimationStage,
-  StaggerAnimationStage,
-  
-  // Enum and common types
+  // Standard animation types
   PlaybackDirection,
   StaggerPattern,
   TimingRelationship,
   PlaybackState,
   SequenceLifecycle,
-  EasingDefinitionType
+  EasingDefinitionType,
+  // Callback types
+  SequenceIdCallback,
+  ProgressCallback,
+  AnimationIdCallback,
+  ConfigCallback
 } from './animations/types';
 
-// Export Point directly from its canonical source
-export type { Point, Point3D } from './types/physics';
+// Export all components
+export * from './components';
+
+// Export specific chart types
+export type { DataPoint, ChartDataset } from './components/DataChart/types/ChartTypes';
+
+// Export DataGrid types
+export type { ColumnDefinition, SortState } from './components/GlassDataGrid/types';
+
+// Export Gesture Physics types
+export type { GesturePhysicsOptions, GestureTransform } from './animations/physics/gestures/useGesturePhysics';
+export { GesturePhysicsPreset } from './animations/physics/gestures/useGesturePhysics';

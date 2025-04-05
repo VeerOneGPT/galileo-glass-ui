@@ -6,25 +6,22 @@ The `GlassDataGrid` component provides a way to display tabular data with integr
 
 **Note:** This component does *not* use TanStack Table (React Table).
 
-## Core Props
+## Component Props (`GlassDataGridProps<TData>`)
 
-| Prop                 | Type                                          | Required | Default     | Description                                                                                   |
-| :------------------- | :-------------------------------------------- | :------- | :---------- | :-------------------------------------------------------------------------------------------- |
-| `data`               | `TData[]`                                     | Yes      | -           | An array of data objects to display in the grid.                                            |
-| `columns`            | `ColumnDefinition<TData>[]`                   | Yes      | -           | An array of column definition objects (see below).                                            |
-| `initialSort?`       | `{ columnId: string, direction: 'asc' \| 'desc' }` | No       | `undefined` | Defines the initial sort state of the grid.                                                 |
-| `enableRowDragging?` | `boolean`                                     | No       | `false`     | Enables physics-based row dragging functionality. Requires `onRowOrderChange`.              |
-| `onRowOrderChange?`  | `(newOrder: TData[]) => void`                 | No       | `undefined` | Callback function triggered after a row drag operation, receiving the full data in its new order. |
-| `getRowId?`          | `(row: TData) => string \| number`            | No       | `undefined` | Function to get a unique ID for each row, used for React keys if `row.id` is not present.    |
-| `height?`            | `string \| number`                            | No       | `undefined` | Sets a fixed height for the grid container, enabling vertical scrolling if content overflows. |
-| `className?`         | `string`                                      | No       | `""`        | Optional CSS class name for the main grid wrapper (`GlassSurface`).                           |
-| `style?`             | `React.CSSProperties`                         | No       | `undefined` | Optional inline styles for the main grid wrapper (`GlassSurface`).                            |
+| Prop                 | Type                                           | Required | Default     | Description                                                                                      |
+|----------------------|------------------------------------------------|----------|-------------|--------------------------------------------------------------------------------------------------|
+| `data`               | `TData[]`                                      | Yes      | -           | Array of data objects for the rows.                                                              |
+| `columns`            | `ColumnDefinition<TData>[]`                    | Yes      | -           | Array of column definitions.                                                                     |
+| `initialSort?`       | `SortState` (`{ columnId, direction }`)        | No       | `undefined` | Initial sorting configuration.                                                                   |
+| `enableRowDragging?` | `boolean`                                      | No       | `false`     | Enable drag-and-drop row reordering.                                                             |
+| `onRowOrderChange?`  | `(newData: TData[]) => void`                   | No       | `undefined` | Callback fired after rows are reordered via drag-and-drop, receiving the new data array order. |
+| `className?`         | `string`                                       | No       | `undefined` | Additional CSS class for the main grid container.                                                |
+| `style?`             | `React.CSSProperties`                          | No       | `undefined` | Inline styles for the main grid container.                                                       |
+| `height?`            | `number \| string`                              | No       | `undefined` | Optional fixed height for the grid container (enables vertical scrolling).                     |
 
-*(Replace `TData` with the actual type/interface defining the shape of your row data objects)*
+## Column Definition (`ColumnDefinition<TData>`)
 
-## Column Definition (`columns` prop)
-
-The `columns` array takes objects defining each column's display and behavior.
+Each object in the `columns` array defines a column:
 
 ```typescript
 // Assumed internal type structure based on component usage
@@ -156,13 +153,12 @@ function MyGrid() {
   }, []);
 
   return (
-    <GlassDataGrid
+    <GlassDataGrid<UserData>
       data={userData}
       columns={columns}
       initialSort={{ columnId: 'name', direction: 'asc' }} // Start sorted by name
       enableRowDragging={true} // Turn on dragging
       onRowOrderChange={handleRowOrderChange} // Provide the callback
-      getRowId={row => row.id} // Important for stable dragging/keys
       height={400} // Example fixed height for scrolling
     />
   );

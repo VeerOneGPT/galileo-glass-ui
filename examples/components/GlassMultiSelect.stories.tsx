@@ -94,7 +94,7 @@ export const WithCustomRemoveAnimation: Story = {
     options: sampleOptions,
     label: 'Remove Animation (Custom Spring)',
     placeholder: 'Select options...',
-    itemRemoveAnimation: { tension: 100, friction: 20 }, // Custom config
+    itemRemoveAnimation: { type: 'spring', config: { tension: 100, friction: 20 } },
   },
   render: (args) => {
     const [selected, setSelected] = useState<MultiSelectOption<string>[]>([]);

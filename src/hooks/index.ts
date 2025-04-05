@@ -25,7 +25,11 @@ export { useAnimationSpeed } from './useAnimationSpeed';
 export { useAnimationSynchronization } from './useAnimationSynchronization';
 export { useAnimationEvent } from './useAnimationEvent';
 export { useAnimationInterpolator } from './useAnimationInterpolator';
-export { useOptimizedAnimation } from './useOptimizedAnimation';
+export { 
+    useOptimizedAnimation, 
+    optimizedAnimation, 
+    AnimationComplexity 
+} from './useOptimizedAnimation';
 export { useZSpaceAnimation } from './useZSpaceAnimation';
 export { useScrollScene } from './useScrollScene';
 export { useMotionProfiler } from './useMotionProfiler';

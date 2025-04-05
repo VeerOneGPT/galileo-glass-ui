@@ -64,12 +64,14 @@ export interface AnimationSequenceConfig extends SequenceLifecycle {
   stages: PublicAnimationStage[] | AnimationStage[]; // Accept both public and internal types
   duration?: number; 
   autoplay?: boolean; 
-  repeatCount?: number; 
+  loop?: boolean; // Added loop option
+  repeatCount?: number; // Kept for explicit control, loop maps to repeatCount = -1
   yoyo?: boolean; 
   direction?: PlaybackDirection; 
   category?: AnimationCategory; 
   useWebAnimations?: boolean; 
   playbackRate?: number;
+  onStageChange?: (activeStageId: string | null, sequenceId: string) => void; // Added stage change callback
 }
 interface DependencyResolution { order: string[]; parallelGroups: string[][]; }
 interface StageTiming { id: string; startTime: number; endTime: number; duration: number; }
@@ -78,6 +80,7 @@ export interface SequenceControls {
   play: () => void; 
   pause: () => void; 
   stop: () => void; 
+  reset: () => void; // Added reset control
   reverse: () => void; 
   restart: () => void; 
   seek: (time: number) => void; 
@@ -95,6 +98,7 @@ export interface SequenceControls {
 export interface AnimationSequenceResult extends SequenceControls { 
   progress: number; 
   playbackState: PlaybackState; 
+  currentStageId: string | null; // Added current stage ID
   duration: number; 
   direction: PlaybackDirection; 
   playbackRate: number; 
@@ -249,13 +253,20 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   const playbackRateRef = useRef<number>(config.playbackRate ?? 1);
   const directionRef = useRef<PlaybackDirection>(config.direction || PlaybackDirection.FORWARD);
   const iterationRef = useRef<number>(0);
-  const totalIterationsRef = useRef<number>(config.repeatCount !== undefined ? config.repeatCount : 0);
+  const totalIterationsRef = useRef<number>(0);
   const yoyoRef = useRef<boolean>(config.yoyo || false);
   
   // State
   const [progress, setProgress] = useState<number>(0);
   const [playbackState, setPlaybackState] = useState<PlaybackState>(PlaybackState.IDLE);
   const [duration, setDuration] = useState<number>(0); // Will be calculated
+  const [currentStageId, setCurrentStageId] = useState<string | null>(null); // Added state for current stage
+
+  // Update total iterations based on loop/repeatCount
+  const calculatedTotalIterations = useMemo(() => {
+    if (config.loop === true) return -1;
+    return config.repeatCount !== undefined ? config.repeatCount : 0;
+  }, [config.loop, config.repeatCount]);
 
   // Use stricter InternalCallback type for the Set
   const callbacksRef = useRef<Record<keyof SequenceLifecycle, Set<InternalCallback>>>({
@@ -396,6 +407,9 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   const processAnimationFrame = useCallback((currentTime: number) => {
     if (playbackState !== PlaybackState.PLAYING) return; // Exit if not playing
 
+    let activeStageId: string | null = null;
+    let latestStartTime = -1;
+
     if (!startTimeRef.current) startTimeRef.current = currentTime;
     
     const currentRate = playbackRateRef.current;
@@ -439,6 +453,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
     callbacksRef.current.onUpdate.forEach(cb => (cb as ProgressCallback)(currentProgress, sequenceId));
     // --- End Direction / Iteration Logic ---
     
+    // --- Determine most active stage --- 
     runtimeStagesRef.current.forEach(runtime => {
       const { stage, startTime, endTime } = runtime;
         const stageDuration = endTime - startTime;
@@ -485,6 +500,11 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
         
         if (runtime.state === PlaybackState.IDLE) {
           runtime.state = PlaybackState.PLAYING;
+          // Track the active stage ID
+          if (startTime > latestStartTime) {
+            latestStartTime = startTime;
+            activeStageId = stage.id;
+          }
               if (typeof stage.onStart === 'function') (stage.onStart as SequenceIdCallback)(stage.id);
               callbacksRef.current.onAnimationStart.forEach(cb => (cb as AnimationIdCallback)(stage.id, sequenceId));
           }
@@ -493,6 +513,11 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
       // Handle stage completion precisely at endTime or if time moved past it
       else if (runtime.state === PlaybackState.PLAYING && adjustedElapsedTime >= endTime) {
           // Ensure final state is processed at progress = 1
+          // Consider the stage active right up until it finishes
+          if (startTime >= latestStartTime) { // Use >= to catch stages starting at the same time
+              latestStartTime = startTime;
+              activeStageId = stage.id;
+          }
           const finalEasedProgress = resolvedEasingFn(1);
           runtime.progress = finalEasedProgress;
           processStageUpdate(runtime, finalEasedProgress, resolvedEasingFn); 
@@ -510,6 +535,14 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
       // --- End Stage Active Check --- 
     }); // End forEach stage
     
+    // --- Trigger onStageChange if needed --- 
+    if (activeStageId !== currentStageId) {
+        setCurrentStageId(activeStageId);
+        if (config.onStageChange) {
+            config.onStageChange(activeStageId, sequenceId);
+        }
+    }
+
     // --- Loop Continuation --- 
     if (playbackState === PlaybackState.PLAYING) { // Check state again in case it changed
          if (maxIterations === -1 || completedCycles < maxIterations) {
@@ -567,6 +600,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
     if (playbackState === PlaybackState.IDLE) return;
       const wasPlaying = playbackState === PlaybackState.PLAYING;
     setPlaybackState(PlaybackState.IDLE);
+    setCurrentStageId(null); // Reset current stage on stop
       if (requestIdRef.current !== null) cancelAnimationFrame(requestIdRef.current);
       requestIdRef.current = null;
     startTimeRef.current = null;
@@ -576,6 +610,20 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
       runtimeStagesRef.current.forEach(rt => { rt.state = PlaybackState.IDLE; rt.progress = 0; });
       if (wasPlaying) callbacksRef.current.onCancel.forEach(cb => (cb as SequenceIdCallback)(sequenceId));
   }, [playbackState, sequenceId]);
+  
+  const reset = useCallback(() => {
+      stop(); // Reuse stop logic
+      // Ensure progress is set to 0 (stop might not do this immediately)
+      setProgress(0);
+      // Reset any internal stage runtime states if necessary
+      runtimeStagesRef.current.forEach(rt => {
+          rt.state = PlaybackState.IDLE;
+          rt.progress = 0;
+          // Reset other runtime properties if needed (e.g., iteration count)
+          rt.currentIteration = 0;
+      });
+      // Note: onCancel is called by stop(), no need to call other lifecycle callbacks here
+  }, [stop]);
   
   const reverse = useCallback(() => { console.warn("reverse not fully implemented"); /* TODO */ }, []);
   const restart = useCallback(() => { console.warn("restart not fully implemented"); stop(); play(); }, [stop, play]);
@@ -621,6 +669,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
       // Return sequence state
       progress,
       playbackState,
+      currentStageId, // Include current stage ID
       duration,
       direction: directionRef.current,
       playbackRate: playbackRateRef.current,
@@ -629,7 +678,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
       id: sequenceId,
       
       // Return all control functions 
-      play, pause, stop, reverse, restart, 
+      play, pause, stop, reset, reverse, restart, 
       seek, seekProgress, seekLabel, getProgress,
       addStage, removeStage, updateStage, 
       setPlaybackRate, getPlaybackState,
@@ -638,7 +687,8 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   }, [
     // Dependencies (no changes needed here)
     progress, playbackState, duration, prefersReducedMotion, sequenceId,
-    play, pause, stop, reverse, restart, seek, seekProgress, seekLabel, getProgress,
+    currentStageId, // Added current stage ID dependency
+    play, pause, stop, reset, reverse, restart, seek, seekProgress, seekLabel, getProgress, // Added reset dependency
     addStage, removeStage, updateStage, setPlaybackRate, getPlaybackState,
     addCallback, removeCallback
   ]);

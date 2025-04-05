@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { PageGlassContainer, FrostedGlass } from '../src';
-import AdvancedComponentsDemo from './AdvancedComponentsDemo';
-import PhysicsAnimationDemo from './PhysicsAnimationDemo';
-import SpecializedSurfacesDemo from './SpecializedSurfacesDemo';
+// TODO: Create or restore these demo files
+// import AdvancedComponentsDemo from './AdvancedComponentsDemo';
+// import PhysicsAnimationDemo from './PhysicsAnimationDemo';
+// import SpecializedSurfacesDemo from './SpecializedSurfacesDemo';
 
 /**
  * Main demo application showcasing Galileo Glass UI capabilities
@@ -13,11 +14,14 @@ export const DemoApplication: React.FC = () => {
   const renderDemo = () => {
     switch (currentDemo) {
       case 'advanced-components':
-        return <AdvancedComponentsDemo />;
+        // return <AdvancedComponentsDemo />;
+        return <DemoPlaceholder title="Advanced Components Demo" />;
       case 'physics-animations':
-        return <PhysicsAnimationDemo />;
+        // return <PhysicsAnimationDemo />;
+        return <DemoPlaceholder title="Physics Animation Demo" />;
       case 'specialized-surfaces':
-        return <SpecializedSurfacesDemo />;
+        // return <SpecializedSurfacesDemo />;
+        return <DemoPlaceholder title="Specialized Surfaces Demo" />;
       case 'home':
       default:
         return (
@@ -106,5 +110,14 @@ export const DemoApplication: React.FC = () => {
     </div>
   );
 };
+
+// Placeholder component for missing demos
+const DemoPlaceholder: React.FC<{ title: string }> = ({ title }) => (
+  <PageGlassContainer>
+    <h1>{title}</h1>
+    <p>This demo is currently under development.</p>
+    <p>Please check back later for the full implementation.</p>
+  </PageGlassContainer>
+);
 
 export default DemoApplication;

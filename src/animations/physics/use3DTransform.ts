@@ -10,7 +10,7 @@ import { useVectorSpring, VectorSpringOptions } from './useVectorSpring'; // Imp
 import { SpringConfig, SpringPresets } from './springPhysics'; // Import config types/presets
 
 // Basic vector type for 3D
-type Vector3D = { x: number; y: number; z: number };
+export type Vector3D = { x: number; y: number; z: number };
 
 /**
  * Configuration options for the use3DTransform hook

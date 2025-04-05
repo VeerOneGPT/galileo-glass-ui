@@ -69,6 +69,9 @@ export const SpringPresets = {
   NOTIFICATION_SLIDE: { tension: 220, friction: 26, mass: 1 }, // For notification slides
 };
 
+// Type alias for preset names
+export type SpringPresetName = keyof typeof SpringPresets;
+
 // Common Default Configurations
 export const DefaultSprings = {
   DEFAULT: SpringPresets.DEFAULT,

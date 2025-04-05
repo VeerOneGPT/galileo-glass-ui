@@ -11,7 +11,7 @@ import { Typography } from '../../src/components/Typography';
 import { Card } from '../../src/components/Card';
 import { Button } from '../../src/components/Button';
 
-// Define local types for chart components
+// Define local types for chart components (Reverted - types not yet available from build)
 type ChartVariant = 'line' | 'bar' | 'area' | 'pie' | 'doughnut' | 'bubble';
 
 interface DataPoint {
@@ -45,7 +45,7 @@ interface GlassDataChartProps {
   title?: string;
   subtitle?: string;
   variant: ChartVariant;
-  datasets: ChartDataset[];
+  datasets: ChartDataset[]; // Use local type
   glassVariant?: 'clear' | 'frosted' | 'tinted' | 'luminous';
   color?: 'primary' | 'secondary' | 'info' | 'success' | 'warning' | 'error';
   animation?: {
@@ -209,7 +209,7 @@ const productData = generateProductData();
 const multiDataset = createMultiDataset(5);
 const stockDatasets: ChartDataset[] = [{ id: 'glas-stock', label: 'GLAS Stock Price', data: generateStockData(30, 150, 0.05), style: { lineColor: '#6366F1', fillColor: 'rgba(99, 102, 241, 0.2)', fillOpacity: 0.2, glowEffect: true } }];
 const denseData = generateDenseData();
-const areaGradientStyle: DatasetStyle = { fillColor: ['rgba(99, 102, 241, 0.1)', 'rgba(99, 102, 241, 0.4)'], lineColor: '#6366F1', pointColor: '#6366F1', lineWidth: 3, pointSize: 4, glowEffect: true };
+const areaGradientStyle: ChartDataset['style'] = { fillColor: ['rgba(99, 102, 241, 0.1)', 'rgba(99, 102, 241, 0.4)'], lineColor: '#6366F1', pointColor: '#6366F1', lineWidth: 3, pointSize: 4, glowEffect: true };
 
 // --- Styled Components for Story Layout ---
 const ChartGrid = styled.div`

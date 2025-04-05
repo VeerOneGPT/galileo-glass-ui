@@ -118,28 +118,38 @@ Supports standard chart types: `line`, `bar`, `area`, `pie`, `doughnut`, `scatte
 *   `backgroundColor`, `borderRadius`, `borderColor`, `elevation`: Control the container appearance.
 *   Per-dataset styling can be applied via the direct properties on each `ChartDataset` object (e.g., `tension`, `fillOpacity`, `pointRadius`, `barThickness`). The `style` sub-object is no longer used for this.
 
-### Interactivity (`interaction` prop and callbacks)
+### Interaction Options (`interaction`)
 
-*   **Tooltips:** Configure via `interaction.showTooltips`, `interaction.tooltipStyle`, `interaction.tooltipFollowCursor`.
-*   **Physics-Based Zoom/Pan (v1.0.14+):** Enable and configure using properties within the `interaction` object. **Do not use the internal `useChartPhysicsInteraction` hook directly.**
-    *   `interaction.zoomPanEnabled`: Set to `true` to enable physics-based zoom and pan.
-    *   `interaction.zoomMode`: Control which axes allow zoom/pan (`'x'`, `'y'`, or `'xy'`).
-    *   `interaction.physics`: Configure the spring physics parameters (`tension`, `friction`, `mass`) for the zoom/pan animations.
-    *   Example:
-        ```tsx
-        interaction={{
-          zoomPanEnabled: true, 
-          zoomMode: 'xy',
-          physics: { tension: 300, friction: 30 },
-          // other interaction props like showTooltips...
-        }}
-        ```
-*   **Data Point Click:** Use the `onDataPointClick={(datasetIndex, dataIndex, dataPoint) => ...}` prop.
-*   **Selection Change:** Use `onSelectionChange={(selectedIndices) => ...}` (primarily for pie/doughnut).
-*   **Zoom/Pan Callback:** Use `onZoomPan={(chartInstance) => ...}`.
-*   **Per-Element Physics (Planned):**
-    *   The `getElementPhysicsOptions` prop exists to define interaction physics per element.
-    *   **Status:** Basic hover/click detection updates internal state, but the visual physics animation applied by the internal plugin (`GalileoElementInteractionPlugin`) is based on the configuration passed via this prop and may require further refinement/testing for complex physics.
+Configure how users interact with the chart.
+
+```typescript
+interface ChartInteractionOptions {
+  zoomPanEnabled?: boolean; // Default: false
+  zoomMode?: 'x' | 'y' | 'xy'; // Default: 'xy'
+  physicsHoverEffects?: boolean; // Default: true
+  hoverSpeed?: number; // Default: 150
+  showTooltips?: boolean; // Default: true
+  tooltipStyle?: 'glass' | 'frosted' | 'tinted' | 'luminous' | 'dynamic'; // Default: 'frosted'
+  tooltipFollowCursor?: boolean; // Default: false
+  physics?: Partial<{
+    tension: number; // Spring tension for zoom/pan/hover effects
+    friction: number; // Spring friction for zoom/pan/hover effects
+    mass: number; // Virtual mass for zoom/pan/hover effects
+    minZoom: number; // Minimum zoom level (e.g., 0.5)
+    maxZoom: number; // Maximum zoom level (e.g., 5)
+    wheelSensitivity: number; // Mouse wheel zoom sensitivity (lower is more sensitive)
+    inertiaDuration: number; // Duration of pan inertia (ms)
+  }>;
+}
+```
+
+-   **`zoomPanEnabled`**: **(Boolean)** Set to `true` to enable physics-based zooming (mouse wheel) and panning (middle-click or shift+left-click drag). The component uses the internal `useChartPhysicsInteraction` hook when this is enabled.
+-   `zoomMode`: Controls which axes allow zoom/pan (`'x'`, `'y'`, or `'xy'`).
+-   `physicsHoverEffects`: Enables smooth physics-based scaling/translation effects when hovering over data points (requires `getElementPhysicsOptions` to be configured for element-specific behavior, otherwise uses defaults).
+-   `showTooltips`: Controls the display of the custom glass tooltip.
+-   `tooltipStyle`: Selects the appearance of the tooltip.
+-   `tooltipFollowCursor`: Makes the tooltip follow the mouse cursor instead of anchoring to the data point.
+-   **`physics`**: **(Object)** Fine-tune the physics parameters for zoom, pan inertia, and hover effects using this nested object. Properties include `tension`, `friction`, `mass`, `minZoom`, `maxZoom`, `wheelSensitivity`, `inertiaDuration`.
 
 ### Axes (`axis` prop)
 
@@ -320,8 +330,5 @@ const getPhysicsOptions: GetElementPhysicsOptions =
 
 ## Known Issues / Limitations
 
-*   Per-element physics interaction (via `getElementPhysicsOptions`) currently only applies scale/opacity spring animations; more complex physics require further development.
-*   Advanced configuration of some Chart.js options may require accessing the Chart.js instance directly via `ref`.
-
 *   Per-element physics interaction (via `getElementPhysicsOptions`) is functional but the underlying plugin animation might need further refinement for complex effects beyond basic scale/opacity springs.
-*   Advanced configuration of some Chart.js options (e.g., specific scale types, intricate tick formatting) might require accessing the Chart.js instance directly (via ref) or needs better prop exposure. 
+*   **Passing Custom Chart.js Options:** There is currently no dedicated `chartOptions` prop to pass arbitrary configuration directly to the underlying Chart.js instance. Advanced customizations (e.g., specific scale types, intricate tick formatting, complex plugins beyond the built-in ones) may require accessing the Chart.js instance directly via the `ref` prop and manipulating it manually, or potentially creating a custom chart component. 

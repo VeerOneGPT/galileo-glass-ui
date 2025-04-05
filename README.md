@@ -63,7 +63,7 @@ This version focuses on resolving type definition issues, fixing numerous TypeSc
 - **Storybook Fixes:** Corrected import paths in example stories.
 - **Enhancements:** Introduced item removal animations for `GlassMultiSelect`.
 
-> For full details, see the [**v1.0.19 Changelog**](./docs/changelog/CHANGELOG-1.0.19.md).
+> For full details, see the [**v1.0.20 Changelog**](./docs/changelog/CHANGELOG-1.0.20.md).
 
 ---
 
@@ -251,7 +251,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
     <tr valign="top">
-      <td><a href="./docs/changelog/CHANGELOG-1.0.19.md">v1.0.19 Changelog</a></td>
+      <td><a href="./docs/changelog/CHANGELOG-1.0.20.md">v1.0.20 Changelog</a></td>
       <td></td>
       <td><a href="./docs/animations/presets.md">Animation Presets</a></td>
       <td></td>
