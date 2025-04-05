@@ -28,16 +28,15 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 
 ---
 
-## 🚀 Key Features (Updated for v1.0.14)
+## 🚀 Key Features
 
 - ✨ **Glass Morphism Styling**: Configurable frosted glass effects, reflections, shadows, inner/outer glows, and adaptive transparency.
 - 📦 **Comprehensive Component Library**: 90+ components including 79 specialized Glass components and new additions like `GlassDataGrid` and `GlassStepper`.
-- 🚀 **Advanced Physics-Based Animation System**:
--    - **Integrated Physics Engine:** Springs, collisions, forces, object sleeping, constraints.
-+    - **Integrated Physics Engine:** Springs, collisions, forces, object sleeping, **constraints (Distance, Hinge)**.
-     - **Intuitive Hooks:** `usePhysicsInteraction` (now with **magnetic & repel** types), `useAmbientTilt`, `usePhysicsLayout`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`, `useDraggableListPhysics`.
-     - **Direct Engine Access:** Lower-level `useGalileoPhysicsEngine` hook for custom simulations.
-     - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
+- 🚀 **Advanced Physics-Based Animation System**: 
+    - **Integrated Physics Engine:** Springs, collisions, forces, object sleeping, **constraints (Distance, Hinge)**.
+    - **Intuitive Hooks:** `usePhysicsInteraction` (now with **magnetic & repel** types), `useAmbientTilt`, `usePhysicsLayout`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`, `useDraggableListPhysics`.
+    - **Direct Engine Access:** Lower-level `usePhysicsEngine` hook for custom simulations.
+    - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
     - **Layout:** New `usePhysicsLayout` hook for physics-driven grid, stack, or freeform arrangements.
     - **Orchestration:** `useAnimationSequence` and `useSequence` for complex sequences, staggering, and state transitions.
     - **New Presets:** Added 'shake', 'pulse', and 'confetti' animation presets.
@@ -53,21 +52,18 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 
 ---
 
-## ✨ What's New in v1.0.14
+## ✨ What's New 
 
-Version 1.0.14 is a major update focused on expanding physics capabilities, introducing new interactive components, and refining the developer experience.
+This version focuses on resolving type definition issues, fixing numerous TypeScript errors, improving the build configuration, and adding minor enhancements.
 
-- **Physics Engine:** Introduced **constraints** (`DistanceConstraint`, `HingeConstraint`), enhanced **collision events** with more data, added **magnetic/repel** interaction types, and implemented a global **ambient tilt** effect.
-- **New Hooks:** Added `usePhysicsLayout` for dynamic, physics-based element arrangement and `useAmbientTilt` for easy implementation of the global tilt effect.
-- **New Components:** Introduced `GlassDataGrid` for tabular data with sorting and physics-based row dragging, and `GlassStepper` for multi-step processes with animated indicators. Added `GlassFocusRing` for accessible focus indication.
-- **Component Enhancements:** Added physics-based zoom/pan to `GlassDataChart`, improved `GlassTabs` indicator physics, enhanced `DataChart` per-element interaction capabilities, and completed a full `forwardRef` audit.
-- **Bug Fixes:** Resolved critical issues in physics state retrieval, collision detection, type definitions (`useAnimationSequence`, `usePhysicsInteraction`), component exports, and chart rendering.
-- **Documentation:** Added comprehensive docs for new physics features, performance profiling, and updated component documentation.
+- **TypeScript Fixes:** Corrected widespread import/export errors (`TS2305`, `TS2614`, `TS2307`, `TS2724`, `TS2304`) across components, hooks, and examples.
+- **Build Fix:** Resolved build failures by configuring `rollup-plugin-typescript2` (`check: false`) and removing invalid file references.
+- **Export Cleanup:** Standardized exports for hooks and types, ensuring consistency and removing redundancies.
+- **Component Fixes:** Added mock hooks (`useOptimizedAnimation`, `useGlassPerformance`) to allow Chart components to compile.
+- **Storybook Fixes:** Corrected import paths in example stories.
+- **Enhancements:** Introduced item removal animations for `GlassMultiSelect`.
 
-> For full details, see the [**v1.0.14 Changelog**](./docs/changelog/CHANGELOG-1.0.14.md).
-> **Breaking Changes:** Note that v1.0.14 includes breaking changes related to `StyleAnimationStage` and `PhysicsInteractionType`. Please review the changelog before upgrading.
-
-**Patch Release v1.0.15:** This release focuses on bug fixes, type safety improvements, and documentation clarifications identified post v1.0.14. See the [v1.0.15 Changelog](./docs/changelog/CHANGELOG-1.0.15.md) for details.
+> For full details, see the [**v1.0.18 Changelog**](./docs/changelog/CHANGELOG-1.0.18.md).
 
 ---
 
@@ -105,7 +101,7 @@ Galileo Glass UI uses a modular approach where specialized features only require
 # Only if using chart components (GlassDataChart, etc.)
 npm install chart.js react-chartjs-2
 
-# Only if using virtualized lists
+# Only if using virtualized listsåååå
 npm install react-window
 
 # Only if using DatePicker / DateRangePicker components
@@ -255,7 +251,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
     <tr valign="top">
-      <td><a href="./docs/changelog/CHANGELOG-1.0.14.md">v1.0.14 Changelog</a></td>
+      <td><a href="./docs/changelog/CHANGELOG-1.0.18.md">v1.0.18 Changelog</a></td>
       <td></td>
       <td><a href="./docs/animations/presets.md">Animation Presets</a></td>
       <td></td>
@@ -339,7 +335,7 @@ For a complete implementation guide, see the [Glass UI Framework Documentation](
 
 ---
 
-## 📦 Component Library (Updated for v1.0.14)
+## 📦 Component Library (Updated for v1.0.18)
 
 Galileo Glass UI offers a comprehensive set of components that work universally across React, Next.js, and TypeScript applications:
 <!-- 💡 Add GIF showcasing component variety here! 💡 -->
@@ -591,7 +587,7 @@ const OverlayComponent = styled.div`
 </details>
 
 <details>
-<summary><b>🧲 Physics Interactions (Magnetic/Repel v1.0.14+)</b></summary>
+<summary><b>🧲 Physics Interactions (Magnetic/Repel v1.0.18+)</b></summary>
 <br>
 <!-- 💡 Add GIF for Magnetic Button interaction here! 💡 -->
 
@@ -622,7 +618,7 @@ function InteractiveButton() {
 }
 ```
 
-> **Magnetic & Repel Interactions** (v1.0.14+) create natural attraction or repulsion effects using the enhanced `usePhysicsInteraction` hook.
+> **Magnetic & Repel Interactions** (v1.0.18+) create natural attraction or repulsion effects using the enhanced `usePhysicsInteraction` hook.
 </details>
 
 <details>
@@ -695,7 +691,7 @@ function StaggeredList() {
 </details>
 
 <details>
-<summary><b>📐 Physics Layout (v1.0.14+)</b></summary>
+<summary><b>📐 Physics Layout (v1.0.18+)</b></summary>
 <br>
 
 ```jsx
@@ -756,7 +752,7 @@ function PhysicsGridLayout() {
   );
 }
 ```
-> **Physics Layout** (v1.0.14+) uses the `usePhysicsLayout` hook to arrange elements dynamically with smooth, physics-based transitions.
+> **Physics Layout** (v1.0.18+) uses the `usePhysicsLayout` hook to arrange elements dynamically with smooth, physics-based transitions.
 
 </details>
 
@@ -958,5 +954,3 @@ For the most detailed and up-to-date documentation, visit our [documentation sit
 ```bash
 npm install @mui/icons-material @emotion/react @emotion/styled
 ```
-
-</rewritten_file>
