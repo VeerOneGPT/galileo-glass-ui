@@ -32,11 +32,11 @@ h
 
 - ✨ **Glass Morphism Styling**: Configurable frosted glass effects, reflections, shadows, inner/outer glows, and adaptive transparency.
 - 📦 **Comprehensive Component Library**: 90+ components including 79 specialized Glass components and new additions like `GlassDataGrid` and `GlassStepper`.
-- 🚀 **Advanced Physics-Based Animation System**: 
+- 🚀 **Advanced Physics-Based Animation System**:
     - **Integrated Physics Engine:** Springs, collisions, forces, object sleeping, **constraints (Distance, Hinge)**.
-    - **Intuitive Hooks:** `usePhysicsInteraction` (now with **magnetic & repel** types), `useAmbientTilt`, `usePhysicsLayout`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`, `useDraggableListPhysics`.
+     - **Intuitive Hooks:** `usePhysicsInteraction` (now with **magnetic & repel** types), `useAmbientTilt`, `usePhysicsLayout`, `useGalileoStateSpring`, `useMultiSpring`, `useGesturePhysics`, `useMagneticElement`, `useDraggableListPhysics`.
     - **Direct Engine Access:** Lower-level `usePhysicsEngine` hook for custom simulations.
-    - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
+     - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
     - **Layout:** New `usePhysicsLayout` hook for physics-driven grid, stack, or freeform arrangements.
     - **Orchestration:** `useAnimationSequence` and `useSequence` for complex sequences, staggering, and state transitions.
     - **New Presets:** Added 'shake', 'pulse', and 'confetti' animation presets.
@@ -54,16 +54,33 @@ h
 
 ## ✨ What's New 
 
-This version focuses on resolving type definition issues, fixing numerous TypeScript errors, improving the build configuration, and adding minor enhancements.
+Version 1.0.21 introduces substantial new features focusing on animations, physics interactions, and accessibility:
 
-- **TypeScript Fixes:** Corrected widespread import/export errors (`TS2305`, `TS2614`, `TS2307`, `TS2724`, `TS2304`) across components, hooks, and examples.
-- **Build Fix:** Resolved build failures by configuring `rollup-plugin-typescript2` (`check: false`) and removing invalid file references.
-- **Export Cleanup:** Standardized exports for hooks and types, ensuring consistency and removing redundancies.
-- **Component Fixes:** Added mock hooks (`useOptimizedAnimation`, `useGlassPerformance`) to allow Chart components to compile.
-- **Storybook Fixes:** Corrected import paths in example stories.
-- **Enhancements:** Introduced item removal animations for `GlassMultiSelect`.
+- **Particle System:**
+  - Implemented comprehensive `useParticleSystem` hook with physics engine support
+  - Added WebGL and Canvas renderers with support for thousands of particles
+  - Created seven presets: 'fireworks', 'snow', 'rain', 'magicDust', 'confetti', 'fire', 'smoke'
+  - Integrated quality tier support for optimal performance across devices
 
-> For full details, see the [**v1.0.20 Changelog**](./docs/changelog/CHANGELOG-1.0.20.md).
+- **Magnetic Interactions:**
+  - Added directional fields for angle-based magnetic forces
+  - Implemented multi-element systems for linked magnetic elements
+
+- **Motion & Animation:**
+  - Created `useInertialMovement` hook for momentum scrolling and flick gestures
+  - Implemented `useZSpace` with scroll depth animations
+  - Added `use3DTransform` for physics-based 3D transformations
+  - Created `useParallaxScroll` for configurable parallax effects
+
+- **Accessibility Enhancements:**
+  - Implemented alternative animations system with fade/static/simplified variants
+  - Created the new `GlassFocusRing` component for consistent focus styling
+  - Added comprehensive motion sensitivity levels and animation categorization
+
+- **Bug Fixes:**
+  - Fixed keyframe interpolation issues in physics interactions
+
+> For full details, see the [**v1.0.21 Changelog**](./docs/changelog/CHANGELOG-1.0.21.md).
 
 ---
 
@@ -251,7 +268,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
     <tr valign="top">
-      <td><a href="./docs/changelog/CHANGELOG-1.0.20.md">v1.0.20 Changelog</a></td>
+      <td><a href="./docs/changelog/CHANGELOG-1.0.21.md">v1.0.21 Changelog</a></td>
       <td></td>
       <td><a href="./docs/animations/presets.md">Animation Presets</a></td>
       <td></td>
@@ -954,3 +971,6 @@ For the most detailed and up-to-date documentation, visit our [documentation sit
 ```bash
 npm install @mui/icons-material @emotion/react @emotion/styled
 ```
+
+// Version
+export const version = '1.0.21';

@@ -74,13 +74,13 @@ export { DatePicker, GlassDatePicker, GlassLocalizationProvider, createDateFnsAd
 export { createThemeContext } from './core/themeContext';
 
 // Mixins
-export {
-  glassSurface,
+export { 
+  glassSurface, 
   glassBorder,
-  glowEffects,
-  innerGlow,
+  glowEffects, 
+  innerGlow, 
   interactiveGlass,
-  zSpaceLayer
+  zSpaceLayer 
 } from './core/mixins';
 
 // Theme modules
@@ -103,9 +103,9 @@ export {
 // ANIMATION EXPORTS
 //------------------------------------------------------------------------------
 
-export {
-  accessibleAnimation,
-  animateWithPhysics,
+export { 
+  accessibleAnimation, 
+  animateWithPhysics, 
   useZSpaceAnimation,
   springAnimation
 } from './animations';
@@ -116,9 +116,9 @@ export { AnimationProvider, useAnimationContext } from './contexts/AnimationCont
 // HOOKS EXPORTS
 //------------------------------------------------------------------------------
 
-export {
+export { 
   // useTheme, // Already exported from './theme' above
-  usePhysicsInteraction,
+  usePhysicsInteraction, 
   useOrchestration,
   usePhysicsEngine,
   usePhysicsConstraint,
@@ -156,11 +156,33 @@ export {
   useGestureAnimation
   
   // Note: useZSpaceAnimation is already exported directly from './animations'
+  // Removed useParallaxScroll as it's exported directly below
 } from './hooks';
 
-// Export 3D Transform and Magnetic Element hooks directly from source
-export { use3DTransform } from './animations/physics/use3DTransform';
-export { useMagneticElement } from './animations/physics/useMagneticElement';
+// Explicitly export PhysicsInteractionOptions and PhysicsInteractionType from the source
+export { 
+  type PhysicsInteractionOptions, 
+  type PhysicsInteractionType, 
+  type PhysicsState, 
+  type PhysicsVector, 
+  type PhysicsMaterial, 
+  type CollisionShape, 
+  type PhysicsQuality
+} from './hooks/usePhysicsInteraction';
+
+// Export specific hooks directly from their source files
+// These are hooks that might have different implementations or are provided from multiple locations
+export { useZSpace } from './hooks/useZSpace';
+export { use3DTransform } from './hooks/use3DTransform';
+export { useParallaxScroll } from './hooks/useParallaxScroll';
+
+// Export useInertialMovement and its types
+export {
+  useInertialMovement,
+  type InertialMovementOptions,
+  type InertialMovementResult,
+  type InertialMovementState
+} from './hooks/useInertialMovement';
 
 // Export 3D Transform types
 export type {
@@ -169,6 +191,9 @@ export type {
   Transform3DResult,
   Vector3D
 } from './animations/physics/use3DTransform';
+
+// Export Magnetic Element hook - keeping this import to maintain correct sourcing
+export { useMagneticElement } from './animations/physics/useMagneticElement';
 
 //------------------------------------------------------------------------------
 // UTILITY EXPORTS
@@ -190,7 +215,7 @@ export {
 } from './utils/refUtils';
 
 // Version
-export const version = '1.0.4';
+export const version = '1.0.21';
 
 //------------------------------------------------------------------------------
 // TYPE EXPORTS
@@ -316,3 +341,39 @@ export type { ColumnDefinition, SortState } from './components/GlassDataGrid/typ
 // Export Gesture Physics types
 export type { GesturePhysicsOptions, GestureTransform } from './animations/physics/gestures/useGesturePhysics';
 export { GesturePhysicsPreset } from './animations/physics/gestures/useGesturePhysics';
+
+// Export types from hooks index
+export type { 
+    // PhysicsInteractionOptions, // Now explicitly exported above
+    // PhysicsInteractionType, // Now explicitly exported above
+    // PhysicsState, // Now explicitly exported above
+    // PhysicsVector, // Now explicitly exported above
+    // PhysicsMaterial, // Now explicitly exported above 
+    // CollisionShape, // Now explicitly exported above
+    // PhysicsQuality, // Now explicitly exported above
+    AmbientTiltOptions,
+    ParticleSystemOptions, 
+    ParticleSystemResult, 
+    ParticleSystemControls, 
+    ParticleSystemState,
+    ParticlePresetCollection,
+    ParticleVector2D,
+    GestureEventData, 
+    GestureType,
+    PanGestureConfig,
+    PinchGestureConfig,
+    RotateGestureConfig,
+    TapGestureConfig,
+    // InertialMovementOptions, // Now explicitly exported above
+    // InertialMovementState, // Now explicitly exported above
+    // InertialMovementResult, // Now explicitly exported above
+    ZSpaceOptions,
+    ZSpaceResult,
+    SetTransform3D,
+    ParallaxScrollOptions,
+    ParallaxScrollResult,
+    MotionSensitivityLevel, 
+    AnimationCategory, 
+    QualityTier,
+    DeviceCapabilities
+} from './hooks';

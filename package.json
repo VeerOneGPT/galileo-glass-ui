@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "private": false,
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
@@ -139,6 +139,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/x-date-pickers": "^7.28.2",
+    "@use-gesture/react": "^10.3.1",
     "color": "^5.0.0",
     "csstype": "^3.1.3",
     "date-fns": "^4.1.0",
@@ -192,6 +193,7 @@
     "@types/testing-library__react": "^10.0.1",
     "@typescript-eslint/eslint-plugin": "^5.50.0",
     "@typescript-eslint/parser": "^5.50.0",
+    "buffer": "^6.0.3",
     "eslint": "^8.33.0",
     "eslint-config-prettier": "^8.8.0",
     "eslint-plugin-import": "^2.31.0",
@@ -219,7 +221,6 @@
     "storybook": "^8.6.11",
     "styled-components": "^5.3.6",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
-    "typescript": "^5.8.2",
-    "buffer": "^6.0.3"
+    "typescript": "^5.8.2"
   }
 }
