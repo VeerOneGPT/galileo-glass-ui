@@ -39,6 +39,7 @@ h
      - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
     - **Layout:** New `usePhysicsLayout` hook for physics-driven grid, stack, or freeform arrangements.
     - **Orchestration:** `useAnimationSequence` and `useSequence` for complex sequences, staggering, and state transitions.
+    - **Game Animation:** Enhanced [`useGameAnimation`](./docs/animations/game-animation.md) hook with physics-based transitions, 3D effects, and gesture integration.
     - **New Presets:** Added 'shake', 'pulse', and 'confetti' animation presets.
     - **Specialized Effects:** Z-space, 3D transforms, parallax, particles.
     - **Performance:** GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
@@ -54,33 +55,17 @@ h
 
 ## ✨ What's New 
 
-Version 1.0.21 introduces substantial new features focusing on animations, physics interactions, and accessibility:
+**Version 1.0.23** is primarily a **corrective release** focused on addressing critical build configuration issues, export errors, and functional regressions identified following the v1.0.22 release. This version stabilizes the library by ensuring all documented hooks and components are correctly exported and usable, fixing major bugs in animation and interaction systems, and resolving visual glitches. Documentation has also been significantly updated to reflect accurate usage patterns.
 
-- **Particle System:**
-  - Implemented comprehensive `useParticleSystem` hook with physics engine support
-  - Added WebGL and Canvas renderers with support for thousands of particles
-  - Created seven presets: 'fireworks', 'snow', 'rain', 'magicDust', 'confetti', 'fire', 'smoke'
-  - Integrated quality tier support for optimal performance across devices
+- **Systemic Build/Export Fixes:** Resolved numerous issues preventing hooks (like `useAnimationSequence`, `useMagneticElement`, `useChartPhysicsInteraction`) and components (`Card`) from being correctly bundled and exported.
+- **Hook Functionality Fixes:**
+  - Applied core fix to `useAnimationSequence` initialization logic to address element rendering failures *(Verification Required)*.
+  - Corrected force calculation in `usePhysicsInteraction` for the `magnetic` type.
+  - Addressed type import errors.
+- **Component Fixes:** Resolved `DataChart` visual glitches (legend cutoff, frost overlap).
+- **Documentation Updates:** Significantly updated docs for affected hooks (`useMagneticElement`, `useAnimationSequence`) with correct usage patterns, workarounds, and examples. Added troubleshooting guide.
 
-- **Magnetic Interactions:**
-  - Added directional fields for angle-based magnetic forces
-  - Implemented multi-element systems for linked magnetic elements
-
-- **Motion & Animation:**
-  - Created `useInertialMovement` hook for momentum scrolling and flick gestures
-  - Implemented `useZSpace` with scroll depth animations
-  - Added `use3DTransform` for physics-based 3D transformations
-  - Created `useParallaxScroll` for configurable parallax effects
-
-- **Accessibility Enhancements:**
-  - Implemented alternative animations system with fade/static/simplified variants
-  - Created the new `GlassFocusRing` component for consistent focus styling
-  - Added comprehensive motion sensitivity levels and animation categorization
-
-- **Bug Fixes:**
-  - Fixed keyframe interpolation issues in physics interactions
-
-> For full details, see the [**v1.0.21 Changelog**](./docs/changelog/CHANGELOG-1.0.21.md).
+> For full details, see the [**v1.0.23 Changelog**](./docs/changelog/CHANGELOG-1.0.23.md).
 
 ---
 
@@ -276,9 +261,9 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
     </tr>
      <tr valign="top">
+      <td><a href="./docs/changelog/CHANGELOG-1.0.22.md">v1.0.22 Changelog</a></td>
       <td></td>
-      <td></td>
-      <td></td>
+      <td><a href="./docs/animations/game-animation.md"><strong>useGameAnimation</strong> (Enhanced)</a></td>
       <td></td>
       <td><a href="./docs/hooks/useAmbientTilt.md">useAmbientTilt</a></td>
       <td><a href="./docs/development/implementation-notes.md">Implementation Notes</a></td>
@@ -973,4 +958,4 @@ npm install @mui/icons-material @emotion/react @emotion/styled
 ```
 
 // Version
-export const version = '1.0.21';
+export const version = '1.0.23';

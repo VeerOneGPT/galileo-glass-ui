@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.21",
+  "version": "1.0.23",
   "private": false,
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
@@ -62,6 +62,21 @@
       "types": "./dist/animations/physics/index.d.ts",
       "import": "./dist/animations/physics/index.esm.js",
       "require": "./dist/animations/physics/index.js"
+    },
+    "./charts/useChartPhysicsInteraction": {
+      "types": "./dist/components/DataChart/hooks/useChartPhysicsInteraction.d.ts",
+      "import": "./dist/components/DataChart/hooks/useChartPhysicsInteraction.esm.js",
+      "require": "./dist/components/DataChart/hooks/useChartPhysicsInteraction.js"
+    },
+    "./magnetic": {
+      "types": "./dist/animations/physics/useMagneticElement.d.ts",
+      "import": "./dist/animations/physics/useMagneticElement.esm.js",
+      "require": "./dist/animations/physics/useMagneticElement.js"
+    },
+    "./animations/sequence": {
+      "types": "./dist/animations/orchestration/useAnimationSequence.d.ts",
+      "import": "./dist/animations/orchestration/useAnimationSequence.esm.js",
+      "require": "./dist/animations/orchestration/useAnimationSequence.js"
     }
   },
   "sideEffects": false,
