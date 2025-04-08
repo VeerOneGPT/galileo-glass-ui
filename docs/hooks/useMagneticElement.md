@@ -33,6 +33,8 @@ const MagneticDemo = () => {
     affectsScale: true,    // Allow scaling
     scaleAmplitude: 0.1,   // Max scale change (e.g., 0.9 to 1.1)
     easeFactor: 0.2,       // Smoothing factor
+    motionSensitivityLevel: 'subtle', // Overrides the sensitivity level from AnimationContext
+    category: 'FEEDBACK', // Semantic category for the animation
   });
 
   return (
@@ -114,6 +116,8 @@ This extends the `MagneticEffectOptions` (from the underlying `useMagneticEffect
     *   `onActivate?`: `() => void` - Callback when the effect becomes active.
     *   `onDeactivate?`: `() => void` - Callback when the effect becomes inactive.
     *   `onTransform?`: `(transform: MagneticTransform) => void` - Callback fired on each animation frame while the transform is changing.
+    *   `motionSensitivityLevel?`: `MotionSensitivityLevel` - Overrides the sensitivity level from `AnimationContext`. Affects physics parameters (`maxDisplacement`, spring settings) when `prefers-reduced-motion` is active.
+    *   `category?`: `AnimationCategory` - Semantic category for the animation (e.g., `FEEDBACK`).
 
 ### Return Value (`MagneticElementResult<T>`)
 

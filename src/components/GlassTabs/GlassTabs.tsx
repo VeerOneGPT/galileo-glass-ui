@@ -184,7 +184,7 @@ const TabButton = styled.button<{ $isActive: boolean; $variant: GlassTabsVariant
 
   /* Glow effect when active */
   ${props => props.$isActive && css`
-    animation: ${glowEffect} 3s infinite ease-in-out;
+    animation: ${css`${glowEffect} 3s infinite ease-in-out`};
   `}
   
   /* Hover effect */

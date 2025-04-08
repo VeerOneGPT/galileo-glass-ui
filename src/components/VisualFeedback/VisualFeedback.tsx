@@ -81,15 +81,15 @@ const FeedbackContainer = styled.div<{
     switch (props.$effect) {
       case 'pulse':
         return css`
-          animation: ${pulseAnimation} ${props.$duration}ms ease-in-out infinite;
+          animation: ${css`${pulseAnimation} ${props.$duration}ms ease-in-out infinite`};
         `;
       case 'glow':
         return css`
-          animation: ${glowAnimation} ${props.$duration}ms ease-in-out infinite;
+          animation: ${css`${glowAnimation} ${props.$duration}ms ease-in-out infinite`};
         `;
       case 'highlight':
         return css`
-          animation: ${highlightAnimation} ${props.$duration}ms ease-in-out infinite;
+          animation: ${css`${highlightAnimation} ${props.$duration}ms ease-in-out infinite`};
         `;
       default:
         return '';

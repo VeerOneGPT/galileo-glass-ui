@@ -2,20 +2,22 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import styled from 'styled-components';
 
+// Import types from their correct location
 import {
     GalileoPhysicsEngineAPI,
     Vector2D,
     PhysicsBodyOptions,
     PhysicsBodyState
-} from '@veerone/galileo-glass-ui';
+} from '../../src/animations/physics/engineTypes';
 
-// Correct: Import hook from the hooks subpath using its exported alias
-import { usePhysicsEngine } from '@veerone/galileo-glass-ui/hooks';
+// Import hook from the hooks directory - imported as an alias
+import { usePhysicsEngine } from '../../src/hooks';
 
+// Import components from source
 import {
-    GlassBox, // Use GlassBox
-    GlassButton // Use GlassButton
-} from '@veerone/galileo-glass-ui';
+    GlassBox,
+    GlassButton
+} from '../../src/components';
 
 interface BodyRepresentation {
   id: string;

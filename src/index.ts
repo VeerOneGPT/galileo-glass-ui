@@ -117,7 +117,6 @@ export { AnimationProvider, useAnimationContext } from './contexts/AnimationCont
 //------------------------------------------------------------------------------
 
 export { 
-  // useTheme, // Already exported from './theme' above
   usePhysicsInteraction, 
   useOrchestration,
   usePhysicsEngine,
@@ -136,6 +135,7 @@ export {
   useSortableData,
   useFallbackStrategies,
   useGlassFocus,
+  useParticleSystem,
   
   // Accessibility related hooks
   useAccessibilitySettings,
@@ -153,7 +153,7 @@ export {
   useAnimationInterpolator,
   useOptimizedAnimation,
   useScrollScene,
-  useGestureAnimation
+  useGestureAnimation,
   
   // Note: useZSpaceAnimation is already exported directly from './animations'
   // Removed useParallaxScroll as it's exported directly below
@@ -176,6 +176,9 @@ export { useZSpace } from './hooks/useZSpace';
 export { use3DTransform } from './hooks/use3DTransform';
 export { useParallaxScroll } from './hooks/useParallaxScroll';
 
+// FIX: Add direct export for useChartPhysicsInteraction
+export { useChartPhysicsInteraction } from './components/DataChart/hooks/useChartPhysicsInteraction';
+
 // Export useInertialMovement and its types
 export {
   useInertialMovement,
@@ -194,6 +197,18 @@ export type {
 
 // Export Magnetic Element hook - keeping this import to maintain correct sourcing
 export { useMagneticElement } from './animations/physics/useMagneticElement';
+
+// Export Particle System hook and types
+// export { useParticleSystem } from './hooks/useParticleSystem';
+// export type { 
+//     ParticleSystemOptions, 
+//     ParticleSystemResult, 
+//     ParticleSystemControls, 
+//     ParticleSystemState,
+//     ParticlePresetCollection,
+//     ParticlePreset,
+//     Vector2D as ParticleVector2D
+// } from './types/particles';
 
 //------------------------------------------------------------------------------
 // UTILITY EXPORTS
@@ -215,7 +230,7 @@ export {
 } from './utils/refUtils';
 
 // Version
-export const version = '1.0.21';
+export const version = '1.0.23';
 
 //------------------------------------------------------------------------------
 // TYPE EXPORTS
@@ -289,12 +304,15 @@ export type { VectorSpringHookResult as VectorSpringResult } from './animations/
 export { useGlassTheme } from './hooks/useGlassTheme';
 export type { GlassThemeContextValue } from './hooks/useGlassTheme';
 
-// Animation sequence types - export from their canonical source
-export type {
-  AnimationSequenceConfig,
-  SequenceControls,
-  AnimationSequenceResult
-} from './animations/orchestration/useAnimationSequence';
+// Re-export Animation Sequence hook and types
+export { default as useAnimationSequence } from './animations/orchestration/useAnimationSequence';
+// --- Fix Export Path for Types --- 
+export type { 
+    AnimationSequenceConfig, 
+    SequenceControls, 
+    AnimationSequenceResult 
+} from './animations/types'; // Corrected path
+// --- End Fix --- 
 
 // Animation types from animations/types.ts
 export type {
@@ -344,29 +362,13 @@ export { GesturePhysicsPreset } from './animations/physics/gestures/useGesturePh
 
 // Export types from hooks index
 export type { 
-    // PhysicsInteractionOptions, // Now explicitly exported above
-    // PhysicsInteractionType, // Now explicitly exported above
-    // PhysicsState, // Now explicitly exported above
-    // PhysicsVector, // Now explicitly exported above
-    // PhysicsMaterial, // Now explicitly exported above 
-    // CollisionShape, // Now explicitly exported above
-    // PhysicsQuality, // Now explicitly exported above
     AmbientTiltOptions,
-    ParticleSystemOptions, 
-    ParticleSystemResult, 
-    ParticleSystemControls, 
-    ParticleSystemState,
-    ParticlePresetCollection,
-    ParticleVector2D,
     GestureEventData, 
     GestureType,
     PanGestureConfig,
     PinchGestureConfig,
     RotateGestureConfig,
     TapGestureConfig,
-    // InertialMovementOptions, // Now explicitly exported above
-    // InertialMovementState, // Now explicitly exported above
-    // InertialMovementResult, // Now explicitly exported above
     ZSpaceOptions,
     ZSpaceResult,
     SetTransform3D,

@@ -405,7 +405,7 @@ function generateFocusAnimation(
       animationCSS = css`
         outline: ${adjustedWidth}px solid ${mainColor};
         outline-offset: ${adjustedOffset}px;
-        animation: ${outlinePulseKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${outlinePulseKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
@@ -413,7 +413,7 @@ function generateFocusAnimation(
     case FocusAnimationStyle.GLOW:
       animationCSS = css`
         box-shadow: 0 0 0 ${adjustedOffset}px ${altColor};
-        animation: ${glowKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${glowKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
@@ -422,7 +422,7 @@ function generateFocusAnimation(
       animationCSS = css`
         transform: scale(1);
         transform-origin: center;
-        animation: ${scaleKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${scaleKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
@@ -430,7 +430,7 @@ function generateFocusAnimation(
     case FocusAnimationStyle.BORDER:
       animationCSS = css`
         border: ${adjustedWidth}px solid ${altColor};
-        animation: ${borderKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${borderKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
@@ -441,28 +441,28 @@ function generateFocusAnimation(
         background-position: 0 100%;
         background-repeat: no-repeat;
         background-size: 0 ${adjustedWidth}px;
-        animation: ${underlineKeyframes} ${adjustedDuration / 2}ms ${easing} forwards;
+        animation: ${css`${underlineKeyframes} ${adjustedDuration / 2}ms ${easing} forwards`};
         animation-delay: ${delay}ms;
       `;
       break;
       
     case FocusAnimationStyle.BACKGROUND:
       animationCSS = css`
-        animation: ${backgroundKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${backgroundKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
       
     case FocusAnimationStyle.SHADOW:
       animationCSS = css`
-        animation: ${shadowKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${shadowKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
       
     case FocusAnimationStyle.COLOR_SHIFT:
       animationCSS = css`
-        animation: ${colorShiftKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+        animation: ${css`${colorShiftKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
         animation-delay: ${delay}ms;
       `;
       break;
@@ -482,7 +482,7 @@ function generateFocusAnimation(
           border: ${adjustedWidth}px dashed ${mainColor};
           stroke-dasharray: var(--dash-length);
           stroke-dashoffset: var(--dash-length);
-          animation: ${dashKeyframes} ${adjustedDuration}ms ${easing} ${iterations};
+          animation: ${css`${dashKeyframes} ${adjustedDuration}ms ${easing} ${iterations}`};
           animation-delay: ${delay}ms;
         }
       `;

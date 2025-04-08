@@ -242,7 +242,7 @@ export const springAnimation = (options: SpringAnimationOptions = {}) => {
 
   // Build the final CSS
   return cssWithKebabProps`
-    ${keyframes}
+    ${css`${keyframes}`}
     animation-name: ${animationName};
     animation-duration: ${animationDuration}ms;
     animation-timing-function: ${timingFunction};

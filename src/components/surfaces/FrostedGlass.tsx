@@ -129,7 +129,7 @@ const FrostContainer = styled.div<{
       props.$animate &&
       !props.$reducedMotion &&
       css`
-        animation: ${frostGrow} 8s ease-in-out infinite;
+        animation: ${css`${frostGrow} 8s ease-in-out infinite`};
       `}
   }
 
@@ -195,7 +195,7 @@ const FrostSparkles = styled.div<{
     props.$animate &&
     !props.$reducedMotion &&
     css`
-      animation: ${frostSparkle} 4s ease-in-out infinite;
+      animation: ${css`${frostSparkle} 4s ease-in-out infinite`};
     `}
 `;
 

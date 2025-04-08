@@ -332,3 +332,54 @@ const getPhysicsOptions: GetElementPhysicsOptions =
 
 *   Per-element physics interaction (via `getElementPhysicsOptions`) is functional but the underlying plugin animation might need further refinement for complex effects beyond basic scale/opacity springs.
 *   **Passing Custom Chart.js Options:** There is currently no dedicated `chartOptions` prop to pass arbitrary configuration directly to the underlying Chart.js instance. Advanced customizations (e.g., specific scale types, intricate tick formatting, complex plugins beyond the built-in ones) may require accessing the Chart.js instance directly via the `ref` prop and manipulating it manually, or potentially creating a custom chart component. 
+
+## Recent Fixes (v1.0.22)
+
+### Fixed: TypeError on Variant Change
+
+In version 1.0.22, we resolved an issue where changing the `variant` prop (e.g., from 'line' to 'bar' to 'pie') could cause a TypeError, especially when legends were enabled. The fix ensures:
+
+- Proper remounting of the Chart component when variant changes, using a key based on the chart type
+- Correct legend state handling during type transitions 
+- Improved handling of different chart type option requirements
+
+```tsx
+// Changing variant dynamically now works properly
+const [chartType, setChartType] = useState<ChartVariant>('line');
+
+// ...later in your code
+<GlassDataChart
+  datasets={myDatasets}
+  variant={chartType} // ✓ Can be changed without TypeErrors
+  legend={{ show: true }}
+/>
+
+// Variant can be changed via:
+setChartType('bar');   // Works correctly
+setChartType('pie');   // Works correctly
+setChartType('area');  // Works correctly
+```
+
+### Fixed: Maximum Update Depth Errors
+
+Version 1.0.22 also fixes the "Maximum update depth exceeded" error that could occur when interaction options like `physicsHoverEffects` and `zoomPanEnabled` were set to `false`. The improvements include:
+
+- Complete bail-out from hover handling logic when `physicsHoverEffects` is disabled
+- Prevention of unnecessary state updates in the hover flow
+- Verification that `useChartPhysicsInteraction` hook effects don't run when the feature is disabled
+- Improved event handling that prevents infinite re-render loops
+
+```tsx
+// This configuration no longer causes Maximum update depth exceeded errors
+<GlassDataChart
+  datasets={myDatasets}
+  variant="line"
+  interaction={{
+    physicsHoverEffects: false,  // ✓ Can be safely disabled
+    showTooltips: false,         // ✓ Can be safely disabled
+    zoomPanEnabled: false        // ✓ Can be safely disabled
+  }}
+/>
+```
+
+These fixes make the `GlassDataChart` component more reliable during dynamic updates and when configuring different interaction modes. 

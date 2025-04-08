@@ -181,4 +181,7 @@ The hook returns an object containing state and controls:
     *   `setPlaybackRate(rate: number)`: Change playback speed.
     *   `getPlaybackState()`: Get the current playback state.
     *   `addCallback()`, `removeCallback()`: Dynamically add/remove lifecycle callbacks.
-</rewritten_file> 
+
+### Recent Fixes (v1.0.22)
+
+*   **Initial State & Execution:** Resolved an issue (Bug #20) where the initial `from` state might not be applied correctly on mount, especially when using `autoplay: true`. The sequence execution logic has also been made more robust, ensuring stages run reliably according to their defined timing and dependencies.

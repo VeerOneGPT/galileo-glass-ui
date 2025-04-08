@@ -5,13 +5,13 @@
 import React from 'react';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
+import { useGameAnimation } from '../useGameAnimation';
 import { 
-  useGameAnimation, 
   TransitionType, 
   TransitionDirection,
   GameAnimationState, 
   StateTransition 
-} from '../useGameAnimation';
+} from '../../types';
 import { AnimationCategory } from '../../accessibility/MotionSensitivity';
 import { StaggerPattern } from '../../types';
 

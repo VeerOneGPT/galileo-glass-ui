@@ -12,12 +12,12 @@ import styled, { css, keyframes } from 'styled-components';
 // Physics-related imports
 import { useGalileoStateSpring, GalileoSpringResult } from '../../hooks/useGalileoStateSpring';
 import { SpringPresets, SpringConfig } from '../../animations/physics/springPhysics';
+import { useAnimationSequence } from '../../animations/orchestration/useAnimationSequence';
 import {
-  useAnimationSequence,
+  StaggerAnimationStage,
   AnimationSequenceConfig,
-  SequenceControls,
-} from '../../animations/orchestration/useAnimationSequence';
-import { StaggerAnimationStage } from '../../animations/types';
+  SequenceControls
+} from '../../animations/types';
 
 // Core styling imports
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -498,10 +498,9 @@ function AnimatedTokenWrapper<T>({
       start({ to: 0 }); // Start animation towards exit state (0)
     } else {
       // Optional: Handle entrance/reset if needed, though entrance is separate
-       start({ to: 1, from: 0 }); // Simple fade-in on initial render if needed
+      start({ to: 1, from: 0 }); // Simple fade-in on initial render if needed
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExiting]); // Removed `start` dependency based on hook implementation
+  }, [isExiting, start]); // Added start to dependency array
   
   // Trigger exit (called by the remove button click)
   const triggerExit = (e: React.MouseEvent) => {
@@ -553,6 +552,21 @@ function AnimatedTokenWrapper<T>({
     </div>
   );
 }
+
+// Helper function for deep equality comparison of options arrays
+const areOptionsEqual = <T,>(a: MultiSelectOption<T>[], b: MultiSelectOption<T>[]): boolean => {
+  if (a.length !== b.length) return false;
+  
+  for (let i = 0; i < a.length; i++) {
+    const aOption = a[i];
+    const bOption = b[i];
+    if (aOption.id !== bOption.id || aOption.label !== bOption.label) {
+      return false;
+    }
+  }
+  
+  return true;
+};
 
 // Define the actual component function that accepts props and ref
 const GlassMultiSelectInternal = <T = string>(
@@ -716,8 +730,8 @@ const GlassMultiSelectInternal = <T = string>(
   useEffect(() => {
     if (controlledValue !== undefined) {
       const controlledArray = Array.isArray(controlledValue) ? controlledValue : [];
-      if (JSON.stringify(controlledArray) !== JSON.stringify(internalValue)) {
-          setInternalValue(controlledArray);
+      if (!areOptionsEqual(controlledArray, internalValue)) {
+        setInternalValue(controlledArray);
       }
     }
   }, [controlledValue, internalValue]);
@@ -739,10 +753,10 @@ const GlassMultiSelectInternal = <T = string>(
             option.label.toLowerCase().includes(input.toLowerCase())
         );
         try {
-             result = options.filter(option => filterFn(option, inputValue, internalValue));
+            result = options.filter(option => filterFn(option, inputValue, internalValue));
         } catch (e) {
-             console.warn("Filter function failed, check arguments", e);
-             result = options.filter(option => (filterFn as any)(option, inputValue));
+            // Silent error handling - filter function failed
+            result = options.filter(option => (filterFn as any)(option, inputValue));
         }
     }
     if (creatable && inputValue && !options.some(opt => opt.label === inputValue)) {
@@ -890,11 +904,10 @@ const GlassMultiSelectInternal = <T = string>(
    // MODIFIED: Original remove handler (now just triggers animation via wrapper)
    // This function is passed down to the wrapper IF a custom renderToken is used,
    // otherwise the wrapper's internal triggerExit is used directly.
-   const handleTokenRemoveTrigger = useCallback((e: React.MouseEvent, optionToRemove: MultiSelectOption<T>) => {
+   const handleTokenRemoveTrigger = useCallback((e: React.MouseEvent, option: MultiSelectOption<T>) => {
+     // This is now just a placeholder for compatibility with renderToken
+     // The actual token removal is managed by the AnimatedTokenWrapper
      e.stopPropagation();
-     // Logic is now inside AnimatedTokenWrapper's triggerExit
-     // We pass this down mainly for the custom renderToken case where it needs the original signature
-     console.warn("handleTokenRemoveTrigger called - should be handled by wrapper's triggerExit");
    }, []);
 
   // ADD BACK: handleClearAll
@@ -944,18 +957,40 @@ const GlassMultiSelectInternal = <T = string>(
         if (!inputValue && internalValue.length > 0) {
           e.preventDefault();
           const lastOption = internalValue[internalValue.length - 1];
-          // Backspace triggers exit on the last token wrapper
-          // We need a way to reference the last wrapper to call its triggerExit
-          // This approach is getting complex. A simpler way might be needed,
-          // or we find the element and simulate a click on its remove button.
-          // For now, let's just remove it immediately for Backspace:
-           handleRemoveTokenActual(lastOption.id);
+          
+          // Find the token wrapper element for the last option
+          const tokenWrappers = rootRef.current?.querySelectorAll('.galileo-multiselect-token-wrapper');
+          if (tokenWrappers && tokenWrappers.length > 0) {
+            // Get the last wrapper
+            const lastWrapper = tokenWrappers[tokenWrappers.length - 1];
+            // Find the remove button within it
+            const removeButton = lastWrapper.querySelector('.remove-button');
+            if (removeButton && removeButton instanceof HTMLElement) {
+              // Simulate a click on the remove button
+              removeButton.click();
+              return;
+            }
+          }
+          
+          // Fallback: direct removal if simulation fails
+          handleRemoveTokenActual(lastOption.id);
         }
         break;
       default: break;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keyboardNavigation, disabled, isDropdownOpen, flatOptions, focusedOptionIndex, inputValue, internalValue, handleOptionClick, handleRemoveTokenActual]); // Added dependencies
+  }, [
+    keyboardNavigation, 
+    disabled, 
+    isDropdownOpen, 
+    flatOptions, 
+    focusedOptionIndex, 
+    inputValue, 
+    internalValue, 
+    handleOptionClick, 
+    handleRemoveTokenActual,
+    setIsDropdownOpen,
+    setFocusedOptionIndex
+  ]);
 
   // Scroll into view logic
   useEffect(() => {
@@ -1019,6 +1054,45 @@ const GlassMultiSelectInternal = <T = string>(
   // const tokenTransitions = useTransition(...) 
   // --- End Token Add/Remove Animation ---
 
+  // Add state for dropdown positioning
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  // Calculate dropdown position when it opens or container resizes
+  useEffect(() => {
+    if (isDropdownOpen && rootRef.current) {
+      const updatePosition = () => {
+        const rect = rootRef.current?.getBoundingClientRect();
+        if (rect) {
+          const { top, left, bottom, width } = rect;
+          const viewportHeight = window.innerHeight;
+          const spaceBelow = viewportHeight - bottom;
+          const spaceAbove = top;
+          
+          // Determine if we should open upward based on available space
+          const actualOpenUp = openUp || (spaceBelow < 300 && spaceAbove > spaceBelow);
+          
+          setDropdownPosition({
+            top: actualOpenUp ? top - 4 : bottom + 4,
+            left,
+            width
+          });
+        }
+      };
+      
+      // Initial position calculation
+      updatePosition();
+      
+      // Recalculate on scroll or resize
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+      
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isDropdownOpen, openUp]);
+
   // Render function for dropdown content
   const renderDropdown = () => {
     const content = (
@@ -1070,14 +1144,18 @@ const GlassMultiSelectInternal = <T = string>(
     return createPortal(
       <DropdownContainer
         ref={dropdownContainerRef}
-        $width={rootRef.current?.offsetWidth || 300}
+        $width={dropdownPosition.width}
         $maxHeight={maxHeight}
         $openUp={openUp}
         style={{
-            opacity: dropdownAnimation.value,
-            transform: `scaleY(${dropdownAnimation.value})`,
-            pointerEvents: isDropdownOpen ? 'auto' : 'none',
-            visibility: shouldRenderDropdown ? 'visible' : 'hidden',
+          opacity: dropdownAnimation.value,
+          transform: `scaleY(${dropdownAnimation.value})`,
+          pointerEvents: isDropdownOpen ? 'auto' : 'none',
+          visibility: shouldRenderDropdown ? 'visible' : 'hidden',
+          position: 'fixed',
+          top: `${dropdownPosition.top}px`,
+          left: `${dropdownPosition.left}px`,
+          zIndex: 1300
         }}
         onMouseDown={(e) => e.preventDefault()}
       >

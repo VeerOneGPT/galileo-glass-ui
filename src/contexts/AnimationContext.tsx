@@ -1,6 +1,8 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { SpringConfig, DefaultSprings, SpringPresets } from '../animations/physics/springPhysics';
 import { PhysicsConfig } from '../animations/physics/galileoPhysicsSystem';
+import { QualityTier, MotionSensitivityLevel } from '../types/accessibility'; // Import QualityTier and MotionSensitivityLevel enums
+import { useQualityTier } from '../hooks/useQualityTier'; // Import the new hook
 
 // Define the shape of the context state
 interface AnimationContextState {
@@ -17,22 +19,64 @@ interface AnimationContextState {
   modalSpringConfig?: SpringConfig | keyof typeof SpringPresets;
   menuSpringConfig?: SpringConfig | keyof typeof SpringPresets;
   notificationSpringConfig?: SpringConfig | keyof typeof SpringPresets;
+
+  // Performance Tier
+  activeQualityTier?: QualityTier;
+  // Add Motion Sensitivity Level
+  motionSensitivityLevel?: MotionSensitivityLevel;
 }
 
-// Create the context with a default value (can be undefined or a default object)
-const AnimationContext = createContext<AnimationContextState | undefined>(undefined);
-
-// Create a provider component
+// Define props for the provider, adding forceQualityTier and defaultMotionSensitivity
 interface AnimationProviderProps {
   children: ReactNode;
-  value?: Partial<AnimationContextState>; // Allow overriding defaults
+  value?: Partial<AnimationContextState>; 
+  /** Optional: Force a specific quality tier, overriding automatic detection. */
+  forceQualityTier?: QualityTier | null;
+  /** Optional: Set a default motion sensitivity level for the context. */
+  defaultMotionSensitivity?: MotionSensitivityLevel; 
 }
 
-export const AnimationProvider: React.FC<AnimationProviderProps> = ({ children, value = {} }) => {
-  // Combine provided value with potential defaults if needed
+// Default fallback state for the context hook
+const FALLBACK_CONTEXT_STATE: AnimationContextState = {
+    defaultSpring: 'DEFAULT',
+    gentleSpring: 'GENTLE',
+    hoverSpringConfig: 'HOVER_QUICK',
+    focusSpringConfig: 'FOCUS_HIGHLIGHT',
+    pressSpringConfig: 'PRESS_FEEDBACK',
+    modalSpringConfig: 'MODAL_TRANSITION',
+    menuSpringConfig: 'MENU_POPOVER',
+    notificationSpringConfig: 'NOTIFICATION_SLIDE',
+    activeQualityTier: QualityTier.MEDIUM, // Default fallback tier
+    motionSensitivityLevel: MotionSensitivityLevel.MEDIUM, // Add default fallback level
+};
+
+// Create the context with a default value 
+// Providing a default object helps if provider is not used, matching hook fallback
+const AnimationContext = createContext<AnimationContextState>(FALLBACK_CONTEXT_STATE);
+
+// Create a provider component
+export const AnimationProvider: React.FC<AnimationProviderProps> = ({ 
+    children, 
+    value = {}, 
+    forceQualityTier = null, 
+    // Get default sensitivity from props or use fallback
+    defaultMotionSensitivity = MotionSensitivityLevel.MEDIUM 
+}) => {
+  // Determine the active quality tier
+  const detectedQualityTier = useQualityTier();
+  const activeQualityTier = forceQualityTier ?? detectedQualityTier;
+
+  // Determine active sensitivity level (user override in value prop takes precedence)
+  const activeMotionSensitivity = value.motionSensitivityLevel ?? defaultMotionSensitivity;
+
+  // Combine provided value with potential defaults and the determined quality tier
   const contextValue: AnimationContextState = {
-    // Default values can be set here if desired
-    ...value,
+    ...FALLBACK_CONTEXT_STATE, // Start with fallbacks
+    ...value, // Apply user overrides from value prop
+    activeQualityTier, // Apply determined or forced quality tier
+    motionSensitivityLevel: activeMotionSensitivity, // Apply determined level
+    // Ensure disableAnimation from value overrides fallback/defaults
+    disableAnimation: value.disableAnimation ?? FALLBACK_CONTEXT_STATE.disableAnimation,
   };
 
   return (
@@ -44,22 +88,8 @@ export const AnimationProvider: React.FC<AnimationProviderProps> = ({ children, 
 
 // Create a custom hook to use the context
 export const useAnimationContext = (): AnimationContextState => {
-  const context = useContext(AnimationContext);
-  if (context === undefined) {
-    console.warn('useAnimationContext must be used within an AnimationProvider. Using fallback defaults.');
-    // Use newly defined standard preset names
-    return {
-        defaultSpring: 'DEFAULT',
-        gentleSpring: 'GENTLE',
-        hoverSpringConfig: 'HOVER_QUICK',
-        focusSpringConfig: 'FOCUS_HIGHLIGHT',
-        pressSpringConfig: 'PRESS_FEEDBACK',
-        modalSpringConfig: 'MODAL_TRANSITION',
-        menuSpringConfig: 'MENU_POPOVER',
-        notificationSpringConfig: 'NOTIFICATION_SLIDE',
-    };
-  }
-  return context;
+  // Context now has a default value, so useContext should always return a valid state
+  return useContext(AnimationContext);
 };
 
 // Optional: Export the context itself if needed elsewhere

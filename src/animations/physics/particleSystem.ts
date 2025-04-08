@@ -6,6 +6,7 @@
 // import { css } from 'styled-components'; // Removed unused import
 
 import { cssWithKebabProps } from '../../core/cssUtils';
+import { css, FlattenSimpleInterpolation } from 'styled-components'; // Revert import addition
 
 // Constants for magic numbers
 const DEFAULT_PARTICLE_DURATION = 1000;
@@ -128,7 +129,7 @@ const generateParticleAnimation = (
   type: string,
   index: number,
   options: ParticleSystemOptions
-): string => {
+): FlattenSimpleInterpolation => {
   const {
     duration = DEFAULT_PARTICLE_DURATION,
     size = DEFAULT_PARTICLE_SIZE,
@@ -201,9 +202,9 @@ const generateParticleAnimation = (
         top: 50%;
         left: 50%;
         pointer-events: none;
-        animation: ${animationName} ${
-        duration + random(-DURATION_RANDOM_RANGE_MS, DURATION_RANDOM_RANGE_MS)
-      }ms cubic-bezier(0.215, 0.61, 0.355, 1.0) ${staggerDelay}ms forwards;
+        ${css`animation: ${animationName} ${
+          duration + random(-DURATION_RANDOM_RANGE_MS, DURATION_RANDOM_RANGE_MS)
+        }ms cubic-bezier(0.215, 0.61, 0.355, 1.0) ${staggerDelay}ms forwards;`}
       `;
       break;
 
@@ -239,9 +240,9 @@ const generateParticleAnimation = (
         left: 50%;
         pointer-events: none;
         filter: blur(${particleSize * 0.5}px);
-        animation: ${animationName} ${
-        duration + random(-DUST_DURATION_RANDOM_RANGE_MS, DUST_DURATION_RANDOM_RANGE_MS)
-      }ms ease-out ${staggerDelay}ms forwards;
+        ${css`animation: ${animationName} ${
+          duration + random(-DUST_DURATION_RANDOM_RANGE_MS, DUST_DURATION_RANDOM_RANGE_MS)
+        }ms ease-out ${staggerDelay}ms forwards;`}
       `;
       break;
 
@@ -288,10 +289,10 @@ const generateParticleAnimation = (
         top: 50%;
         left: 50%;
         pointer-events: none;
-        animation: ${animationName} ${Math.max(
-        300,
-        duration * SPARKLE_DURATION_FACTOR + random(-DURATION_RANDOM_RANGE_MS, DURATION_RANDOM_RANGE_MS)
-      )}ms ease-out ${staggerDelay}ms forwards;
+        ${css`animation: ${animationName} ${Math.max(
+          300,
+          duration * SPARKLE_DURATION_FACTOR + random(-DURATION_RANDOM_RANGE_MS, DURATION_RANDOM_RANGE_MS)
+        )}ms ease-out ${staggerDelay}ms forwards;`}
       `;
       break;
 
@@ -337,9 +338,9 @@ const generateParticleAnimation = (
         top: 50%;
         left: 50%;
         pointer-events: none;
-        animation: ${animationName} ${
-        duration + random(-BUBBLE_DURATION_RANDOM_RANGE_MS, BUBBLE_DURATION_RANDOM_RANGE_MS * 3)
-      }ms cubic-bezier(0.175, 0.885, 0.32, 1.275) ${staggerDelay}ms forwards;
+        ${css`animation: ${animationName} ${
+          duration + random(-BUBBLE_DURATION_RANDOM_RANGE_MS, BUBBLE_DURATION_RANDOM_RANGE_MS * 3)
+        }ms cubic-bezier(0.175, 0.885, 0.32, 1.275) ${staggerDelay}ms forwards;`}
       `;
       break;
 
@@ -387,24 +388,25 @@ const generateParticleAnimation = (
         left: 50%;
         pointer-events: none;
         mix-blend-mode: screen;
-        animation: ${animationName} ${
-        duration + random(SMOKE_DURATION_RANDOM_MIN_MS, SMOKE_DURATION_RANDOM_MAX_MS)
-      }ms ease-out ${staggerDelay}ms forwards;
+        ${css`animation: ${animationName} ${
+          duration + random(SMOKE_DURATION_RANDOM_MIN_MS, SMOKE_DURATION_RANDOM_MAX_MS)
+        }ms ease-out ${staggerDelay}ms forwards;`}
       `;
       break;
 
     case 'custom':
       // Use custom CSS if provided
-      return options.customCss || '';
+      return css`${options.customCss || ''}`;
 
     default:
       // Default to confetti if type is not recognized
       return generateParticleAnimation('confetti', index, options);
   }
 
-  return `
+  // Return the plain string without css helper - Now wrapping in css helper
+  return css`
     ${keyframes}
-    &::before { content: ''; ${particleStyles} }
+    &::before { content: \'\'; ${particleStyles} }
   `;
 };
 
@@ -431,17 +433,18 @@ export const particleSystem = (options: ParticleSystemOptions = {}) => {
   const actualParticleCount = performanceMode ? Math.floor(particleCount / 2) : particleCount;
 
   // Generate particle animations
-  let particleStyles = '';
+  let particleStyles = css``; // Initialize as empty css template literal
   for (let i = 0; i < actualParticleCount; i++) {
-    particleStyles += generateParticleAnimation(type, i, options);
+    // generateParticleAnimation now returns a css template literal
+    particleStyles = css`${particleStyles}${generateParticleAnimation(type, i, options)}`; 
   }
 
   // Add GPU acceleration if requested
   const gpuStyles = gpuAccelerated
-    ? `
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-  `
+    ? css`
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+      `
     : '';
 
   // Build the final CSS

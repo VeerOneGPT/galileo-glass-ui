@@ -320,7 +320,7 @@ const Image = styled.img`
   
   /* Animation */
   opacity: 0;
-  animation: ${fadeIn} 0.3s ease-out forwards;
+  animation: ${css`${fadeIn} 0.3s ease-out forwards`};
   animation-delay: 0.1s;
 `;
 
@@ -610,7 +610,7 @@ const Spinner = styled.div<{$color: string}>`
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  animation: ${spin} 1s linear infinite;
+  animation: ${css`${spin} 1s linear infinite`};
 `;
 
 /**

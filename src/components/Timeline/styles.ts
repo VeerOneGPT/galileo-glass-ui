@@ -235,89 +235,133 @@ export const TimelineEvents = styled.div<{
   $density: TimelineDensity;
 }>`
   position: relative;
+  display: flex;
+  flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
+  gap: ${props => {
+    switch (props.$density) {
+      case 'compact': return '8px'; 
+      case 'spacious': return '20px';
+      default: return '15px';
+    }
+  }};
+  
   padding: ${props => {
     switch (props.$density) {
-      case 'compact': return '5px';
-      case 'spacious': return '20px';
-      default: return '10px';
+      case 'compact': return '8px'; 
+      case 'spacious': return '25px';
+      default: return '15px';
     }
   }};
   
   ${props => props.$orientation === 'vertical' 
     ? `
-      padding-left: ${props.$markerPosition === 'left' ? '60px' : '20px'};
-      padding-right: ${props.$markerPosition === 'right' ? '60px' : '20px'};
+      padding-left: ${props.$markerPosition === 'left' ? '70px' : '25px'}; 
+      padding-right: ${props.$markerPosition === 'right' ? '70px' : '25px'}; 
       width: 100%;
       min-height: 100%;
     ` 
     : `
-      padding-top: ${props.$markerPosition === 'left' ? '60px' : '20px'};
-      padding-bottom: ${props.$markerPosition === 'right' ? '60px' : '20px'};
+      padding-top: ${props.$markerPosition === 'left' ? '70px' : '25px'};
+      padding-bottom: ${props.$markerPosition === 'right' ? '70px' : '25px'};
       height: 100%;
       min-width: 100%;
     `
   }
 `;
 
-// Individual timeline item
+// Individual timeline item - Use relative positioning + margin for spacing
 export const TimelineItem = styled.div.attrs<{ style: React.CSSProperties }>(props => ({
-  style: props.style,
+  // Apply only animation transform/opacity via style prop
+  style: { 
+      transform: props.style?.transform ?? 'none',
+      opacity: props.style?.opacity ?? 1,
+      // position: 'absolute' // REMOVE
+  }, 
 }))<{
-  $orientation: TimelineOrientation;
-  $position: number;
-  $side: 'left' | 'right' | 'center';
-  $isActive: boolean;
-  $isHighlighted: boolean;
+  $orientation: TimelineOrientation; 
+  $side: 'left' | 'right' | 'center'; // Still needed for margin logic
+  $isActive: boolean; 
   $color?: string;
-  $reducedMotion: boolean;
-  style: React.CSSProperties;
+  style: React.CSSProperties; // Will contain transform, opacity ONLY
+  $density: 'compact' | 'normal' | 'spacious';
 }>`
-  position: absolute;
-  z-index: 5;
-  cursor: pointer;
+  position: relative; // <<< BACK TO RELATIVE
+  display: flex; 
+  /* width: 100%; */ // Let flexbox sizing handle width initially
+  max-width: 100%; // Prevent exceeding parent width
+  
+  // Basic flex alignment for children (Marker, Connector, Content)
+  align-items: ${props => {
+    if (props.$orientation === 'horizontal') return 'center'; 
+    // Vertical: Align based on side 
+    return props.$side === 'left' ? 'flex-end' : props.$side === 'right' ? 'flex-start' : 'center';
+  }};
+  justify-content: center; // Keep this to center the group by default
 
+  // Control child order and item width based on orientation/side
   ${props => {
-    const positionPercent = `${props.$position}%`;
     if (props.$orientation === 'vertical') {
-      const horizontalPosition = props.$side === 'left' ? '0%' : props.$side === 'right' ? '100%' : '50%';
+      if (props.$side === 'left') {
+        return css`
+          flex-direction: row-reverse; // Content | Connector | Marker
+          margin-right: auto; // Align item to left
+          max-width: calc(50% - 20px); // Leave gap in center
+          justify-content: flex-end; // Align content to the right (near center)
+        `;
+      } else if (props.$side === 'right') {
+        return css`
+          flex-direction: row; // Marker | Connector | Content
+          margin-left: auto; // Align item to right
+          max-width: calc(50% - 20px); // Leave gap in center
+          justify-content: flex-start; // Align content to the left (near center)
+        `;
+      } else { // Center
+        return css`
+          flex-direction: column; // Stack vertically
+          align-items: center; // Center align items
+          /* Center marker needs specific width? */
+          max-width: 300px; // Max width for centered items
+        `;
+      }
+    } else { // Horizontal
+      // Items are arranged top/bottom via TimelineEvents container?
+      // Or handle lanes here?
+      // For now, assume row and handle lanes in GlassTimeline
       return css`
-        top: ${positionPercent};
-        left: ${horizontalPosition};
-      `;
-    } else {
-      const verticalPosition = props.$side === 'left' ? '0%' : props.$side === 'right' ? '100%' : '50%';
-      return css`
-        left: ${positionPercent};
-        top: ${verticalPosition};
+        flex-direction: column; // Arrange content/marker vertically
+        align-items: center; // Center marker/content horizontally
+        /* Needs specific width? */
+        min-width: 150px;
       `;
     }
-  }}
+  }};
 
-  ${props => props.$isActive && css`
-    z-index: 6;
-  `}
-
-  ${props => props.$isHighlighted && css`
-  `}
-
-  will-change: transform, opacity;
-
-  display: flex;
-  flex-direction: ${props => props.$orientation === 'vertical' ? 'row' : 'column'};
-  align-items: ${props => props.$orientation === 'vertical'
-    ? 'center'
-    : props.$side === 'center' ? 'center' : 'flex-start'
-  };
-
-  transition: filter 0.2s ease;
+  will-change: transform, opacity; // Remove top/left
+  transition: filter 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 
   &:hover {
      filter: brightness(1.1);
   }
+  
+  /* Add margin auto for side alignment in vertical alternate */
+  ${props => props.$orientation === 'vertical' && props.$side === 'left' && css`
+    margin-right: auto;
+    /* Maybe limit width? */
+    /* max-width: calc(50% - 40px); */ 
+  `}
+  ${props => props.$orientation === 'vertical' && props.$side === 'right' && css`
+    margin-left: auto;
+    /* Maybe limit width? */
+    /* max-width: calc(50% - 40px); */
+  `}
+  /* Center case needs no auto margin */
 `;
 
-// Marker circle
+// Children (Marker, Connector, Content) are now FLEX ITEMS within TimelineItem
+
+// Marker circle - Positioned relative to TimelineItem's origin
 export const MarkerCircle = styled.div<{
+  // No $orientation/$side needed if centered
   $color?: string;
   $isActive: boolean;
   $isGlass: boolean;
@@ -326,14 +370,18 @@ export const MarkerCircle = styled.div<{
   $blurStrength?: BlurStrength;
   $hasIcon: boolean;
 }>`
-  position: absolute;
+  /* position: absolute; */ // REMOVE
   z-index: 4;
-  border-radius: 50%;
-  display: flex;
+  display: flex; // Keep flex for centering icon
   align-items: center;
   justify-content: center;
-
-  ${props => {
+  border-radius: 50%;
+  flex-shrink: 0; // Prevent marker from shrinking
+  
+  /* Remove absolute positioning styles */
+  
+  /* ... Size logic ... */
+  ${props => { 
     const sizeMap = { small: '8px', medium: '12px', large: '16px' };
     const iconSizeMap = { small: '6px', medium: '8px', large: '10px' };
     const size = sizeMap[props.$size] || sizeMap.medium;
@@ -348,15 +396,7 @@ export const MarkerCircle = styled.div<{
       }
     `;
   }}
-
-  ${props => {
-    return css`
-       top: 50%; 
-       left: 50%;
-       transform: translate(-50%, -50%);
-    `;
-  }}
-
+  
   background-color: ${props => props.$isActive
     ? `var(--color-${props.$color || 'primary'}, #6366F1)`
     : 'rgba(255, 255, 255, 0.3)'};
@@ -381,28 +421,39 @@ export const MarkerCircle = styled.div<{
   `}
 `;
 
-// Event connector (line between marker and content)
+// Event connector - Positioned relative to TimelineItem's origin
 export const EventConnector = styled.div<{
   $orientation: TimelineOrientation;
-  $side: 'left' | 'right' | 'center';
+  $side: 'left' | 'right' | 'center'; 
   $color?: string;
   $isActive: boolean;
 }>`
-  position: relative;
+  /* position: absolute; */ // REMOVE
   z-index: 1;
+  flex-shrink: 0; // Prevent connector from shrinking
+  margin: 0 5px; // Add some horizontal spacing around connector
   
-  ${props => props.$orientation === 'vertical' 
-    ? `
-      width: 30px;
-      height: 2px;
-      ${props.$side === 'left' ? 'margin-right: -1px;' : 'margin-left: -1px;'}
-    ` 
-    : `
-      height: 30px;
-      width: 2px;
-      ${props.$side === 'left' ? 'margin-bottom: -1px;' : 'margin-top: -1px;'}
-    `
-  }
+  /* Replace absolute positioning with flex sizing */
+  ${props => {
+    const connectorLength = '30px';
+    const connectorThickness = '2px';
+
+    if (props.$orientation === 'vertical') {
+      return css`
+        height: ${connectorThickness};
+        width: ${connectorLength};
+        /* Vertical alignment handled by parent TimelineItem align-items: center */
+      `;
+    } else { // Horizontal
+      return css`
+        width: ${connectorThickness};
+        height: ${connectorLength};
+        /* Horizontal alignment handled by parent TimelineItem align-items: center */
+        /* We need margin here for horizontal mode */
+        margin: 5px 0;
+      `;
+    }
+  }};
   
   background-color: ${props => props.$isActive 
     ? `var(--color-${props.$color || 'primary'}, rgba(99, 102, 241, 0.8))` 
@@ -412,9 +463,10 @@ export const EventConnector = styled.div<{
   transition: background-color 0.3s ease;
 `;
 
-// Event content container
+// Event content - Positioned relative to TimelineItem's origin
 export const EventContent = styled.div<{
   $orientation: TimelineOrientation;
+  $side: 'left' | 'right' | 'center'; 
   $isActive: boolean;
   $isGlass: boolean;
   $glassVariant?: GlassVariant;
@@ -422,9 +474,21 @@ export const EventContent = styled.div<{
   $color?: string;
   $maxWidth?: number;
 }>`
-  position: relative;
+  /* position: absolute; */ // REMOVE
   z-index: 3;
-  min-width: ${props => props.$orientation === 'vertical' ? '200px' : '100px'};
+  flex-grow: 1; // Allow content to take remaining space
+  min-width: 100px; // Prevent content collapsing too small
+  
+  /* Remove absolute positioning */
+  ${props => {
+    // Add alignment based on side for vertical?
+    if (props.$orientation === 'vertical') {
+        // Could add text-align here if needed based on side
+        // Example: return props.$side === 'left' ? 'text-align: right;' : 'text-align: left;';
+    }
+    return css``; // Remove old positioning logic
+  }};
+
   max-width: ${props => props.$maxWidth ? `${props.$maxWidth}px` : 'none'};
   padding: 10px 14px;
   border-radius: 8px;

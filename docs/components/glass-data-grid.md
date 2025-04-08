@@ -125,7 +125,7 @@ interface UserData {
 const columns: { id: string; header: string; accessorKey: keyof UserData; sortable?: boolean; cellRenderer?: (value: any, row: UserData) => React.ReactNode }[] = [
   { id: 'name', accessorKey: 'name', header: 'Name', sortable: true },
   { id: 'role', accessorKey: 'role', header: 'Role', sortable: true },
-  {
+  { 
     id: 'status',
     accessorKey: 'status',
     header: 'Status',
@@ -168,3 +168,7 @@ export default MyGrid;
 ```
 
 **Disclaimer:** While this documentation is based on recent source code analysis, ensure you are using the correct version of the library (`@veerone/galileo-glass-ui`). The internal `ColumnDefinition` type might be exported or differ slightly in the published package.
+
+## Recent Fixes (v1.0.22)
+
+*   **Rendering Fix:** Resolved an issue (Bug #17) where the `GlassDataGrid` component might fail to render visually due to incorrect internal component usage. The component now reliably uses the appropriate underlying surface (`DimensionalGlass`) and renders the table structure (`<table>`, `<thead>`, etc.) as expected when provided with valid `data` and `columns` props.

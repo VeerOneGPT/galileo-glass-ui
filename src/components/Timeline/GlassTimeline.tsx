@@ -27,6 +27,8 @@ import {
   TimelineViewMode,
   ZoomLevel,
   TimelineRef,
+  TimelineOrientation,
+  TimelineDensity
 } from './types';
 
 import {
@@ -140,6 +142,16 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
   const [selectedId, setSelectedId] = useState<string | number | null>(activeId || null);
   const [dateRange, setDateRange] = useState(getDateRangeForView(parsedInitialDate, viewMode, 2));
   
+  // State for container dimensions AND PADDING
+  const [containerMetrics, setContainerMetrics] = useState<{
+    width: number, 
+    height: number, 
+    paddingTop: number,
+    paddingRight: number,
+    paddingBottom: number,
+    paddingLeft: number
+  }>({ width: 0, height: 0, paddingTop: 0, paddingRight: 0, paddingBottom: 0, paddingLeft: 0 });
+
   // Refs
   const localContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -201,13 +213,90 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
     return config;
   }, [physics?.preset, animationConfig, animation, contextDefaultSpring]); 
 
+  // Effect to measure events container size AND PADDING
+  useEffect(() => {
+    const targetElement = eventsContainerRef.current;
+    if (!targetElement) return;
+
+    // Helper function to get metrics
+    const measureMetrics = () => {
+      const { offsetWidth, offsetHeight } = targetElement;
+      const computedStyle = window.getComputedStyle(targetElement);
+      const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+      const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+      const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
+      const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+      
+      setContainerMetrics({ 
+        width: offsetWidth, 
+        height: offsetHeight,
+        paddingTop,
+        paddingRight,
+        paddingBottom,
+        paddingLeft
+      });
+      // Update scroll bounds whenever metrics change
+      updateScrollBounds(offsetWidth, offsetHeight, paddingTop, paddingBottom, paddingLeft, paddingRight);
+    }
+
+    const resizeObserver = new ResizeObserver(measureMetrics); // Measure on resize
+
+    resizeObserver.observe(targetElement);
+
+    measureMetrics(); // Initial measure
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Rerun if orientation/density changes padding? Maybe not needed, resize should catch it.
+
+  // Helper to update scroll bounds (now takes padding into account for content size)
+  const updateScrollBounds = useCallback((containerWidth: number, containerHeight: number, paddingTop: number, paddingBottom: number, paddingLeft: number, paddingRight: number) => {
+    if (!scrollContainerRef.current || !eventsContainerRef.current) return;
+
+    const scrollEl = scrollContainerRef.current;
+    const contentEl = eventsContainerRef.current;
+    
+    let minBound = 0;
+    const maxBound = 0;
+    
+    const contentScrollHeight = contentEl.scrollHeight; // Includes padding
+    const contentScrollWidth = contentEl.scrollWidth;   // Includes padding
+
+    if (orientation === 'vertical') {
+      // Usable container height excludes padding for scrolling calculations
+      const usableContainerHeight = containerHeight - paddingTop - paddingBottom;
+      // Use scrollHeight directly as it represents the total scrollable content height
+      minBound = usableContainerHeight >= contentScrollHeight ? 0 : -(contentScrollHeight - usableContainerHeight);
+    } else {
+      // Usable container width excludes padding
+      const usableContainerWidth = containerWidth - paddingLeft - paddingRight;
+      minBound = usableContainerWidth >= contentScrollWidth ? 0 : -(contentScrollWidth - usableContainerWidth);
+    }
+
+    const newBounds = { min: minBound, max: maxBound };
+
+    setScrollBounds(prevBounds => {
+      if (newBounds.min !== prevBounds.min || newBounds.max !== prevBounds.max) {
+        updatePhysicsConfig({ 
+          bounds: newBounds,
+          ...finalScrollPhysicsConfig
+        });
+        return newBounds;
+      }
+      return prevBounds; // No change
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orientation, updatePhysicsConfig, finalScrollPhysicsConfig]); 
+
   // Update date range
   useEffect(() => {
     setDateRange(getDateRangeForView(currentDate, currentViewMode, 2));
   }, [currentDate, currentViewMode]);
 
-  // Calculate position for an item on the timeline
-  const calculateItemPosition = useCallback((date: Date): number => {
+  // Calculate position % - Still needed for markers, potentially internal logic
+  const calculateItemPositionPercent = useCallback((date: Date): number => {
     return calculateTimelinePosition(date, dateRange.start, dateRange.end);
   }, [dateRange]);
 
@@ -215,7 +304,7 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
   const scrollToDate = useCallback((date: Date, smooth = true) => {
     if (!scrollContainerRef.current) return;
     
-    const position = calculateItemPosition(date);
+    const position = calculateItemPositionPercent(date);
     const container = scrollContainerRef.current;
     let targetX = physicsScrollPosition.x;
     let targetY = physicsScrollPosition.y;
@@ -236,7 +325,7 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
     
     setPhysicsScrollPosition({ x: targetX, y: targetY }, smooth ? undefined : { x: 0, y: 0 });
 
-  }, [calculateItemPosition, orientation, setPhysicsScrollPosition, physicsScrollPosition, scrollBounds]);
+  }, [calculateItemPositionPercent, orientation, setPhysicsScrollPosition, physicsScrollPosition, scrollBounds]);
 
   // Expose methods via imperative handle (using localContainerRef internally)
   useImperativeHandle(ref, () => ({
@@ -313,8 +402,8 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
   const changeDate = useCallback((newDate: Date) => {
     setCurrentDate(newDate);
     onNavigate?.(newDate, currentViewMode);
-    scrollToDate(newDate);
-  }, [currentViewMode, onNavigate, scrollToDate]);
+    // scrollToDate(newDate); // <<< REMOVE SCROLL CALL FROM HERE
+  }, [currentViewMode, onNavigate]); // <<< REMOVE scrollToDate DEPENDENCY
   
   // Go to previous/next time period
   const goToPrevious = useCallback(() => {
@@ -543,37 +632,18 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animateOnMount, finalDisableAnimation, filteredItems, groupedItems, orientation, physics?.staggerDelay]); // Dependencies
   
-  // Bounds calculation effect (Ensure this is present)
+  // --- Effect to scroll when currentDate changes --- 
   useEffect(() => {
-    if (!scrollContainerRef.current || !eventsContainerRef.current) return;
-
-    const container = scrollContainerRef.current;
-    const content = eventsContainerRef.current;
-
-    let minBound = 0;
-    const maxBound = 0;
-
-    if (orientation === 'vertical') {
-        const contentHeight = content.scrollHeight;
-        const containerHeight = container.clientHeight;
-        minBound = containerHeight >= contentHeight ? 0 : -(contentHeight - containerHeight);
-    } else {
-        const contentWidth = content.scrollWidth;
-        const containerWidth = container.clientWidth;
-        minBound = containerWidth >= contentWidth ? 0 : -(contentWidth - containerWidth);
+    // Optional: Prevent scrolling on initial mount if initialDate is already centered
+    if (isInitialMount.current) { 
+      // isInitialMount is set to false in the animation useEffect
+      // We might need a separate flag if animation is disabled
+      // Or simply allow the initial scroll always
+       // return; 
     }
-
-    const newBounds = { min: minBound, max: maxBound };
-
-    if (newBounds.min !== scrollBounds.min || newBounds.max !== scrollBounds.max) {
-        setScrollBounds(newBounds);
-        updatePhysicsConfig({ 
-            bounds: newBounds, 
-            ...finalScrollPhysicsConfig
-        }); 
-    }
-  }, [orientation, items, filteredItems, groupedItems, scrollBounds, updatePhysicsConfig, finalScrollPhysicsConfig]);
-
+    scrollToDate(currentDate);
+  }, [currentDate, scrollToDate]); // <<< ADD EFFECT
+  
   // Effect to trigger load more (Ensure this is present)
   useEffect(() => {
     if (!scrollContainerRef.current) return;
@@ -703,80 +773,60 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
     }
   }, [flickPhysicsScroll]);
   
-  // Render events
+  // Render events - STRATEGY 9: Relative + Margin
   const renderEvents = () => {
-    if (groupedItems) {
-      return Object.entries(groupedItems).map(([dateKey, itemsForDate], groupIndex) => {
-        return itemsForDate.map((item, itemIndex) => (
-          <TimelineEvent
-            key={item.id}
-            item={item}
-            index={groupIndex * 100 + itemIndex}
-            isGrouped={itemsForDate.length > 1 && itemIndex > 0}
-            orientation={orientation}
-            isHighlighted={!!item.highlighted}
-            color={color}
-            finalDisableAnimation={finalDisableAnimation}
-            glassContent={glassContent}
-            glassVariant={glassVariant}
-            blurStrength={blurStrength}
-            contentClassName={contentClassName}
-            markerClassName={markerClassName}
-            handleItemClick={handleItemClick}
-            renderContent={renderContent}
-            renderMarker={renderMarker}
-            density={density}
-            // Pass down the static props from state for this specific item
-            itemPhysicsProps={itemPhysicsProps[item.id.toString()] || { translateX: 0, translateY: 0, scale: 1, opacity: 1 }}
-            finalInteractionConfig={finalInteractionConfig}
-            formatDate={formatDate}
-            currentViewMode={currentViewMode}
-            currentZoomLevel={currentZoomLevel}
-            parseDate={parseDate}
-            calculateItemPosition={calculateItemPosition}
-            getEventSide={getEventSide}
-            selectedId={selectedId}
-            groupedItems={groupedItems}
-            glassMarkers={glassMarkers}
-            format={formatDateFn}
-          />
-        ));
-      });
-    }
+    const itemsToRender = groupedItems 
+      ? Object.entries(groupedItems).flatMap(([dateKey, itemsForDate]) => itemsForDate)
+      : filteredItems;
 
-    return filteredItems.map((item, index) => (
-      <TimelineEvent
-        key={item.id}
-        item={item}
-        index={index}
-        isGrouped={false}
-        orientation={orientation}
-        isHighlighted={!!item.highlighted}
-        color={color}
-        finalDisableAnimation={finalDisableAnimation}
-        glassContent={glassContent}
-        glassVariant={glassVariant}
-        blurStrength={blurStrength}
-        contentClassName={contentClassName}
-        markerClassName={markerClassName}
-        handleItemClick={handleItemClick}
-        renderContent={renderContent}
-        renderMarker={renderMarker}
-        density={density}
-        itemPhysicsProps={itemPhysicsProps[item.id.toString()] || { translateX: 0, translateY: 0, scale: 1, opacity: 1 }}
-        finalInteractionConfig={finalInteractionConfig}
-        formatDate={formatDate}
-        currentViewMode={currentViewMode}
-        currentZoomLevel={currentZoomLevel}
-        parseDate={parseDate}
-        calculateItemPosition={calculateItemPosition}
-        getEventSide={getEventSide}
-        selectedId={selectedId}
-        groupedItems={null}
-        glassMarkers={glassMarkers}
-        format={formatDateFn}
-      />
-    ));
+    // SORT items explicitly by date first!
+    const sortedItems = [...itemsToRender].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
+    
+    return sortedItems.map((item, index) => {
+      // Keep only animation style calculation logic (if still needed/used)
+      // This part might need review based on how TimelineEvent uses physics props
+      const style: React.CSSProperties = {}; 
+      // TODO: Review if itemPhysicsProps are sufficient or if manual style needed here
+      // For now, pass empty style object, relying on TimelineEvent internal springs
+
+      const groupInfo = groupedItems ? Object.entries(groupedItems).find(([key, items]) => items.some(i => i.id === item.id)) : undefined;
+      const isGroupedAndNotFirst = groupInfo ? groupInfo[1].findIndex(i => i.id === item.id) > 0 : false;
+      if (groupedItems && isGroupedAndNotFirst) return null; 
+
+      return (
+        <TimelineEvent
+          key={item.id}
+          item={item}
+          index={index} 
+          isGrouped={groupInfo ? groupInfo[1].length > 1 : false}
+          orientation={orientation}
+          isHighlighted={!!item.highlighted}
+          color={color}
+          finalDisableAnimation={finalDisableAnimation}
+          glassContent={glassContent}
+          glassVariant={glassVariant}
+          blurStrength={blurStrength}
+          contentClassName={contentClassName}
+          markerClassName={markerClassName}
+          handleItemClick={handleItemClick}
+          renderContent={renderContent}
+          renderMarker={renderMarker}
+          density={density}
+          itemPhysicsProps={itemPhysicsProps[item.id.toString()] || { translateX: 0, translateY: 0, scale: 1, opacity: 1 }}
+          finalInteractionConfig={finalInteractionConfig}
+          formatDate={formatDate}
+          currentViewMode={currentViewMode}
+          currentZoomLevel={currentZoomLevel}
+          parseDate={parseDate}
+          getEventSide={getEventSide}
+          selectedId={selectedId}
+          groupedItems={groupedItems}
+          glassMarkers={glassMarkers}
+          format={formatDateFn}
+          style={style}
+        />
+      );
+    });
   };
   
   const renderEmptyState = () => {
@@ -850,7 +900,7 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
             timeMarkers={timeMarkers}
             orientation={orientation}
             markerHeight={40}
-            calculateItemPosition={calculateItemPosition}
+            calculateItemPosition={calculateItemPositionPercent}
             formatMarkerLabel={formatMarkerLabel}
             color={color}
           />

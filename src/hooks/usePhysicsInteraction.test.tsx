@@ -309,4 +309,78 @@ describe('usePhysicsInteraction', () => {
     });
     // TODO: Assert style returns to origin
   });
+
+  // --- NEW TEST FOR affectsScale ---
+  test('should apply scale effect when affectsScale is true', () => {
+    const mockElement = document.createElement('div');
+    // Mock getBoundingClientRect
+    Object.defineProperty(mockElement, 'getBoundingClientRect', {
+      configurable: true,
+      value: jest.fn(() => ({
+        width: 100, height: 100, top: 50, left: 50, bottom: 150, right: 150, x: 50, y: 50,
+        toJSON: () => ({ width: 100, height: 100, top: 50, left: 50, bottom: 150, right: 150, x: 50, y: 50 }),
+      })),
+    });
+    const elementRef = { current: mockElement };
+
+    const options: PhysicsInteractionOptions = {
+      elementRef: elementRef as React.RefObject<HTMLDivElement>,
+      type: 'magnetic', // Use magnetic for interaction trigger
+      strength: 1.0,
+      radius: 100,
+      affectsScale: true, // Enable scaling
+      scaleAmplitude: 0.1, // Set scale change amount
+      animationConfig: { tension: 300, friction: 20, mass: 1 },
+      maxDisplacement: 20, // Allow some movement too
+    };
+
+    const { result } = renderHook(() => usePhysicsInteraction<HTMLDivElement>(options));
+
+    // Initial state should be scale 1
+    let transform = getTransformValues(result.current.style);
+    expect(transform.scale).toBeCloseTo(1);
+
+    // Simulate pointer entering near the center
+    // Element center: 100, 100
+    // Pointer: 110, 110 (slightly offset)
+    act(() => {
+      userEvent.pointer({
+        target: mockElement,
+        coords: { clientX: 110, clientY: 110 },
+        keys: '[PointerEnter][PointerMove]',
+      });
+      jest.advanceTimersByTime(16); // Advance one frame
+    });
+
+    // Advance time for the spring to react
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+
+    // Assert scale has increased (magnetic usually pulls, which might trigger scale increase here)
+    transform = getTransformValues(result.current.style);
+    // The exact scale depends on pointer position and implementation detail,
+    // but it should be greater than 1 and related to scaleAmplitude.
+    expect(transform.scale).toBeGreaterThan(1);
+    expect(transform.scale).toBeLessThanOrEqual(1 + options.scaleAmplitude!); // Check it doesn't exceed amplitude
+
+    // Simulate pointer leaving
+    act(() => {
+      userEvent.pointer({
+        target: mockElement,
+        keys: '[PointerLeave]',
+      });
+      jest.advanceTimersByTime(16);
+    });
+
+    // Advance time for the spring to return to origin
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Assert scale has returned to 1
+    transform = getTransformValues(result.current.style);
+    expect(transform.scale).toBeCloseTo(1, 2); // Use tolerance for floating point
+  });
+  // --- END NEW TEST ---
 }); 

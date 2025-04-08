@@ -44,13 +44,21 @@ export interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonE
   style?: React.CSSProperties;
   
   /**
-   * Configuration for the button's press animation (physics interaction).
-   * Can be a preset name or a partial SpringConfig object.
+   * Configuration for the button's core press animation spring.
+   * Defines the basic feel (e.g., stiffness, damping) using `tension`, `friction`, `mass`.
+   * Can be a preset name ('DEFAULT', 'GENTLE', 'WOBBLY', 'STIFF', 'SLOW', 'MOLASSES') or a partial SpringConfig object.
+   * This is merged with and can be overridden by `physicsOptions`.
+   * Defaults to the `pressSpringConfig` from AnimationContext or 'PRESS_FEEDBACK' preset.
    */
   animationConfig?: Partial<SpringConfig> | SpringPresetName;
 
   /**
-   * Physics interaction options (advanced)
+   * Advanced configuration for the physics interaction applied on press.
+   * Allows overriding the interaction `type` ('spring', 'magnetic', 'repel', 'follow') and specific parameters
+   * like `stiffness`, `dampingRatio`, `mass`, `strength`, `radius`, `affectsScale`, `scaleAmplitude`,
+   * `affectsRotation`, `rotationAmplitude`, etc.
+   * Takes precedence over settings derived from `animationConfig`.
+   * See `PhysicsInteractionOptions` for all available options.
    */
   physicsOptions?: Partial<PhysicsInteractionOptions>;
 
@@ -297,6 +305,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     style,
     onMouseDown,
     animationConfig,
+    physicsOptions,
     disableAnimation,
     motionSensitivity,
     ...rest
@@ -310,21 +319,47 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   const finalReducedMotion = disableAnimation ?? prefersReducedMotion;
 
   const finalPhysicsConfig = useMemo(() => {
-    const presetName = animationConfig ?? pressSpringConfig ?? 'PRESS_FEEDBACK';
-    let config: Partial<SpringConfig> = {};
-    if (typeof presetName === 'string' && presetName in SpringPresets) {
-      config = SpringPresets[presetName as keyof typeof SpringPresets];
-    } else if (typeof presetName === 'object') {
-      config = presetName;
-    }
-    return {
-      stiffness: config.tension,
-      dampingRatio: config.friction ? config.friction / (2 * Math.sqrt((config.tension ?? 170) * (config.mass ?? 1))) : undefined,
-      mass: config.mass,
+    // 1. Start with default options for the button press
+    const defaultOptions: Partial<PhysicsInteractionOptions> = {
+      type: 'spring',
       affectsScale: true,
       scaleAmplitude: 0.02,
+      // Add other defaults if needed
     };
-  }, [animationConfig, pressSpringConfig]);
+
+    // 2. Determine base spring config from animationConfig or context
+    const baseConfigPreset = animationConfig ?? pressSpringConfig ?? 'PRESS_FEEDBACK';
+    let springParams: Partial<PhysicsInteractionOptions> = {};
+    let baseSpringConfig: Partial<SpringConfig> = {};
+
+    if (typeof baseConfigPreset === 'string' && baseConfigPreset in SpringPresets) {
+      baseSpringConfig = SpringPresets[baseConfigPreset as keyof typeof SpringPresets];
+    } else if (typeof baseConfigPreset === 'object') {
+      baseSpringConfig = baseConfigPreset;
+    }
+
+    // Convert SpringConfig (tension, friction) to PhysicsInteractionOptions (stiffness, dampingRatio)
+    if (baseSpringConfig.tension !== undefined) {
+        springParams.stiffness = baseSpringConfig.tension;
+    }
+    if (baseSpringConfig.friction !== undefined && springParams.stiffness !== undefined) {
+        const mass = baseSpringConfig.mass ?? 1;
+        springParams.dampingRatio = baseSpringConfig.friction / (2 * Math.sqrt(springParams.stiffness * mass));
+    }
+    if (baseSpringConfig.mass !== undefined) {
+        springParams.mass = baseSpringConfig.mass;
+    }
+
+    // 3. Merge: Defaults <- Spring Params <- physicsOptions Prop
+    const mergedConfig = {
+      ...defaultOptions,
+      ...springParams,
+      ...physicsOptions, // Apply overrides from physicsOptions prop last
+    };
+
+    return mergedConfig;
+
+  }, [animationConfig, pressSpringConfig, physicsOptions]); // Add physicsOptions dependency
 
   const {
     ref: physicsRef,
@@ -332,8 +367,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     applyImpulse,
     reset
   } = usePhysicsInteraction<HTMLButtonElement>({
-    type: 'spring',
-    ...finalPhysicsConfig,
+    ...finalPhysicsConfig, // Use the fully merged config
     reducedMotion: finalReducedMotion,
   });
 

@@ -4,12 +4,12 @@ Galileo Glass UI incorporates a gesture physics system that allows UI elements t
 
 ## Core Concepts
 
-- **Unified Gesture Handling:** Captures touch, mouse, and pointer events through a consistent API.
-- **Physics-Based Response:** Maps gesture inputs (velocity, displacement) to physical forces or impulses applied to elements.
-- **Inertia & Momentum:** Allows elements (like scrollable content) to continue moving and gradually slow down after a flick gesture (`useInertialMovement`).
-- **Multi-Touch:** Recognizes and responds to common multi-touch gestures like pinch-to-zoom or rotation, often applying physics to the transformation.
-- **Boundary Constraints:** Defines physical boundaries (e.g., scroll limits) with configurable elasticity or collision behavior.
-- **Haptic Feedback:** Integrates with device haptics to provide physical confirmation for gesture interactions.
+- **Unified Gesture Handling:** Captures touch, mouse, and pointer events through a consistent API (Implemented in both `useInertialMovement` and `useGesturePhysics`).
+- **Physics-Based Response:** Maps gesture inputs (velocity, displacement) to physical forces or impulses applied to elements (Implemented via springs and inertia in both hooks).
+- **Inertia & Momentum:** Allows elements (like scrollable content) to continue moving and gradually slow down after a flick gesture (Implemented via `useInertialMovement`).
+- **Multi-Touch:** Recognizes and responds to common multi-touch gestures like pinch-to-zoom or rotation (Implemented in `useGesturePhysics`).
+- **Boundary Constraints:** Defines physical boundaries (e.g., scroll limits) with configurable elasticity or collision behavior (Implemented in both hooks).
+- **Haptic Feedback:** Integrates with device haptics to provide physical confirmation for gesture interactions (Implemented).
 
 ## `useGesturePhysics` Hook
 
@@ -21,158 +21,204 @@ This hook is the primary mechanism for adding physics-driven responses to gestur
 - Calculate real-time gesture properties like displacement and velocity.
 - Manage internal physics simulations (inertial movement for pan/swipe, springs for pinch/rotate) based on gesture inputs and configuration.
 - Provide the necessary `style` properties (primarily `transform`, `touchAction`, `userSelect`) to apply to the target element for visual feedback.
+- Optionally provide haptic feedback for gesture events.
 
-### Signature (Conceptual - Based on Implementation)
+### Signature
 
 ```typescript
 import {
   useGesturePhysics,
-  type GesturePhysicsOptions,
-  type GestureTransform
-} from '@veerone/galileo-glass-ui'; // Adjust path
+  GesturePhysicsOptions,
+  GesturePhysicsResult,
+  GesturePhysicsPreset
+} from '@veerone/galileo-glass-ui';
 
-function useGesturePhysics(
-  options: GesturePhysicsOptions
-): {
-  // Ref Management:
-  // Note: The hook *requires* the elementRef option to be passed.
-  // It does not return a ref itself.
-  elementRef: React.RefObject<HTMLElement>; // From options
-
-  // Style Output:
-  style: React.CSSProperties; // Apply this to the element
-  cssTransform: string; // The CSS transform string (e.g., "translate3d(...) scale(...) ...")
-
-  // State & Control:
-  transform: GestureTransform; // Current physics state (x, y, scale, rotation, velocities)
-  isGestureActive: boolean; // Is any gesture currently active?
-  setTransform: (newTransform: Partial<GestureTransform>) => void; // Manually set state
-  animateTo: (targetTransform: Partial<GestureTransform>, options?: { duration?: number }) => void; // Animate to a state
-  reset: (animate?: boolean) => void; // Reset to initial state
-};
-
-interface GesturePhysicsOptions {
-  // **Required**: Ref to the target element.
-  // Important: Must point to a non-null HTMLElement when the hook initializes.
-  elementRef: React.RefObject<HTMLElement>;
-
-  // Gesture Configurations (optional):
-  pan?: Partial<GestureConfig>;
-  swipe?: Partial<GestureConfig>;
-  pinch?: Partial<GestureConfig>;
-  rotate?: Partial<GestureConfig>;
-  tap?: Partial<GestureConfig>;
-  longPress?: Partial<GestureConfig>;
-  doubleTap?: Partial<GestureConfig>;
-
-  // General Physics & Behavior (optional):
-  mass?: number;
-  tension?: number;
-  friction?: number;
-  inertia?: boolean; // Global inertia toggle
-  preset?: GesturePhysicsPreset; // e.g., 'natural', 'responsive'
-  boundaries?: { /* ... boundary definitions ... */ };
-  usePointerEvents?: boolean; // Default: true
-  preventDefaultEvents?: boolean; // Default: true
-  disableScroll?: boolean; // Default: false
-
-  // Callbacks (optional):
-  onGestureStart?: (type: GestureType, event: GestureEventData) => void;
-  onGestureChange?: (type: GestureType, event: GestureEventData, state: any) => void;
-  onGestureEnd?: (type: GestureType, event: GestureEventData) => void;
-  // **Important**: Use this callback to react to physics updates.
-  onTransformChange?: (transform: GestureTransform) => void;
-}
-
-// GestureConfig defines settings per gesture type (enabled, threshold, etc.)
-// GestureTransform holds the physics state (x, y, scale, rotation, velocities)
-```
-
-### Return Value Explained
-
-- **`elementRef`**: This is passed *in* via options, not returned.
-- **`style`**: A `React.CSSProperties` object. You **must** apply this to your target element's `style` prop. It contains crucial properties like `touchAction: 'none'` (to prevent browser interference), `userSelect: 'none'`, and the calculated `transform`. 
-    *(Note: There might be a type issue where `style.userSelect` is returned as `string` but needs to be `UserSelect | undefined`. A temporary workaround might be needed: `style={{ ...hookStyle, userSelect: hookStyle.userSelect as any }}`)*.
-- **`cssTransform`**: The raw CSS `transform` string, useful if applying styles differently.
-- **`transform`**: An object containing the current physics state (position, scale, rotation, velocities).
-- **`isGestureActive`**: Boolean flag indicating if a gesture is currently interacting with the element.
-- **`setTransform`, `animateTo`, `reset`**: Functions to programmatically control the element's physics state.
-
-### Applying the Transform
-
-There are two main ways to apply the visual transform:
-
-1.  **Directly via `style` prop (Recommended):**
-    ```tsx
-    const { style } = useGesturePhysics({ elementRef });
-    return <DraggableElement ref={elementRef} style={style} />;
-    ```
-    The hook updates the `style.transform` property internally.
-
-2.  **Using `onTransformChange` (Alternative):**
-    ```tsx
-    const [dynamicStyle, setDynamicStyle] = useState({});
-    useGesturePhysics({
-      elementRef,
-      onTransformChange: (t) => {
-        setDynamicStyle(prev => ({
-          ...prev,
-          transform: `translate3d(...) scale(...) ...` // Construct transform from t.x, t.y, etc.
-        }));
-      }
-    });
-    return <DraggableElement ref={elementRef} style={dynamicStyle} />;
-    ```
-    This gives more control but requires managing the style state yourself.
-
-### Important Considerations
-
-- **Ref Initialization:** Ensure the `elementRef` passed in the options points to a valid `HTMLElement` when the hook runs. If the ref might be initially null (e.g., from `useRef(null)`), initialize the hook inside a `useEffect` that runs when the ref is populated.
-- **Invalid Options:** Options like `boundsRef` or `press` seen in some examples are *not* valid for `useGesturePhysics`.
-- **CSS:** The target element should ideally have `will-change: transform;` for performance.
-
-## Inertial Movement (`useInertialMovement`)
-
-A common application of gesture physics is inertial scrolling or dragging. This might be handled by `useGesturePhysics` directly (with `momentum: true`) or potentially by a dedicated hook like `useInertialMovement`.
-
-- Captures the velocity of a drag/flick gesture when the user releases.
-- Continues animating the element's position based on that initial velocity, gradually slowing down due to friction.
-- Handles boundary collisions (e.g., overscroll bounce).
-
-```tsx
-// Conceptual usage for inertial scrolling
-function ScrollableContent() {
-  const scrollRef = useRef<HTMLDivElement>(null);
+function MyComponent() {
+  const elementRef = useRef<HTMLDivElement>(null);
   
-  // Hook manages gesture capture and applies physics-based scroll offset
-  // Corrected: Assuming useInertialMovement handles events internally, like usePhysicsInteraction.
-  const { ref: gestureRef, scrollStyle } = useInertialMovement({
-    containerRef: scrollRef, // Ref to the scrollable container
-    friction: 0.95, // Adjust friction for desired deceleration
-    bounds: { top: 0, bottom: /* Calculate based on content height */ },
-    bounceFactor: 0.5, // How much to bounce on hitting bounds
+  const { 
+    transform,         // Current transform state (x, y, scale, rotation)
+    cssTransform,      // CSS transform string
+    style,             // Complete style object to apply
+    elementRef,        // Reference to the element (pass to component)
+    setTransform,      // Function to set transform directly
+    animateTo,         // Function to animate to a target transform
+    reset,             // Function to reset to initial state
+    isGestureActive    // Boolean indicating if gesture is active
+  } = useGesturePhysics({
+    elementRef,        // Reference to the element
+    preset: GesturePhysicsPreset.NATURAL, // Predefined physics configuration
+    
+    // Physics settings
+    mass: 1,           // Mass of the object (affects momentum)
+    tension: 200,      // Spring tension (higher = stiffer)
+    friction: 20,      // Friction coefficient (higher = less movement)
+    inertia: true,     // Enable inertial movement
+    
+    // Gesture configurations
+    pan: { enabled: true, threshold: 5, multiplier: 1 },
+    pinch: { enabled: true, threshold: 0.05, multiplier: 0.8 },
+    rotate: { enabled: true, threshold: 5 },
+    
+    // Boundaries
+    boundaries: {
+      x: { min: -100, max: 100 },
+      y: { min: -100, max: 100 },
+      scale: { min: 0.5, max: 3 },
+      rotation: { min: -180, max: 180 }
+    },
+    
+    // Haptic feedback
+    enableHaptics: true,
+    
+    // Additional options
+    preventDefaultEvents: true,
+    disableScroll: false,
+    
+    // Callbacks
+    onGestureStart: (type, event) => console.log('Start', type),
+    onGestureChange: (type, event, state) => console.log('Change', type),
+    onGestureEnd: (type, event) => console.log('End', type),
+    onTransformChange: (transform) => console.log('Transform', transform)
   });
-
+  
   return (
-    <div ref={scrollRef} style={{ overflow: 'hidden' }}> 
-      <div 
-        ref={gestureRef} 
-        style={{ ...scrollStyle, touchAction: 'pan-y' }} // Apply calculated transform
-        // Removed {...eventHandlers} - Assuming internal handling
-      >
-        {/* Long content here */} 
-      </div>
+    <div 
+      ref={elementRef}
+      style={{
+        ...style,
+        width: 200,
+        height: 200,
+        backgroundColor: 'teal',
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+    >
+      Drag, Pinch, Rotate Me
     </div>
   );
 }
 ```
 
+### Gesture Physics Presets
+
+The hook offers predefined physics presets for quick configuration:
+
+```typescript
+enum GesturePhysicsPreset {
+  RESPONSIVE = 'responsive',   // Quick, highly responsive
+  NATURAL = 'natural',         // Balanced, natural feeling (default)
+  SMOOTH = 'smooth',           // Smoother, more gradual
+  BOUNCY = 'bouncy',           // Springy, with overshoot
+  PRECISE = 'precise',         // Direct with minimal physics
+  ELASTIC = 'elastic',         // Stretchy with resistance
+  MOMENTUM = 'momentum',       // Heavy with continued motion
+  SNAPPY = 'snappy'            // Quick with fast settle
+}
+```
+
+### Haptic Feedback
+
+The `useGesturePhysics` hook integrates with the browser's vibration API to provide haptic feedback on gesture events:
+
+```typescript
+const { /* ... */ } = useGesturePhysics({
+  elementRef,
+  enableHaptics: true, // Enable haptic feedback
+  // ... other options
+});
+```
+
+When enabled, haptic feedback is triggered at appropriate times:
+- **Tap**: Light vibration
+- **Double Tap**: Success pattern
+- **Long Press**: Medium vibration
+- **Pan/Swipe**: Selection pulse
+- **Pinch/Rotate**: Light vibration
+- **Snap**: Success pattern when element snaps to a defined point
+
+## Inertial Movement (`useInertialMovement`)
+
+A hook specifically designed for implementing inertial scrolling or dragging based on pointer velocity.
+
+### Purpose
+
+- Capture pointer drag events on a target element.
+- Calculate velocity based on pointer movement.
+- Initiate an animation loop on pointer release if velocity exceeds a threshold.
+- Continue animating the element's position based on the captured velocity, applying friction and boundary constraints.
+
+### Signature
+
+```typescript
+import React from 'react';
+import { 
+    useInertialMovement, 
+    InertialMovementOptions, 
+    InertialMovementResult 
+} from '@veerone/galileo-glass-ui'; // Adjust path
+
+function MyScrollableComponent() {
+    const contentRef = React.useRef<HTMLDivElement>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null); // Optional
+
+    const { 
+        style, // Apply this style to the content element (ref={contentRef})
+        state, // { isDragging: boolean, isMoving: boolean, position: {x,y}, velocity: {x,y} }
+        reset, // Function to reset position to {x: 0, y: 0}
+        stopMovement // Function to stop current inertial movement
+    }: InertialMovementResult = useInertialMovement({
+        contentRef,       // Required: Ref to the element being dragged
+        containerRef,     // Optional: Ref to the container for bounds calculation
+        friction: 0.06,    // How quickly it slows down (0-1)
+        bounceFactor: 0.2, // How much energy is lost on bounce (0-1)
+        axis: 'y',         // Allow movement only on 'y' axis
+        // explicitBounds: { top: -500, bottom: 0 } // Optional manual bounds
+  });
+
+  return (
+        <div ref={containerRef} style={{ height: 300, overflow: 'hidden', border: '1px solid grey' }}>
+            <div ref={contentRef} style={{ ...style, width: '100%', background: 'lightblue' }}>
+                {/* Long content that requires scrolling */}
+                <p>Scrollable Content...</p>
+                {/* ... more content ... */}
+      </div>
+    </div>
+  );
+}
+
+// See types/hooks.ts for InertialMovementOptions definition
+```
+
+### Return Value Explained
+
+- **`style`**: A `React.CSSProperties` object containing `transform: translate3d(...)` and `willChange: transform`. Apply this to the draggable element.
+- **`state`**: An object containing the current movement state:
+    - `isDragging` (boolean): True if the user is currently dragging the element.
+    - `isMoving` (boolean): True if the element is currently moving due to inertia.
+    - `position` ({x, y}): The current translation applied to the element.
+    - `velocity` ({x, y}): The current calculated velocity (units per second).
+- **`reset`**: A function `() => void` to immediately stop movement and reset the position to `{ x: 0, y: 0 }`.
+- **`stopMovement`**: A function `() => void` to immediately stop any ongoing inertial movement, retaining the current position.
+
+### Key Features
+
+- Captures pointer events (down, move, up/cancel) on the `contentRef` element.
+- Calculates velocity based on the last few pointer movements before release.
+- Uses `requestAnimationFrame` for the inertial animation loop.
+- Applies friction to gradually decrease velocity.
+- Handles boundary collisions based on `containerRef` size difference or `explicitBounds`.
+    - Implements basic bounce using `bounceFactor`.
+- Respects `prefers-reduced-motion` by disabling inertial movement.
+- Allows restricting movement to `x`, `y`, or `both` axes.
+- Sets `touch-action` CSS property to prevent conflicts with browser scrolling.
+
 ## Use Cases
 
-- **Scrollable Lists/Containers:** Implement smooth, native-like scrolling with inertia on web.
-- **Draggable Elements:** Allow elements to be thrown or flicked.
-- **Image Carousels:** Swipe between items with momentum.
-- **Zoomable/Pannable Content:** Use pinch and drag gestures with physics.
-- **Sliders/Knobs:** Drag controls with physical resistance or snapping.
-
-*(Specific implementation details, especially how gesture outputs drive animation hooks, require referencing the actual source code or more detailed examples.)* 
+- **Scrollable Lists/Containers:** Implement smooth, native-like scrolling with inertia on web (via `useInertialMovement`).
+- **Draggable Elements:** Allow elements to be thrown or flicked (via `useInertialMovement` or `useGesturePhysics`).
+- **Image Carousels:** Swipe between items with momentum (via `useInertialMovement` or `useGesturePhysics`).
+- **Zoomable/Pannable Content:** Use pinch and drag gestures with physics (via `useGesturePhysics`).
+- **Sliders/Knobs:** Drag controls with physical resistance or snapping (via `useGesturePhysics`). 

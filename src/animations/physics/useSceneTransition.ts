@@ -18,7 +18,7 @@ import {
   TransitionState,
   SceneType
 } from './SceneTransitionManager';
-import { TransitionDirection } from '../game/useGameAnimation';
+import { TransitionDirection } from '../types';
 
 /**
  * Configuration for useSceneTransition hook

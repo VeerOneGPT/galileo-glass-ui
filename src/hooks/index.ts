@@ -49,6 +49,9 @@ export { useAmbientTilt } from './useAmbientTilt';
 export { useDraggableListPhysics } from './useDraggableListPhysics';
 export { useGalileoStateSpring } from './useGalileoStateSpring';
 export { useGalileoSprings } from './useGalileoSprings';
+export { useParallaxScroll } from './useParallaxScroll';
+export { useParticleSystem } from './useParticleSystem';
+export { useChartPhysicsInteraction } from '../components/DataChart/hooks/useChartPhysicsInteraction';
 
 // Utility hooks
 export { useSortableData } from './useSortableData';
@@ -59,5 +62,64 @@ export {
     verifyPhysicsEngineState,
     forcePhysicsEngineUpdate
 } from '../animations/physics/physicUtils';
+
+// --- ADDING TYPE EXPORTS --- 
+export type { 
+    PhysicsInteractionOptions, 
+    PhysicsInteractionType, 
+    PhysicsState, // Also export related state/vector types
+    PhysicsVector, 
+    PhysicsMaterial, 
+    CollisionShape, 
+    PhysicsQuality 
+} from './usePhysicsInteraction';
+// Add other hook-specific type exports as needed, e.g.:
+export type { UseGlassFocusOptions, UseGlassFocusReturn } from './useGlassFocus';
+export type { AmbientTiltOptions } from './useAmbientTilt';
+// Add Particle System types
+export type { 
+    ParticleSystemOptions, 
+    ParticleSystemResult, 
+    ParticleSystemControls, 
+    ParticleSystemState,
+    ParticlePresetCollection,
+    ParticlePreset,
+    Vector2D as ParticleVector2D // Alias if Vector2D conflicts
+} from '../types/particles';
+// Export types from gestures.ts
+export type { 
+    GesturePhysicsOptions, 
+    GestureTransform, 
+    GestureEventData, 
+    GestureType,
+    PanGestureConfig,
+    PinchGestureConfig,
+    RotateGestureConfig,
+    TapGestureConfig
+} from '../types/gestures';
+// Export types from hooks.ts (Dimensional)
+export type {
+    InertialMovementOptions,
+    InertialMovementState,
+    InertialMovementResult,
+    ZSpaceOptions,
+    ZSpaceResult,
+    Transform3DState,
+    Transform3DOptions,
+    SetTransform3D,
+    Transform3DResult,
+    ParallaxScrollOptions,
+    ParallaxScrollResult
+} from '../types/hooks';
+// Export Accessibility Types
+export type {
+    MotionSensitivityLevel,
+    AnimationCategory,
+    QualityTier,
+    DeviceCapabilities
+} from '../types/accessibility';
+
+// Export Chart Physics Interaction types
+export type { ChartPhysicsInteractionOptions } from '../components/DataChart/hooks/useChartPhysicsInteraction';
 
 // --- REMOVED ALL TYPE EXPORTS ---

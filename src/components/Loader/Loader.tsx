@@ -150,7 +150,7 @@ const CircularLoaderContainer = styled.div<{
   height: ${props => props.$size}px;
 
   svg {
-    animation: ${rotate} 2s linear infinite;
+    animation: ${css`${rotate} 2s linear infinite`};
     width: 100%;
     height: 100%;
 
@@ -159,7 +159,7 @@ const CircularLoaderContainer = styled.div<{
       stroke-width: ${props => props.$thickness};
       stroke-linecap: round;
       fill: none;
-      animation: ${dash} 1.5s ease-in-out infinite;
+      animation: ${css`${dash} 1.5s ease-in-out infinite`};
 
       /* Glass effect for circle */
       ${props => {
@@ -203,7 +203,7 @@ const LinearLoaderContainer = styled.div<{
     background-color: ${props => props.$color};
     top: 0;
     height: 100%;
-    animation: ${linearProgress} 2s infinite ease-in-out;
+    animation: ${css`${linearProgress} 2s infinite ease-in-out`};
     border-radius: ${props => props.$height}px;
   }
 
@@ -241,7 +241,7 @@ const DotsLoaderContainer = styled.div<{
     background-color: ${props => props.$color};
     border-radius: 50%;
     display: inline-block;
-    animation: ${bounce} 1.4s infinite ease-in-out both;
+    animation: ${css`${bounce} 1.4s infinite ease-in-out both`};
 
     &:nth-child(1) {
       animation-delay: -0.32s;
@@ -279,7 +279,7 @@ const PulseLoaderContainer = styled.div<{
   background-color: ${props => props.$color};
   border-radius: 50%;
   display: inline-block;
-  animation: ${pulse} 1.5s ease-in-out infinite;
+  animation: ${css`${pulse} 1.5s ease-in-out infinite`};
 
   /* Glass effect */
   ${props =>

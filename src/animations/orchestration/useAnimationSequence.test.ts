@@ -1,11 +1,7 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-hooks';
-import { 
-  useAnimationSequence, 
-  AnimationSequenceConfig 
-} from './useAnimationSequence';
-// Fix: Import from animations/types instead of ../../types, which doesn't have StyleAnimationStage
-import type { StyleAnimationStage } from '../types';
+import { useAnimationSequence } from './useAnimationSequence';
+import { AnimationSequenceConfig, StyleAnimationStage } from '../types';
 // Remove the duplicate import
 
 describe('useAnimationSequence (with properties)', () => {

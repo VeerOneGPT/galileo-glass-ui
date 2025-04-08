@@ -7,9 +7,9 @@ import { createThemeContext } from '../../core/themeContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { 
   useAnimationSequence,
-  AnimationSequenceConfig,
 } from '../../animations/orchestration/useAnimationSequence';
 import {
+  AnimationSequenceConfig,
   AnimationStage,
   StyleAnimationStage,
   StaggerAnimationStage,

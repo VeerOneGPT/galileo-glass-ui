@@ -253,9 +253,7 @@ const AtmosphereEffect = styled.div<{
           );
           animation: ${props.$reducedMotion
             ? 'none'
-            : css`
-                ${subtlePulse} ${animationDuration} infinite ease-in-out
-              `};
+            : css`${subtlePulse} ${animationDuration} infinite ease-in-out`};
           opacity: ${intensity * 0.7 + 0.3};
         `;
 
@@ -274,9 +272,7 @@ const AtmosphereEffect = styled.div<{
           background-size: 200% 200%;
           animation: ${props.$reducedMotion
             ? 'none'
-            : css`
-                ${nebulaMove} ${animationDuration} infinite alternate ease-in-out
-              `};
+            : css`${nebulaMove} ${animationDuration} infinite alternate ease-in-out`};
           opacity: ${intensity * 0.8 + 0.2};
         `;
 
@@ -301,9 +297,7 @@ const AtmosphereEffect = styled.div<{
             filter: blur(30px);
             animation: ${props.$reducedMotion
               ? 'none'
-              : css`
-                  ${auroraWave} ${animationDuration} infinite ease-in-out
-                `};
+              : css`${auroraWave} ${animationDuration} infinite ease-in-out`};
             opacity: ${intensity * 0.8 + 0.2};
           }
         `;
@@ -320,9 +314,7 @@ const AtmosphereEffect = styled.div<{
           background-size: 400% 400%;
           animation: ${props.$reducedMotion
             ? 'none'
-            : css`
-                ${wavesAnimation} ${animationDuration} infinite ease-in-out
-              `};
+            : css`${wavesAnimation} ${animationDuration} infinite ease-in-out`};
           opacity: ${intensity * 0.7 + 0.3};
         `;
 
@@ -338,9 +330,7 @@ const AtmosphereEffect = styled.div<{
           background-size: 400% 400%;
           animation: ${props.$reducedMotion
             ? 'none'
-            : css`
-                ${gradientShift} ${animationDuration} infinite ease-in-out
-              `};
+            : css`${gradientShift} ${animationDuration} infinite ease-in-out`};
           opacity: ${intensity * 0.7 + 0.3};
         `;
 
@@ -403,9 +393,7 @@ const Particle = styled.div<{
   animation: ${props =>
     props.$reducedMotion
       ? 'none'
-      : css`
-          ${particleFloat} ${15 / props.$speed}s ${props.$delay}s infinite ease-in-out
-        `};
+      : css`${particleFloat} ${15 / props.$speed}s ${props.$delay}s infinite ease-in-out`};
 `;
 
 /**

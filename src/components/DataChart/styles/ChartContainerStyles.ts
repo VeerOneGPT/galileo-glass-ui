@@ -21,7 +21,10 @@ export const ChartContainer = styled.div<{
   border: 1px solid ${props => props.$borderColor || 'rgba(255, 255, 255, 0.1)'};
   height: 100%;
   width: 100%;
+  min-height: 300px;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
   
   ${props => {
     // Get theme context for glass styling
@@ -160,8 +163,10 @@ export const ChartSubtitle = styled.p`
 export const ChartWrapper = styled.div`
   position: relative;
   width: 100%;
-  height: 100%;
-  z-index: 1;
-  /* Ensure the chart doesn't clip its content - important for tooltips and animations */
+  flex-grow: 1;
+  min-height: 0;
+  z-index: 2;
   overflow: visible;
+  background-color: transparent;
+  margin-bottom: 1rem;
 `; 

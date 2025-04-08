@@ -349,7 +349,7 @@ const PresetPanel = styled.div<{
   ${props => props.$animate && !props.$reducedMotion && css`
     .preset-item {
       opacity: 0;
-      animation: ${floatIn} 0.3s ease-out forwards;
+      animation: ${css`${floatIn} 0.3s ease-out forwards`};
     }
     
     ${Array.from({ length: 10 }, (_, i) => css`
@@ -507,7 +507,7 @@ const MonthContainer = styled.div<{
   $reducedMotion: boolean;
 }>`
   ${props => props.$animate && !props.$reducedMotion && css`
-    animation: ${fadeIn} 0.3s ease-out;
+    animation: ${css`${fadeIn} 0.3s ease-out`};
   `}
 `;
 
@@ -847,20 +847,52 @@ const PopoverContainer = styled.div<{
   z-index: 1300;
   top: calc(100% + 8px);
   left: 0;
-  min-width: ${props => props.$width ? `${props.$width}px` : '280px'};
-  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '280px'};
+  min-width: ${props => props.$width ? `${props.$width}px` : '340px'};
+  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '340px'};
   user-select: none;
   transform-origin: top left;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
   border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  
+  /* Enhanced glass surface with stronger background effect */
   ${props => glassSurface({
-    elevation: 2,
+    elevation: 3,
     blurStrength: props.$blurStrength,
-    borderOpacity: 'light',
-    tintColor: props.$color !== 'default' ? `var(--color-${props.$color}-transparent, rgba(99, 102, 241, 0.05))` : undefined,
+    borderOpacity: 'medium',
+    tintColor: props.$color !== 'default' 
+      ? `var(--color-${props.$color}-transparent, rgba(99, 102, 241, 0.08))` 
+      : 'rgba(30, 30, 40, 0.7)',
     themeContext: createThemeContext(props.theme),
   })}
+  
+  /* Additional background overlay for better contrast */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 20, 30, 0.5);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    z-index: -1;
+  }
+  
+  /* Outer glow effect */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.15), 
+      rgba(255, 255, 255, 0.05), 
+      transparent, 
+      transparent);
+    z-index: -2;
+    pointer-events: none;
+  }
 `;
 
 // Ref interface

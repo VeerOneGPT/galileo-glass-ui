@@ -236,6 +236,28 @@ const entryPoints = [
       cjs: 'dist/animations/physics/index.js',
       esm: 'dist/animations/physics/index.esm.js'
     }
+  },
+  // FIX: Add explicit entry points for problematic hooks in nested directories
+  {
+    input: 'src/components/DataChart/hooks/useChartPhysicsInteraction.ts',
+    output: {
+      cjs: 'dist/components/DataChart/hooks/useChartPhysicsInteraction.js',
+      esm: 'dist/components/DataChart/hooks/useChartPhysicsInteraction.esm.js'
+    }
+  },
+  {
+    input: 'src/animations/physics/useMagneticElement.ts',
+    output: {
+      cjs: 'dist/animations/physics/useMagneticElement.js',
+      esm: 'dist/animations/physics/useMagneticElement.esm.js'
+    }
+  },
+  {
+    input: 'src/animations/orchestration/useAnimationSequence.ts',
+    output: {
+      cjs: 'dist/animations/orchestration/useAnimationSequence.js',
+      esm: 'dist/animations/orchestration/useAnimationSequence.esm.js'
+    }
   }
 ];
 
@@ -369,6 +391,25 @@ const dtsConfigs = [
   {
     input: 'src/theme/index.ts', // Pointing to SRC
     output: [{ file: 'dist/theme.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  // FIX: Add type definitions for problematic hooks in nested directories
+  {
+    input: 'src/components/DataChart/hooks/useChartPhysicsInteraction.ts',
+    output: [{ file: 'dist/components/DataChart/hooks/useChartPhysicsInteraction.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  {
+    input: 'src/animations/physics/useMagneticElement.ts',
+    output: [{ file: 'dist/animations/physics/useMagneticElement.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  {
+    input: 'src/animations/orchestration/useAnimationSequence.ts',
+    output: [{ file: 'dist/animations/orchestration/useAnimationSequence.d.ts', format: 'es' }],
     plugins: [createDtsPlugin()],
     external: dtsExternal
   }

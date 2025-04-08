@@ -10,9 +10,9 @@ Ensuring animations are accessible to all users, including those with motion sen
   - [Signature & Return Value](#signature--return-value-enhanced)
   - [Key Concepts](#key-concepts-enhanced)
   - [Example Usage](#example-usage-enhanced)
-- [Motion Sensitivity Levels (Concept)](#motion-sensitivity-levels-concept)
-- [Animation Categories (Concept)](#animation-categories-concept)
-- [Alternative Animations (Concept)](#alternative-animations-concept)
+- [Motion Sensitivity Levels](#motion-sensitivity-levels)
+- [Animation Categories](#animation-categories)
+- [Alternative Animations](#alternative-animations)
 - [Other Accessibility Considerations](#other-accessibility-considerations)
   - [Focus Indicators](#focus-indicators)
   - [Keyboard Navigation](#keyboard-navigation)
@@ -196,26 +196,26 @@ function EnhancedMotionComponent() {
 
 ---
 
-## Motion Sensitivity Levels (Concept) {#motion-sensitivity-levels-concept}
+## Motion Sensitivity Levels
 
-The library defines conceptual levels of motion sensitivity that *can* be used to adjust animations when reduced motion is preferred. The `useEnhancedReducedMotion` hook *recommends* a level, but doesn't enforce its application.
+The library defines levels of motion sensitivity that are used to adjust animations when reduced motion is preferred. The `useEnhancedReducedMotion` hook recommends a level, and the `useAlternativeAnimations` hook applies appropriate adjustments.
 
 ### Levels
 
-- `MotionSensitivityLevel.LOW`: Suggests significant reduction in animation speed, distance, and complexity. Favors simpler alternatives.
-- `MotionSensitivityLevel.MEDIUM`: Suggests moderate reduction. Often the default level when reduced motion is detected.
-- `MotionSensitivityLevel.HIGH`: Suggests minimal reduction. Allows most animations but might slightly reduce speed or distance.
+- `MotionSensitivityLevel.LOW`: Significant reduction in animation speed, distance, and complexity. Favors simpler alternatives.
+- `MotionSensitivityLevel.MEDIUM`: Moderate reduction. Often the default level when reduced motion is detected.
+- `MotionSensitivityLevel.HIGH`: Minimal reduction. Allows most animations but might slightly reduce speed or distance.
 - `MotionSensitivityLevel.NONE`: No sensitivity adjustment recommended (implies `prefersReducedMotion` is false).
-- *(Other potential levels like `MEDIUM_HIGH`, `LOW_MEDIUM` might exist internally)*
 
 ### Configuration
-*(Internal Concept)*: Internally, each level likely maps to configuration values (speed multipliers, distance scales, complexity limits) that components *could* use to adjust their behavior, but these configuration details are not directly exposed or controlled via the `useEnhancedReducedMotion` hook itself.
+
+Each level maps to configuration values (speed multipliers, distance scales, complexity limits) that components use to adjust their behavior. The `useAlternativeAnimations` hook and `withAlternativeAnimations` HOC provide easy access to these adjusted values.
 
 ---
 
-## Animation Categories (Concept) {#animation-categories-concept}
+## Animation Categories
 
-Animations *can* be conceptually categorized to allow different handling based on user preferences or sensitivity levels. Components implementing animations *should* consider these categories.
+Animations are categorized to allow different handling based on user preferences or sensitivity levels. Components implementing animations should consider these categories.
 
 - `ESSENTIAL`: Crucial for understanding state or interaction (e.g., focus indicators, loading spinners).
 - `TRANSITION`: Navigational or state change transitions (e.g., page loads, modal entrance).
@@ -227,13 +227,24 @@ Animations *can* be conceptually categorized to allow different handling based o
 - `DECORATIVE`: Purely aesthetic animations with no functional purpose.
 - `BACKGROUND`: Subtle background effects.
 
-**Note:** The current `useEnhancedReducedMotion` hook does *not* provide direct mechanisms to set preferences per category. This would require additional state management or context.
+When using hooks like `useAlternativeAnimations`, you can specify the animation category to ensure proper adaptation:
+
+```typescript
+const { isAnimationDisabled, duration } = useAlternativeAnimations({
+  category: AnimationCategory.ESSENTIAL // This category will get special treatment
+});
+```
 
 ---
 
-## Alternative Animations (Concept) {#alternative-animations-concept}
+## Alternative Animations
 
-When `prefersReducedMotion` is true, components should ideally provide an alternative way to convey information or state changes. Common alternative types include:
+When `prefersReducedMotion` is true, components should ideally provide an alternative way to convey information or state changes. The Galileo Glass UI provides tools to implement these alternatives:
+
+1. **`useAlternativeAnimations` Hook**: Provides utilities based on motion sensitivity.
+2. **`withAlternativeAnimations` HOC**: Enhances components with alternative animation capabilities.
+
+Common alternative types include:
 
 - `FADE`: Replace motion with a cross-fade.
 - `STATIC`: Remove the animation entirely, jump to the end state.
@@ -241,7 +252,7 @@ When `prefersReducedMotion` is true, components should ideally provide an altern
 - `ALTERNATIVE_PROPERTY`: Animate a different property (e.g., background color instead of position).
 - `NONE`: No specific alternative.
 
-**Note:** The current hooks do not directly manage or select alternative animations. Components are responsible for implementing appropriate fallbacks based on the `prefersReducedMotion` value and potentially the `recommendedSensitivityLevel`.
+For detailed implementation guidance, see the [Alternative Animations](./alternative-animations.md) documentation.
 
 ---
 

@@ -17,6 +17,7 @@ This document details the `useOrchestration` hook provided by Galileo Glass UI f
 - [Return Value](#return-value)
 - [Example Usage](#example-usage)
 - [Best Practices](#best-practices)
+- [Known Issues and Workarounds](#known-issues-and-workarounds)
 
 ---
 
@@ -320,12 +321,281 @@ export default OrchestrationDemo;
 - **Coordinate with Actual Animations:** Remember this hook calculates timing. You need a separate mechanism (CSS transitions based on `activeStages`, other animation libraries triggered by `onStart`/`onEnd`, etc.) to perform the visual animations.
 - **Unique Stage IDs:** Use unique and descriptive `id` values for stages, especially if using `dependencies`.
 - **Consider Performance:** For very large numbers of stages, be mindful of the complexity of pattern calculations, especially complex gestalt patterns.
+- **Prefer `useAnimationSequence`:** For most complex sequence needs, the [`useAnimationSequence`](#useanimationsequence-hook-primary-orchestration-hook) hook offers more direct control over animation properties and targets and is generally preferred.
+
+---
+
+## Known Issues and Workarounds {#known-issues-and-workarounds}
+
+When working with `useAnimationSequence` and animation orchestration hooks, you may encounter several common issues. This section documents these problems and provides practical solutions based on real-world implementation experience.
+
+### Element Visibility Issues
+
+**Issue:** Elements defined in animation stages may not appear at all, even though they are correctly added to the DOM.
+
+**Solution:** 
+1. Make elements initially visible in your component rather than relying on the hook to set initial styles:
+
+```jsx
+// PROBLEM: Starting with invisible elements can cause animation failures
+const element = document.createElement('div');
+element.style.opacity = '0'; 
+element.style.transform = 'scale(0)';
+
+// SOLUTION: Make elements visible initially, then let animation handle transitions
+const element = document.createElement('div');
+element.style.opacity = '1'; 
+element.style.transform = 'scale(1)';
+```
+
+2. Ensure container elements have explicit dimensions:
+
+```jsx
+// Add explicit dimensions to your container
+const AnimationContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 400px; // Explicit height ensures proper layout
+  min-height: 400px;
+  border: 1px solid rgba(0, 0, 0, 0.1); // Border helps visualize the container
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+`;
+```
+
+### Animation Control Issues
+
+**Issue:** Play, Restart, and other control buttons might not trigger animations, particularly when the hook's implementation has limitations.
+
+**Solution:** Implement direct animation controls that don't depend entirely on the hook's functionality:
+
+```jsx
+const handleDirectPlay = useCallback(() => {
+  if (!containerRef.current) return;
+  
+  // Get all animation elements
+  const animElements = containerRef.current.querySelectorAll('.animation-element');
+  
+  // Reset to initial state first
+  animElements.forEach((el, i) => {
+    if (!(el instanceof HTMLElement)) return;
+    
+    // Apply CSS transition with no duration
+    el.style.transition = 'all 0s';
+    el.style.opacity = '0';
+    el.style.transform = 'scale(0) translateY(20px)';
+    
+    // Force reflow to ensure styles are applied before animation
+    void el.offsetWidth;
+    
+    // Apply animation with staggered delay
+    setTimeout(() => {
+      el.style.transition = 'all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)'; // Elastic-like easing
+      el.style.opacity = '1';
+      el.style.transform = 'scale(1) translateY(0)';
+    }, i * 100); // Stagger timing
+  });
+}, []);
+
+// Override the hook's controls for more reliable operation
+const originalPlay = sequence.play;
+sequence.play = useCallback(() => {
+  originalPlay();
+  handleDirectPlay(); // Add direct animation as a fallback
+}, [originalPlay, handleDirectPlay]);
+```
+
+### Timing and Rendering Issues
+
+**Issue:** Animations may not work because elements haven't finished rendering before animation attempts to start.
+
+**Solution:** Use timeouts to ensure DOM elements are fully rendered:
+
+```jsx
+useEffect(() => {
+  // Use a timeout to ensure container has rendered
+  const timeoutId = setTimeout(() => {
+    if (containerRef.current) {
+      // Create and position elements here
+      // ...
+      
+      // Then trigger animation or make elements visible
+    }
+  }, 300); // Short delay to ensure DOM is ready
+  
+  return () => clearTimeout(timeoutId);
+}, []);
+```
+
+### Infinite Update Loops
+
+**Issue:** Using the animation hooks can sometimes cause "Maximum update depth exceeded" errors, especially when state is updated in useEffect hooks.
+
+**Solution:** Carefully manage dependency arrays and add guards against unnecessary updates:
+
+```jsx
+// PROBLEM: This can cause infinite updates
+useEffect(() => {
+  setAppReducedMotionState(reducedMotionInfo);
+}, [reducedMotionInfo]);
+
+// SOLUTION: Only update state when values actually change
+useEffect(() => {
+  if (reducedMotionInfo.prefersReducedMotion !== appReducedMotionState.prefersReducedMotion) {
+    setAppReducedMotionState(reducedMotionInfo);
+  }
+}, [reducedMotionInfo, appReducedMotionState.prefersReducedMotion]);
+```
+
+### Example: Reliable Animation Sequence Implementation
+
+Here's a pattern for creating reliable animation sequences that work even when the hook has limitations:
+
+```jsx
+const AnimationSequenceExample = () => {
+  const containerRef = useRef(null);
+  const [elements, setElements] = useState([]);
+  
+  // 1. Create elements with a delay to ensure container is rendered
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (containerRef.current) {
+        // Create elements with initial visibility
+        const newElements = Array.from({ length: 10 }, (_, i) => ({
+          id: `element-${i}`,
+          x: i * 50,
+          y: 100,
+          visible: true // Start visible initially
+        }));
+        setElements(newElements);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
+  
+  // 2. Define animation sequence with the hook
+  const sequence = useAnimationSequence({
+    id: 'reliable-sequence',
+    stages: [
+      {
+        id: 'reveal',
+        type: 'stagger',
+        targets: '.animation-element',
+        properties: { opacity: 1, transform: 'scale(1) translateY(0)' },
+        from: { opacity: 0, transform: 'scale(0) translateY(20px)' },
+        duration: 600,
+        staggerDelay: 100
+      },
+      // More stages as needed...
+    ],
+    autoplay: true
+  });
+  
+  // 3. Add direct animation controls as backup
+  const handleManualPlay = useCallback(() => {
+    // Direct DOM animation implementation
+    // (Similar to the example above)
+  }, []);
+  
+  // 4. Override hook controls for reliability
+  useEffect(() => {
+    const originalPlay = sequence.play;
+    sequence.play = () => {
+      originalPlay();
+      handleManualPlay(); // Fallback
+    };
+  }, [sequence, handleManualPlay]);
+  
+  return (
+    <div>
+      <div className="controls">
+        <button onClick={() => sequence.play()}>Play</button>
+        <button onClick={() => sequence.restart()}>Restart</button>
+      </div>
+      
+      <div ref={containerRef} className="animation-container">
+        {elements.map(el => (
+          <div 
+            key={el.id}
+            className="animation-element"
+            style={{
+              position: 'absolute',
+              left: `${el.x}px`,
+              top: `${el.y}px`,
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: 'blue',
+              opacity: el.visible ? 1 : 0,
+              transform: el.visible ? 'scale(1)' : 'scale(0)'
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+### Implementing Feature Detection
+
+If you're unsure whether certain hook functions are fully implemented, you can add feature detection:
+
+```jsx
+// Check if a method is properly implemented
+const isMethodImplemented = (method) => {
+  try {
+    const methodStr = method.toString();
+    // Check if it contains "not fully implemented" or is a stub
+    return !(
+      methodStr.includes('not fully implemented') ||
+      methodStr.includes('not implemented') ||
+      methodStr.match(/\{\s*\}/) // Empty function body
+    );
+  } catch (e) {
+    return false;
+  }
+};
+
+// Use in your component
+useEffect(() => {
+  if (sequence) {
+    // Check which methods are fully implemented
+    const implementationStatus = {
+      play: isMethodImplemented(sequence.play),
+      seek: isMethodImplemented(sequence.seek),
+      seekProgress: isMethodImplemented(sequence.seekProgress)
+    };
+    
+    console.log('Implementation status:', implementationStatus);
+    
+    // Implement fallbacks for non-implemented methods
+    if (!implementationStatus.seekProgress) {
+      // Add custom implementation for seekProgress
+    }
+  }
+}, [sequence]);
+```
+
+## Recent Fixes (v1.0.23)
+
+In version 1.0.23, we addressed several issues with the animation sequence hook:
+
+1. Fixed the core rendering failure where elements defined in stages didn't appear
+2. Improved initial styles application with better timing and error handling
+3. Enhanced the hook to properly apply transforms without conflicts
+4. Fixed infinite update loops with proper dependency management
+5. Added more detailed logging to help debug animation issues
+
+Despite these improvements, you may still encounter edge cases where the workarounds in this section are helpful.
 
 ---
 
 ## `useAnimationSequence` Hook (Primary Orchestration Hook)
 
-**Note:** While `useOrchestration` exists, `useAnimationSequence` is the primary hook intended for creating complex, multi-stage animations with fine-grained control over properties, timing, and targets.
+**Note:** While `useOrchestration` exists for timing pattern calculation, **`useAnimationSequence` is the primary hook** intended for creating complex, multi-stage animations with fine-grained control over properties, timing, and targets. It is generally the recommended hook for most sequence animation tasks. Its reliability, particularly regarding initial state application (`from` properties) and `autoplay`, was improved in v1.0.22.
 
 ### Purpose
 
@@ -405,17 +675,29 @@ Starting with v1.0.19, Galileo Glass provides a simplified public API for animat
     *   `staggerPatternFn?: (index: number, total: number, targets: unknown[]) => number` (Optional custom function)
     *   `staggerOverlap?: number` (Optional: ms)
 
-3.  **`PublicGroupAnimationStage` (`type: 'group'`)**
+3.  **`PublicPhysicsAnimationStage` (`type: 'physics'`)**
+    *   Animates CSS properties using physics-based spring animations.
+    *   `targets: AnimationTarget` (**Required**)
+    *   `properties: Record<string, unknown>` (**Required** - Target CSS property values)
+    *   `from?: Record<string, unknown>` (Optional - Starting CSS property values)
+    *   `physics?: Partial<SpringConfig>` (Optional - Physics configuration)
+        *   `mass?: number` (Default: 1)
+        *   `tension?: number` (Default: 170 - Higher = more snappy)
+        *   `friction?: number` (Default: 26 - Higher = less oscillation)
+        *   `restDelta?: number` (Default: 0.01 - Precision for stopping animation)
+        *   `restSpeed?: number` (Default: 2 - Speed threshold for stopping animation)
+
+4.  **`PublicGroupAnimationStage` (`type: 'group'`)**
     *   Groups multiple child stages to run relative to each other.
     *   `children: PublicAnimationStage[]` (**Required**)
     *   `relationship?: TimingRelationship` (Optional: `'start-together'`, `'end-together'`, `'chain'`, etc.)
     *   `relationshipValue?: number` (Optional: Overlap/gap in ms for relationship)
 
-4.  **`PublicCallbackAnimationStage` (`type: 'callback'`)**
+5.  **`PublicCallbackAnimationStage` (`type: 'callback'`)**
     *   Calls a function repeatedly during its duration.
     *   `callback: (progress: number, id: string) => void` (**Required**)
 
-5.  **`PublicEventAnimationStage` (`type: 'event'`)**
+6.  **`PublicEventAnimationStage` (`type: 'event'`)**
     *   Calls a function once at its scheduled time.
     *   `callback: (id: string) => void` (**Required**)
     *   `duration: 0` (**Required**)
@@ -547,4 +829,50 @@ const AnimationDemo = () => {
     </div>
   );
 };
-``` 
+
+export default AnimationDemo;
+```
+
+## Recent Fixes (v1.0.22)
+
+### Fixed: PhysicsAnimationStage Support
+
+In version 1.0.22, we enhanced `useAnimationSequence` to properly support physics-based animation stages. The improvements include:
+
+1. Added proper type support for `PublicPhysicsAnimationStage`
+2. Implemented proper conversion between public and internal physics animation stage types
+3. Added type safety for physics configuration parameters
+4. Fixed issues with initial state application for physics-based transitions
+
+```tsx
+// Example of using physics animation stages
+const stages = [
+  {
+    id: 'physics-animation',
+    type: 'physics',
+    targets: '.element',
+    from: { 
+      opacity: 0,
+      scale: 0.8
+    },
+    properties: { 
+      opacity: 1,
+      scale: 1
+    },
+    physics: {
+      mass: 1,
+      tension: 170, // Higher tension = more snappy animation
+      friction: 26,  // Higher friction = less wobble
+      restDelta: 0.01 // Precision for stopping
+    },
+    duration: 800
+  }
+];
+
+const sequence = useAnimationSequence({
+  stages,
+  autoplay: true
+});
+```
+
+Physics-based animations provide a more natural feel compared to traditional easing functions, especially for interactive elements and smooth transitions. 

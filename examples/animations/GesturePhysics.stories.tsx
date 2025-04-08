@@ -2,20 +2,20 @@ import React, { useRef, useEffect, useState, CSSProperties } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import styled from 'styled-components';
 
+// Import types from the correct location
 import {
     GesturePhysicsOptions,
-    GesturePhysicsResult,
     GestureTransform
-} from '@veerone/galileo-glass-ui';
+} from '../../src/types/gestures';
 
-// Correct: Import hook from hooks subpath
-import { useGesturePhysics } from '@veerone/galileo-glass-ui/hooks';
+// Import hook from source
+import { useGesturePhysics } from '../../src/animations/physics/gestures/useGesturePhysics';
 
-// Import Galileo components
+// Import Galileo components from source
 import {
     GlassBox,
     GlassTypography,
-} from '@veerone/galileo-glass-ui';
+} from '../../src/components';
 
 // Styled component for the draggable element - Keep base styles only
 const DraggableCircle = styled(GlassBox)`

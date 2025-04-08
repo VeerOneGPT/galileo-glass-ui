@@ -4,12 +4,17 @@
  * Renders an individual event item on the timeline with proper
  * positioning, styling, and interactive features.
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, CSSProperties, useCallback } from 'react';
 import { isToday, format as formatDateFn } from 'date-fns';
+import { useTheme } from 'styled-components';
+import { useHover } from '@react-aria/interactions';
+import type { FormatOptions } from 'date-fns';
 
 // Import Galileo hook and types
 import { useGalileoSprings, TargetValues, GalileoSpringsOptions } from '../../../hooks/useGalileoSprings';
 import { SpringConfig, SpringPresets } from '../../../animations/physics/springPhysics'; // Import SpringConfig
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { usePhysicsInteraction, PhysicsInteractionType } from '../../../hooks/usePhysicsInteraction';
 
 // Local imports
 import { 
@@ -31,41 +36,46 @@ import {
   GroupedEvents 
 } from '../styles';
 
-interface TimelineEventProps {
+/**
+ * Props for the TimelineEvent component.
+ */
+export interface TimelineEventProps {
   item: TimelineItemType;
   index: number;
-  isGrouped?: boolean;
-  orientation: TimelineOrientation;
+  orientation: 'vertical' | 'horizontal';
   isHighlighted: boolean;
-  color?: string;
+  color: string;
   finalDisableAnimation: boolean;
   glassContent: boolean;
-  glassVariant?: GlassVariant;
-  blurStrength?: BlurStrength;
+  glassVariant: GlassVariant;
+  blurStrength: BlurStrength;
   contentClassName?: string;
   markerClassName?: string;
   handleItemClick: (item: TimelineItemType) => void;
   renderContent?: (item: TimelineItemType) => React.ReactNode;
-  renderMarker?: (item: TimelineItemType) => React.ReactNode;
-  density: TimelineDensity;
+  renderMarker?: (item: TimelineItemType, isHighlighted: boolean, color: string) => React.ReactNode;
+  density: 'compact' | 'normal' | 'spacious';
   itemPhysicsProps: { translateX: number; translateY: number; scale: number; opacity: number };
-  finalInteractionConfig: Partial<SpringConfig> | keyof typeof SpringPresets | undefined;
+  finalInteractionConfig?: Partial<SpringConfig> | keyof typeof SpringPresets;
   formatDate: (date: Date, viewMode: TimelineViewMode, zoomLevel: ZoomLevel) => string;
   currentViewMode: TimelineViewMode;
   currentZoomLevel: ZoomLevel;
   parseDate: (date: string | number | Date) => Date;
-  calculateItemPosition: (date: Date) => number;
-  getEventSide: (index: number, id: string | number) => 'left' | 'right' | 'center';
-  selectedId?: string | number | null;
+  getEventSide: (index: number, itemId: string | number) => 'left' | 'right' | 'center';
+  selectedId: string | number | null;
+  isGrouped: boolean;
   groupedItems?: Record<string, TimelineItemType[]>;
   glassMarkers: boolean;
-  format: typeof formatDateFn;
+  format: (date: string | number | Date, formatStr: string, options?: FormatOptions) => string;
+  style?: React.CSSProperties;
 }
 
-const TimelineEvent: React.FC<TimelineEventProps> = ({
+/**
+ * Represents a single event on the timeline.
+ */
+export const TimelineEvent: React.FC<TimelineEventProps> = ({
   item,
   index,
-  isGrouped = false,
   orientation,
   isHighlighted,
   color,
@@ -85,19 +95,19 @@ const TimelineEvent: React.FC<TimelineEventProps> = ({
   currentViewMode,
   currentZoomLevel,
   parseDate,
-  calculateItemPosition,
   getEventSide,
   selectedId,
+  isGrouped,
   groupedItems,
   glassMarkers,
   format,
+  style
 }) => {
+  const theme = useTheme();
   const date = parseDate(item.date);
-  const position = calculateItemPosition(date);
   const side = getEventSide(index, item.id);
   const isActive = selectedId === item.id || !!item.active;
 
-  // Get physics props for ENTRANCE animation (or default values)
   const entrancePhysicsProps = itemPhysicsProps || {
     translateX: 0,
     translateY: 0,
@@ -105,174 +115,174 @@ const TimelineEvent: React.FC<TimelineEventProps> = ({
     opacity: 1
   };
 
-  // --- Add Hover/Focus State & Interaction Physics ---
   const [isHovered, setIsHovered] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
+  const resolvedDisableAnimation = useReducedMotion() || finalDisableAnimation;
+  const resolvedInteractionConfig = useMemo(() => {
+    if (typeof finalInteractionConfig === 'string' && finalInteractionConfig in SpringPresets) {
+      return SpringPresets[finalInteractionConfig as keyof typeof SpringPresets];
+    }
+    return finalInteractionConfig;
+  }, [finalInteractionConfig]);
+
   const interactionTarget: TargetValues = useMemo(() => ({
-    scale: finalDisableAnimation ? 1 : (isHovered || isFocused) ? 1.04 : 1,
-    translateYInteraction: finalDisableAnimation ? 0 : (isHovered || isFocused) ? -3 : 0,
-  }), [finalDisableAnimation, isHovered, isFocused]);
+    scale: resolvedDisableAnimation ? 1 : (isHovered || isFocused) ? 1.04 : 1,
+    translateYInteraction: resolvedDisableAnimation ? 0 : (isHovered || isFocused) ? -3 : 0,
+  }), [resolvedDisableAnimation, isHovered, isFocused]);
 
   const interactionValues = useGalileoSprings(
     interactionTarget,
-    {
-      config: finalInteractionConfig,
-      immediate: finalDisableAnimation,
-    }
+    { config: resolvedInteractionConfig as SpringConfig | undefined, immediate: resolvedDisableAnimation }
   );
-  // --- End Interaction Physics ---
 
-  // For grouped items, show count instead of individual items
+  // Calculate Style for the TimelineItem (Strategy 9: Relative + Margin)
+  const combinedStyle = useMemo((): CSSProperties => {
+    const animationTransform = `translate(${entrancePhysicsProps.translateX}px, ${entrancePhysicsProps.translateY + (interactionValues.translateYInteraction ?? 0)}px) scale(${entrancePhysicsProps.scale * (interactionValues.scale ?? 1)})`;
+
+    const baseStyle: CSSProperties = {
+      marginTop: `0px`,
+      marginLeft: `0px`,
+      transform: animationTransform,
+      opacity: entrancePhysicsProps.opacity,
+    };
+
+    baseStyle.top = style?.top;
+    baseStyle.left = style?.left;
+
+    return baseStyle;
+  }, [
+    entrancePhysicsProps,
+    interactionValues,
+    style
+  ]);
+  // --- End Style Calculation ---
+
+  const handleMouseEnter = useCallback(() => {
+    if (resolvedDisableAnimation) return;
+    setIsHovered(true);
+  }, [resolvedDisableAnimation]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (resolvedDisableAnimation) return;
+    setIsHovered(false);
+  }, [resolvedDisableAnimation]);
+
+  const handleClick = useCallback(() => {
+    handleItemClick(item);
+  }, [handleItemClick, item]);
+
   if (isGrouped && index > 0) return null;
 
-  // Custom marker renderer
-  const customMarker = renderMarker ? renderMarker(item) : null;
+  const customMarker = renderMarker ? renderMarker(item, !!item.highlighted || isHighlighted, item.color || color) : null;
+
+  const renderMarkerComponent = () => customMarker || (
+    <MarkerCircle 
+      $color={item.color || color}
+      $isActive={isActive}
+      $isGlass={glassMarkers}
+      $size={density === 'compact' ? 'small' : density === 'spacious' ? 'large' : 'medium'}
+      $glassVariant={glassVariant}
+      $blurStrength={blurStrength}
+      $hasIcon={!!item.icon}
+    >
+      {item.icon}
+    </MarkerCircle>
+  );
+
+  const renderConnectorComponent = () => (
+    <EventConnector 
+      $orientation={orientation} 
+      $side={side} 
+      $color={item.color || color}
+      $isActive={isActive}
+    />
+  );
+
+  const renderContentComponent = () => (
+    <EventContent 
+      $orientation={orientation} 
+      $side={side} 
+      $isActive={isActive}
+      $isGlass={glassContent}
+      $glassVariant={glassVariant}
+      $blurStrength={blurStrength}
+      $color={item.color || color}
+      $maxWidth={orientation === 'horizontal' ? 250 : undefined}
+      className={contentClassName}
+    >
+      {renderContent ? (
+        renderContent(item)
+      ) : (
+        <>
+          <EventTitle $color={item.color || color} $isActive={isActive}>
+            {item.title}
+          </EventTitle>
+          <EventDate>
+            {formatDate(date, currentViewMode, currentZoomLevel)}
+          </EventDate>
+          {item.content && (
+            <EventDescription>
+              {typeof item.content === 'string'
+                ? item.content
+                : item.content
+              }
+            </EventDescription>
+          )}
+          {isGrouped && groupedItems && (
+            <GroupedEvents>
+              Multiple events
+              <span className="events-count">
+                {Array.isArray(groupedItems[format(date, 'yyyy-MM-dd')]) ? groupedItems[format(date, 'yyyy-MM-dd')].length : '?'}
+              </span>
+            </GroupedEvents>
+          )}
+        </>
+      )}
+    </EventContent>
+  );
 
   return (
     <TimelineItem
       key={item.id}
       data-item-id={item.id}
-      $orientation={orientation}
-      $position={position}
-      $side={side}
       $isActive={isActive}
-      $isHighlighted={!!item.highlighted || isHighlighted}
-      $color={item.color || color}
-      $reducedMotion={finalDisableAnimation}
-      style={{
-        transform: `translateY(-50%) translate(${entrancePhysicsProps.translateX}px, ${entrancePhysicsProps.translateY + (interactionValues.translateYInteraction ?? 0)}px) scale(${entrancePhysicsProps.scale * (interactionValues.scale ?? 1)})`,
-        opacity: entrancePhysicsProps.opacity
-      }}
-      className={markerClassName}
-      onClick={() => handleItemClick(item)}
-      tabIndex={0}
-      role="button"
-      aria-pressed={isActive}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleItemClick(item);
-        }
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      $color={item.color || color || 'primary'}
+      $density={density}
+      className={`timeline-item ${isHighlighted ? 'highlighted' : ''} ${isActive ? 'active' : ''}`}
+      style={combinedStyle}
+      $orientation={orientation}
+      $side={side}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
+      tabIndex={0}
     >
-      {side === 'left' && orientation === 'vertical' && (
+      {/* Conditionally render children based on flex order */}
+      {orientation === 'vertical' && side === 'left' && (
         <>
-          <EventContent
-            $orientation={orientation}
-            $isActive={isActive}
-            $isGlass={glassContent}
-            $glassVariant={glassVariant}
-            $blurStrength={blurStrength}
-            $color={item.color || color}
-            className={contentClassName}
-          >
-            {renderContent ? (
-              renderContent(item)
-            ) : (
-              <>
-                <EventTitle $color={item.color || color} $isActive={isActive}>
-                  {item.title}
-                </EventTitle>
-                <EventDate>
-                  {formatDate(date, currentViewMode, currentZoomLevel)}
-                </EventDate>
-                {item.content && (
-                  <EventDescription>
-                    {typeof item.content === 'string'
-                      ? item.content
-                      : item.content
-                    }
-                  </EventDescription>
-                )}
-                {isGrouped && groupedItems && (
-                  <GroupedEvents>
-                    Multiple events
-                    <span className="events-count">
-                      {Array.isArray(groupedItems[format(date, 'yyyy-MM-dd')]) ? groupedItems[format(date, 'yyyy-MM-dd')].length : '?'}
-                    </span>
-                  </GroupedEvents>
-                )}
-              </>
-            )}
-          </EventContent>
-          <EventConnector
-            $orientation={orientation}
-            $side={side}
-            $color={item.color || color}
-            $isActive={isActive}
-          />
+          {renderContentComponent()}
+          {renderConnectorComponent()}
+          {renderMarkerComponent()}
         </>
       )}
-
-      {/* Marker */}
-      {customMarker || (
-        <MarkerCircle
-          $color={item.color || color}
-          $isActive={isActive}
-          $isGlass={glassMarkers}
-          $size={density === 'compact' ? 'small' : density === 'spacious' ? 'large' : 'medium'}
-          $glassVariant={glassVariant}
-          $blurStrength={blurStrength}
-          $hasIcon={!!item.icon}
-        >
-          {item.icon}
-        </MarkerCircle>
-      )}
-
-      {(side === 'right' && orientation === 'vertical') || orientation === 'horizontal' ? (
+      {orientation === 'vertical' && side === 'right' && (
         <>
-          <EventConnector
-            $orientation={orientation}
-            $side={side}
-            $color={item.color || color}
-            $isActive={isActive}
-          />
-          <EventContent
-            $orientation={orientation}
-            $isActive={isActive}
-            $isGlass={glassContent}
-            $glassVariant={glassVariant}
-            $blurStrength={blurStrength}
-            $color={item.color || color}
-            $maxWidth={orientation === 'horizontal' ? 250 : undefined}
-            className={contentClassName}
-          >
-            {renderContent ? (
-              renderContent(item)
-            ) : (
-              <>
-                <EventTitle $color={item.color || color} $isActive={isActive}>
-                  {item.title}
-                </EventTitle>
-                <EventDate>
-                  {formatDate(date, currentViewMode, currentZoomLevel)}
-                </EventDate>
-                {item.content && (
-                  <EventDescription>
-                    {typeof item.content === 'string'
-                      ? item.content
-                      : item.content
-                    }
-                  </EventDescription>
-                )}
-                {isGrouped && groupedItems && (
-                  <GroupedEvents>
-                    Multiple events
-                    <span className="events-count">
-                      {Array.isArray(groupedItems[format(date, 'yyyy-MM-dd')]) ? groupedItems[format(date, 'yyyy-MM-dd')].length : '?'}
-                    </span>
-                  </GroupedEvents>
-                )}
-              </>
-            )}
-          </EventContent>
+          {renderMarkerComponent()}
+          {renderConnectorComponent()}
+          {renderContentComponent()}
         </>
-      ) : null}
+      )}
+       {(orientation === 'vertical' && side === 'center' || orientation === 'horizontal') && (
+         // Default order (Marker -> Connector -> Content) - Assuming column layout for these cases
+        <>
+          {renderMarkerComponent()}
+          {renderConnectorComponent()}
+          {renderContentComponent()}
+        </>
+      )}
     </TimelineItem>
   );
 };

@@ -6,8 +6,10 @@
  */
 
 import { AnimationCategory } from '../accessibility/MotionSensitivity';
-import { Vector } from './galileoPhysicsSystem';
-import { TransitionType, TransitionDirection } from '../game/useGameAnimation';
+import { useReducedMotion } from '../accessibility/useReducedMotion';
+import { SpringConfig } from './springPhysics';
+import { Vector2D } from './types';
+import { TransitionType, TransitionDirection } from '../types';
 import { DistributionPattern } from '../orchestration/StaggeredAnimations';
 
 /**

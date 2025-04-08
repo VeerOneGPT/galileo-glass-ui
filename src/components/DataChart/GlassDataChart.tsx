@@ -781,9 +781,14 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   // Handle chart hover for tooltips
   const handleChartHover = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!chartRef.current) return;
-    
+
+    // Exit early if BOTH interactions are disabled
+    if (!interaction.physicsHoverEffects && !interaction.showTooltips) {
+      setHoveredPoint(null); // Ensure tooltip state is cleared if disabled
+      return;
+    }
+
     // Clear previous hover animation targets first
-    // TODO: Make this more efficient - only clear targets that are no longer hovered
     const previousHoveredKey = hoveredPoint ? `${hoveredPoint.datasetIndex}_${hoveredPoint.dataIndex}` : null;
     
     const chart = chartRef.current;
@@ -803,7 +808,8 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       currentHoveredKey = `${datasetIndex}_${dataIndex}`;
       
       // --- Trigger Element Hover Animation State Update ---
-      if (getElementPhysicsOptions) {
+      // Check if physicsHoverEffects is enabled BEFORE updating targets
+      if (interaction.physicsHoverEffects && getElementPhysicsOptions) {
           const dataset = datasets[datasetIndex];
           const dataPoint = dataset.data[dataIndex];
           const physicsOptions = getElementPhysicsOptions(dataPoint, datasetIndex, dataIndex, chartType);
@@ -821,7 +827,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       }
       // --- End Trigger ---
       
-      // Update tooltip state
+      // Update tooltip state only if enabled
       if (interaction.showTooltips) {
           const dataset = datasets[datasetIndex];
           const dataPoint = dataset.data[dataIndex];
@@ -842,11 +848,15 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
           });
       }
     } else {
-      setHoveredPoint(null);
+      // Clear tooltip state if enabled
+      if (interaction.showTooltips) {
+        setHoveredPoint(null);
+      }
     }
     
     // Reset animation targets for previously hovered element if it's different
-    if (previousHoveredKey && previousHoveredKey !== currentHoveredKey) {
+    // Only reset if physics hover effects are enabled
+    if (interaction.physicsHoverEffects && previousHoveredKey && previousHoveredKey !== currentHoveredKey) {
          setElementAnimationTargets(prev => 
             new Map(prev).set(previousHoveredKey, { 
               ...prev.get(previousHoveredKey),
@@ -861,24 +871,27 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   
   // Handle chart hover leave
   const handleChartLeave = () => {
-    setHoveredPoint(null);
-    // Reset all hover targets on leave
-    // TODO: This might be inefficient if many elements were targeted.
-    // Consider iterating only through keys that had non-default targets.
-    let resetOccurred = false;
-    setElementAnimationTargets(prev => {
-        const next = new Map(prev);
-        for (const key of next.keys()) {
-            const current = next.get(key);
-            if (current?.targetScale !== 1 || current?.targetOpacity !== 1) {
-                next.set(key, { ...current, targetScale: 1, targetOpacity: 1 });
-                resetOccurred = true; // Mark that at least one reset happened
+    // Clear tooltip state if enabled
+    if (interaction.showTooltips) {
+        setHoveredPoint(null);
+    }
+    // Reset all hover targets on leave ONLY if physics effects are enabled
+    if (interaction.physicsHoverEffects) {
+        let resetOccurred = false;
+        setElementAnimationTargets(prev => {
+            const next = new Map(prev);
+            for (const key of next.keys()) {
+                const current = next.get(key);
+                if (current?.targetScale !== 1 || current?.targetOpacity !== 1) {
+                    next.set(key, { ...current, targetScale: 1, targetOpacity: 1 });
+                    resetOccurred = true; // Mark that at least one reset happened
+                }
             }
+            return next;
+        });
+        if (resetOccurred) {
+            console.log('[Chart Interaction] Reset ALL HOVER targets on leave');
         }
-        return next;
-    });
-    if (resetOccurred) {
-        console.log('[Chart Interaction] Reset ALL HOVER targets on leave');
     }
   };
   
@@ -1064,6 +1077,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       // Pass getElementPhysicsOptions AND current chartType to our custom plugin
       // @ts-ignore - Ignore TS error for custom plugin namespace
       galileoElementInteraction: {
+        enabled: interaction.physicsHoverEffects, // Pass enabled flag based on prop
         getElementPhysicsOptions, // Pass the function prop
         chartType, // Pass the current chartType state
       }
@@ -1299,7 +1313,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
         </ChartLegend>
       )}
       
-      {/* Chart */}
+      {/* Chart Component with Key Prop */}
       <ChartWrapper 
         style={enablePhysicsAnimation ? {
           transform: `scale(${springValue ?? 0})`, // Provide fallback if springValue is undefined
@@ -1318,6 +1332,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
         )}
         
         <Chart
+          key={chartType}
           type={getChartJsType()}
           data={chartData}
           options={chartOptions}

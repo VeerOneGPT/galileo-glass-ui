@@ -105,7 +105,7 @@ const DimensionalContainer = styled.div<{
     props.$animate &&
     !props.$reducedMotion &&
     css`
-      animation: ${float} 6s ease-in-out infinite;
+      animation: ${css`${float} 6s ease-in-out infinite`};
     `}
 
   /* Perspective effect for children */

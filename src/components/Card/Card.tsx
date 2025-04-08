@@ -163,7 +163,6 @@ const Card = forwardRef<HTMLDivElement, CardProps>((props, ref) => {
       padding={dimensionalPadding()}
       borderRadius={8}
       depth={0.5}
-      parallax={true}
       dynamicShadow={true}
       onClick={onClick}
       animationConfig={animationConfig}

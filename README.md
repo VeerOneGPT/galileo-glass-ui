@@ -55,17 +55,15 @@ h
 
 ## ✨ What's New 
 
-**Version 1.0.23** is primarily a **corrective release** focused on addressing critical build configuration issues, export errors, and functional regressions identified following the v1.0.22 release. This version stabilizes the library by ensuring all documented hooks and components are correctly exported and usable, fixing major bugs in animation and interaction systems, and resolving visual glitches. Documentation has also been significantly updated to reflect accurate usage patterns.
+**Version 1.0.24** focuses on resolving critical issues in components and animations, while enhancing styling and user experience:
 
-- **Systemic Build/Export Fixes:** Resolved numerous issues preventing hooks (like `useAnimationSequence`, `useMagneticElement`, `useChartPhysicsInteraction`) and components (`Card`) from being correctly bundled and exported.
-- **Hook Functionality Fixes:**
-  - Applied core fix to `useAnimationSequence` initialization logic to address element rendering failures *(Verification Required)*.
-  - Corrected force calculation in `usePhysicsInteraction` for the `magnetic` type.
-  - Addressed type import errors.
-- **Component Fixes:** Resolved `DataChart` visual glitches (legend cutoff, frost overlap).
-- **Documentation Updates:** Significantly updated docs for affected hooks (`useMagneticElement`, `useAnimationSequence`) with correct usage patterns, workarounds, and examples. Added troubleshooting guide.
+- **Fixed Critical Crash in Styled-Components Animation:** Resolved application crashes when importing the library in projects using `styled-components` v4+ by fixing keyframe interpolation.
+- **Completely Refactored GlassTimeline Layout:** Replaced absolute positioning with a nested flexbox approach for stable and predictable timeline item positioning in both vertical and horizontal orientations.
+- **Enhanced GlassMultiSelect Component:** Fixed animation implementation, improved keyboard navigation (particularly for token removal via Backspace), replaced inefficient JSON.stringify comparisons with proper deep equality checks, and enhanced dropdown positioning.
+- **Improved GlassDateRangePicker Styling:** Enhanced the calendar container with better frosted glass styling, increased size dimensions, improved visual contrast, and added subtle design elements like background overlay and outer glow.
+- **Added Hook Import Path Documentation:** Created a new [Hook Import Paths Guide](./docs/hooks/import-paths.md) to clarify the correct import paths for hooks and help address common import issues.
 
-> For full details, see the [**v1.0.23 Changelog**](./docs/changelog/CHANGELOG-1.0.23.md).
+> For full details, see the [**v1.0.24 Changelog**](./docs/changelog/CHANGELOG-1.0.24.md) or check the [previous release notes](./docs/changelog/CHANGELOG-1.0.23.md).
 
 ---
 
@@ -253,7 +251,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/performance/optimization/memoization-patterns.md">Memoization Patterns</a></td>
     </tr>
     <tr valign="top">
-      <td><a href="./docs/changelog/CHANGELOG-1.0.21.md">v1.0.21 Changelog</a></td>
+      <td><a href="./docs/changelog/CHANGELOG-1.0.24.md">v1.0.24 Changelog</a></td>
       <td></td>
       <td><a href="./docs/animations/presets.md">Animation Presets</a></td>
       <td></td>
@@ -261,7 +259,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
       <td><a href="./docs/development/implementation-status.md">Implementation Status</a></td>
     </tr>
      <tr valign="top">
-      <td><a href="./docs/changelog/CHANGELOG-1.0.22.md">v1.0.22 Changelog</a></td>
+      <td><a href="./docs/changelog/CHANGELOG-1.0.23.md">v1.0.23 Changelog</a></td>
       <td></td>
       <td><a href="./docs/animations/game-animation.md"><strong>useGameAnimation</strong> (Enhanced)</a></td>
       <td></td>
@@ -271,7 +269,7 @@ Check out our [interactive examples](https://github.com/VeerOneGPT/galileo-glass
      <tr valign="top">
       <td></td>
       <td></td>
-      <td></td>
+      <td><a href="./docs/hooks/import-paths.md"><strong>Hook Import Paths</strong> (New)</a></td>
       <td></td>
       <td><a href="./docs/hooks/useGlassFocus.md">useGlassFocus</a></td>
       <td></td>
@@ -958,4 +956,4 @@ npm install @mui/icons-material @emotion/react @emotion/styled
 ```
 
 // Version
-export const version = '1.0.23';
+export const version = '1.0.24';

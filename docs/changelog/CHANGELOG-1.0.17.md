@@ -1,6 +1,6 @@
 # Galileo Glass UI - Changelog Version 1.0.17
 
-## Release Date: [Current Date]
+## Release Date:  04-05-2025
 
 ## Overview
 

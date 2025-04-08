@@ -2,9 +2,9 @@ import React, { forwardRef, useRef, useEffect, useState, useMemo, createRef, use
 import { GlassDataGridProps, ColumnDefinition, SortState } from './types';
 import styled, { css } from 'styled-components';
 import { useSortableData } from '../../hooks/useSortableData';
-import { useStyleUtils, useGlassEffects } from '../../theme/ThemeProvider';
 import { useDraggableListPhysics } from '../../hooks/useDraggableListPhysics';
 import { useVectorSpring } from '../../animations/physics';
+import DimensionalGlass from '../surfaces/DimensionalGlass';
 
 // --- Styled Components using Theme --- 
 
@@ -119,7 +119,6 @@ export const GlassDataGrid = forwardRef<HTMLDivElement, GlassDataGridProps<any>>
       onRowOrderChange,
     } = props;
     const { sortedData, sorting, handleSort } = useSortableData(initialData, initialSort as SortState);
-    const { GlassSurface } = useGlassEffects(); // Get GlassSurface component from context
     
     // Create refs for each row element for the physics hook
     const rowRefs = useMemo(() => 
@@ -193,12 +192,12 @@ export const GlassDataGrid = forwardRef<HTMLDivElement, GlassDataGridProps<any>>
     if (!displayData || !columns) return null;
 
     return (
-      // Use GlassSurface component as the outer wrapper
-      <GlassSurface 
-        ref={ref} // Forward ref to the GlassSurface
+      // Use DimensionalGlass component as the outer wrapper
+      <DimensionalGlass 
+        ref={ref} // Forward ref to the DimensionalGlass
         className={className} 
         style={style}
-        variant="standard"
+        variant="standard" // Pass relevant props to DimensionalGlass
         elevation={1}
         css={`
             ${height ? `height: ${typeof height === 'number' ? height+'px' : height}; overflow-y: auto;` : ''}
@@ -301,7 +300,7 @@ export const GlassDataGrid = forwardRef<HTMLDivElement, GlassDataGridProps<any>>
             })}
           </tbody>
         </StyledTable>
-      </GlassSurface>
+      </DimensionalGlass>
     );
   }
 );

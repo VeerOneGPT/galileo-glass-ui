@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "private": false,
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
@@ -154,6 +154,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/x-date-pickers": "^7.28.2",
+    "@react-aria/interactions": "^3.24.1",
     "@use-gesture/react": "^10.3.1",
     "color": "^5.0.0",
     "csstype": "^3.1.3",

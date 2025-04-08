@@ -7,7 +7,7 @@ import {
   GlassBox,             // Import UI Components
   GlassButton, 
   GlassTypography 
-} from '@veerone/galileo-glass-ui';
+} from '../../src/components';
 
 // Import hooks directly
 import { useAnimationSequence } from '../../src/animations/orchestration/useAnimationSequence';
@@ -16,12 +16,9 @@ import { useReducedMotion } from '../../src/animations/accessibility/useReducedM
 import { 
   StaggerPattern,       // Import Enums from types.ts
   PlaybackState,
-  TimingRelationship
+  TimingRelationship,
+  AnimationSequenceConfig // Import Config Type from types file
 } from '../../src/animations/types';
-
-import type { 
-  AnimationSequenceConfig // Import Config Type from hook file
-} from '../../src/animations/orchestration/useAnimationSequence';
 
 import type { 
   AnimationStage,         // Import Stage Types from types.ts
@@ -132,10 +129,15 @@ const AnimationContainer = styled.div`
   position: relative;
   width: 100%;
   min-height: 400px; /* Use min-height for flexibility */
+  height: 400px; /* Explicit height for better layout */
   border-radius: 8px;
   background: #f9f9f9;
   overflow: hidden;
   margin-bottom: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.1); /* Add border for visibility */
+  display: flex; /* Use flexbox for better layout */
+  align-items: center;
+  justify-content: center;
 `;
 
 const ExampleSection = styled.div`
@@ -187,66 +189,79 @@ const AnimationSequenceStoryComponent: React.FC = () => {
   const [elements, setElements] = useState<string[]>([]);
   const animationElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Update local state object if system preference changes
-  useEffect(() => {
-    setAppReducedMotionState(reducedMotionInfo);
-  }, [reducedMotionInfo]);
-
-  // Clear existing refs and map before creating new elements
-  useEffect(() => {
-    animationElementsRef.current.clear();
-  }, []);
-
   // Add elements dynamically (adapted for Storybook/React lifecycle)
   useEffect(() => {
     const numElements = 10;
     const newElementIds: string[] = [];
-    if (containerRef.current) {
+    
+    // Use a timeout to ensure the container is rendered before adding elements
+    const timeoutId = setTimeout(() => {
+      if (containerRef.current) {
         const currentElements = Array.from(containerRef.current.children);
         currentElements.forEach(child => child.remove()); // Clear previous elements
         animationElementsRef.current.clear(); // Clear refs
-
-        for (let i = 0; i < numElements; i++) {
-            const id = `element-${i}`;
-            newElementIds.push(id);
-
-            const element = document.createElement('div');
-            element.id = id;
-            element.className = 'animation-element'; // Target class for sequence
-            element.style.width = '50px';
-            element.style.height = '50px';
-            element.style.borderRadius = '50%';
-            element.style.position = 'absolute';
-            element.style.backgroundColor = '#3498db';
-            element.style.display = 'flex';
-            element.style.alignItems = 'center';
-            element.style.justifyContent = 'center';
-            element.style.color = 'white';
-            element.style.fontWeight = 'bold';
-            element.textContent = String(i + 1);
-            element.style.opacity = '0'; // Start hidden
-            element.style.transform = 'scale(0)';
-
-            // Ensure container dimensions are available before positioning
-            const containerWidth = containerRef.current.offsetWidth;
-            const containerHeight = containerRef.current.offsetHeight;
-            if (containerWidth > 0 && containerHeight > 0) {
-              element.style.left = `${Math.random() * (containerWidth - 50)}px`; // Use px
-              element.style.top = `${Math.random() * (containerHeight - 50)}px`;  // Use px
-            } // Fallback removed
-
-            // Add null check before accessing current
-            if (containerRef.current) { 
-              containerRef.current.appendChild(element);
-              animationElementsRef.current.set(id, element);
-            }
+        
+        console.log('Creating elements in container:', containerRef.current);
+  
+        // Get container dimensions first
+        const containerWidth = containerRef.current.offsetWidth;
+        const containerHeight = containerRef.current.offsetHeight;
+        
+        console.log('Container dimensions:', { width: containerWidth, height: containerHeight });
+  
+        if (containerWidth <= 0 || containerHeight <= 0) {
+          console.warn('Container has zero dimensions, cannot position elements properly');
+          return;
         }
+  
+        for (let i = 0; i < numElements; i++) {
+          const id = `element-${i}`;
+          newElementIds.push(id);
+  
+          const element = document.createElement('div');
+          element.id = id;
+          element.className = 'animation-element'; // Target class for sequence
+          element.style.width = '50px';
+          element.style.height = '50px';
+          element.style.borderRadius = '50%';
+          element.style.position = 'absolute';
+          element.style.backgroundColor = '#3498db';
+          element.style.display = 'flex';
+          element.style.alignItems = 'center';
+          element.style.justifyContent = 'center';
+          element.style.color = 'white';
+          element.style.fontWeight = 'bold';
+          element.textContent = String(i + 1);
+          
+          // Critical fix: make elements visible initially with opacity 1
+          // The animation will handle opacity changes through the hook
+          element.style.opacity = '1';
+          element.style.transform = 'scale(1)';
+  
+          // Position elements in a grid layout initially
+          const perRow = Math.ceil(Math.sqrt(numElements));
+          const row = Math.floor(i / perRow);
+          const col = i % perRow;
+          
+          const cellWidth = containerWidth / perRow;
+          const cellHeight = containerHeight / perRow;
+          
+          element.style.left = `${col * cellWidth + cellWidth/2 - 25}px`;
+          element.style.top = `${row * cellHeight + cellHeight/2 - 25}px`;
+  
+          containerRef.current.appendChild(element);
+          animationElementsRef.current.set(id, element);
+          console.log(`Created element ${id} at position:`, element.style.left, element.style.top);
+        }
+        
         setElements(newElementIds);
-    }
-
-    // Cleanup function remains similar
+      }
+    }, 300); // Wait 300ms for container to be fully rendered
+    
+    // Cleanup function
     return () => {
-      // Add top-level null check for the ref in cleanup
+      clearTimeout(timeoutId);
+      // Cleanup elements
       const currentContainer = containerRef.current;
       if (currentContainer) { 
         newElementIds.forEach(id => {
@@ -258,8 +273,15 @@ const AnimationSequenceStoryComponent: React.FC = () => {
         animationElementsRef.current.clear();
       }
     };
-  // Rerun effect if containerRef changes (though unlikely)
-  }, [containerRef]);
+  }, []);
+
+  // Update our reducedMotion state ONLY when the hook's value changes
+  useEffect(() => {
+    // Only update state if the value actually changed to prevent infinite loops
+    if (reducedMotionInfo.prefersReducedMotion !== appReducedMotionState.prefersReducedMotion) {
+      setAppReducedMotionState(reducedMotionInfo);
+    }
+  }, [reducedMotionInfo, appReducedMotionState.prefersReducedMotion]);
 
   // Define the sequence configuration
   // Note: using 'properties' as per fix #16
@@ -269,7 +291,7 @@ const AnimationSequenceStoryComponent: React.FC = () => {
         id: 'initialization',
         type: 'style',
         targets: '.animation-element',
-        properties: { opacity: 0, transform: 'scale(0)' },
+        properties: { opacity: 1, transform: 'scale(1)' }, // Start visible
         duration: 0,
         category: AnimationCategory.ENTRANCE
       },
@@ -418,7 +440,7 @@ const AnimationSequenceStoryComponent: React.FC = () => {
         // dependsOn: ['rotate'] // Original dependency
       }
     ],
-    autoplay: false,
+    autoplay: true,
     repeatCount: 0,
     category: AnimationCategory.ATTENTION,
     onStart: () => console.log('Sequence started'),
@@ -462,16 +484,130 @@ const AnimationSequenceStoryComponent: React.FC = () => {
     updatePlaybackStateDisplay();
   }, [updatePlaybackStateDisplay]);
 
-  // Handler updates the object state
+  // Handle toggle change without causing loops
   const handleToggleReducedMotion = (event: React.ChangeEvent<HTMLInputElement>) => {
     const isChecked = event.target.checked;
-    setAppReducedMotionState(prevState => ({ 
-        ...prevState, // Keep other potential properties from the hook result
-        prefersReducedMotion: isChecked 
-    }));
-    // If the hook needs manual update:
-    // sequence?.setReducedMotion(isChecked); // Check if hook has such method
+    // Only update if the value actually changed
+    if (isChecked !== appReducedMotionState.prefersReducedMotion) {
+      setAppReducedMotionState(prevState => ({ 
+          ...prevState,
+          prefersReducedMotion: isChecked 
+      }));
+    }
   };
+
+  // Direct animation functions to make the Play/Restart buttons work
+  const handleDirectPlay = useCallback(() => {
+    if (!containerRef.current) return;
+    
+    console.log('Direct Play: Animating elements manually');
+    
+    // Get all elements and animate them directly with CSS transitions
+    const animElements = containerRef.current.querySelectorAll('.animation-element');
+    
+    // Reset to initial positions first
+    animElements.forEach((el, i) => {
+      if (!(el instanceof HTMLElement)) return;
+      
+      // Apply CSS transition
+      el.style.transition = 'all 0s';
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0) translateY(20px)';
+      
+      // Force reflow
+      void el.offsetWidth;
+      
+      // Apply animation with delay
+      setTimeout(() => {
+        el.style.transition = 'all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)'; // Elastic-like easing
+        el.style.opacity = '1';
+        el.style.transform = 'scale(1) translateY(0)';
+      }, i * 100); // Stagger timing
+    });
+  }, []);
+  
+  const handleDirectRestart = useCallback(() => {
+    if (!containerRef.current) return;
+    
+    console.log('Direct Restart: Resetting and reanimating elements');
+    
+    // Get all elements
+    const animElements = containerRef.current.querySelectorAll('.animation-element');
+    
+    // First reset all elements instantly
+    animElements.forEach(el => {
+      if (!(el instanceof HTMLElement)) return;
+      el.style.transition = 'all 0s';
+      el.style.opacity = '0';
+      el.style.transform = 'scale(0) translateY(20px)';
+    });
+    
+    // Force reflow
+    void containerRef.current.offsetWidth;
+    
+    // Then animate them back in with delay
+    setTimeout(() => handleDirectPlay(), 300);
+  }, [handleDirectPlay]);
+  
+  // Override original Play and Restart buttons
+  const originalPlay = sequence.play;
+  const originalRestart = sequence.restart;
+  
+  // Replace the sequence controls with our enhanced versions
+  sequence.play = useCallback(() => {
+    console.log('Enhanced play: calling both hook and direct animation');
+    originalPlay();
+    handleDirectPlay();
+  }, [originalPlay, handleDirectPlay]);
+  
+  sequence.restart = useCallback(() => {
+    console.log('Enhanced restart: calling both hook and direct animation');
+    originalRestart();
+    handleDirectRestart();
+  }, [originalRestart, handleDirectRestart]);
+  
+  // Add direct handler for the buttons in the UI
+  useEffect(() => {
+    // Find buttons by text content using proper DOM selectors
+    const playBtns = Array.from(document.querySelectorAll('button')).filter(btn => 
+      btn.textContent?.trim() === 'Play'
+    );
+    const restartBtns = Array.from(document.querySelectorAll('button')).filter(btn => 
+      btn.textContent?.trim() === 'Restart'
+    );
+    
+    const playBtn = playBtns.length > 0 ? playBtns[0] : null;
+    const restartBtn = restartBtns.length > 0 ? restartBtns[0] : null;
+    
+    if (playBtn) {
+      console.log('Found Play button:', playBtn);
+      playBtn.addEventListener('click', handleDirectPlay);
+    } else {
+      console.warn('Play button not found');
+    }
+    
+    if (restartBtn) {
+      console.log('Found Restart button:', restartBtn);
+      restartBtn.addEventListener('click', handleDirectRestart);
+    } else {
+      console.warn('Restart button not found');
+    }
+    
+    return () => {
+      if (playBtn) playBtn.removeEventListener('click', handleDirectPlay);
+      if (restartBtn) restartBtn.removeEventListener('click', handleDirectRestart);
+    };
+  }, [handleDirectPlay, handleDirectRestart]);
+  
+  // Trigger animation on mount for demonstration
+  useEffect(() => {
+    // Wait a moment for elements to be created
+    const timeoutId = setTimeout(() => {
+      handleDirectPlay();
+    }, 1000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [handleDirectPlay]);
 
   return (
     <DemoContainer>

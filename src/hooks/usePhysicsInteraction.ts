@@ -15,6 +15,7 @@ import { SpringConfig, SpringPresets } from '../animations/physics/springPhysics
 import { useAnimationContext } from '../contexts/AnimationContext';
 import { MotionSensitivityLevel } from '../animations/accessibility/MotionSensitivity';
 import { useAmbientTilt, AmbientTiltOptions } from './useAmbientTilt';
+import { AnimationCategory } from '../types/accessibility';
 
 // Import from local utils
 const markAsAnimating = (element: AnyHTMLElement | null): void => {
@@ -346,6 +347,9 @@ export interface PhysicsInteractionOptions {
    * Specific configuration options for the ambient tilt effect if enabled.
    */
   ambientTiltOptions?: AmbientTiltOptions;
+
+  /** Optional: Categorize the animation's purpose. */
+  category?: AnimationCategory;
 }
 
 /**
@@ -586,7 +590,8 @@ const easingFunctions = {
 // --- Internal Helper for Config Resolution ---
 const resolvePhysicsConfig = (
   options: PhysicsInteractionOptions,
-  contextDefaultSpring: AnimationProps['animationConfig'] | undefined
+  contextDefaultSpring: AnimationProps['animationConfig'] | undefined,
+  contextSensitivityLevel: MotionSensitivityLevel | undefined
 ): {
   stiffness: number;
   dampingRatio: number;
@@ -639,7 +644,7 @@ const resolvePhysicsConfig = (
       mappedDampingRatio = finalSpringConfig.friction / (2 * Math.sqrt(mappedStiffness * mappedMass));
   }
 
-  const sensitivityLevel = options.motionSensitivityLevel ?? basePhysicsDefaults.motionSensitivityLevel;
+  const sensitivityLevel = options.motionSensitivityLevel ?? contextSensitivityLevel ?? basePhysicsDefaults.motionSensitivityLevel;
   let sensitivityMultiplier = 1.0;
   switch (sensitivityLevel) {
       case MotionSensitivityLevel.LOW: sensitivityMultiplier = 0.5; break;
@@ -716,11 +721,11 @@ export const usePhysicsInteraction = <T extends HTMLElement | SVGElement>(
   const isMounted = useRef(false);
 
   const systemPrefersReducedMotion = useReducedMotion();
-  const { defaultSpring } = useAnimationContext();
+  const { defaultSpring, motionSensitivityLevel: contextSensitivityLevel } = useAnimationContext();
 
   const resolvedPhysicsConfig = useMemo(() => {
-      return resolvePhysicsConfig(currentOptions, defaultSpring);
-  }, [currentOptions, defaultSpring]);
+      return resolvePhysicsConfig(currentOptions, defaultSpring, contextSensitivityLevel);
+  }, [currentOptions, defaultSpring, contextSensitivityLevel]);
 
   const isDisabled = currentOptions.reducedMotion ?? systemPrefersReducedMotion;
 
@@ -806,29 +811,61 @@ export const usePhysicsInteraction = <T extends HTMLElement | SVGElement>(
     if (isDisabled || !isInteractingRef.current || !elementRef.current || !springModelRef.current) return;
 
     const rect = elementRef.current.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return; 
-    
+    if (rect.width === 0 || rect.height === 0) return;
+
     const elementCenterX = rect.left + rect.width / 2;
     const elementCenterY = rect.top + rect.height / 2;
     const pointerX = event.clientX - elementCenterX;
     const pointerY = event.clientY - elementCenterY;
-    const relativeX = clamp(pointerX / (rect.width / 2), -1, 1);
-    const relativeY = clamp(pointerY / (rect.height / 2), -1, 1);
 
-    physicsStateRef.current.relativeX = relativeX;
-    physicsStateRef.current.relativeY = relativeY;
-    
-    const targetX = relativeX * resolvedPhysicsConfig.maxDisplacement;
-    const targetY = relativeY * resolvedPhysicsConfig.maxDisplacement;
+    let targetX = 0;
+    let targetY = 0;
+    const interactionType = currentOptions.type ?? 'spring';
+
+    if (interactionType === 'magnetic' || interactionType === 'repel') {
+        const radius = currentOptions.radius ?? 150;
+        const strength = currentOptions.strength ?? 0.5; // Polarity included here
+        const distance = Math.sqrt(pointerX * pointerX + pointerY * pointerY);
+
+        if (distance < radius && distance > 0) {
+            // Calculate force magnitude with linear falloff
+            let forceMagnitude = Math.abs(strength) * (1 - distance / radius);
+            
+            // Direction vectors (normalized)
+            const dirX = pointerX / distance;
+            const dirY = pointerY / distance;
+            
+            if (interactionType === 'magnetic') {
+                // For magnetic: positive strength = attraction (force toward pointer)
+                // The direction should be TOWARD pointer for positive strength
+                const polarity = strength >= 0 ? 1 : -1;
+                targetX = dirX * forceMagnitude * polarity * radius * 0.5;
+                targetY = dirY * forceMagnitude * polarity * radius * 0.5;
+            } else { // repel
+                // For repel: always push away from pointer
+                targetX = dirX * forceMagnitude * radius * 0.5;
+                targetY = dirY * forceMagnitude * radius * 0.5;
+            }
+        }
+        // If outside radius, target is reset (0, 0)
+        
+    } else { // Default to spring-like behavior
+        const relativeX = clamp(pointerX / (rect.width / 2), -1, 1);
+        const relativeY = clamp(pointerY / (rect.height / 2), -1, 1);
+        physicsStateRef.current.relativeX = relativeX;
+        physicsStateRef.current.relativeY = relativeY;
+        targetX = relativeX * resolvedPhysicsConfig.maxDisplacement;
+        targetY = relativeY * resolvedPhysicsConfig.maxDisplacement;
+    }
 
     springModelRef.current.setTarget(targetX, targetY);
-    
+
     if (!animationFrameRef.current && animateCallback.current) {
         lastUpdateTimeRef.current = performance.now();
         animationFrameRef.current = requestAnimationFrame(animateCallback.current);
      }
 
-  }, [isDisabled, resolvedPhysicsConfig.maxDisplacement]); 
+  }, [isDisabled, currentOptions.type, currentOptions.radius, currentOptions.strength, resolvedPhysicsConfig.maxDisplacement]); 
 
   const handlePointerLeave = useCallback(() => {
     if (!elementRef.current || !springModelRef.current) return;

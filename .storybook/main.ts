@@ -18,11 +18,18 @@ const config: StorybookConfig = {
     },
     "@storybook/addon-onboarding",
     "@chromatic-com/storybook",
-    "@storybook/addon-interactions"
+    "@storybook/addon-interactions",
+    "storybook-addon-performance"
   ],
   "framework": {
     "name": "@storybook/react-webpack5",
     "options": {}
+  },
+  // Add typescript config to disable react-docgen
+  typescript: {
+    reactDocgen: false,
+    // Optionally, you can specify the checker if needed, but false is usually enough
+    // check: false, 
   },
   webpackFinal: async (config) => {
     // Ensure resolve and plugins exist
@@ -30,12 +37,12 @@ const config: StorybookConfig = {
     config.resolve.plugins = config.resolve.plugins || [];
     config.plugins = config.plugins || []; // Ensure plugins array exists
 
-    // Add TsconfigPathsPlugin
-    config.resolve.plugins.push(
-      new TsconfigPathsPlugin({
-        extensions: config.resolve.extensions,
-      })
-    );
+    // Comment out the TsconfigPathsPlugin addition
+    // config.resolve.plugins.push(
+    //   new TsconfigPathsPlugin({
+    //     extensions: config.resolve.extensions,
+    //   })
+    // );
 
     // Add fallback for 'buffer'
     config.resolve.fallback = {

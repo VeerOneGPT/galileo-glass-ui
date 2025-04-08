@@ -463,17 +463,13 @@ export const useChartPhysicsInteraction = (
     chart.update('none');
   }, [zoomXSpring.value, zoomYSpring.value, chartRef, shouldUsePhysics, config.mode]);
   
+  // Return only the intended public API surface
   return {
     isPanning,
     zoomLevel,
     applyZoom,
     resetZoom,
-    // Attach these event handlers to the chart container if needed externally
-    handlers: {
-      handleWheel,
-      handlePanStart,
-      handlePanMove,
-      handlePanEnd
-    }
+    // No longer returning handlers
+    // handlers: { wheelHandler, mouseDownHandler, mouseMoveHandler, mouseUpHandler, mouseLeaveHandler }
   };
 }; 

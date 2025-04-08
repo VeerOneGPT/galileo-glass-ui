@@ -2,20 +2,22 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { useArgs } from '@storybook/preview-api';
 
+// Replace package imports with relative paths to source files
 import {
-    MagneticButton,
     usePhysicsInteraction,
     PhysicsInteractionOptions,
     PhysicsInteractionType
-} from '@veerone/galileo-glass-ui';
+} from '../../src/hooks/usePhysicsInteraction';
 
-// Import necessary Galileo components from main package
+// Import Galileo components from source
 import {
     GlassBox,
     GlassTypography,
     GlassButton,
-    // Checkbox, FormControl likely don't exist - remove controls for now
-} from '@veerone/galileo-glass-ui';
+} from '../../src/components';
+
+// MagneticButton may need its own import if it's a separate component
+import { MagneticButton } from '../../src/components/Button/MagneticButton';
 
 // Define props based on actual PhysicsInteractionOptions
 interface ConfigurableButtonStoryProps extends Omit<PhysicsInteractionOptions, 'elementRef'> {

@@ -18,6 +18,7 @@ import {
 import { Vector2D } from '../types';
 import { InertialMovement } from '../inertialMovement';
 import { SpringPhysics, createSpring, SpringPresets } from '../springPhysics';
+import { triggerHapticFeedback } from '../../../utils/haptics';
 
 /**
  * Physics presets for different gesture responses
@@ -565,12 +566,29 @@ export function useGesturePhysics(options: GesturePhysicsOptions): GesturePhysic
       }
     }
     
-    // Trigger haptic feedback if enabled
-    if (enableHaptics && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-      try {
-        navigator.vibrate(10); // Short vibration
-      } catch (e) {
-        // Ignore errors with haptics
+    // Trigger haptic feedback if enabled using the utility
+    if (enableHaptics) {
+      // Select the appropriate haptic feedback based on gesture type
+      switch(type) {
+        case GestureType.TAP:
+          triggerHapticFeedback('light');
+          break;
+        case GestureType.DOUBLE_TAP:
+          triggerHapticFeedback('success');
+          break;
+        case GestureType.LONG_PRESS:
+          triggerHapticFeedback('medium');
+          break;
+        case GestureType.PAN:
+        case GestureType.SWIPE:
+          triggerHapticFeedback('selection');
+          break;
+        case GestureType.PINCH:
+        case GestureType.ROTATE:
+          triggerHapticFeedback('light');
+          break;
+        default:
+          triggerHapticFeedback('selection');
       }
     }
     
@@ -636,6 +654,10 @@ export function useGesturePhysics(options: GesturePhysicsOptions): GesturePhysic
         }
         if (config.snapPoints && config.snapPoints.length > 0) {
           applySnapForce(type, config);
+          // Add haptic feedback for snap
+          if (enableHaptics) {
+            triggerHapticFeedback('success');
+          }
         }
         break;
         
@@ -644,6 +666,10 @@ export function useGesturePhysics(options: GesturePhysicsOptions): GesturePhysic
         // Apply spring settling if enabled
         if (config.spring) {
           applySpringSettle(type, config);
+          // Add subtle haptic feedback for spring settle
+          if (enableHaptics) {
+            triggerHapticFeedback('light');
+          }
         }
         break;
     }
@@ -651,7 +677,7 @@ export function useGesturePhysics(options: GesturePhysicsOptions): GesturePhysic
     // Call gesture end callback
     config.onEnd?.(event);
     onGestureEnd?.(type, event);
-  }, [onGestureEnd]);
+  }, [onGestureEnd, enableHaptics]);
   
   // Handle gesture cancellation
   const handleGestureCancel = useCallback((type: GestureType, event: GestureEventData) => {

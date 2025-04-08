@@ -629,16 +629,16 @@ export const AnimatedBadge = styled(TabBadgeBase)<{
   ${props => {
     switch (props.$animationType) {
       case 'pulse':
-        return `animation-name: ${pulseAnimation};`;
+        return `animation-name: ${pulseAnimation.name};`;
       case 'bounce':
-        return `animation-name: ${bounceAnimation};`;
+        return `animation-name: ${bounceAnimation.name};`;
       case 'shake':
-        return `animation-name: ${shakeAnimation};`;
+        return `animation-name: ${shakeAnimation.name};`;
       case 'fade':
-        return `animation-name: ${fadeAnimation};`;
+        return `animation-name: ${fadeAnimation.name};`;
       case 'glow':
         return `
-          animation-name: ${glowAnimation};
+          animation-name: ${glowAnimation.name};
           box-shadow: 0 0 4px 1px ${props.$glowColor || 'rgba(255, 255, 255, 0.4)'};
         `;
       default:

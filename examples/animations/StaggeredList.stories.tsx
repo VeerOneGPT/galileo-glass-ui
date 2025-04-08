@@ -3,7 +3,8 @@ import type { Meta, StoryObj } from '@storybook/react';
 import styled from 'styled-components';
 import { useOrchestration } from '../../src/hooks/useOrchestration';
 import type { AnimationStage, ProgressCallback } from '../../src/animations/types';
-import { GlassBox, GlassButton, GlassTypography } from '@veerone/galileo-glass-ui';
+// Import Galileo components from source
+import { GlassBox, GlassButton, GlassTypography } from '../../src/components';
 
 const NUM_ITEMS = 5;
 const dummyCallback: ProgressCallback = () => {}; // Dummy callback

@@ -12,7 +12,7 @@ This document explains how to configure default animation behaviors globally wit
 - [Standard Spring Presets](#standard-spring-presets)
 - [Example Usage](#example-usage)
 - [Best Practices](#best-practices)
-- [Adaptive Performance & Quality Tiers (Conceptual)](#adaptive-performance-quality-tiers-conceptual)
+- [Adaptive Performance & Quality Tiers](#adaptive-performance-quality-tiers)
 
 ---
 
@@ -195,101 +195,99 @@ export const MyButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>((
 
 ---
 
-## Adaptive Performance & Quality Tiers (Conceptual)
+## Adaptive Performance & Quality Tiers
 
-The Galileo animation system aims to provide smooth performance across a range of devices. While much of the adaptation might happen automatically based on internal device capability detection (`useDeviceCapabilities`, `useQualityTier`), some aspects might be configurable or observable via context.
+The Galileo animation system includes features to help provide smooth performance across a range of devices by detecting capabilities and classifying them into quality tiers.
 
-### Potential Concepts
+### Core Hooks
 
-- **Quality Tiers:** The system might classify devices into tiers (e.g., 'Low', 'Medium', 'High', 'Ultra') and adjust animation complexity (number of particles, physics precision, effect details) accordingly.
-- **Manual Override:** There might be an option within `AnimationProvider` to manually set a desired quality tier, overriding automatic detection.
-- **Contextual Information:** The `useAnimationContext` hook could potentially expose the currently active quality tier or performance metrics.
+> **IMPORTANT UPDATE (v1.0.24):** The hooks mentioned below have been consolidated. See the updated information.
 
-### Possible Configuration (in `AnimationProvider` value)
+- **`useAdaptiveQuality`**: This hook replaces the previously separate `useDeviceCapabilities` and `useQualityTier` hooks. It provides a unified interface for device capability detection and quality tier determination.
 
-```typescript
-interface AnimationContextState {
-  // ... existing values like defaultSpring, disableAnimation ...
+```javascript
+import { useAdaptiveQuality } from '@veerone/galileo-glass-ui/hooks';
 
-  /** 
-   * Optional: Force a specific quality tier, overriding automatic detection.
-   * 'Low', 'Medium', 'High', 'Ultra' or null/undefined for auto.
-   */
-  forceQualityTier?: 'Low' | 'Medium' | 'High' | 'Ultra' | null;
+function MyComponent() {
+  const { 
+    deviceCapabilities, // Contains info like CPU cores, memory, etc.
+    qualityTier,        // QualityTier.LOW, MEDIUM, HIGH, or ULTRA
+    adaptiveSettings    // Combined settings based on capabilities
+  } = useAdaptiveQuality();
+  
+  // Use the data as needed
+  console.log(`Running in ${qualityTier} quality mode`);
+  
+  // Check specific capabilities
+  if (deviceCapabilities.supportsBackdropFilter) {
+    // Use backdrop filters...
+  }
+  
+  return <div>{/* Component content */}</div>;
 }
 ```
 
-### Possible Context Information (from `useAnimationContext`)
+> **Note:** The previously documented `useDeviceCapabilities` and `useQualityTier` hooks are deprecated as of v1.0.24. Please migrate to `useAdaptiveQuality`.
+
+### Integration with `AnimationContext`
+
+- **Automatic Detection**: By default, `AnimationProvider` uses `useAdaptiveQuality` internally to determine the `activeQualityTier`.
+- **Forcing a Tier**: You can override the automatic detection by passing the `forceQualityTier` prop to `AnimationProvider`.
+- **Accessing the Tier**: Components and hooks can access the currently active tier using `const { activeQualityTier } = useAnimationContext();`.
+
+### Provider Configuration (`AnimationProvider` prop)
 
 ```typescript
-interface AnimationContextState {
-  // ... existing values ...
-
-  /** The currently active quality tier (if available). */
-  activeQualityTier?: 'Low' | 'Medium' | 'High' | 'Ultra';
-}
-```
-
-**Note:** The existence and exact API for configuring or observing quality tiers needs verification from the source code or specific performance documentation. The primary mechanism for users concerned about performance or motion is typically the `disableAnimation` flag in context or the `useReducedMotion` hook's settings.
-
----
-
-## Example Usage
-
-```tsx
-// src/App.tsx (or equivalent top-level component)
-import React from 'react';
-import { ThemeProvider, AnimationProvider } from 'galileo-glass-ui'; // Import Galileo ThemeProvider
-import MyMainLayout from './MyMainLayout';
-
-// Define custom animation defaults
-const customAnimationDefaults = {
-  defaultSpring: 'GENTLE', // Make most animations gentle by default
-  pressSpringConfig: { tension: 450, friction: 28, mass: 1 }, // Slightly softer press feedback
-  modalSpringConfig: 'SLOW', // Make modals transition slowly
-  // disableAnimation: true, // Uncomment to disable all animations
-};
+import { AnimationProvider, QualityTier } from 'galileo-glass-ui';
 
 function App() {
   return (
-    <ThemeProvider initialTheme="nebula" initialColorMode="dark">
-      <AnimationProvider value={customAnimationDefaults}>
-        <MyMainLayout />
-      </AnimationProvider>
-    </ThemeProvider>
+    <AnimationProvider 
+      forceQualityTier={QualityTier.HIGH} // Optional: Override auto-detection
+      // value={{ ... other animation defaults ... }}
+    >
+      {/* ... App Content ... */}
+    </AnimationProvider>
   );
 }
+```
 
-export default App;
+- `forceQualityTier` (`QualityTier | null`, optional): Set to `QualityTier.LOW`, `MEDIUM`, `HIGH`, `ULTRA` to force a tier, or `null` (default) to use automatic detection.
 
-// src/components/MyButton.tsx (Example Component using context)
-import React from 'react';
-import { GlassButton, GlassButtonProps } from 'galileo-glass-ui'; 
-import { usePhysicsInteraction, useAnimationContext } from 'galileo-glass-ui';
+### Context Value (`useAnimationContext` return)
 
-export const MyButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>((
-  props,
-  ref
-) => {
-  const { pressSpringConfig, hoverSpringConfig, disableAnimation } = useAnimationContext();
-  
-  // NOTE: Actual Button likely combines hover/press/focus logic more intricately
-  // This is a simplified example showing context usage.
-  const { ref: physicsRef, style } = usePhysicsInteraction<HTMLButtonElement>({
-    // Use specific context defaults if available, otherwise fallback might happen internally
-    animationConfig: pressSpringConfig, 
-    // Hover config might be handled by conditional logic inside usePhysicsInteraction 
-    // or separate hooks depending on implementation.
-    reducedMotion: disableAnimation, // Respect global disable flag
-    affectsScale: true,
-    scaleAmplitude: 0.04,
-  });
+```typescript
+import { useAnimationContext, QualityTier } from 'galileo-glass-ui';
 
-  return (
-    <GlassButton
-      ref={physicsRef} // Attach physics ref
-      style={{ ...style, ...props.style }} // Combine styles
-      {...props} // Pass other props
-    />
-  );
-}); 
+function MyPerformanceAwareComponent() {
+  const { 
+    activeQualityTier, 
+    // ... other context values ... 
+  } = useAnimationContext();
+
+  // Example: Adjust behavior based on tier
+  const particleLimit = useMemo(() => {
+    switch (activeQualityTier) {
+      case QualityTier.LOW: return 100;
+      case QualityTier.MEDIUM: return 500;
+      case QualityTier.HIGH: return 1000;
+      case QualityTier.ULTRA: return 2000;
+      default: return 500;
+    }
+  }, [activeQualityTier]);
+
+  // ... use particleLimit ...
+}
+```
+
+- `activeQualityTier` (`QualityTier`): The resulting tier, either forced via the provider prop or automatically detected. Fallback is `QualityTier.MEDIUM` if used outside a provider.
+
+### Use Cases
+
+- **Particle Systems (`useParticleSystem`)**: Automatically adjusts `maxParticles` and `emissionRate` based on the `activeQualityTier` to prevent overwhelming lower-end devices.
+- **Complex Physics**: Hooks involving intensive physics calculations could reduce simulation steps or complexity on lower tiers.
+- **Visual Effects**: Components rendering many layers or complex shaders could simplify effects on lower tiers.
+
+**Note:** Components are responsible for checking the `activeQualityTier` from the context and adjusting their behavior accordingly. The system provides the tier; components consume it.
+
+---

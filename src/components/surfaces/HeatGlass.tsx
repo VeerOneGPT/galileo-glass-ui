@@ -115,7 +115,7 @@ const HeatGlassContainer = styled.div<{
     props.$animate &&
     !props.$reducedMotion &&
     css`
-      animation: ${heatGlow} ${6 / props.$animationSpeed}s infinite;
+      animation: ${css`${heatGlow} ${6 / props.$animationSpeed}s infinite`};
     `}
 
   /* Hover interactions */
@@ -171,7 +171,7 @@ const HeatContent = styled.div<{
     props.$animate &&
     !props.$reducedMotion &&
     css`
-      animation: ${heatDistort} ${6 / props.$animationSpeed}s infinite ease-in-out;
+      animation: ${css`${heatDistort} ${6 / props.$animationSpeed}s infinite ease-in-out`};
       animation-delay: ${Math.random() * 2}s;
       will-change: filter;
     `}

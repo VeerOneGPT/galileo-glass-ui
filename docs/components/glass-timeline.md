@@ -2,6 +2,8 @@
 
 The `GlassTimeline` component provides a sophisticated way to display chronological data with physics-based animations, customizable views, zooming, and interactions. It features glass styling and smooth animations that respect user motion preferences.
 
+**Note (v1.0.24):** The internal layout logic has been significantly refactored to use a more robust nested flexbox approach, resolving previous inconsistencies and overlap issues. This should provide a much more stable and predictable rendering across different browsers and viewports.
+
 ## Import
 
 ```tsx
@@ -61,7 +63,7 @@ function MyTimeline() {
         viewMode="month"
         zoomLevel="weeks"
         groupByDate={true}
-        markers={{ show: true, showNow: true }}
+        markers={{ show: true, showNow: true, primaryInterval: 'days' }}
         physics={{ preset: "gentle", staggerDelay: 50 }}
         glassVariant="frosted"
         height="500px"

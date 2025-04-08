@@ -76,14 +76,16 @@ export const GalileoElementInteractionPlugin: Plugin = {
   id: 'galileoElementInteraction',
 
   afterEvent: (chart: Chart, args: { event: ChartEvent; replay: boolean }, options: any) => {
-    // Get options, including chartType
-    const { getElementPhysicsOptions, chartType } = options as { 
+    // Get options, including chartType AND enabled flag
+    const { enabled, getElementPhysicsOptions, chartType } = options as { 
+        enabled?: boolean;
         getElementPhysicsOptions?: GetElementPhysicsOptions; 
-        chartType?: ChartVariant; // Add chartType to options
+        chartType?: ChartVariant; 
     };
     const chartEvent = args.event;
     
-    if (!getElementPhysicsOptions || !chartEvent || chartEvent.native == null || !chartType) return;
+    // Check enabled flag first
+    if (!enabled || !getElementPhysicsOptions || !chartEvent || chartEvent.native == null || !chartType) return;
 
     const newHovered = new Set<string>();
 
@@ -170,6 +172,10 @@ export const GalileoElementInteractionPlugin: Plugin = {
 
   // Runs once before the entire draw process
   beforeDraw: (chart: Chart, args, options: any) => {
+    const { enabled } = options as { enabled?: boolean };
+    // Check enabled flag
+    if (!enabled) return;
+
     const now = performance.now();
     let needsRedraw = false;
     const lastUpdate = (chart as any)._galileoLastPluginUpdate ?? now;
@@ -229,7 +235,7 @@ export const GalileoElementInteractionPlugin: Plugin = {
       });
     });
 
-    // Request next animation frame if any animation is ongoing
+    // Request next animation frame if any animation is ongoing AND plugin is enabled
     if (needsRedraw) {
        chart.draw(); // Request redraw
     }
@@ -237,6 +243,10 @@ export const GalileoElementInteractionPlugin: Plugin = {
 
   // Runs before drawing each dataset
   beforeDatasetDraw: (chart: Chart, args: { index: number; meta: any }, options: any) => {
+    const { enabled } = options as { enabled?: boolean };
+    // Check enabled flag
+    if (!enabled) return;
+
     const { ctx } = chart;
     const meta = args.meta;
 
@@ -284,6 +294,10 @@ export const GalileoElementInteractionPlugin: Plugin = {
 
   // Runs after drawing each dataset
   afterDatasetDraw: (chart: Chart, args: { index: number; meta: any }, options: any) => {
+    const { enabled } = options as { enabled?: boolean };
+    // Check enabled flag
+    if (!enabled) return;
+
     const { ctx } = chart;
     const meta = args.meta;
 

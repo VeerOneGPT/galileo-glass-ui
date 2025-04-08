@@ -6,6 +6,7 @@ import { getCurrentTime } from '../utils/time';
 // Import context and AnimationProps
 import { useAnimationContext } from '../contexts/AnimationContext';
 import { AnimationProps } from '../animations/types';
+import { MotionSensitivityLevel, AnimationCategory } from '../types/accessibility'; // Import enum
 
 // Re-export config type for external use if needed
 export type { SpringConfig as GalileoSpringConfig };
@@ -51,6 +52,10 @@ export interface GalileoStateSpringOptions extends Partial<typeof DEFAULT_SPRING
    */
   immediate?: boolean; 
   animationConfig?: AnimationProps['animationConfig']; // Add animationConfig
+  /** Optional: Hint for adjusting animation intensity based on sensitivity level. */
+  motionSensitivityLevel?: MotionSensitivityLevel;
+  /** Optional: Categorize the animation's purpose. */
+  category?: AnimationCategory;
 }
 
 /**
@@ -66,15 +71,23 @@ export const useGalileoStateSpring = (
   options?: GalileoStateSpringOptions
 ): GalileoSpringResult => {
   const prefersReducedMotion = useReducedMotion();
-  const { defaultSpring } = useAnimationContext(); // Get context
+  // Get sensitivity level from context OR passed options
+  const { defaultSpring, activeQualityTier, motionSensitivityLevel: contextSensitivityLevel } = useAnimationContext(); 
   
-  // Separate non-physics options
-  const { onRest, immediate: immediateOption, animationConfig, ...directOptions } = options || {}; 
+  const { 
+      onRest, 
+      immediate: immediateOption, 
+      animationConfig, 
+      // Get level from options, fallback to context, default to MEDIUM if none
+      motionSensitivityLevel = contextSensitivityLevel ?? MotionSensitivityLevel.MEDIUM, 
+      category,
+      ...directOptions 
+  } = options || {}; 
   
-  // Determine if animation should be immediate
+  // Determine immediate state
   const immediate = immediateOption ?? prefersReducedMotion;
 
-  // Resolve final spring config using standard priority
+  // Resolve final spring config
   const finalSpringConfig = useMemo(() => {
       const baseConfig: SpringConfig = DEFAULT_SPRING_CONFIG;
       
@@ -104,7 +117,7 @@ export const useGalileoStateSpring = (
       };
 
       // Ensure required fields have fallbacks
-      return {
+      let resolvedConfig = {
           tension: mergedConfig.tension ?? DEFAULT_SPRING_CONFIG.tension,
           friction: mergedConfig.friction ?? DEFAULT_SPRING_CONFIG.friction,
           mass: mergedConfig.mass ?? DEFAULT_SPRING_CONFIG.mass,
@@ -112,7 +125,46 @@ export const useGalileoStateSpring = (
           precision: mergedConfig.precision ?? DEFAULT_SPRING_CONFIG.precision,
       };
 
-  }, [defaultSpring, animationConfig, directOptions]);
+      // --- Adjust for Reduced Motion & Sensitivity Level --- 
+      if (prefersReducedMotion && !immediateOption) { // Only adjust if not explicitly immediate
+          switch (motionSensitivityLevel) {
+              case MotionSensitivityLevel.LOW:
+                  // Drastic reduction: Slower, much less bouncy
+                  resolvedConfig.tension *= 0.3;
+                  resolvedConfig.friction *= 2.0; 
+                  break;
+              case MotionSensitivityLevel.MEDIUM:
+                  // Moderate reduction: Slightly slower, less bouncy
+                  resolvedConfig.tension *= 0.6;
+                  resolvedConfig.friction *= 1.5;
+                  break;
+              case MotionSensitivityLevel.HIGH:
+                  // Minimal reduction: Slightly less bouncy
+                  resolvedConfig.friction *= 1.2;
+                  break;
+              case MotionSensitivityLevel.NONE:
+              default:
+                  // Use standard reduced motion preset if available?
+                   if ('REDUCED_MOTION' in SpringPresets) {
+                       const reducedPreset = SpringPresets.REDUCED_MOTION;
+                       resolvedConfig.tension = reducedPreset.tension ?? resolvedConfig.tension;
+                       resolvedConfig.friction = reducedPreset.friction ?? resolvedConfig.friction;
+                       resolvedConfig.mass = reducedPreset.mass ?? resolvedConfig.mass;
+                   } else {
+                       // Fallback if no preset: similar to HIGH
+                       resolvedConfig.friction *= 1.2;
+                   }
+                  break;
+          }
+          // Ensure friction doesn't become excessively high relative to tension/mass
+          const criticalDampingFriction = 2 * Math.sqrt(resolvedConfig.tension * resolvedConfig.mass);
+          resolvedConfig.friction = Math.min(resolvedConfig.friction, criticalDampingFriction * 1.5); // Cap damping
+      }
+      // --- End Adjustment --- 
+
+      return resolvedConfig;
+
+  }, [defaultSpring, animationConfig, directOptions, prefersReducedMotion, immediateOption, motionSensitivityLevel]);
 
   const [currentValue, setCurrentValue] = useState(targetValue);
   const [isAnimating, setIsAnimating] = useState(false);

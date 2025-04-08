@@ -1,20 +1,20 @@
 import React, { forwardRef, useState, useEffect, useMemo } from 'react';
-import styled, { css } from 'styled-components';
+import styled, { css, useTheme } from 'styled-components';
+import { createThemeContext } from '../../core/themeContext';
 
 import { accessibleAnimation } from '../../animations/accessibleAnimation';
 import { scaleUp } from '../../animations/keyframes/basic';
 import { edgeHighlight } from '../../core/mixins/edgeEffects';
 import { glassSurface } from '../../core/mixins/glassSurface';
 import { glassGlow } from '../../core/mixins/glowEffects';
-import { createThemeContext } from '../../core/themeContext';
-
-// Galileo Animation Imports
 import { usePhysicsInteraction, PhysicsInteractionOptions } from '../../hooks/usePhysicsInteraction';
 import { SpringConfig, SpringPresets } from '../../animations/physics/springPhysics';
 import { useAnimationContext } from '../../contexts/AnimationContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { useEnhancedReducedMotion } from '../../hooks/useEnhancedReducedMotion';
 import { AnimationProps } from '../../animations/types';
 import { useGalileoStateSpring } from '../../hooks/useGalileoStateSpring';
+import { AnimationCategory, MotionSensitivityLevel } from '../../types/accessibility';
 
 export interface FabProps extends AnimationProps {
   /**
@@ -89,6 +89,15 @@ export interface FabProps extends AnimationProps {
 
   /** Controls visibility for entrance/exit animation */
   isVisible?: boolean;
+
+  /** Additional style properties */
+  style?: React.CSSProperties;
+
+  /** Prop for overriding sensitivity */
+  motionSensitivity?: MotionSensitivityLevel;
+
+  /** Prop for disabling animation */
+  disableAnimation?: boolean;
 }
 
 // Get color by name
@@ -378,7 +387,7 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
     size = 'medium',
     variant = 'standard',
     onClick,
-    position = 'none',
+    position = 'bottomRight',
     tooltip,
     pulse = false,
     className,
@@ -387,33 +396,30 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
     type = 'button',
     isVisible = true,
     animationConfig,
-    disableAnimation,
     motionSensitivity,
+    disableAnimation,
+    style,
     ...rest
   } = props;
 
-  const { defaultSpring, disableAnimation: contextDisableAnimation } = useAnimationContext();
-  const prefersReducedMotion = useReducedMotion();
-  const finalDisableAnimation = disableAnimation ?? contextDisableAnimation ?? prefersReducedMotion;
+  const theme = useTheme() || {};
+  const themeContext = createThemeContext(theme);
 
-  const finalEntranceConfig = useMemo(() => {
-    const baseConfig = SpringPresets.DEFAULT;
-    let contextConf = {};
-    if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
-      contextConf = SpringPresets[defaultSpring as keyof typeof SpringPresets];
-    } else if (typeof defaultSpring === 'object') {
-      contextConf = defaultSpring ?? {};
-    }
-    let propConf = {};
-    const propSource = animationConfig;
-    if (typeof propSource === 'string' && propSource in SpringPresets) {
-      propConf = SpringPresets[propSource as keyof typeof SpringPresets];
-    } else if (typeof propSource === 'object' && ('tension' in propSource || 'friction' in propSource)) {
-      propConf = propSource as Partial<SpringConfig>;
-    }
-    return { ...baseConfig, ...contextConf, ...propConf };
-  }, [defaultSpring, animationConfig]);
+  const { defaultSpring } = useAnimationContext();
+  const isReducedMotionSystem = useReducedMotion();
+  
+  const { 
+    prefersReducedMotion: prefersReducedMotionDetected, 
+    recommendedSensitivityLevel: detectedSensitivityLevel, 
+  } = useEnhancedReducedMotion({});
 
+  // Determine the final sensitivity level: prop override > detected level > fallback
+  const finalSensitivityLevel = motionSensitivity ?? detectedSensitivityLevel ?? MotionSensitivityLevel.MEDIUM;
+
+  // Determine final disabled state
+  const finalDisableAnimation = disableAnimation ?? isReducedMotionSystem;
+
+  // --- Physics Interaction Setup ---
   const finalInteractionConfig = useMemo<Partial<PhysicsInteractionOptions>>(() => {
     const baseOptions: Partial<PhysicsInteractionOptions> = {
       affectsScale: true,
@@ -441,7 +447,7 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
         };
     } else if (typeof configProp === 'object' && configProp !== null) {
         if ('stiffness' in configProp || 'dampingRatio' in configProp || 'mass' in configProp) {
-            propResolvedConfig = { ...configProp } as Partial<PhysicsInteractionOptions>; // Spread to handle potential extra props
+            propResolvedConfig = { ...configProp } as Partial<PhysicsInteractionOptions>;
         } else if ('tension' in configProp || 'friction' in configProp) {
              const preset = configProp as Partial<SpringConfig>;
              const tension = preset.tension ?? SpringPresets.DEFAULT.tension;
@@ -452,7 +458,6 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
                  mass: mass 
             };
         }
-        // Safely apply specific interaction options if they exist in the configProp object
         if ('strength' in configProp && typeof configProp.strength === 'number') propResolvedConfig.strength = configProp.strength;
         if ('radius' in configProp && typeof configProp.radius === 'number') propResolvedConfig.radius = configProp.radius;
         if ('affectsRotation' in configProp && typeof configProp.affectsRotation === 'boolean') propResolvedConfig.affectsRotation = configProp.affectsRotation;
@@ -462,44 +467,80 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
     }
 
     const finalStiffness = propResolvedConfig.stiffness ?? contextResolvedConfig.tension ?? baseOptions.stiffness;
-    const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1; // Ensure mass is defined
+    const calculatedMass = propResolvedConfig.mass ?? contextResolvedConfig.mass ?? baseOptions.mass ?? 1;
     const finalDampingRatio = propResolvedConfig.dampingRatio ?? 
                               (contextResolvedConfig.friction ? contextResolvedConfig.friction / (2 * Math.sqrt((finalStiffness ?? baseOptions.stiffness ?? 170) * calculatedMass)) : baseOptions.dampingRatio);
     const finalMass = calculatedMass;
     
+    // Cast to ensure type compatibility, pass undefined if NONE
+    const levelForPhysics = finalSensitivityLevel === MotionSensitivityLevel.NONE 
+        ? undefined 
+        : finalSensitivityLevel as MotionSensitivityLevel;
+
     return {
         ...baseOptions,
         stiffness: finalStiffness,
         dampingRatio: finalDampingRatio,
         mass: finalMass,
-        // Apply specific interaction options if they exist in propResolvedConfig
         ...(propResolvedConfig.strength !== undefined && { strength: propResolvedConfig.strength }),
         ...(propResolvedConfig.radius !== undefined && { radius: propResolvedConfig.radius }),
         ...(propResolvedConfig.affectsRotation !== undefined && { affectsRotation: propResolvedConfig.affectsRotation }),
         ...(propResolvedConfig.affectsScale !== undefined && { affectsScale: propResolvedConfig.affectsScale }),
         ...(propResolvedConfig.rotationAmplitude !== undefined && { rotationAmplitude: propResolvedConfig.rotationAmplitude }),
         ...(propResolvedConfig.scaleAmplitude !== undefined && { scaleAmplitude: propResolvedConfig.scaleAmplitude }),
-        ...(motionSensitivity && { motionSensitivityLevel: motionSensitivity }),
+        ...(levelForPhysics && { motionSensitivityLevel: levelForPhysics }),
     };
 
-  }, [defaultSpring, animationConfig, motionSensitivity]);
+  }, [defaultSpring, animationConfig, finalSensitivityLevel]);
 
   const {
     ref: physicsRef,
     style: physicsStyle,
   } = usePhysicsInteraction<HTMLElement>(finalInteractionConfig);
+  // --- End Physics Interaction Setup --- 
+
+  // --- Visibility Animation Setup ---
+  // DEFINE finalEntranceConfig HERE (before use)
+  const finalEntranceConfig = useMemo(() => {
+      const baseConfig = SpringPresets.DEFAULT;
+      let contextResolvedConfig: Partial<SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
+        contextResolvedConfig = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      } else if (typeof defaultSpring === 'object' && defaultSpring !== null) {
+        contextResolvedConfig = defaultSpring;
+      }
+      let propResolvedConfig: Partial<SpringConfig> = {};
+      const configProp = animationConfig;
+      if (typeof configProp === 'string' && configProp in SpringPresets) {
+        propResolvedConfig = SpringPresets[configProp as keyof typeof SpringPresets];
+      } else if (typeof configProp === 'object' && configProp !== null) {
+         if ('tension' in configProp || 'friction' in configProp) {
+            propResolvedConfig = configProp as Partial<SpringConfig>;
+         }
+      }
+      return { ...baseConfig, ...contextResolvedConfig, ...propResolvedConfig };
+  }, [defaultSpring, animationConfig]);
 
   // State to track if the element should be rendered (for exit animation)
   const [shouldRender, setShouldRender] = useState(isVisible);
+  
+  // Check if we should use the alternative animation
+  const useAlternativeAnimation = prefersReducedMotionDetected && finalSensitivityLevel === MotionSensitivityLevel.LOW;
 
-  // Use Galileo Spring for entrance/exit animation
+  // Cast to ensure type compatibility, pass undefined if NONE
+  const levelForSpring = finalSensitivityLevel === MotionSensitivityLevel.NONE 
+      ? undefined 
+      : finalSensitivityLevel as MotionSensitivityLevel;
+
+  // Use Galileo Spring for entrance/exit animation if not using alternative
   const { value: visibilityProgress, isAnimating: isVisibilityAnimating } = useGalileoStateSpring(
-    isVisible ? 1 : 0, // Target 1 if visible, 0 if hidden
+    isVisible ? 1 : 0, 
     {
-      ...finalEntranceConfig, // Use the merged config
-      immediate: finalDisableAnimation, // Respect disable flag
+      ...finalEntranceConfig, // Now defined
+      immediate: finalDisableAnimation || useAlternativeAnimation, 
+      motionSensitivityLevel: levelForSpring,
+      category: AnimationCategory.TRANSITION, 
       onRest: (result) => {
-        // When animation finishes, if it was hiding, stop rendering
         if (!isVisible && result.finished) {
           setShouldRender(false);
         }
@@ -512,28 +553,43 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
     if (isVisible) {
       setShouldRender(true);
     }
-    // No need to setShouldRender(false) here, onRest handles it
   }, [isVisible]);
 
+  // --- Style Calculation (remains the same) --- 
   const combinedStyle = useMemo(() => {
-    // Interpolate styles based on spring progress
-    const opacity = visibilityProgress;
-    const scale = 0.5 + visibilityProgress * 0.5; // Interpolate 0.5 -> 1
-    const translateY = 20 - visibilityProgress * 20; // Interpolate 20 -> 0
+    let baseStyle = { ...style };
+    let visibilityStyle: React.CSSProperties = {};
 
-    const entranceStyle = {
-      opacity,
-      transform: `translateY(${translateY}px) scale(${scale})`,
-      // Ensure FAB is non-interactive while hiding/hidden unless animating out
-      pointerEvents: (isVisible || isVisibilityAnimating) ? 'auto' : 'none' as React.CSSProperties['pointerEvents'],
-    };
+    if (useAlternativeAnimation) {
+      visibilityStyle = {
+        opacity: isVisible ? 1 : 0,
+        transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+        transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
+        pointerEvents: isVisible ? 'auto' : 'none',
+      };
+    } else {
+      const opacity = visibilityProgress;
+      const scale = 0.5 + visibilityProgress * 0.5;
+      const translateY = 20 - visibilityProgress * 20;
+
+      visibilityStyle = {
+        opacity,
+        transform: `translateY(${translateY}px) scale(${scale})`,
+        pointerEvents: (isVisible || isVisibilityAnimating) ? 'auto' : 'none',
+      };
+    }
 
     return {
-      ...entranceStyle,
-      ...(isVisible || isVisibilityAnimating ? physicsStyle : {}), // Apply hover only when visible or animating
+      ...baseStyle,
+      ...visibilityStyle,
+      ...(isVisible || (!useAlternativeAnimation && isVisibilityAnimating) ? physicsStyle : {}),
+      willChange: (isVisible || isVisibilityAnimating) ? 'transform, opacity' : undefined,
     };
-  // Include isVisible and isVisibilityAnimating as dependencies
-  }, [visibilityProgress, physicsStyle, isVisible, isVisibilityAnimating]);
+  }, [
+      visibilityProgress, physicsStyle, isVisible, isVisibilityAnimating, 
+      useAlternativeAnimation, 
+      style
+  ]);
 
   const Component = href ? 'a' : 'button';
 
@@ -560,7 +616,6 @@ export const Fab = forwardRef<HTMLButtonElement | HTMLAnchorElement, FabProps>((
   );
 
   // --- Conditional Rendering Logic ---
-  // Render if shouldRender is true (allows exit animation to complete)
   if (!shouldRender) {
     return null;
   }

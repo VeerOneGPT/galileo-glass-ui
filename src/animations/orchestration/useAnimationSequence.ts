@@ -117,14 +117,198 @@ function getEasingEntry(definition: EasingDefinitionType): EasingFunction | Inte
   return undefined;
 }
 
-// TODO: Define or import these utility functions correctly
-function resolveDependencies(stages: AnimationStage[]): DependencyResolution { return { order: stages.map(s=>s.id), parallelGroups: [stages.map(s=>s.id)] }; }
-function calculateTimeline(stages: AnimationStage[], _resolution: DependencyResolution): StageTiming[] { return stages.map(s=>({ id: s.id, startTime: s.startTime ?? 0, duration: s.duration, endTime: (s.startTime ?? 0) + s.duration })); }
-function createStageRuntime(stage: AnimationStage, timing: StageTiming, _isReduced: boolean): StageRuntime { return { stage, timing } as unknown as StageRuntime; }
-function createPropertyInterpolator(_from: Record<string, unknown>, _to: Record<string, unknown>, _exclude?: string[]): (progress: number) => Record<string, unknown> { return () => ({}); }
-function applyStyles(_target: HTMLElement, _styles: Record<string, unknown>): void { /*...*/ }
-function createStaggerDelays(_targets: unknown, delay: number): number[] { /*console.warn("createStaggerDelays called"); */ return Array.isArray(_targets) ? _targets.map((_, i) => i * delay) : [0]; }
-function getStageWithReducedMotion(stage: AnimationStage, _prefersReduced: boolean, _isAllowed: (category?: AnimationCategory) => boolean): { stage: AnimationStage, isReduced: boolean } { /*console.warn('getStageWithReducedMotion potentially unsafe', prefersReduced);*/ return { stage, isReduced: false }; }
+// --- Utility Functions Implementation ---
+
+// Basic dependency resolution (sequential order)
+function resolveDependencies(stages: AnimationStage[]): DependencyResolution {
+  const order = stages.map(s => s.id);
+  // Simplistic: Treat all stages as one parallel group for basic timeline calc
+  const parallelGroups = [order]; 
+  return { order, parallelGroups };
+}
+
+// Basic timeline calculation (sequential based on order, considering delay)
+function calculateTimeline(stages: AnimationStage[], resolution: DependencyResolution): StageTiming[] {
+    let currentTime = 0;
+    const timeline: StageTiming[] = [];
+    // Use the simple order from resolveDependencies
+    for (const stageId of resolution.order) {
+        const stage = stages.find(s => s.id === stageId);
+        if (stage) {
+            const delay = stage.delay ?? 0;
+            const duration = stage.duration ?? 0;
+            const startTime = currentTime + delay;
+            const endTime = startTime + duration;
+            timeline.push({ id: stageId, startTime, endTime, duration });
+            // For simple sequential, next stage starts after this one ends
+            currentTime = endTime; 
+        }
+    }
+    // TODO: Implement more complex timeline logic based on resolution.parallelGroups and stage.dependsOn
+    return timeline;
+}
+
+// Basic stage runtime creation
+function createStageRuntime(stage: AnimationStage, timing: StageTiming, isReduced: boolean): StageRuntime {
+  return {
+    id: stage.id,
+    stage: stage,
+    progress: 0,
+    startTime: timing.startTime,
+    endTime: timing.endTime,
+    state: PlaybackState.IDLE,
+    animations: null, // Initialize stagger delays later if needed
+    targets: [], // Resolve targets later
+    currentIteration: 0,
+    totalIterations: stage.repeatCount === -1 ? Infinity : (stage.repeatCount ?? 0) + 1,
+    isReduced: isReduced
+  };
+}
+
+// Basic linear interpolation for common properties
+function lerp(start: number, end: number, t: number): number {
+  return start * (1 - t) + end * t;
+}
+
+// Basic property interpolator (opacity, transform: translate, scale)
+function createPropertyInterpolator(
+    from: Record<string, unknown> | undefined, 
+    to: Record<string, unknown>, 
+    exclude?: string[]
+): (progress: number) => Record<string, string> {
+    // Default 'from' values if not provided
+    const safeFrom = { 
+        opacity: 1, 
+        translateX: 0, translateY: 0, translateZ: 0, 
+        scale: 1, scaleX: 1, scaleY: 1, scaleZ: 1,
+        rotate: 0, rotateX: 0, rotateY: 0, rotateZ: 0,
+        ...from 
+    };
+    
+    // Extract known properties, provide defaults for 'to' if missing from 'from'
+    const propsToInterpolate = Object.keys(to)
+        .filter(key => !exclude?.includes(key))
+        .map(key => {
+            const fromValue = typeof safeFrom[key] === 'number' ? safeFrom[key] as number : undefined;
+            const toValue = typeof to[key] === 'number' ? to[key] as number : undefined;
+            // Only interpolate if both are numbers
+            if (fromValue !== undefined && toValue !== undefined) {
+                return { key, from: fromValue, to: toValue };
+            }
+            // Handle cases like 'transform' string directly (pass through)
+            if (key === 'transform' && typeof to[key] === 'string') {
+                 return { key, value: to[key] as string };
+            }
+             // Handle other non-numeric properties (pass through final value)
+             if (fromValue === undefined || toValue === undefined) {
+                return { key, value: String(to[key]) };
+            }
+            return null;
+        })
+        .filter(p => p !== null) as ({ key: string; from: number; to: number } | { key: string; value: string })[];
+
+    return (progress: number) => {
+        const currentStyles: Record<string, string> = {};
+        let transformParts: string[] = [];
+
+        propsToInterpolate.forEach(prop => {
+             if ('value' in prop) {
+                 // Pass through non-interpolated or string values
+                 if (prop.key === 'transform') {
+                     // If a full transform string is provided, use it (overrides individual parts)
+                     transformParts = [prop.value]; 
+                 } else {
+                     currentStyles[prop.key] = prop.value;
+                 }
+             } else {
+                 // Interpolate numeric values
+                 const interpolatedValue = lerp(prop.from, prop.to, progress);
+                 
+                 // Handle specific properties
+                 if (prop.key === 'opacity') {
+                     currentStyles.opacity = String(interpolatedValue);
+                 } else if (prop.key.startsWith('translate')) {
+                     transformParts.push(`${prop.key}(${interpolatedValue}px)`);
+                 } else if (prop.key.startsWith('scale')) {
+                     transformParts.push(`${prop.key}(${interpolatedValue})`);
+                 } else if (prop.key.startsWith('rotate')) {
+                     transformParts.push(`${prop.key}(${interpolatedValue}deg)`);
+                 } else {
+                      // Generic number property (might not be style) - skip direct style setting
+                     // Or could try setting as string: currentStyles[prop.key] = String(interpolatedValue); 
+                 }
+             }
+        });
+        
+        // Combine transform parts if any were generated
+        if (transformParts.length > 0 && !propsToInterpolate.some(p => 'value' in p && p.key === 'transform')) {
+           currentStyles.transform = transformParts.join(' ');
+        } else if (transformParts.length === 1 && propsToInterpolate.some(p => 'value' in p && p.key === 'transform')) {
+            // Use the directly provided transform string
+            currentStyles.transform = transformParts[0];
+        }
+
+        return currentStyles;
+    };
+}
+
+// Basic style application using element.style
+function applyStyles(target: HTMLElement, styles: Record<string, unknown>): void {
+    if (!target || !target.style) return;
+    try {
+        Object.entries(styles).forEach(([key, value]) => {
+            // Skip nullish values
+            if (value === null || value === undefined) return; 
+            
+            // Basic camelCase to kebab-case for style properties 
+            const styleKey = key.replace(/[A-Z]/g, match => `-${match.toLowerCase()}`);
+            
+            // Ensure value is a string before setting
+            const stringValue = String(value);
+
+            // Use setProperty for broader compatibility, including CSS variables
+            target.style.setProperty(styleKey, stringValue);
+        });
+    } catch (error) {
+        console.error("Error applying styles:", error, { target, styles });
+    }
+}
+
+// Basic sequential stagger delay creation
+function createStaggerDelays(targets: unknown, delay: number): number[] { 
+    const count = Array.isArray(targets) ? targets.length : (targets instanceof NodeList ? targets.length : 1);
+    // Basic sequential stagger
+    return Array.from({ length: count }, (_, i) => i * delay); 
+    // TODO: Implement other StaggerPatterns (FROM_CENTER, RANDOM, etc.) based on stage.staggerPattern
+}
+
+// Basic reduced motion stage selection
+function getStageWithReducedMotion(
+    stage: AnimationStage, 
+    prefersReduced: boolean, 
+    isAllowed: (category?: AnimationCategory) => boolean
+): { stage: AnimationStage, isReduced: boolean } {
+    const categoryAllowed = isAllowed(stage.category);
+    const reduceMotion = prefersReduced || !categoryAllowed;
+
+    if (reduceMotion && stage.reducedMotionAlternative) {
+        // Return the alternative, merging necessary base props like ID
+        console.log(`Using reduced motion alternative for stage: ${stage.id}`);
+        return { 
+            stage: { 
+                ...stage.reducedMotionAlternative, 
+                id: stage.id, // Keep original ID
+                // Ensure essential props from original are kept if missing in alternative
+                duration: stage.reducedMotionAlternative.duration ?? 0, 
+                type: (stage as any).type // Ensure type is present
+                 // Add other potentially missing essential props
+            } as AnimationStage, 
+            isReduced: true 
+        };
+    }
+    // Return original stage if no reduction needed or no alternative provided
+    return { stage, isReduced: false };
+}
 
 // Add a utility function to convert PublicAnimationStage to internal AnimationStage
 function convertToInternalStage(stage: PublicAnimationStage | AnimationStage): AnimationStage {
@@ -261,6 +445,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   const [playbackState, setPlaybackState] = useState<PlaybackState>(PlaybackState.IDLE);
   const [duration, setDuration] = useState<number>(0); // Will be calculated
   const [currentStageId, setCurrentStageId] = useState<string | null>(null); // Added state for current stage
+  const [stagesVersion, setStagesVersion] = useState(0); // Add state to track stage changes
 
   // Update total iterations based on loop/repeatCount
   const calculatedTotalIterations = useMemo(() => {
@@ -342,18 +527,18 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
                   (stage as StyleAnimationStage).properties,
                   (stage as StyleAnimationStage).exclude
                 );
-                const styles = styleInterpolator(easedProgress);
+                const styles: Record<string, string> = styleInterpolator(easedProgress);
                 targets.forEach(target => { applyStyles(target, styles); });
                 break;
             }
             case 'stagger': {
                 // Ensure runtime.animations is initialized as number[] or null
-                if (runtime.animations === undefined) { // Check for undefined specifically if null is a valid state later
+                if (runtime.animations === undefined) { 
                     runtime.animations = createStaggerDelays(targets, (stage as StaggerAnimationStage).staggerDelay);
                 }
                 // Type guard to ensure animations is number[] before using it
                 if (Array.isArray(runtime.animations)) {
-                    const delays = runtime.animations; // Now delays is number[]
+                    const delays = runtime.animations;
                     targets.forEach((target, index) => {
                         const delay = delays[index] ?? 0; // Use nullish coalescing
                         const stageElapsed = easedProgress * stage.duration;
@@ -366,7 +551,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
                           (stage as StaggerAnimationStage).from, 
                           (stage as StaggerAnimationStage).properties,
                         );
-                        const staggerStyles = staggerInterpolator(easedTargetProgress);
+                        const staggerStyles: Record<string, string> = staggerInterpolator(easedTargetProgress);
                         applyStyles(target, staggerStyles);
                     });
                 }
@@ -542,7 +727,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
             config.onStageChange(activeStageId, sequenceId);
         }
     }
-
+    
     // --- Loop Continuation --- 
     if (playbackState === PlaybackState.PLAYING) { // Check state again in case it changed
          if (maxIterations === -1 || completedCycles < maxIterations) {
@@ -559,30 +744,112 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
 
   }, [duration, sequenceId, processStageUpdate, playbackState, config.direction]); // Added playbackState & config.direction dependencies
 
-  // --- Playback Controls (Ensure ALL are defined before useMemo) --- 
+  // CRITICAL FIX: Move applyInitialStylesIfNeeded to be defined early in the hook
+  // This ensures it's available for all references to it
+  const applyInitialStylesIfNeeded = useCallback(() => {
+    // CRITICAL FIX: Remove the flag that prevents applying styles more than once
+    // We need to be able to apply initial styles both at initialization and when playing
+    runtimeStagesRef.current.forEach(runtime => {
+        const { stage } = runtime;
+        if (stage.type === 'style' || stage.type === 'stagger') {
+            let targets: HTMLElement[] = [];
+            try {
+                // Handle different types of stage.targets
+                const targetInput = stage.targets;
+                let targetResult: HTMLElement | HTMLElement[] | NodeListOf<HTMLElement> | null = null;
+
+                if (typeof targetInput === 'function') {
+                    targetResult = targetInput() as HTMLElement | HTMLElement[] | NodeListOf<HTMLElement> | null;
+                } else if (typeof targetInput === 'string') {
+                    targetResult = document.querySelectorAll<HTMLElement>(targetInput);
+                } else if (targetInput instanceof HTMLElement) {
+                    targetResult = targetInput;
+                } else if (Array.isArray(targetInput)) {
+                    targetResult = targetInput.filter(el => el instanceof HTMLElement) as HTMLElement[];
+                } else if (targetInput instanceof NodeList) {
+                    targetResult = targetInput as NodeListOf<HTMLElement>;
+                } else if (targetInput && 'current' in targetInput && targetInput.current instanceof HTMLElement) {
+                    // Handle React RefObject
+                    targetResult = targetInput.current;
+                }
+
+                // Process the resolved targets
+                if (targetResult instanceof HTMLElement) {
+                    targets = [targetResult];
+                } else if (Array.isArray(targetResult)) {
+                    targets = targetResult;
+                } else if (targetResult instanceof NodeList) {
+                    targets = Array.from(targetResult);
+                }
+                
+                runtime.targets = targets; // Store resolved targets
+
+                if (targets.length > 0 && stage.from) {
+                    targets.forEach(target => { 
+                        if (target) applyStyles(target, stage.from); 
+                    });
+                }
+            } catch (error) {
+                console.error(`Error resolving targets or applying initial style for stage '${stage.id}':`, error);
+            }
+        }
+    });
+  }, []);
+
+  // Initialize on mount & handle config/stage changes
+  useEffect(() => {
+    initTimeline();
+    
+    // CRITICAL FIX REMOVED: Don't apply styles here, it might be too early
+    // applyInitialStylesIfNeeded(); 
+    
+  }, [initTimeline, stagesVersion /* Removed applyInitialStylesIfNeeded dependency */]);
+
+  // CRITICAL FIX: Ensure initial styles are applied during play too
   const play = useCallback(() => {
     if (playbackState === PlaybackState.PLAYING) return;
-      if (timelineRef.current.length === 0) initTimeline(); // Ensure initialized
-      
-      const wasPaused = playbackState === PlaybackState.PAUSED;
+    
+    if (timelineRef.current.length === 0) {
+        initTimeline();
+        if (playbackState === PlaybackState.IDLE && timelineRef.current.length === 0) return;
+    }
+    
+    const wasPaused = playbackState === PlaybackState.PAUSED;
     setPlaybackState(PlaybackState.PLAYING);
     
-      if (pausedTimeRef.current !== null) { // Resuming from pause
-          // Adjust start time based on paused time and rate
-          startTimeRef.current = performance.now() - (pausedTimeRef.current / playbackRateRef.current);
-          pausedTimeRef.current = null;
-      } else { // Starting fresh or after stop
-          startTimeRef.current = performance.now();
-          iterationRef.current = 0;
-          runtimeStagesRef.current.forEach(rt => { rt.state = PlaybackState.IDLE; rt.progress = 0; });
-      }
-      
-    requestIdRef.current = requestAnimationFrame(processAnimationFrame);
+    if (pausedTimeRef.current !== null) { 
+        startTimeRef.current = performance.now() - (pausedTimeRef.current / playbackRateRef.current);
+        pausedTimeRef.current = null;
+    } else { 
+        startTimeRef.current = performance.now();
+        iterationRef.current = 0;
+        runtimeStagesRef.current.forEach(rt => { rt.state = PlaybackState.IDLE; rt.progress = 0; });
+    }
     
-      if (wasPaused) callbacksRef.current.onResume.forEach(cb => (cb as SequenceIdCallback)(sequenceId));
-      else callbacksRef.current.onStart.forEach(cb => (cb as SequenceIdCallback)(sequenceId));
-
-  }, [playbackState, initTimeline, processAnimationFrame, sequenceId]);
+    // Apply initial styles as part of first frame
+    const firstFrameCallback = (time: number) => {
+        // CRITICAL FIX: Apply styles *inside* the first frame callback
+        applyInitialStylesIfNeeded(); 
+        processAnimationFrame(time);
+    };
+    requestIdRef.current = requestAnimationFrame(firstFrameCallback);
+    
+    if (wasPaused) callbacksRef.current.onResume.forEach(cb => (cb as SequenceIdCallback)(sequenceId));
+    else callbacksRef.current.onStart.forEach(cb => (cb as SequenceIdCallback)(sequenceId));
+  }, [playbackState, initTimeline, processAnimationFrame, sequenceId, applyInitialStylesIfNeeded]);
+    
+  // Autoplay effect - IMPORTANT: This must be after the play function is defined
+  useEffect(() => {
+    if (config.autoplay && playbackState === PlaybackState.IDLE) {
+      play();
+    }
+    // Cleanup function for requestAnimationFrame
+    return () => {
+      if (requestIdRef.current !== null) {
+        cancelAnimationFrame(requestIdRef.current);
+      }
+    }; 
+  }, [config.autoplay, play, playbackState]); // Added playbackState dependency
   
   const pause = useCallback(() => {
     if (playbackState !== PlaybackState.PLAYING) return;
@@ -622,8 +889,12 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
           // Reset other runtime properties if needed (e.g., iteration count)
           rt.currentIteration = 0;
       });
+      
+      // CRITICAL FIX: Reapply initial styles when reset is called
+      applyInitialStylesIfNeeded();
+      
       // Note: onCancel is called by stop(), no need to call other lifecycle callbacks here
-  }, [stop]);
+  }, [stop, applyInitialStylesIfNeeded]);
   
   const reverse = useCallback(() => { console.warn("reverse not fully implemented"); /* TODO */ }, []);
   const restart = useCallback(() => { console.warn("restart not fully implemented"); stop(); play(); }, [stop, play]);
@@ -642,16 +913,23 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
   const seekLabel = useCallback((_label: string) => { console.warn("seekLabel not fully implemented"); /* TODO */ }, []);
   const getProgress = useCallback(() => { return progress; }, [progress]);
   const addStage = useCallback((publicStage: PublicAnimationStage) => { 
-    console.warn("addStage not fully implemented");
-    // Convert the public stage to internal format
+    console.warn("addStage called, ensure initTimeline re-runs if needed.");
     const internalStage = convertToInternalStage(publicStage);
-    // TODO: Add implementation for adding a stage dynamically
+    stagesRef.current = [...stagesRef.current, internalStage];
+    setStagesVersion(v => v + 1); // Trigger re-initialization
+    // TODO: More robust dynamic stage addition logic needed?
   }, []);
-  const removeStage = useCallback((_stageId: string) => { console.warn("removeStage not fully implemented"); /* TODO */ }, []);
+  const removeStage = useCallback((stageId: string) => { 
+    console.warn("removeStage called, ensure initTimeline re-runs if needed."); 
+    stagesRef.current = stagesRef.current.filter(s => s.id !== stageId);
+    setStagesVersion(v => v + 1); // Trigger re-initialization
+  }, []);
   const updateStage = useCallback((stageId: string, updates: Partial<PublicAnimationStage>) => { 
-    console.warn("updateStage not fully implemented");
-    // TODO: Add implementation for updating a stage dynamically
-    // The updates should be applied to the matching stage in stagesRef.current
+    console.warn("updateStage called, ensure initTimeline re-runs if needed.");
+    stagesRef.current = stagesRef.current.map(s => 
+      s.id === stageId ? { ...s, ...updates } as AnimationStage : s // Cast the updated stage
+    );
+    setStagesVersion(v => v + 1); // Trigger re-initialization
   }, []);
   const setPlaybackRate = useCallback((rate: number) => { console.warn("setPlaybackRate not fully implemented"); playbackRateRef.current = Math.max(0.01, rate); }, []);
   const getPlaybackState = useCallback(() => { return playbackState; }, [playbackState]);
@@ -692,25 +970,7 @@ export function useAnimationSequence(config: AnimationSequenceConfig): Animation
     addStage, removeStage, updateStage, setPlaybackRate, getPlaybackState,
     addCallback, removeCallback
   ]);
-  
-  // Initialize on mount & handle config changes
-  useEffect(() => {
-    initTimeline();
-  }, [initTimeline]); 
-    
-  // Autoplay
-  useEffect(() => {
-    if (config.autoplay && playbackState === PlaybackState.IDLE) {
-      play();
-    }
-    // Cleanup function for requestAnimationFrame
-    return () => {
-      if (requestIdRef.current !== null) {
-        cancelAnimationFrame(requestIdRef.current);
-      }
-    }; 
-  }, [config.autoplay, play, playbackState]); // Added playbackState dependency
-  
+
   return controls;
 }
 

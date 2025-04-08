@@ -2,6 +2,8 @@
 
 The `GlassDateRangePicker` component provides a sophisticated date range selection interface with glass styling and physics-based animations. It supports comparison mode, presets, time selection, and custom rendering.
 
+**Note (v1.0.24):** The calendar container has been enhanced with improved frosted glass styling, better visual contrast, and increased size dimensions (from 280px to 340px) for improved readability and usability. Additional visual enhancements include background overlay, stronger border effects, and subtle outer glow accents.
+
 ## Dependencies
 
 The component requires a date utility library and must be wrapped in a `GlassLocalizationProvider`:

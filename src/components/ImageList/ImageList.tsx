@@ -7,15 +7,13 @@ import React, { forwardRef, createContext, useMemo, useRef, useEffect } from 're
 import styled from 'styled-components';
 
 // Import animation sequence hook and types
-import { 
-  useAnimationSequence,
-  AnimationSequenceConfig,
-  SequenceControls
-} from '../../animations/orchestration/useAnimationSequence';
+import { useAnimationSequence } from '../../animations/orchestration/useAnimationSequence';
 import { 
   StaggerAnimationStage,
   StyleAnimationStage,
-  AnimationStage
+  AnimationStage,
+  AnimationSequenceConfig,
+  SequenceControls
 } from '../../animations/types';
 import { Easings } from '../../animations/physics/interpolation'; // Import Easings
 

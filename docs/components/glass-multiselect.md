@@ -2,6 +2,8 @@
 
 The `GlassMultiSelect` component provides a sophisticated selection interface for multiple options with physics-based animations and glass styling. It supports token-based selection, filtering, grouping, keyboard navigation, and more.
 
+**Note (v1.0.24):** Significant improvements have been made to the component's animation system and state management. Key updates include proper keyframe interpolation for styled-components, improved token removal animations, more efficient state comparisons, and enhanced dropdown positioning.
+
 ## Import
 
 ```tsx
