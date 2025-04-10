@@ -1,8 +1,23 @@
-import React from 'react';
-import { use3DTransform, Transform3DState, Vector3D } from '@veerone/galileo-glass-ui';
-import styled from 'styled-components';
-import { GlassPaper } from '@veerone/galileo-glass-ui'; // Use actual component
+# Dimensional Element Demo (3D Transform Hook)
 
+## React Component Example
+
+This demonstrates the use of the `use3DTransform` hook provided by the `@veerone/galileo-glass-ui` library to create interactive 3D transformations.
+
+### Import Statements
+
+```jsx
+import React from 'react';
+import { use3DTransform, Transform3DState, Vector3D } from '@veerone/galileo-glass-ui/hooks';
+import styled from 'styled-components';
+import { GlassPaper } from '@veerone/galileo-glass-ui';
+```
+
+### Styled Components
+
+Define styled components for container and element:
+
+```jsx
 // Container to provide perspective
 const PerspectiveContainer = styled.div`
   perspective: 800px;
@@ -14,7 +29,7 @@ const PerspectiveContainer = styled.div`
   background-color: #f0f0f0;
 `;
 
-// Use GlassPaper for styling
+// Styled dimensional element using GlassPaper
 const StyledDimensionalElement = styled(GlassPaper)`
   padding: 30px;
   width: 150px;
@@ -24,41 +39,39 @@ const StyledDimensionalElement = styled(GlassPaper)`
   align-items: center;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.3s ease-out; // Add a basic transition for non-physics interaction
+  transition: transform 0.3s ease-out;
 `;
+```
 
-/**
- * Demonstrates using the use3DTransform hook
- */
+### Component Implementation
+
+```jsx
 const DimensionalElementDemo = () => {
-  // Hook Setup
-  const { 
-    elementRef,   // Ref to attach to the element
-    transformState, // Current state { translate, rotate, scale }
-    style,        // CSS style object to apply
-    setTransform, // Function to update state
-    animateTo     // Function to animate state (uses physics if enabled)
+  const {
+    elementRef,
+    transformState,
+    style,
+    setTransform,
+    animateTo
   } = use3DTransform<HTMLDivElement>({
     initialTranslate: { x: 0, y: 0, z: 0 },
     initialRotate: { x: 0, y: 0, z: 0 },
     initialScale: 1,
     transformOrigin: '50% 50%',
-    enablePhysics: true, // Enable spring physics
-    physicsConfig: 'DEFAULT', // Use a spring preset
+    enablePhysics: true,
+    physicsConfig: 'DEFAULT',
   });
 
   const handleMouseEnter = () => {
-    // Define target state using the exported Vector3D type
     const targetState: Partial<Transform3DState> = {
       translate: { x: 0, y: -10, z: 50 } as Vector3D,
       rotate: { x: 20, y: 0, z: 5 } as Vector3D,
-      scale: { x: 1.1, y: 1.1, z: 1.1 } as Vector3D, // Scale up
+      scale: { x: 1.1, y: 1.1, z: 1.1 } as Vector3D,
     };
-    animateTo(targetState); // Animate to the target state
+    animateTo(targetState);
   };
 
   const handleMouseLeave = () => {
-    // Animate back to initial state (or define explicitly)
     const initialState: Partial<Transform3DState> = {
       translate: { x: 0, y: 0, z: 0 } as Vector3D,
       rotate: { x: 0, y: 0, z: 0 } as Vector3D,
@@ -68,13 +81,13 @@ const DimensionalElementDemo = () => {
   };
 
   return (
-    <PerspectiveContainer> { /* Perspective must be on a parent */ }
+    <PerspectiveContainer>
       <StyledDimensionalElement
-        ref={elementRef} // Attach the ref
-        style={style}    // Apply the transform styles
+        ref={elementRef}
+        style={style}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        elevation={3} // GlassPaper prop
+        elevation={3}
       >
         Hover Me (3D)
       </StyledDimensionalElement>
@@ -83,50 +96,42 @@ const DimensionalElementDemo = () => {
 };
 
 export default DimensionalElementDemo;
-
+```
 
 ---
 
-## Hook Usage (`use3DTransform`)
+## Hook Documentation (`use3DTransform`)
 
-This hook manages 3D transformations (translate, rotate, scale) for an element, optionally using spring physics for animations.
+This hook manages 3D transformations for React elements, optionally leveraging spring physics for smooth animations.
+
+### Basic Usage
 
 ```typescript
-import { use3DTransform, Transform3DOptions, Transform3DState, Vector3D } from '@veerone/galileo-glass-ui';
+import { use3DTransform, Transform3DOptions, Transform3DState, Vector3D } from '@veerone/galileo-glass-ui/hooks';
 
-const { 
-  elementRef, 
-  transformState, 
-  style, 
-  setTransform, 
-  animateTo 
-} = use3DTransform<ElementType>(options);
+const { elementRef, transformState, style, setTransform, animateTo } = use3DTransform<ElementType>(options);
 ```
 
-### Configuration (`Transform3DOptions`)
+### Configuration Options (`Transform3DOptions`)
 
-*   `initialTranslate?`: `Partial<Vector3D>` - Initial `{ x, y, z }` translation.
-*   `initialRotate?`: `Partial<Vector3D>` - Initial `{ x, y, z }` rotation in degrees.
-*   `initialScale?`: `Partial<Vector3D> | number` - Initial `{ x, y, z }` scale or a single number for uniform scale.
-*   `transformOrigin?`: `string` - CSS `transform-origin` property (e.g., `'50% 50% 0'`).
-*   `enablePhysics?`: `boolean` - Set to `true` to use spring physics for animations via `animateTo`. Default: `false`.
-*   `physicsConfig?`: `Partial<SpringConfig> | SpringPresetName` - Configuration for the physics springs (used if `enablePhysics` is true). Accepts a `SpringConfig` object or a preset name string.
+- **`initialTranslate?`**: `Partial<Vector3D>` - Initial translation (`{ x, y, z }`).
+- **`initialRotate?`**: `Partial<Vector3D>` - Initial rotation (`{ x, y, z }` degrees).
+- **`initialScale?`**: `Partial<Vector3D> | number` - Initial scale (`{ x, y, z }`) or uniform scale number.
+- **`transformOrigin?`**: `string` - CSS `transform-origin` (e.g., `'50% 50% 0'`).
+- **`enablePhysics?`**: `boolean` - Enables spring physics. Default is `false`.
+- **`physicsConfig?`**: `Partial<SpringConfig> | SpringPresetName` - Spring physics configuration or preset.
 
-### Return Value (`Transform3DResult<T>`)
+### Returned Values (`Transform3DResult<T>`)
 
-The hook returns an object containing:
+- **`elementRef`**: React ref object.
+- **`transformState`**: Current transform state (`translate`, `rotate`, `scale`).
+- **`style`**: CSS properties for element styles (`transform`, `transform-origin`).
+- **`setTransform`**: Instantly updates the transform state; uses physics if enabled.
+- **`animateTo`**: Animates element to target state; physics enabled ignores `duration`.
 
-*   **`elementRef`**: `RefObject<T>` - A React ref object. Attach this to the DOM element you want to transform.
-*   **`transformState`**: `Transform3DState` - An object representing the current transformation state:
-    *   `translate`: `Vector3D` (`{ x, y, z }`)
-    *   `rotate`: `Vector3D` (`{ x, y, z }` degrees)
-    *   `scale`: `Vector3D` (`{ x, y, z }`)
-*   **`style`**: `CSSProperties` - An object containing the calculated CSS `transform` and `transform-origin` styles. Apply this directly to your element's `style` prop.
-*   **`setTransform`**: `(newState: Partial<Transform3DState>) => void` - Function to instantly update the transform state. If `enablePhysics` is true, this will start spring animations towards the new state.
-*   **`animateTo`**: `(targetState: Partial<Transform3DState>, duration?: number) => void` - Function to animate to a target state. If `enablePhysics` is true, it uses the configured springs (duration is ignored). If `enablePhysics` is false, a basic transition might be needed via CSS (as shown in the demo).
+### Notes
 
-### Important Notes
+- **Perspective Requirement**: The parent element must define the CSS `perspective` property.
+- **Type Safety**: Use `Vector3D` for defining transformations.
+- **Physics Animation**: When physics is enabled, animations utilize the `useVectorSpring` hook internally, ignoring the explicit duration.
 
-*   **Perspective:** For 3D effects (especially Z translation and X/Y rotation) to be visible, the **parent element** of the element using `use3DTransform` needs to have the CSS `perspective` property set (e.g., `perspective: 800px;`). This property should *not* be set on the transformed element itself.
-*   **State Structure:** Use the exported `Vector3D` type when defining target states for `setTransform` or `animateTo` to ensure type safety.
-*   **Physics:** When `enablePhysics` is true, `animateTo` leverages the `useVectorSpring` hook internally. The `duration` parameter is ignored in this mode. 

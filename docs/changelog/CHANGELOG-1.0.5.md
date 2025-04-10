@@ -59,7 +59,7 @@ Version 1.0.5 introduces a completely redesigned, physics-based animation system
 
 **Core Features:**
 - **Integrated Physics Engine:** A central system (`galileoPhysicsSystem.ts`) manages highly configurable spring physics (tension, friction, mass), an advanced collision system (spatial grid, various shapes, filtering, accurate rebounding), global forces (gravity), and crucial performance optimizations like object sleeping for inactive elements.
-- **Adaptive Performance:** Intelligently detects device capabilities (`useDeviceCapabilities.ts`) and automatically adjusts animation complexity, physics precision, and effect fidelity (`useQualityTier.ts`) to ensure smooth 60fps performance across a wide range of hardware.
+- **Adaptive Performance:** Intelligently detects device capabilities and automatically adjusts animation complexity, physics precision, and effect fidelity using the `useAdaptiveQuality` hook to ensure smooth 60fps performance across a wide range of hardware.
 - **New Interaction & State Hooks:**
     - `usePhysicsInteraction`: Apply rich, physics-based feedback (spring, magnetic effects, subtle scaling/rotation) to elements responding to pointer events (hover, press). Highly configurable.
     - `useGalileoStateSpring`: Smoothly animate single numerical values (like opacity or height) between states using spring physics. Respects reduced motion.

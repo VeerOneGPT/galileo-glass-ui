@@ -37,6 +37,9 @@ const TimelineMarkersComponent: React.FC<TimelineMarkersProps> = ({
         const isPrimary = index % 2 === 0;
         const isNowMarker = markers.showNow && isToday(date);
         
+        // Hide every other non-primary label for better readability
+        const hideLabel = !isPrimary && index % 2 !== 0;
+        
         return (
           <TimeMarker
             key={date.getTime()}
@@ -45,6 +48,7 @@ const TimelineMarkersComponent: React.FC<TimelineMarkersProps> = ({
             $isPrimary={isPrimary}
             $isNow={isNowMarker}
             $color={color}
+            $hideLabel={hideLabel}
             data-label={formatMarkerLabel(date)}
           />
         );

@@ -5,7 +5,7 @@ Applies a parallax scrolling effect to an element, making it appear to move at a
 ## Import
 
 ```jsx
-import { useParallaxScroll } from '@galileo_glass/core'; 
+import { useParallaxScroll } from '@veerone/galileo-glass-ui/hooks'; 
 // Or specific path: import { useParallaxScroll } from '../hooks/useParallaxScroll';
 ```
 
@@ -13,7 +13,7 @@ import { useParallaxScroll } from '@galileo_glass/core';
 
 ```jsx
 import React from 'react';
-import { useParallaxScroll } from '@galileo_glass/core';
+import { useParallaxScroll } from '@veerone/galileo-glass-ui/hooks';
 
 const ParallaxComponent = () => {
   const { ref, style } = useParallaxScroll<HTMLDivElement>({ factor: 0.3, axis: 'y' });

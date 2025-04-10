@@ -9,8 +9,6 @@ The `usePhysicsInteraction` hook applies physics-based interactive effects (like
 ## Import
 
 ```typescript
-import { usePhysicsInteraction } from '@veerone/galileo-glass-ui';
-// Or
 import { usePhysicsInteraction } from '@veerone/galileo-glass-ui/hooks';
 ```
 

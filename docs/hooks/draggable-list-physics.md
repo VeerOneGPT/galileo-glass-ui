@@ -168,7 +168,7 @@ interface DraggableListOptions {
 
 ## How it Works
 
-1.  **Initialization:** Creates physics bodies for each element ref passed in `itemRefs`.
+1.  **Initialization:** Creates physics bodies for each element ref passed in `itemRefs` using an internal physics engine instance (likely obtained via `useGalileoPhysicsEngine` / `usePhysicsEngine`).
 2.  **Target Positions:** Calculates target positions for each body based on a simple vertical stack layout, accounting for measured item heights and `spacing`.
 3.  **Physics Loop:** Uses `requestAnimationFrame` to:
     *   Apply a gentle spring force pulling each item towards its target position (unless it's being dragged).

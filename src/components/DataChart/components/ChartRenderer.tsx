@@ -4,7 +4,7 @@
  * Handles the rendering of different chart types with physics-based animations,
  * adaptive quality settings, and specialized rendering logic per chart type.
  */
-import React, { useRef, useCallback, useState } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import { Chart as ChartJS, ChartOptions, ChartType } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import { ChartWrapper } from '../styles/ChartContainerStyles';
@@ -16,7 +16,8 @@ import {
   pathAnimationPlugin,
   createAnimationOptions
 } from '../utils';
-import { PhysicsInteractionOptions, usePhysicsInteraction } from '../../../hooks/usePhysicsInteraction';
+import { PhysicsInteractionOptions } from '../../../hooks/usePhysicsInteraction';
+import { useChartPhysicsInteraction, ChartPhysicsInteractionOptions } from '../hooks/useChartPhysicsInteraction';
 // import { InteractionMode } from '../types'; // Commenting out as path is unclear
 // import { getTooltipClassNames, createTooltip } from './tooltipUtils'; // Commenting out as path is unclear
 // import { useChartZoom } from '../hooks/useChartZoom'; // Commenting out as path is unclear
@@ -88,6 +89,38 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
 }) => {
   // Local chart reference
   const chartRef = useRef<any>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  
+  // Debug: Log ref mounting
+  useEffect(() => {
+    console.log('[ChartRenderer] Component mounted, wrapperRef initialized:', wrapperRef.current);
+    
+    return () => {
+      console.log('[ChartRenderer] Component unmounting, cleaning up references');
+    };
+  }, []);
+  
+  // Prepare options for the hook
+  const physicsInteractionOptions: ChartPhysicsInteractionOptions = {
+    enabled: interaction.zoomPanEnabled ?? false,
+    mode: interaction.zoomMode ?? 'xy',
+    physics: {
+      tension: interaction.physics?.tension,
+      friction: interaction.physics?.friction,
+      mass: interaction.physics?.mass,
+    },
+    minZoom: interaction.physics?.minZoom,
+    maxZoom: interaction.physics?.maxZoom,
+    wheelSensitivity: interaction.physics?.wheelSensitivity,
+    inertiaDuration: interaction.physics?.inertiaDuration,
+    respectReducedMotion: true // Assuming we always respect this here
+  };
+
+  const {
+    isPanning, // We might not use these directly here, but the hook manages state
+    zoomLevel,
+    resetZoom // We might need to expose this or integrate with toolbar
+  } = useChartPhysicsInteraction(chartRef, wrapperRef, physicsInteractionOptions);
   
   // Convert chart variant to Chart.js chart type
   const getChartJsType = (): ChartType => {
@@ -277,58 +310,13 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     }
   };
   
-  // Handle chart reference
+  // Handle chart reference - Pass to hook as well
   const handleChartRef = useCallback((chart: any) => {
     chartRef.current = chart;
     if (chartRefCallback) {
       chartRefCallback(chart);
     }
   }, [chartRefCallback]);
-  
-  // --- BEGIN Event Handling for Per-Element Physics ---
-  const [hoveredElement, setHoveredElement] = useState<{ datasetIndex: number; dataIndex: number } | null>(null);
-
-  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!chartRef.current) {
-      setHoveredElement(null);
-      if (onChartHover) onChartHover(event); // Propagate original event
-      return;
-    }
-
-    const chart = chartRef.current;
-    const points = chart.getElementsAtEventForMode(
-      event.nativeEvent,
-      'nearest',
-      { intersect: true }, // Use intersect: true for more precise element detection
-      false
-    );
-
-    let currentHover: { datasetIndex: number; dataIndex: number } | null = null;
-    if (points.length > 0) {
-      const firstPoint = points[0];
-      currentHover = { datasetIndex: firstPoint.datasetIndex, dataIndex: firstPoint.index };
-    }
-
-    if (currentHover?.datasetIndex !== hoveredElement?.datasetIndex || currentHover?.dataIndex !== hoveredElement?.dataIndex) {
-      setHoveredElement(currentHover);
-
-      // TODO: Logic to update physics state map (elementPhysicsState) based on:
-      // 1. hoveredElement (the element pointer is now over)
-      // 2. getElementPhysicsOptions(hoveredElement.datasetIndex, hoveredElement.dataIndex, chartType)
-      // This state update would trigger the external physics simulation.
-    }
-
-    // Propagate original event if needed
-    if (onChartHover) onChartHover(event);
-
-  }, [chartRef, hoveredElement, onChartHover, chartType, getElementPhysicsOptions]); // Added deps
-
-  const handleMouseLeave = useCallback(() => {
-    setHoveredElement(null);
-    // TODO: Logic to reset physics state for the previously hovered element.
-    if (onChartLeave) onChartLeave(); // Propagate original event
-  }, [onChartLeave]);
-  // --- END Event Handling for Per-Element Physics ---
   
   // Handle data point click
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -351,27 +339,15 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     }
   };
 
-  // --- BEGIN Custom Drawing Plugin Placeholder ---
-  const perElementPhysicsPlugin = {
-    id: 'perElementPhysicsPlugin',
-    afterDraw: (chart: any) => {
-      // TODO: Implement custom drawing logic here.
-      // 1. Get the physics state for each element from `elementPhysicsState` prop.
-      // 2. If an element has active physics state (e.g., scale > 1),
-      //    redraw that specific element (bar, point, arc) using chart.ctx
-      //    with the modified properties (scale, offset).
-      // 3. Need access to element metadata (position, size) from chart instance.
-    }
-  };
-  // --- END Custom Drawing Plugin Placeholder ---
-
   return (
     <ChartWrapper 
+      ref={wrapperRef} 
       style={enablePhysicsAnimation ? {
         transform: `scale(${springValue ?? 0})`, // Provide fallback if springValue is undefined
         opacity: springValue ?? 0,
         transition: `transform ${animation.duration ?? 0}ms, opacity ${animation.duration ?? 0}ms`
       } : undefined}
+      data-testid="chart-wrapper" // Add data-testid for easier debugging/testing
     >
       <Chart
         type={getChartJsType()}
@@ -379,9 +355,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         options={chartOptions}
         ref={handleChartRef}
         onClick={onDataPointClick ? handleClick : undefined}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        plugins={[pathAnimationPlugin, gridStylePlugin, perElementPhysicsPlugin]}
+        plugins={[pathAnimationPlugin, gridStylePlugin]}
       />
     </ChartWrapper>
   );

@@ -286,7 +286,7 @@ const CalendarIcon = styled.div`
 
 const CalendarContainer = styled.div`
   position: absolute;
-  width: 280px;
+  width: 340px;
   margin-top: 8px;
   z-index: 10;
 `;

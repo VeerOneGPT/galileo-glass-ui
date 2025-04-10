@@ -113,16 +113,15 @@ export const TransparencyTest: Story = {
     datasets: lineAreaData,
     glassVariant: 'clear',
     title: 'Transparency Test',
-    subtitle: 'Background should be visible through chart area'
+    subtitle: 'Background should be visible. Wheel/Drag to Zoom/Pan',
+    interaction: {
+      zoomPanEnabled: true,
+      showTooltips: true,
+      tooltipStyle: 'glass',
+      physics: { tension: 160, friction: 15 }
+    },
+    onZoomPan: (chart: any) => { console.log('[ModularChart Story][TransparencyTest] Zoom/Pan Update:', chart.getZoomLevel()); },
   },
-  // Decorator to add a colored background to check transparency
-  decorators: [
-    (Story) => (
-      <div style={{ backgroundColor: 'teal', padding: '20px', borderRadius: '15px' }}>
-        <Story />
-      </div>
-    ),
-  ],
 };
 
 export const AreaVariantDefault: Story = {

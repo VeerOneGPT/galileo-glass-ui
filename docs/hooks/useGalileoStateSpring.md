@@ -5,7 +5,7 @@ Animates a single numerical value towards a target using Galileo's spring physic
 ## Import
 
 ```jsx
-import { useGalileoStateSpring } from '@galileo_glass/core';
+import { useGalileoStateSpring } from '@veerone/galileo-glass-ui/hooks';
 // Or path: import { useGalileoStateSpring } from '../hooks/useGalileoStateSpring';
 ```
 
@@ -13,7 +13,7 @@ import { useGalileoStateSpring } from '@galileo_glass/core';
 
 ```jsx
 import React, { useState } from 'react';
-import { useGalileoStateSpring } from '@galileo_glass/core';
+import { useGalileoStateSpring } from '@veerone/galileo-glass-ui/hooks';
 
 function AnimatedComponent() {
   const [targetValue, setTargetValue] = useState(0);

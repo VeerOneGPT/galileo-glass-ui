@@ -62,6 +62,32 @@ import {
   EmptyStateMessage
 } from './styles';
 
+// Define additional style modifier
+const getTimelineDensitySpacing = (density: TimelineDensity, zoomLevel: ZoomLevel): number => {
+  // Base spacing by density
+  let baseSpacing = 20; // Default for 'normal' density
+  
+  if (density === 'compact') {
+    baseSpacing = 14;
+  } else if (density === 'spacious') {
+    baseSpacing = 32;
+  }
+  
+  // Adjust based on zoom level
+  switch (zoomLevel) {
+    case 'days':
+      return baseSpacing * 1.5;
+    case 'weeks':
+      return baseSpacing * 2;
+    case 'months':
+      return baseSpacing * 3;
+    case 'years':
+      return baseSpacing * 4;
+    default:
+      return baseSpacing;
+  }
+};
+
 /**
  * GlassTimeline Component
  * 
@@ -227,6 +253,12 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
       const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0;
       const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
       
+      // Apply density-based spacing to the computed style
+      const densitySpacing = getTimelineDensitySpacing(density, currentZoomLevel);
+      
+      // Apply custom spacing based on density
+      targetElement.style.setProperty('--timeline-item-spacing', `${densitySpacing}px`);
+      
       setContainerMetrics({ 
         width: offsetWidth, 
         height: offsetHeight,
@@ -249,7 +281,7 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
       resizeObserver.disconnect();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Rerun if orientation/density changes padding? Maybe not needed, resize should catch it.
+  }, [density, currentZoomLevel]); // Added dependencies to rerun when density/zoom changes
 
   // Helper to update scroll bounds (now takes padding into account for content size)
   const updateScrollBounds = useCallback((containerWidth: number, containerHeight: number, paddingTop: number, paddingBottom: number, paddingLeft: number, paddingRight: number) => {
@@ -372,9 +404,30 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
   // Generate time markers
   const timeMarkers = useMemo(() => {
     if (!markers.show) return [];
-    return generateTimeMarkers(dateRange.start, dateRange.end, 
-      markers.primaryInterval || currentZoomLevel);
-  }, [dateRange, markers.show, markers.primaryInterval, currentZoomLevel]);
+    
+    // Adjust marker density based on zoom level
+    let interval = markers.primaryInterval || currentZoomLevel;
+    let skipFactor = 1;
+    
+    // Apply density adjustments
+    if (density === 'compact') {
+      skipFactor = 2; // Show every other marker
+    } else if (density === 'spacious') {
+      skipFactor = 3; // Show every third marker
+    } else {
+      // For normal density, adjust based on zoom level
+      if (currentZoomLevel === 'days') {
+        skipFactor = 2; // Show every other day
+      } else if (currentZoomLevel === 'weeks') {
+        skipFactor = 1; // Show all weeks
+      }
+    }
+    
+    const allMarkers = generateTimeMarkers(dateRange.start, dateRange.end, interval);
+    
+    // Filter markers based on skipFactor
+    return allMarkers.filter((_, index) => index % skipFactor === 0);
+  }, [dateRange, markers.show, markers.primaryInterval, currentZoomLevel, density]);
   
   // Format marker label
   const formatMarkerLabel = useCallback((date: Date): string => {

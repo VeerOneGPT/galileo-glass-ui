@@ -50,6 +50,7 @@ export function useVectorSpring(options: VectorSpringOptions = {}): VectorSpring
 
   const springRef = useRef<SpringPhysicsVector | null>(null);
   const rafRef = useRef<number | null>(null);
+  const targetRef = useRef<Vector3D>(ZERO_VECTOR);
 
   // Memoize config processing
   const processedConfig = useMemo(() => {
@@ -151,18 +152,29 @@ export function useVectorSpring(options: VectorSpringOptions = {}): VectorSpring
   // Auto-start effect when 'to' changes
   useEffect(() => {
     if (autoStart && springRef.current) {
-        // Ensure 'to' is also a complete vector for comparison
-        const targetTo = { ...ZERO_VECTOR, ...to }; 
-        const currentState = springRef.current.getState(); 
-        // Check if target actually changed to avoid redundant starts
-        if (targetTo.x !== currentState.position.x || 
-            targetTo.y !== currentState.position.y || 
-            targetTo.z !== currentState.position.z) {
-            start({ to: targetTo }); // Pass complete target vector
+        const targetTo = { ...ZERO_VECTOR, ...to };
+        
+        // Check if the target prop itself has actually changed from the last known target
+        const targetChanged = 
+             targetTo.x !== targetRef.current.x || 
+             targetTo.y !== targetRef.current.y || 
+             targetTo.z !== targetRef.current.z;
+
+        // Only start if the target has changed AND the spring isn't already resting
+        // (We assume if it's resting, it's at the previous target)
+        if (targetChanged && !springRef.current.isAtRest()) 
+        {
+            targetRef.current = targetTo; // Update internal target ref
+            start({ to: targetTo }); 
+        } else if (targetChanged && springRef.current.isAtRest()) {
+            // If target changed but we were already at rest (at the *old* target),
+            // we still need to start the animation to the *new* target.
+            targetRef.current = targetTo;
+            start({ to: targetTo });
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [to, autoStart]); // Depend on 'to' and 'autoStart'
+  }, [to, autoStart, start]); 
 
   return {
     value,

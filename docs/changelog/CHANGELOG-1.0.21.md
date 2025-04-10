@@ -43,7 +43,7 @@ Version 1.0.21 is a feature-rich update that addresses key issues from v1.0.20 w
   - Implemented Motion Sensitivity Levels system (`LOW`, `MEDIUM`, `HIGH`, `NONE`).
   - Added Animation Categories system for classifying animations by purpose.
   - Created framework for Alternative Animations with Fade, Static, and Simplified variants.
-  - Implemented Adaptive Performance/Quality Tier system with `useDeviceCapabilities` and `useQualityTier` hooks.
+  - Implemented Adaptive Performance/Quality Tier system with `useAdaptiveQuality` hook.
   - Updated animation hooks to adjust behavior based on detected or forced quality tier.
 
 - **`GlassFocusRing` Component:**

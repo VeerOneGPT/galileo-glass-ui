@@ -10,7 +10,7 @@ export * from './AccessibilitySettings';
 
 // Basic components
 export { Button, GlassButton, MagneticButton } from './Button';
-export { Card } from './Card';
+export { Card, Card as GlassCard } from './Card';
 export { TextField, GlassTextField } from './TextField';
 export { Typography, GlassTypography } from './Typography';
 export { Box, GlassBox } from './Box';

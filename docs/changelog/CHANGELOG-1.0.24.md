@@ -58,7 +58,7 @@ Improved the visual appearance and usability of the `GlassDateRangePicker` compo
 
 We've identified inconsistencies between documentation and actual exports, particularly with several hooks. This release includes clarifications for the following hook import paths:
 
-- `useDeviceCapabilities` and `useQualityTier` have been consolidated into `useAdaptiveQuality`, which is accessible via `@veerone/galileo-glass-ui/hooks`
+- `useAdaptiveQuality` is accessible via `@veerone/galileo-glass-ui/hooks`
 - `useZSpaceAnimation` has been renamed to `useZSpace` and should be imported from `@veerone/galileo-glass-ui/core`
 - Several hooks were moved from `/animations` to `/hooks` or `/core` packages
 - A comprehensive documentation update addressing all import path discrepancies is planned for v1.0.25

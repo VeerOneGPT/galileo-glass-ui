@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect, useMemo } from 'react';
+import React, { forwardRef, useState, useEffect, useMemo, useCallback } from 'react';
 import styled, { css } from 'styled-components';
 
 import { glassSurface } from '../../core/mixins/glassSurface';
@@ -452,7 +452,7 @@ export const Pagination = forwardRef<HTMLDivElement, PaginationProps>((props, re
   }, [defaultSpring, animationConfig]);
 
   // Handle page changes
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>, targetPage: number) => {
+  const handleClick = useCallback((event: React.MouseEvent<HTMLButtonElement>, targetPage: number) => {
     if (disabled) return;
 
     // Ensure page is within valid range
@@ -467,7 +467,7 @@ export const Pagination = forwardRef<HTMLDivElement, PaginationProps>((props, re
     if (onChange) {
       onChange(event as unknown as React.ChangeEvent<unknown>, validPage);
     }
-  };
+  }, [disabled, count, page, onChange]);
 
   // Calculate page range
   const pageRange = useMemo(() => {

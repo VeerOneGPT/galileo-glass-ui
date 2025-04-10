@@ -7,7 +7,7 @@ The Galileo Glass UI library provides a comprehensive theme system. Here's how t
 This is the primary hook for interacting with the theme system.
 
 ```typescript
-import { useGlassTheme, GlassThemeContextValue } from '@veerone/galileo-glass-ui';
+import { useGlassTheme, GlassThemeContextValue } from '@veerone/galileo-glass-ui/hooks';
 
 const MyComponent = () => {
   const {
@@ -50,7 +50,7 @@ const MyComponent = () => {
 This hook provides direct access to the `theme` object (`ThemeOptions`) without the additional context values and setters.
 
 ```typescript
-import { useTheme, ThemeOptions } from '@veerone/galileo-glass-ui';
+import { useTheme, ThemeOptions } from '@veerone/galileo-glass-ui/hooks';
 
 const MySimpleComponent = () => {
   const theme: ThemeOptions = useTheme();

@@ -10,6 +10,8 @@ import { MotionSensitivityLevel, AnimationCategory } from '../types/accessibilit
 
 // Re-export config type for external use if needed
 export type { SpringConfig as GalileoSpringConfig };
+// Also re-export SpringPresets
+export { SpringPresets };
 
 // Define result type for onRest callback
 export interface SpringAnimationResult {
@@ -299,18 +301,21 @@ export const useGalileoStateSpring = (
 
   // Effect to handle target value changes and start/stop animation
   useEffect(() => {
-    const previousTarget = targetRef.current;
-    targetRef.current = targetValue;
-
-    // Use the imperative start function to handle target changes
-    // This automatically handles starting the animation loop if needed
-    start({ to: targetValue });
+    // Only proceed if the targetValue prop has actually changed
+    if (targetValue !== targetRef.current) {
+      targetRef.current = targetValue;
+      start({ to: targetValue });
+    } 
+    // Removed the immediate start logic based on targetValue === currentValue
+    // as start() handles the immediate case internally if the immediate flag is set.
 
     // Cleanup on unmount or before re-running due to target change
-    return () => {
-      stop(); // Use stop function for cleanup
-    };
-  }, [targetValue, immediate, start, stop, currentValue]); // Add start/stop, use immediate
+    // Stop is already called within start(), so this might be redundant
+    // return () => {
+    //   stop(); // Use stop function for cleanup
+    // };
+  // Remove currentValue from dependencies, keep targetValue, immediate, start, stop
+  }, [targetValue, immediate, start, stop]);
 
   // Return the current animated value
   return {

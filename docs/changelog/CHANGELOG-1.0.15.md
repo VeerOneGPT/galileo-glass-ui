@@ -56,7 +56,7 @@ Version 1.0.15 is a patch release focused primarily on addressing API and docume
 ## Developer Notes
 
 - The `useChartPhysicsInteraction` hook is intended for internal use by `GlassDataChart`. Configure physics zoom/pan via the `interaction` prop on `GlassDataChart`.
-- The `useQualityTier` and `useDeviceCapabilities` hooks are internal implementation details for adaptive performance and should not be imported directly. Control adaptive quality via relevant component props where available (e.g., `useAdaptiveQuality` on `DataChart`).
+- Control adaptive quality via relevant component props where available (e.g., `useAdaptiveQuality` on `DataChart`).
 - The `GlassFocusRing` component is the recommended way to add focus rings; `useGlassFocus` hook is available for advanced use cases requiring manual rendering.
 
 ## Breaking Changes

@@ -67,11 +67,13 @@ const DEFAULT_OPTIONS: ChartPhysicsInteractionOptions = {
  * Hook providing physics-based zoom and pan interactions for charts
  * 
  * @param chartRef Reference to the Chart.js instance
+ * @param wrapperRef Reference to the container element for attaching listeners
  * @param options Configuration options for zoom/pan physics
  * @returns Methods and state for physics-based chart interactions
  */
 export const useChartPhysicsInteraction = (
-  chartRef: React.RefObject<ChartJS>,
+  chartRef: React.RefObject<ChartJS | null>,
+  wrapperRef: React.RefObject<HTMLDivElement | null>,
   options: Partial<ChartPhysicsInteractionOptions> = {}
 ) => {
   // Merge provided options with defaults
@@ -163,9 +165,24 @@ export const useChartPhysicsInteraction = (
     
   }, [chartRef, config.minZoom, config.maxZoom, config.mode, shouldUsePhysics, zoomXSpring, zoomYSpring]);
   
-  // Handle wheel event for zooming
+  // DEBUG: Add effect to track ref changes
+  useEffect(() => {
+    console.log('[ChartPhysicsInteraction] DEBUG: wrapperRef or chartRef changed:', {
+      wrapperRefExists: !!wrapperRef.current,
+      chartRefExists: !!chartRef.current
+    });
+    
+    // This is a reference-tracking effect only, no cleanup needed
+  }, [wrapperRef.current, chartRef.current]); // Note: This is intentionally using .current in deps for debugging purposes only
+  
+  // Memoized handler for wheel events
   const handleWheel = useCallback((e: WheelEvent) => {
-    if (!chartRef.current || !config.enabled) return;
+    console.log('[ChartPhysicsInteraction] handleWheel triggered. DeltaY:', e.deltaY);
+
+    if (!chartRef.current || !config.enabled) {
+        console.log('[ChartPhysicsInteraction] handleWheel skipped (no chart / disabled).');
+        return;
+    }
     
     // Prevent default scrolling behavior
     e.preventDefault();
@@ -181,12 +198,18 @@ export const useChartPhysicsInteraction = (
       y: e.clientY - rect.top
     };
     
+    console.log(`[ChartPhysicsInteraction] Applying zoom. Current: ${zoomLevel.toFixed(2)}, Delta: ${zoomDelta.toFixed(2)}, New Target: ${newZoomLevel.toFixed(2)}`);
     applyZoom(newZoomLevel, center);
   }, [chartRef, config.enabled, config.wheelSensitivity, zoomLevel, applyZoom]);
   
   // Handle pan start
   const handlePanStart = useCallback((e: MouseEvent) => {
-    if (!chartRef.current || !config.enabled) return;
+    console.log('[ChartPhysicsInteraction] handlePanStart triggered.');
+
+    if (!chartRef.current || !config.enabled) {
+        console.log('[ChartPhysicsInteraction] handlePanStart skipped (no chart / disabled).');
+        return;
+    }
     
     setIsPanning(true);
     lastPanPosition.current = { x: e.clientX, y: e.clientY };
@@ -196,6 +219,7 @@ export const useChartPhysicsInteraction = (
     if (inertiaAnimationRef.current) {
       cancelAnimationFrame(inertiaAnimationRef.current);
       inertiaAnimationRef.current = null;
+      console.log('[ChartPhysicsInteraction] Inertia cancelled by pan start.');
     }
   }, [chartRef, config.enabled]);
   
@@ -203,6 +227,9 @@ export const useChartPhysicsInteraction = (
   const handlePanMove = useCallback((e: MouseEvent) => {
     if (!chartRef.current || !lastPanPosition.current || !isPanning) return;
     
+    // Log less frequently to avoid flooding console
+    if(Math.random() < 0.1) console.log('[ChartPhysicsInteraction] handlePanMove triggered.'); 
+
     const chart = chartRef.current;
     const { x: lastX, y: lastY } = lastPanPosition.current;
     const currentX = e.clientX;
@@ -245,6 +272,7 @@ export const useChartPhysicsInteraction = (
         scales.y.max += panAmountY;
       }
       
+      if(Math.random() < 0.1) console.log('[ChartPhysicsInteraction] Updating chart scales for pan.');
       chart.update('none'); // Update without animation
     }
   }, [chartRef, isPanning, config.mode]);
@@ -375,55 +403,138 @@ export const useChartPhysicsInteraction = (
     setZoomLevel(1.0);
   }, [chartRef, shouldUsePhysics, zoomXSpring, zoomYSpring]);
   
-  // Attach event listeners to chart canvas
+  // Refactored effect to track and handle ref changes dynamically
   useEffect(() => {
-    if (!chartRef.current || !config.enabled) return;
-    
-    const chart = chartRef.current;
-    const canvas = chart.canvas;
-    
-    if (!canvas) return;
-    
-    // Wheel event for zooming
-    const wheelHandler = (e: WheelEvent) => handleWheel(e);
-    
-    // Mouse events for panning
-    const mouseDownHandler = (e: MouseEvent) => {
-      // Middle mouse button or left button + shift for panning
-      if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
-        handlePanStart(e);
+    // Store initial ref state for comparison
+    const initialWrapperRef = wrapperRef.current;
+    console.log('[ChartPhysicsInteraction] Running listener useEffect. Enabled:', config.enabled, 'Wrapper Ref:', initialWrapperRef);
+
+    // Skip if feature is disabled
+    if (!config.enabled) {
+      console.log('[ChartPhysicsInteraction] Skipping listener attachment (Physics zoom/pan disabled).');
+      return;
+    }
+
+    // Define the actual listener functions passed to add/remove
+    // These call the stable useCallback versions defined above.
+    const wheelListener = (e: WheelEvent) => handleWheel(e);
+    const mouseDownListener = (e: MouseEvent) => {
+      // Check target inside the listener to ensure it's within bounds
+      if (wrapperRef.current && wrapperRef.current.contains(e.target as Node)) {
+        if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+           handlePanStart(e); 
+        }
+      } else {
+         console.log('[ChartPhysicsInteraction] Mousedown ignored (target outside wrapper).')
       }
     };
-    
-    const mouseMoveHandler = (e: MouseEvent) => handlePanMove(e);
-    const mouseUpHandler = () => handlePanEnd();
-    const mouseLeaveHandler = () => handlePanEnd();
-    
-    // Add event listeners
-    canvas.addEventListener('wheel', wheelHandler, { passive: false });
-    canvas.addEventListener('mousedown', mouseDownHandler);
-    document.addEventListener('mousemove', mouseMoveHandler);
-    document.addEventListener('mouseup', mouseUpHandler);
-    canvas.addEventListener('mouseleave', mouseLeaveHandler);
-    
-    // Clean up event listeners
-    return () => {
-      canvas.removeEventListener('wheel', wheelHandler);
-      canvas.removeEventListener('mousedown', mouseDownHandler);
-      document.removeEventListener('mousemove', mouseMoveHandler);
-      document.removeEventListener('mouseup', mouseUpHandler);
-      canvas.removeEventListener('mouseleave', mouseLeaveHandler);
+    const mouseMoveListener = (e: MouseEvent) => handlePanMove(e);
+    const mouseUpListener = () => handlePanEnd();
+    const mouseLeaveListener = (e: MouseEvent) => {
+      // Check relatedTarget to see if mouse left the actual wrapper
+      if (wrapperRef.current && !wrapperRef.current.contains(e.relatedTarget as Node)) {
+         handlePanEnd(); // Trigger pan end if mouse leaves wrapper while panning
+      }
+    };
+
+    // Function to add listeners to current wrapper
+    const attachListeners = (currentWrapper: HTMLDivElement) => {
+      if (!currentWrapper) return false;
       
+      console.log('[ChartPhysicsInteraction] Attaching listeners to:', currentWrapper);
+      
+      try {
+        // Add listeners - wrapped in try/catch for resilience
+        currentWrapper.addEventListener('wheel', wheelListener, { passive: false });
+        currentWrapper.addEventListener('mousedown', mouseDownListener);
+        currentWrapper.addEventListener('mouseleave', mouseLeaveListener);
+        document.addEventListener('mousemove', mouseMoveListener); 
+        document.addEventListener('mouseup', mouseUpListener);
+        return true;
+      } catch (error) {
+        console.error('[ChartPhysicsInteraction] Error attaching listeners:', error);
+        return false;
+      }
+    };
+
+    // Function to remove listeners from specified wrapper
+    const removeListeners = (currentWrapper: HTMLDivElement | null) => {
+      if (!currentWrapper) return;
+      
+      console.log('[ChartPhysicsInteraction] Removing listeners from:', currentWrapper);
+      
+      try {
+        // Remove listeners - wrapped in try/catch for resilience
+        currentWrapper.removeEventListener('wheel', wheelListener);
+        currentWrapper.removeEventListener('mousedown', mouseDownListener);
+        currentWrapper.removeEventListener('mouseleave', mouseLeaveListener);
+      } catch (error) {
+        console.error('[ChartPhysicsInteraction] Error removing wrapper listeners:', error);
+      }
+      
+      // Document listeners are always safe to remove
+      document.removeEventListener('mousemove', mouseMoveListener);
+      document.removeEventListener('mouseup', mouseUpListener);
+    };
+
+    // Track if listeners were successfully attached
+    let listenersAttached = false;
+    
+    // If the wrapper element exists, attach listeners immediately
+    if (initialWrapperRef) {
+      listenersAttached = attachListeners(initialWrapperRef);
+    } else {
+      console.log('[ChartPhysicsInteraction] Wrapper element not available yet. Waiting for it to be created.');
+    }
+
+    // Set up a MutationObserver to watch for when the ref becomes available
+    // This is a fallback in case the ref isn't immediately populated
+    let observer: MutationObserver | null = null;
+    
+    if (!initialWrapperRef || !listenersAttached) {
+      observer = new MutationObserver(() => {
+        // Check if the ref has been populated since we last checked
+        const currentWrapper = wrapperRef.current;
+        if (currentWrapper && currentWrapper !== initialWrapperRef && !listenersAttached) {
+          console.log('[ChartPhysicsInteraction] Wrapper ref populated via observer. Attaching listeners.');
+          listenersAttached = attachListeners(currentWrapper);
+          
+          if (listenersAttached && observer) {
+            observer.disconnect();
+            observer = null;
+          }
+        }
+      });
+      
+      // Start observing the document for changes
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // Return cleanup function
+    return () => {
+      // Stop observer if it's still active
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+      
+      // Remove listeners from the most current wrapper element
+      // This handles the case where the ref might have changed during the effect lifetime
+      const finalWrapper = wrapperRef.current;
+      removeListeners(finalWrapper || initialWrapperRef);
+      
+      // Cancel any ongoing inertia animation
       if (inertiaAnimationRef.current) {
         cancelAnimationFrame(inertiaAnimationRef.current);
+        inertiaAnimationRef.current = null;
       }
     };
   }, [
-    chartRef, 
-    config.enabled, 
-    handleWheel, 
-    handlePanStart, 
-    handlePanMove, 
+    config.enabled,
+    wrapperRef,
+    handleWheel,
+    handlePanStart,
+    handlePanMove,
     handlePanEnd
   ]);
   
@@ -463,7 +574,7 @@ export const useChartPhysicsInteraction = (
     chart.update('none');
   }, [zoomXSpring.value, zoomYSpring.value, chartRef, shouldUsePhysics, config.mode]);
   
-  // Return only the intended public API surface
+  // Return state and methods
   return {
     isPanning,
     zoomLevel,

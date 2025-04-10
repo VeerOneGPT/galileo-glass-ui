@@ -2,7 +2,7 @@ import React, { ComponentType, forwardRef, ForwardRefExoticComponent, PropsWitho
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useEnhancedReducedMotion } from '../../hooks/useEnhancedReducedMotion';
 import { useAnimationContext } from '../../contexts/AnimationContext';
-import { MotionSensitivityLevel, AnimationCategory } from '../../types/accessibility';
+import { AnimationCategory } from '../../types/accessibility';
 
 export interface WithAlternativeAnimationsOptions {
   /**
@@ -14,11 +14,6 @@ export interface WithAlternativeAnimationsOptions {
    * Whether to disable animations altogether when motion sensitivity is LOW
    */
   disableOnLowSensitivity?: boolean;
-  
-  /**
-   * The name of the prop to pass sensitivity level to the wrapped component
-   */
-  sensitivityPropName?: string;
   
   /**
    * The name of the prop to pass simplified flag to the wrapped component
@@ -46,7 +41,6 @@ export function withAlternativeAnimations<
   const {
     defaultCategory = AnimationCategory.TRANSITION,
     disableOnLowSensitivity = false,
-    sensitivityPropName = 'motionSensitivity',
     simplifiedPropName = 'useSimplifiedAnimations',
     disabledPropName = 'disableAnimation'
   } = options;
@@ -55,45 +49,31 @@ export function withAlternativeAnimations<
   const WrappedComponent = forwardRef<Ref, Props>((props, ref) => {
     // Use existing motion hooks
     const systemReducedMotion = useReducedMotion();
-    const { 
-      prefersReducedMotion,
-      recommendedSensitivityLevel,
-    } = useEnhancedReducedMotion({});
-    const { disableAnimation: contextDisableAnimation, motionSensitivityLevel: contextSensitivity } = useAnimationContext();
+    const { prefersReducedMotion } = useEnhancedReducedMotion();
+    const { disableAnimation: contextDisableAnimation } = useAnimationContext();
     
     // Extract props from the wrapped component using type-safe approach
-    // Convert props to any type for property access
     const propsAny = props as any;
-    const propSensitivity = sensitivityPropName in propsAny 
-      ? propsAny[sensitivityPropName] as MotionSensitivityLevel 
-      : undefined;
     const propDisableAnimation = disabledPropName in propsAny 
       ? propsAny[disabledPropName] as boolean 
       : undefined;
 
-    // Determine final values using priority order: props > context > system
-    const finalSensitivityLevel = propSensitivity ?? 
-                                  contextSensitivity ?? 
-                                  recommendedSensitivityLevel ?? 
-                                  MotionSensitivityLevel.MEDIUM;
-    
+    // Determine final values
     const finalDisableAnimation = propDisableAnimation ?? 
                                   contextDisableAnimation ?? 
                                   systemReducedMotion;
     
-    // Determine if we should use simplified animations
-    const useSimplifiedAnimations = finalSensitivityLevel === MotionSensitivityLevel.LOW ||
-                                   prefersReducedMotion;
+    // Determine if we should use simplified animations based directly on the boolean
+    const useSimplifiedAnimations = prefersReducedMotion;
     
     // Determine if we should disable animations completely
     const disableAnimations = finalDisableAnimation || 
-                            (disableOnLowSensitivity && finalSensitivityLevel === MotionSensitivityLevel.LOW);
+                            (disableOnLowSensitivity && prefersReducedMotion);
     
     // Create a new props object with type safety
     const newProps = { ...props } as any;
     
     // Add our derived props to the props object
-    newProps[sensitivityPropName] = finalSensitivityLevel;
     newProps[simplifiedPropName] = useSimplifiedAnimations;
     newProps[disabledPropName] = disableAnimations;
     

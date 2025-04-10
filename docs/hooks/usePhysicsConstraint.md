@@ -13,14 +13,14 @@ This simplifies constraint management compared to manually using `useEffect` wit
 ```typescript
 import { usePhysicsConstraint } from '@veerone/galileo-glass-ui/hooks';
 
-// Also import necessary engine types if defining options in the component
+// Also import necessary engine types and the engine hook
 import { 
-  useGalileoPhysicsEngine, // Original hook name
-  // or usePhysicsEngine, // Alias for useGalileoPhysicsEngine
+  useGalileoPhysicsEngine, // Import the engine hook
   type GalileoPhysicsEngineAPI,
   type PhysicsConstraintOptions,
   type SpringConstraintOptions 
-} from '@veerone/galileo-glass-ui'; 
+} from '@veerone/galileo-glass-ui/hooks'; // Assuming types/hook are exported here
+// Note: usePhysicsEngine is an alias for useGalileoPhysicsEngine and can also be imported/used.
 ```
 
 ## Usage
@@ -30,11 +30,10 @@ Pass the engine instance from `useGalileoPhysicsEngine` (or its alias `usePhysic
 ```typescript
 import React, { useState, useEffect } from 'react';
 import { 
-  useGalileoPhysicsEngine, // Original hook name
-  // or usePhysicsEngine, // Alias - both work the same
+  useGalileoPhysicsEngine, // Use the engine hook
   usePhysicsConstraint, 
   type SpringConstraintOptions 
-} from '@veerone/galileo-glass-ui/hooks'; // Assuming engine types are also exported here
+} from '@veerone/galileo-glass-ui/hooks'; // Corrected paths
 
 function MyComponentWithConstraint() {
   const engine = useGalileoPhysicsEngine();

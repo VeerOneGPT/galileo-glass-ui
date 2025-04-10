@@ -1,5 +1,18 @@
 # Galileo Glass UI Changelog
 
+## [1.0.27] - 2025-04-10
+
+### Major Changes
+
+- **Critical Physics Stability Fixes:** Resolved multiple "Maximum update depth exceeded" errors related to physics engine initialization, event callbacks, and component interactions (Bugs #22, #25).
+- **Physics Interaction Fixes:** Corrected core hook exports (`useGesturePhysics`, `useGalileoPhysicsEngine`) and restored non-functional physics zoom/pan in `DataChart` (Bugs #23, #24).
+- **`useEnhancedReducedMotion` Stability:** Fixed infinite loops caused by the hook and related issues in the `Fab` component (Bug #27).
+- **New Feature - Scroll Reveal:** Added `useScrollReveal` hook and `ScrollReveal` component for scroll-triggered animations.
+- **New Feature - Adaptive Quality:** Introduced consolidated `useAdaptiveQuality` hook, deprecating `useQualityTier` and `useDeviceCapabilities`.
+
+### Details
+See the [full v1.0.27 changelog](./CHANGELOG-1.0.27.md) for comprehensive details on all fixes and enhancements across v1.0.25, v1.0.26, and v1.0.27.
+
 ## [1.0.24] - 2025-04-08
 
 ### Major Changes

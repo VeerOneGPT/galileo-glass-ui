@@ -1,11 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { Meta, StoryObj } from '@storybook/react';
 // Correct import path assuming it's exported from main index
-import { GlassFocusRing, GlassFocusRingProps } from '../../src/components/GlassFocusRing'; 
+import { GlassFocusRing } from '../../src/components/GlassFocusRing'; 
 import { ThemeProvider } from '../../src';
 import { Box } from '../../src/components/Box';
-import { Button } from '@mui/material';
-import { TextField } from '@mui/material';
+// Import Galileo components instead of MUI
+import { Button } from '../../src/components/Button'; 
+import { TextField } from '../../src/components/TextField'; 
+
+// Infer props type for ArgTypes
+type GlassFocusRingProps = React.ComponentProps<typeof GlassFocusRing>;
 
 const meta: Meta<typeof GlassFocusRing> = {
   title: 'Utilities/GlassFocusRing',
@@ -22,11 +26,6 @@ const meta: Meta<typeof GlassFocusRing> = {
       description: 'Offset (px) from the element bounds.',
       defaultValue: 2,
     },
-    radiusAdjust: {
-      control: 'number',
-      description: 'Value (px) added to child radius.',
-      defaultValue: 4,
-    },
     color: {
       control: 'text',
       description: 'Theme color preset or CSS color string.',
@@ -42,20 +41,6 @@ const meta: Meta<typeof GlassFocusRing> = {
         options: ['sm', 'md', 'lg'],
         description: 'Thickness preset of the focus ring (sm, md, lg).',
         defaultValue: 'md',
-    },
-    animationDuration: {
-        control: 'text',
-        description: 'Custom pulse animation duration (e.g., \'1.5s\').',
-    },
-    animationEasing: {
-        control: 'text',
-        description: 'Custom pulse animation easing function.',
-    },
-    animationPreset: {
-        control: 'select',
-        options: ['pulse', 'fade', 'static'],
-        description: "Animation preset name for the focus ring.",
-        defaultValue: 'pulse',
     },
   },
   parameters: {
@@ -102,7 +87,6 @@ export const CustomOffsetRadius: Story = {
   render: BaseRender,
   args: {
     offset: 6,
-    radiusAdjust: 0, 
     color: 'secondary',
     thickness: 'lg',
   },
@@ -113,10 +97,9 @@ export const CustomOffsetRadius: Story = {
 export const NoPulseAnimation: Story = {
     render: BaseRender,
     args: {
-      animationPreset: 'static',
       color: 'success',
     },
-    parameters: { docs: { description: { story: 'Focus ring without the pulsing animation (using static preset).' } } }
+    parameters: { docs: { description: { story: 'Focus ring without the pulsing animation. (Note: animationPreset prop removed as invalid)' } } }
 };
 
 // Example with custom animation timing
@@ -124,10 +107,8 @@ export const CustomAnimationTiming: Story = {
     render: BaseRender,
     args: {
         color: 'warning',
-        animationDuration: '0.5s',
-        animationEasing: 'linear',
     },
-    parameters: { docs: { description: { story: 'Focus ring with customized animation duration and easing.' } } }
+    parameters: { docs: { description: { story: 'Focus ring demonstration. (Note: custom animation timing props removed as invalid)' } } }
 };
 
 // Example showing disabled state

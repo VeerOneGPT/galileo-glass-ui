@@ -181,6 +181,7 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
   const collisionSystemRef = useRef<CollisionSystem | null>(null);
   const apiRef = useRef<GalileoPhysicsEngineAPI | null>(null);
   const isMountedRef = useRef<boolean>(false);
+  const lastUpdateTimeRef = useRef<number>(0); // Track the last collision system update time
 
   // Store mapping from internal CollisionSystem subscription ID to public callbacks
   const collisionCallbackMapRef = useRef<Map<string, { 
@@ -207,22 +208,36 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
         return;
       }
 
-      // 1. Update bodies in collision system based on physics system state
-      const physicsBodies = physicsSystemRef.current.getAllObjects() ?? [];
-      physicsBodies.forEach(physBody => {
-        // Ensure the body exists in the collision system before updating
-        if (collisionSystemRef.current?.getBody(physBody.id)) {
-          collisionSystemRef.current.updateBody(physBody.id, {
-            position: {x: physBody.position.x, y: physBody.position.y},
-            velocity: {x: physBody.velocity.x, y: physBody.velocity.y},
-            // Map angle from z position/velocity based on previous assumption, or add explicit angle to PhysicsObject
-            rotation: physBody.position.z // Assumption - Needs verification/update in PhysicsObject
-          });
-        }
-      });
+      // Use requestAnimationFrame instead of setTimeout for better synchronization
+      // and to align with the browser's rendering cycle
+      const minUpdateInterval = 1000 / 60; // Cap at 60fps max
 
-      // 2. Run collision detection and event emission
-      collisionSystemRef.current.update(); 
+      // Check if we should throttle the update
+      const now = performance.now();
+      if (now - lastUpdateTimeRef.current < minUpdateInterval) {
+        return; // Skip this update to avoid excessive processing
+      }
+      lastUpdateTimeRef.current = now;
+
+      requestAnimationFrame(() => {
+        // Re-check refs inside rAF
+        if (!isMountedRef.current || !collisionSystemRef.current || !physicsSystemRef.current) return;
+
+        // 1. Update bodies in collision system based on physics system state
+        const physicsBodies = physicsSystemRef.current.getAllObjects() ?? [];
+        physicsBodies.forEach(physBody => {
+          if (collisionSystemRef.current?.getBody(physBody.id)) {
+            collisionSystemRef.current.updateBody(physBody.id, {
+              position: {x: physBody.position.x, y: physBody.position.y},
+              velocity: {x: physBody.velocity.x, y: physBody.velocity.y},
+              rotation: physBody.position.z 
+            });
+          }
+        });
+
+        // 2. Run collision detection and event emission
+        collisionSystemRef.current.update(); 
+      });
     };
 
     // Subscribe to the physics system's 'step' event
@@ -417,76 +432,68 @@ export const useGalileoPhysicsEngine = (config?: Partial<PhysicsConfig>): Galile
     const subId = `sub_${nextSubId.current++}`;
     const internalCallback: CollisionEventCallback = (internalEvent) => {
       const publicEvent = mapInternalCollisionToPublic(internalEvent);
-      callback(publicEvent); // Call the user's callback
+      
+      // Schedule the user's callback asynchronously
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          callback(publicEvent); 
+        }
+      }, 0);
 
-      // --- Apply Collision Response --- 
+      // --- Apply Collision Response (MODIFIED: Make impulse async) --- 
       const collisionData = internalEvent.collision;
-      const impulseMagnitude = internalEvent.impulse; // Use pre-calculated impulse if available
+      const impulseMagnitude = internalEvent.impulse;
       const normal = collisionData.normal;
       
-      // Ensure we have necessary data to apply response
-      if (
-          impulseMagnitude !== undefined && 
-          impulseMagnitude > 0 && // Only apply positive impulse
-          normal &&
-          physicsSystemRef.current // Check if physics system still exists
-      ) {
-        const bodyAId = String(collisionData.bodyA.id);
-        const bodyBId = String(collisionData.bodyB.id);
-        
-        // Calculate impulse vectors along the normal
-        // Impulse is applied opposite to normal for body A, along normal for body B
-        const impulseVectorA = multiplyVector(normal, -impulseMagnitude);
-        const impulseVectorB = multiplyVector(normal, impulseMagnitude);
-        
-        // Apply impulses to the physics bodies
-        physicsSystemRef.current.applyImpulse(bodyAId, impulseVectorA);
-        physicsSystemRef.current.applyImpulse(bodyBId, impulseVectorB);
-        
-        // Optional: Log the applied impulse for debugging
-        // console.log(`[PhysicsEngine] Applied impulse ${impulseMagnitude.toFixed(2)} to ${bodyAId} and ${bodyBId}`);
-      
-      } else if (!normal) {
-          console.warn('[PhysicsEngine] Cannot apply collision response: Collision normal missing.', internalEvent);
-      } else if (impulseMagnitude === undefined) {
-          console.warn('[PhysicsEngine] Cannot apply collision response: Impulse magnitude missing. Calculating fallback.', internalEvent);
-          // Calculate impulse here as a fallback
-          const bodyA = collisionData.bodyA;
-          const bodyB = collisionData.bodyB;
-          // Safely access optional material properties with defaults
-          const restitution = Math.min(bodyA.material?.restitution ?? 0.2, bodyB.material?.restitution ?? 0.2);
-          // Use CollisionBody mass, guarding against Infinity for static bodies
-          const invMassA = bodyA.isStatic || bodyA.mass === Infinity ? 0 : 1 / bodyA.mass;
-          const invMassB = bodyB.isStatic || bodyB.mass === Infinity ? 0 : 1 / bodyB.mass;
-          
-          const totalInverseMass = invMassA + invMassB;
+      // Schedule impulse application asynchronously
+      setTimeout(() => {
+        // Re-check if systems still exist within the timeout callback
+        if (!isMountedRef.current || !physicsSystemRef.current || !collisionSystemRef.current) return;
 
-          // Ensure we have relative velocity data
-          const relativeVelocity = collisionData.relativeVelocity ?? {x:0,y:0}; // Provide default if missing
+        if (
+            impulseMagnitude !== undefined && 
+            impulseMagnitude > 0 && 
+            normal
+        ) {
+          const bodyAId = String(collisionData.bodyA.id);
+          const bodyBId = String(collisionData.bodyB.id);
+          const impulseVectorA = multiplyVector(normal, -impulseMagnitude);
+          const impulseVectorB = multiplyVector(normal, impulseMagnitude);
           
-          if (totalInverseMass > 0) { // Avoid division by zero if both objects are static
-              // Calculate relative velocity along the normal
-              // Need dotProduct utility (assuming it exists in scope or import it)
-              const velocityAlongNormal = dotProduct(relativeVelocity, normal);
-              
-              // Only apply impulse if objects are moving towards each other along the normal
-              if (velocityAlongNormal < 0) {
-                  const calculatedImpulseMag = -(1 + restitution) * velocityAlongNormal / totalInverseMass;
-
-                  if (calculatedImpulseMag > 0 && physicsSystemRef.current) {
-                      const impulseVectorA = multiplyVector(normal, -calculatedImpulseMag);
-                      const impulseVectorB = multiplyVector(normal, calculatedImpulseMag);
-                      
-                      physicsSystemRef.current.applyImpulse(String(bodyA.id), impulseVectorA);
-                      physicsSystemRef.current.applyImpulse(String(bodyB.id), impulseVectorB);
-                      // console.log(`[PhysicsEngine] Applied FALLBACK impulse ${calculatedImpulseMag.toFixed(2)} to ${bodyA.id} and ${bodyB.id}`);
-                  }
-              }
-          } else {
-              console.warn('[PhysicsEngine] Fallback impulse calculation skipped: Both bodies are static or have zero inverse mass.');
-          }
-      }
-      // --- End Collision Response ---
+          // Apply impulses inside timeout
+          physicsSystemRef.current.applyImpulse(bodyAId, impulseVectorA);
+          physicsSystemRef.current.applyImpulse(bodyBId, impulseVectorB);
+        
+        } else if (impulseMagnitude === undefined) {
+           // Fallback impulse calculation (inside timeout)
+           console.warn('[PhysicsEngine] Collision response impulse missing. Calculating fallback within timeout.', internalEvent);
+           const bodyA = collisionData.bodyA;
+           const bodyB = collisionData.bodyB;
+           const restitution = Math.min(bodyA.material?.restitution ?? 0.2, bodyB.material?.restitution ?? 0.2);
+           const invMassA = bodyA.isStatic || bodyA.mass === Infinity ? 0 : 1 / bodyA.mass;
+           const invMassB = bodyB.isStatic || bodyB.mass === Infinity ? 0 : 1 / bodyB.mass;
+           const totalInverseMass = invMassA + invMassB;
+           const relativeVelocity = collisionData.relativeVelocity ?? {x:0,y:0};
+           
+           if (totalInverseMass > 0 && normal) { 
+               const velocityAlongNormal = dotProduct(relativeVelocity, normal);
+               if (velocityAlongNormal < 0) {
+                   const calculatedImpulseMag = -(1 + restitution) * velocityAlongNormal / totalInverseMass;
+                   if (calculatedImpulseMag > 0) {
+                       const impulseVectorA = multiplyVector(normal, -calculatedImpulseMag);
+                       const impulseVectorB = multiplyVector(normal, calculatedImpulseMag);
+                       physicsSystemRef.current.applyImpulse(String(bodyA.id), impulseVectorA);
+                       physicsSystemRef.current.applyImpulse(String(bodyB.id), impulseVectorB);
+                   }
+               }
+           } else {
+               // console.warn('[PhysicsEngine] Fallback impulse calculation skipped (timeout): Both bodies static or missing normal.');
+           }
+        } else if (!normal) {
+          console.warn('[PhysicsEngine] Cannot apply collision response (timeout): Collision normal missing.', internalEvent);
+        }
+      }, 0); // End of setTimeout for impulse application
+      // --- End Collision Response Modification ---
     };
 
     collisionCallbackMapRef.current.set(subId, { 

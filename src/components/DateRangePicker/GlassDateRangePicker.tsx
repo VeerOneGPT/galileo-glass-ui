@@ -243,11 +243,11 @@ const PickerContainer = styled.div<{
   z-index: 1000;
   top: calc(100% + 8px);
   left: 0;
-  min-width: ${props => props.$width ? `${props.$width}px` : '280px'};
-  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '280px'};
+  min-width: ${props => props.$width ? `${props.$width}px` : '400px'};
+  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '400px'};
   user-select: none;
   transform-origin: top left;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   
   /* Glass styling */
@@ -426,7 +426,7 @@ const CalendarPanel = styled.div<{
   $isPrimary?: boolean;
 }>`
   flex: 1;
-  min-width: 260px;
+  min-width: 350px;
   padding: 10px;
   
   ${props => props.$isComparison && css`
@@ -847,8 +847,8 @@ const PopoverContainer = styled.div<{
   z-index: 1300;
   top: calc(100% + 8px);
   left: 0;
-  min-width: ${props => props.$width ? `${props.$width}px` : '340px'};
-  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '340px'};
+  min-width: ${props => props.$width ? `${props.$width}px` : '400px'};
+  width: ${props => props.$isComparisonMode ? 'max-content' : props.$width ? `${props.$width}px` : '400px'};
   user-select: none;
   transform-origin: top left;
   border: 1px solid rgba(255, 255, 255, 0.12);

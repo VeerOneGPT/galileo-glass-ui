@@ -734,7 +734,7 @@ Implement adaptive quality tiers for glass effects:
 ```tsx
 import { 
   AdaptiveGlassQuality, 
-  useQualityTier 
+  useAdaptiveQuality 
 } from 'galileo-glass-ui/performance';
 
 // Component using quality tiers
@@ -743,7 +743,7 @@ const AdaptiveGlassComponent = () => {
     qualityTier, 
     glassProps, 
     metrics 
-  } = useQualityTier({
+  } = useAdaptiveQuality({
     detectAutomatically: true,
     defaultTier: 'medium',
     adaptDynamically: true,
@@ -2019,7 +2019,7 @@ A complex dashboard with multiple glass components was optimized for performance
 3. **Quality Tier Adaptation**:
    ```tsx
    // Adaptive quality based on device
-   const { qualityTier } = useQualityTier();
+   const { qualityTier } = useAdaptiveQuality();
    
    const blurStrength = {
      ultra: 'strong',
@@ -2028,11 +2028,6 @@ A complex dashboard with multiple glass components was optimized for performance
      low: 'light',
      minimal: 'none'
    }[qualityTier];
-   
-   <FrostedGlass 
-     blurStrength={blurStrength}
-     // Other adaptations...
-   />
    ```
 
 4. **Deferred Rendering**:

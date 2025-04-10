@@ -1,6 +1,6 @@
 # Animation Context & Global Configuration
 
-This document explains how to configure default animation behaviors globally within a Galileo Glass UI application using `AnimationProvider` and the `useAnimationContext` hook. It also details the standard animation presets available.
+This document explains how to configure default animation behaviors globally within a Galileo Glass UI application using `AnimationProvider` and the `useAnimationContext` hook. It also details the standard animation presets available and how the system adapts to performance tiers.
 
 ## Table of Contents
 
@@ -199,21 +199,26 @@ export const MyButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>((
 
 The Galileo animation system includes features to help provide smooth performance across a range of devices by detecting capabilities and classifying them into quality tiers.
 
-### Core Hooks
+### Core Hook: `useAdaptiveQuality`
 
-> **IMPORTANT UPDATE (v1.0.24):** The hooks mentioned below have been consolidated. See the updated information.
-
-- **`useAdaptiveQuality`**: This hook replaces the previously separate `useDeviceCapabilities` and `useQualityTier` hooks. It provides a unified interface for device capability detection and quality tier determination.
+- **`useAdaptiveQuality`**: This hook provides a unified interface for device capability detection and quality tier determination.
 
 ```javascript
 import { useAdaptiveQuality } from '@veerone/galileo-glass-ui/hooks';
 
 function MyComponent() {
   const { 
-    deviceCapabilities, // Contains info like CPU cores, memory, etc.
+    deviceCapabilities, // Contains info like CPU cores, memory, WebGL support, etc.
     qualityTier,        // QualityTier.LOW, MEDIUM, HIGH, or ULTRA
-    adaptiveSettings    // Combined settings based on capabilities
-  } = useAdaptiveQuality();
+    adaptiveSettings,   // Detailed settings based on capabilities (maxParticles, blurStrength, etc.)
+    isUserPreferred,    // Whether current tier is from user preference
+    setQualityPreference, // Function to set user preference (saved to localStorage)
+    resetToAutoDetect   // Function to revert to automatic detection
+  } = useAdaptiveQuality({
+    allowUserOverride: true,     // Allow user preferences to override automatic detection
+    respectBatterySaver: true,   // Reduce quality when battery is low
+    enableAutoAdjust: false      // Experimental: auto-adjust based on performance
+  });
   
   // Use the data as needed
   console.log(`Running in ${qualityTier} quality mode`);
@@ -223,15 +228,27 @@ function MyComponent() {
     // Use backdrop filters...
   }
   
+  // Check network data-saving preferences
+  if (deviceCapabilities.saveData) {
+    // User has requested reduced data usage, consider minimizing asset downloads
+  }
+  
+  // Check specific connection type
+  if (deviceCapabilities.exactConnectionType === '2g' || deviceCapabilities.connectionSpeed === 'slow') {
+    // On slow connections, further optimize content delivery
+  }
+  
+  // Use adaptiveSettings in your component
+  const maxParticles = adaptiveSettings.maxParticles;
+  const shouldUseBlur = adaptiveSettings.enableBlurEffects;
+  
   return <div>{/* Component content */}</div>;
 }
 ```
 
-> **Note:** The previously documented `useDeviceCapabilities` and `useQualityTier` hooks are deprecated as of v1.0.24. Please migrate to `useAdaptiveQuality`.
-
 ### Integration with `AnimationContext`
 
-- **Automatic Detection**: By default, `AnimationProvider` uses `useAdaptiveQuality` internally to determine the `activeQualityTier`.
+- **Automatic Detection**: By default, `AnimationProvider` uses `useAdaptiveQuality` internally to determine the `activeQualityTier` available via `useAnimationContext`.
 - **Forcing a Tier**: You can override the automatic detection by passing the `forceQualityTier` prop to `AnimationProvider`.
 - **Accessing the Tier**: Components and hooks can access the currently active tier using `const { activeQualityTier } = useAnimationContext();`.
 
@@ -284,8 +301,8 @@ function MyPerformanceAwareComponent() {
 
 ### Use Cases
 
-- **Particle Systems (`useParticleSystem`)**: Automatically adjusts `maxParticles` and `emissionRate` based on the `activeQualityTier` to prevent overwhelming lower-end devices.
-- **Complex Physics**: Hooks involving intensive physics calculations could reduce simulation steps or complexity on lower tiers.
+- **Particle Systems (`useParticleSystem`)**: Can automatically adjust parameters like `maxParticles` and `emissionRate` based on the `activeQualityTier` to prevent overwhelming lower-end devices.
+- **Complex Physics**: Hooks involving intensive physics calculations could potentially reduce simulation steps or complexity on lower tiers.
 - **Visual Effects**: Components rendering many layers or complex shaders could simplify effects on lower tiers.
 
 **Note:** Components are responsible for checking the `activeQualityTier` from the context and adjusting their behavior accordingly. The system provides the tier; components consume it.

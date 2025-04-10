@@ -1145,7 +1145,7 @@ The new system is built around a core set of integrated modules:
     - `useGesturePhysics`: For physics-based responses to user gestures.
 - **Orchestration (`useAnimationSequence`)**: Enables complex, timed, and dependent sequences.
 - **Accessibility (`useReducedMotion`)**: Manages user preferences for reduced motion, sensitivity levels, categories, and alternatives.
-- **Adaptive Performance**: Modules like `useDeviceCapabilities` and `useQualityTier` adjust animation fidelity based on the runtime environment.
+- **Adaptive Performance**: The `useAdaptiveQuality` hook adjusts animation fidelity based on the runtime environment.
 - **Rendering**: Primarily uses `requestAnimationFrame` for direct style manipulation, ensuring optimal control and performance.
 
 ### Core Animation Hooks
@@ -1404,24 +1404,72 @@ Galileo Glass UI is designed with accessibility as a fundamental principle.
 
 ## Performance Optimization
 
-### Device-Aware Quality
+### Device-Aware Quality with useAdaptiveQuality
+
+The Galileo Glass UI framework provides a comprehensive hook for adaptive quality rendering that automatically adjusts visual complexity based on device capabilities:
 
 ```tsx
-import { useGlassPerformance } from '../../hooks/useGlassPerformance';
+import { useAdaptiveQuality } from '@veerone/galileo-glass-ui/hooks';
 
 const OptimizedComponent = () => {
-  const { isLowPerformanceDevice, glassQualityLevel } = useGlassPerformance();
+  const { 
+    qualityTier, 
+    adaptiveSettings,
+    setQualityPreference
+  } = useAdaptiveQuality();
   
   return (
     <GlassContainer
-      blurStrength={glassQualityLevel === 'high' ? 'standard' : 'light'}
-      animated={!isLowPerformanceDevice}
+      blurStrength={adaptiveSettings.blurStrength}
+      enableGlowEffects={adaptiveSettings.enableGlowEffects}
     >
-      <GlassTypography>Performance-optimized glass</GlassTypography>
+      <GlassTypography>Performance-optimized content</GlassTypography>
+      
+      {/* Quality tier selector for user preference */}
+      <GlassSelect
+        value={qualityTier}
+        onChange={(value) => setQualityPreference(value)}
+        options={[
+          { value: 'Low', label: 'Low Quality (Best Performance)' },
+          { value: 'Medium', label: 'Medium Quality' },
+          { value: 'High', label: 'High Quality' },
+          { value: 'Ultra', label: 'Ultra Quality (Best Visual)' }
+        ]}
+      />
     </GlassContainer>
   );
 };
 ```
+
+**Key Features:**
+
+1. **Automatic Detection:** Analyzes device capabilities including CPU cores, memory, WebGL support, backdrop filter support, and more.
+2. **Quality Tiers:** Determines the appropriate quality level (LOW, MEDIUM, HIGH, ULTRA) based on detected capabilities.
+3. **Ready-to-Use Settings:** Provides specific settings like `maxParticles`, `blurStrength`, and `enableGlowEffects` that components can use directly.
+4. **User Preferences:** Allows users to override the automatic detection with their preferred quality level, saved to localStorage.
+5. **Battery Awareness:** Can automatically reduce quality when battery is low to conserve power.
+6. **Data-Saving Support:** Respects the browser's data-saving mode setting and reduces quality accordingly.
+7. **Network Detection:** Provides information about the connection type and speed for further optimization.
+8. **SSR Compatibility:** Works in server-side rendering environments with appropriate defaults.
+
+**Implementation Example:**
+
+```tsx
+// In a particle system component
+function ParticleSystemBackground() {
+  const { adaptiveSettings } = useAdaptiveQuality();
+  
+  return (
+    <ParticleSystem
+      maxParticles={adaptiveSettings.maxParticles}
+      complexity={adaptiveSettings.particleComplexity}
+      useHighResTextures={adaptiveSettings.useHighResTextures}
+    />
+  );
+}
+```
+
+This approach ensures your application provides the best possible visual experience while maintaining smooth performance across a wide range of devices.
 
 ### Performance Best Practices
 
@@ -1540,251 +1588,4 @@ const GlassComponent = styled.div`
 import { innerGlow } from '../../mixins/depth/innerEffects';
 // ...
 ${innerGlow({ color: 'primary', intensity: 'medium', spread: 15 })}
-```
-
-### CSS Properties Not Working
-
-> **⚠️ COMMON ERROR**: Usually due to using camelCase instead of kebab-case.
-
-```tsx
-// ❌ WRONG
-const Card = styled.div`
-  backgroundColor: rgba(255, 255, 255, 0.1);
-  backdropFilter: blur(10px);
-`;
-
-// ✅ CORRECT
-const Card = styled.div`
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-`;
-```
-
-### Basic Setup
-
-To use Glass components, ensure you have the proper provider hierarchy:
-
-```tsx
-import { ThemeProvider } from '../../theme/ThemeProvider';
-import { AnimationProvider } from '@veerone/galileo-glass-ui';
-
-const App: React.FC = () => {
-  return (
-    <ThemeProvider initialTheme="nebula">
-      <AnimationProvider value={{ /* Optional animation defaults */ }}>
-          {/* Application content */}
-      </AnimationProvider>
-    </ThemeProvider>
-  );
-};
-```
-
-### Theme Access Pattern
-
-```tsx
-import { useGlassTheme } from '../../theme/ThemeProvider';
-import { 
-  createColorStyle, 
-  createSpacingStyle, 
-  createTypographyStyle 
-} from '../../core/styleUtils';
-
-const MyComponent = () => {
-  const { themeContext } = useGlassTheme();
-  
-  return (
-    <StyledElement $themeContext={themeContext} />
-  );
-};
-
-interface StyledElementProps {
-  $themeContext: any;
-}
-
-const StyledElement = styled.div<StyledElementProps>`
-  // Type-safe color style
-  ${props => createColorStyle(props.$themeContext, 'backgroundColor', 'surface')}
-  
-  // Type-safe spacing style
-  ${props => createSpacingStyle(props.$themeContext, 'padding', 'md')}
-  
-  // Type-safe typography style
-  ${props => createTypographyStyle(props.$themeContext, 'body1')}
-`;
-```
-
-### Theme Hook
-
-```tsx
-import { useGlassTheme } from '../../theme/GlassThemeProvider';
-
-const ThemeSwitcher: React.FC = () => {
-  const { 
-    themeVariant, 
-    setThemeVariant, 
-    colorMode, 
-    setColorMode,
-    createThemedGlassEffect 
-  } = useGlassTheme();
-
-  const handleChangeTheme = () => {
-    setThemeVariant('cosmic');
-  };
-
-  const handleToggleMode = () => {
-    setColorMode(colorMode === 'light' ? 'dark' : 'light');
-  };
-
-  return (
-    <div>
-      <GlassButton onClick={handleChangeTheme}>
-        Change Theme
-      </GlassButton>
-      <GlassButton onClick={handleToggleMode}>
-        Toggle {colorMode === 'light' ? 'Dark' : 'Light'} Mode
-      </GlassButton>
-    </div>
-  );
-};
-```
-
-### Creating Custom Themed Components
-
-```tsx
-import { useGlassTheme } from '../../theme/GlassThemeProvider';
-import styled from 'styled-components';
-
-const CustomComponent: React.FC = () => {
-  const { createThemedGlassEffect } = useGlassTheme();
-  
-  const StyledComponent = styled.div`
-    ${props => createThemedGlassEffect({ 
-      depth: 2,
-      glowIntensity: 'medium',
-      blurStrength: 'standard',
-      borderStyle: 'gradient'
-    })}
-    padding: 24px;
-    border-radius: 12px;
-  `;
-  
-  return (
-    <StyledComponent>
-      Custom themed glass component
-    </StyledComponent>
-  );
-};
-```
-
----
-
-## Modular Architecture (April 2025 Update)
-
-The Glass UI framework has been refactored into a fully modular architecture for improved maintainability, better organization, and enhanced developer experience.
-
-### Modular Structure Overview
-
-```
-/design
-  /core             
-    types.ts        
-    themeContext.ts 
-    styleUtils.ts   
-  /mixins           
-    /depth          
-      innerEffects.ts
-      zSpaceLayer.ts
-      depthEffects.ts
-    /effects        
-      glowEffects.ts
-      edgeEffects.ts
-      ambientEffects.ts
-      borderEffects.ts
-    /interaction    
-      hoverEffects.ts
-      focusEffects.ts
-    /surfaces       
-      glassSurface.ts
-    /typography     
-      textStyles.ts
-    /accessibility  
-      highContrast.ts
-      reducedTransparency.ts
-      focusStyles.ts
-      visualFeedback.ts
-  /animations       
-  mixins.ts         # Re-export file for backward compatibility
-```
-
-### Standardized Import Pattern (April 2025)
-
-Use domain-specific imports and always pass the `themeContext` parameter:
-
-```tsx
-import { innerGlow } from '../../mixins/depth/innerEffects';
-import { glassGlow } from '../../mixins/effects/glowEffects';
-import { glassSurface } from '../../mixins/surfaces/glassSurface';
-import { createThemeContext } from '../../core/themeUtils';
-
-const StyledCard = styled.div<{ theme: any }>`
-  ${props => glassSurface({ 
-    elevation: 2, 
-    blurStrength: 'standard', 
-    borderOpacity: 'medium',
-    themeContext: createThemeContext(props.theme)
-  })}
-  
-  &:hover {
-    ${props => glassGlow({ 
-      intensity: 'medium', 
-      color: 'primary',
-      themeContext: createThemeContext(props.theme)
-    })}
-  }
-  
-  ${props => innerGlow({ 
-    color: 'primary', 
-    intensity: 'subtle', 
-    spread: 10,
-    themeContext: createThemeContext(props.theme)
-  })}
-`;
-```
-
-### Modern Options-Based API
-
-All mixins support an options-based API for clarity and type safety:
-
-```tsx
-// Example: innerGlow
-${innerGlow({
-  color: 'primary',
-  intensity: 'medium',
-  spread: 15,
-  pulsing: false,
-  position: 'all'
-})}
-```
-
-### Function Migration Reference
-
-| Function       | Module Path                                  |
-|----------------|----------------------------------------------|
-| `glassSurface` | `./mixins/surfaces/glassSurface`             |
-| `innerGlow`    | `./mixins/depth/innerEffects`                |
-| `zSpaceLayer`  | `./mixins/depth/zSpaceLayer`                 |
-| `depthBlur`    | `./mixins/depth/depthEffects`                |
-| `glassGlow`    | `./mixins/effects/glowEffects`               |
-| `edgeHighlight`| `./mixins/effects/edgeEffects`               |
-| `ambientGlow`  | `./mixins/effects/ambientEffects`            |
-| `glassText`    | `./mixins/typography/textStyles`             |
-| `glassHighContrast` | `./mixins/accessibility/highContrast`    |
-| `reducedTransparencyAlternative` | `./mixins/accessibility/reducedTransparency` |
-| `highContrastFocus` | `./mixins/accessibility/focusStyles`     |
-| `enhancedVisualFeedback` | `./mixins/accessibility/visualFeedback` |
-
----
-
-*Galileo Glass UI v1.0 • MIT License*
-
 ```

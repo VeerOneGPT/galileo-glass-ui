@@ -13,11 +13,10 @@ This is useful for creating dynamic lists, grids, or other arrangements where it
 ## Import
 
 ```typescript
-import { usePhysicsLayout, type PhysicsLayoutOptions, type PhysicsLayoutResult } from '@veerone/galileo-glass-ui';
-// Or
-import { usePhysicsLayout } from '@veerone/galileo-glass-ui/hooks';
-// Import types if needed separately
-import type { PhysicsLayoutOptions, PhysicsLayoutResult } from '@veerone/galileo-glass-ui/types';
+import { usePhysicsLayout, type PhysicsLayoutOptions, type PhysicsLayoutResult } from '@veerone/galileo-glass-ui/hooks';
+// Import the engine hook if needed for other purposes
+// import { useGalileoPhysicsEngine } from '@veerone/galileo-glass-ui/hooks';
+// Note: usePhysicsEngine is an alias for useGalileoPhysicsEngine
 ```
 
 ## Usage
@@ -175,15 +174,9 @@ export interface PhysicsLayoutOptions {
 
   /** Initial positions for elements (optional, overrides default placement) */
   initialPositions?: { x: number; y: number }[];
-  
-  // --- Deprecated Options --- 
-  // These might still be used internally for hints but prefer the structured options above.
-  // containerSize?: { width: number; height: number }; 
-  // spacing?: number | { x: number; y: number }; 
-  // stiffness?: number; 
-  // damping?: number; 
-  // mass?: number; 
-  // friction?: number; 
+
+  /** Optional ref to the container element (for bounds, etc.) */
+  containerRef?: React.RefObject<HTMLElement>;
 }
 ```
 
@@ -210,7 +203,7 @@ export interface PhysicsLayoutResult {
 
 ## How it Works
 
-1.  **Initialization:** The hook initializes an internal physics engine (`useGalileoPhysicsEngine`, also available as `usePhysicsEngine`) and creates physics bodies corresponding to `itemCount`.
+1.  **Initialization:** The hook initializes an internal physics engine (`useGalileoPhysicsEngine` alias `usePhysicsEngine`) and creates physics bodies corresponding to `itemCount`.
 2.  **Ref Measurement:** The `getItemProps` function provides a `ref` callback. When this is attached to a real DOM element by your rendering logic, the hook measures the element's size (`offsetWidth`, `offsetHeight`).
 3.  **Target Calculation:** Based on the `layoutType`, measured element sizes, and layout options (`gridOptions`, `stackOptions`), the hook calculates a target position for each physics body.
 4.  **Force Application:** On each animation frame, the hook applies spring forces (using `physicsConfig`) to pull each body towards its target. For `freeform`, repulsion and other forces are applied.

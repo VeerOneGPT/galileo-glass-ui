@@ -167,6 +167,7 @@ export const TimeMarker = styled.div<{
   $isPrimary: boolean;
   $isNow: boolean;
   $color?: string;
+  $hideLabel?: boolean;
 }>`
   position: absolute;
   ${props => props.$orientation === 'vertical' 
@@ -187,7 +188,9 @@ export const TimeMarker = styled.div<{
   
   background-color: ${props => props.$isNow 
     ? `var(--color-${props.$color || 'primary'}, rgba(99, 102, 241, 0.8))` 
-    : 'rgba(255, 255, 255, 0.2)'};
+    : props.$isPrimary 
+      ? 'rgba(255, 255, 255, 0.4)' 
+      : 'rgba(255, 255, 255, 0.15)'};
   
   /* Today/Now marker styling */
   ${props => props.$isNow && css`
@@ -208,9 +211,13 @@ export const TimeMarker = styled.div<{
       left: 50%;
       transform: translateX(-50%);
       white-space: nowrap;
-      font-size: 0.7rem;
-      color: rgba(255, 255, 255, ${props.$isPrimary ? '0.8' : '0.5'});
+      font-size: ${props.$isPrimary ? '0.8rem' : '0.7rem'};
+      font-weight: ${props.$isPrimary ? '500' : '400'};
+      color: rgba(255, 255, 255, ${props.$isPrimary ? '0.9' : '0.5'});
       margin-top: 4px;
+      opacity: ${props.$isPrimary ? '1' : '0.8'};
+      /* Hide label if specified */
+      display: ${props.$hideLabel ? 'none' : 'block'};
     }
   `}
   
@@ -222,8 +229,12 @@ export const TimeMarker = styled.div<{
       right: 10px;
       top: -10px;
       white-space: nowrap;
-      font-size: 0.7rem;
-      color: rgba(255, 255, 255, ${props.$isPrimary ? '0.8' : '0.5'});
+      font-size: ${props.$isPrimary ? '0.8rem' : '0.7rem'};
+      font-weight: ${props.$isPrimary ? '500' : '400'};
+      color: rgba(255, 255, 255, ${props.$isPrimary ? '0.9' : '0.5'});
+      opacity: ${props.$isPrimary ? '1' : '0.8'};
+      /* Hide label if specified */
+      display: ${props.$hideLabel ? 'none' : 'block'};
     }
   `}
 `;
@@ -237,13 +248,15 @@ export const TimelineEvents = styled.div<{
   position: relative;
   display: flex;
   flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
-  gap: ${props => {
+  
+  /* Use CSS custom property for dynamic spacing from JavaScript */
+  gap: var(--timeline-item-spacing, ${props => {
     switch (props.$density) {
       case 'compact': return '8px'; 
       case 'spacious': return '20px';
       default: return '15px';
     }
-  }};
+  }});
   
   padding: ${props => {
     switch (props.$density) {

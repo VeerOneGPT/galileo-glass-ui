@@ -145,7 +145,7 @@ interface ChartInteractionOptions {
 
 -   **`zoomPanEnabled`**: **(Boolean)** Set to `true` to enable physics-based zooming (mouse wheel) and panning (middle-click or shift+left-click drag). The component uses the internal `useChartPhysicsInteraction` hook when this is enabled.
 -   `zoomMode`: Controls which axes allow zoom/pan (`'x'`, `'y'`, or `'xy'`).
--   `physicsHoverEffects`: Enables smooth physics-based scaling/translation effects when hovering over data points (requires `getElementPhysicsOptions` to be configured for element-specific behavior, otherwise uses defaults).
+-   **`physicsHoverEffects`**: **(Boolean)** Enables smooth, physics-based hover effects (e.g., scaling, opacity changes) on individual chart elements like points or bars. Defaults to `true`. If `getElementPhysicsOptions` is provided, it determines the specific effect per element. If not provided, a default hover effect (slight scale increase) is applied.
 -   `showTooltips`: Controls the display of the custom glass tooltip.
 -   `tooltipStyle`: Selects the appearance of the tooltip.
 -   `tooltipFollowCursor`: Makes the tooltip follow the mouse cursor instead of anchoring to the data point.
@@ -208,7 +208,7 @@ legend={{
 *   `allowDownload`: Boolean, shows a download button in the toolbar.
 *   `exportOptions`: Object to configure image export (filename, format, quality, etc.).
 *   `renderExportButton`: Function to render a custom export button.
-*   `useAdaptiveQuality`: Boolean, enables adaptive rendering based on `useQualityTier`.
+*   `useAdaptiveQuality`: Boolean, enables adaptive rendering based on device capabilities.
 *   `onTypeChange`: Callback when chart type is changed via toolbar.
 
 ## Key Types (`ChartDataset`, `DataPoint`)

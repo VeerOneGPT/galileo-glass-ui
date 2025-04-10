@@ -133,7 +133,7 @@ Using a preset name (e.g., `useParticleSystem('snow')`) applies its specific con
 
 ### Quality Tiers
 
-The particle system integrates with the Galileo Glass UI's quality tier system to automatically adjust performance based on device capabilities:
+The particle system integrates with the Galileo Glass UI's quality tier system to automatically adjust performance based on device capabilities. It determines the active quality tier, likely by consuming the `activeQualityTier` value from `useAnimationContext`, which itself is determined by the `AnimationProvider` (using `useAdaptiveQuality` internally or a forced value).
 
 ```typescript
 import { QualityTier } from 'galileo-glass-ui';
@@ -141,19 +141,21 @@ import { AnimationProvider } from 'galileo-glass-ui';
 
 function App() {
   return (
-    <AnimationProvider forceQualityTier={QualityTier.HIGH}>
+    <AnimationProvider forceQualityTier={QualityTier.HIGH}> // Optional: Force a tier
       {/* Your components using particle system */}
     </AnimationProvider>
   );
 }
 ```
 
-The quality tier affects particle systems in the following ways:
+The detected `activeQualityTier` affects particle systems in the following ways:
 
-- **LOW**: Reduces maximum particles (150), lowers emission rate, limits velocity, increases friction
-- **MEDIUM**: Balanced settings with moderate particle count (300)
-- **HIGH**: Default settings with no adjustments
-- **ULTRA**: Increases emission rate by 20% for more particles on high-end devices
+- **LOW**: Reduces maximum particles (e.g., to ~150), lowers emission rate, limits velocity, potentially increases friction.
+- **MEDIUM**: Balanced settings with moderate particle count (e.g., ~300).
+- **HIGH**: Default settings with no significant adjustments.
+- **ULTRA**: May increase emission rate or particle complexity slightly for high-end devices.
+
+These adjustments help maintain smooth performance across different hardware.
 
 ### Reduced Motion
 

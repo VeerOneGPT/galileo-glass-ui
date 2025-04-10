@@ -136,6 +136,8 @@ export {
   useFallbackStrategies,
   useGlassFocus,
   useParticleSystem,
+  useScrollReveal,
+  ScrollReveal,
   
   // Accessibility related hooks
   useAccessibilitySettings,
@@ -155,9 +157,19 @@ export {
   useScrollScene,
   useGestureAnimation,
   
+  // New consolidated hook for adaptive quality
+  useAdaptiveQuality,
+  
   // Note: useZSpaceAnimation is already exported directly from './animations'
   // Removed useParallaxScroll as it's exported directly below
+  useGesturePhysics
 } from './hooks';
+
+// Add direct export for pointer following hooks
+export { usePointerFollow, usePointerFollowGroup } from './animations/physics';
+
+// Add explicit export for useGalileoPhysicsEngine directly from its source
+export { useGalileoPhysicsEngine } from './animations/physics/useGalileoPhysicsEngine';
 
 // Explicitly export PhysicsInteractionOptions and PhysicsInteractionType from the source
 export { 

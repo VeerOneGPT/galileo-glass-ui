@@ -15,6 +15,16 @@ Galileo Glass UI incorporates a gesture physics system that allows UI elements t
 
 This hook is the primary mechanism for adding physics-driven responses to gestures like panning, swiping, pinching, and tapping on an element.
 
+### Import
+
+```typescript
+// Import from main package
+import { useGesturePhysics } from '@veerone/galileo-glass-ui';
+
+// Alternative import path
+import { useGesturePhysics } from '@veerone/galileo-glass-ui/hooks';
+```
+
 ### Purpose
 
 - Detect and interpret common user gestures on a specific HTML element.

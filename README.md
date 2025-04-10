@@ -18,7 +18,7 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 ---
 
 ## ✨ Why Galileo Glass UI?
-h
+
 *   **Unique Aesthetic:** Stand out with sophisticated glass morphism styling, featuring configurable blurs, reflections, glows, and dynamic transparency.
 *   **Dynamic & Realistic Interactions:** Go beyond static interfaces. Leverage the significantly enhanced physics engine (**new constraints**, layout hook) and intuitive hooks (`usePhysicsInteraction` with **magnetic/repel**, `useAmbientTilt`, `usePhysicsLayout`) to create engaging, natural-feeling user experiences.
 *   **Performant Animations:** Achieve smooth, 60fps animations thanks to a purpose-built system that adapts to user device capabilities and replaces heavy dependencies.
@@ -55,15 +55,15 @@ h
 
 ## ✨ What's New 
 
-**Version 1.0.24** focuses on resolving critical issues in components and animations, while enhancing styling and user experience:
+**Version 1.0.27** delivers critical stability improvements and new features:
 
-- **Fixed Critical Crash in Styled-Components Animation:** Resolved application crashes when importing the library in projects using `styled-components` v4+ by fixing keyframe interpolation.
-- **Completely Refactored GlassTimeline Layout:** Replaced absolute positioning with a nested flexbox approach for stable and predictable timeline item positioning in both vertical and horizontal orientations.
-- **Enhanced GlassMultiSelect Component:** Fixed animation implementation, improved keyboard navigation (particularly for token removal via Backspace), replaced inefficient JSON.stringify comparisons with proper deep equality checks, and enhanced dropdown positioning.
-- **Improved GlassDateRangePicker Styling:** Enhanced the calendar container with better frosted glass styling, increased size dimensions, improved visual contrast, and added subtle design elements like background overlay and outer glow.
-- **Added Hook Import Path Documentation:** Created a new [Hook Import Paths Guide](./docs/hooks/import-paths.md) to clarify the correct import paths for hooks and help address common import issues.
+- **Critical Physics Stability Fixes:** Resolved multiple "Maximum update depth exceeded" errors related to physics engine initialization, event callbacks, and component interactions (Bugs #22, #25).
+- **Physics Interaction Fixes:** Corrected core hook exports (`useGesturePhysics`, `useGalileoPhysicsEngine`) and restored non-functional physics zoom/pan in `DataChart` (Bugs #23, #24).
+- **`useEnhancedReducedMotion` Stability:** Fixed infinite loops caused by the hook and related issues in the `Fab` component (Bug #27).
+- **New Feature - Scroll Reveal:** Added `useScrollReveal` hook and `ScrollReveal` component for easy scroll-triggered entrance animations.
+- **New Feature - Adaptive Quality:** Introduced consolidated `useAdaptiveQuality` hook, deprecating `useQualityTier` and `useDeviceCapabilities`.
 
-> For full details, see the [**v1.0.24 Changelog**](./docs/changelog/CHANGELOG-1.0.24.md) or check the [previous release notes](./docs/changelog/CHANGELOG-1.0.23.md).
+> For full details, see the [**v1.0.27 Changelog**](./docs/changelog/CHANGELOG-1.0.27.md) or check the [previous release notes](./docs/changelog/CHANGELOG-1.0.24.md).
 
 ---
 
@@ -940,12 +940,12 @@ If you choose to use Git hooks (e.g., with Husky), you can configure `lint-stage
 9.  **Animation**: Use integrated hooks (`usePhysicsInteraction`, `useAnimationSequence`, etc.). Respect `useReducedMotion`.
 10. **Performance**: Use memoization (`React.memo`, `useMemo`) where appropriate.
 
-For complete styling guidelines, see [GalileoGlass.md](./frontend/GalileoGlass.md).
+For complete styling guidelines, see [AdvancedComponents.md](./docs/components/advanced-components.md).
 
 
 ## Documentation Site
 
-For the most detailed and up-to-date documentation, visit our [documentation site](https://docs.galileo-glass.dev) (Link needs to be updated if this is not the correct URL).
+For the most detailed and up-to-date documentation, visit our [documentation site](https://galileo-glass.com/glass-docs) (Link needs to be updated if this is not the correct URL).
 
 ### Optional Peer Dependencies
 
@@ -956,4 +956,4 @@ npm install @mui/icons-material @emotion/react @emotion/styled
 ```
 
 // Version
-export const version = '1.0.24';
+export const version = '1.0.27';

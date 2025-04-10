@@ -9,7 +9,7 @@ This is the recommended way to add a focus ring.
 ### Import
 
 ```tsx
-import { GlassFocusRing } from '@veerone/galileo-glass-ui'; 
+import { GlassFocusRing } from '@veerone/galileo-glass-ui/components'; 
 ```
 
 ### Usage
@@ -18,7 +18,7 @@ Wrap any single focusable element (like a button or input) with `GlassFocusRing`
 
 ```tsx
 import React from 'react';
-import { GlassFocusRing } from '@veerone/galileo-glass-ui';
+import { GlassFocusRing } from '@veerone/galileo-glass-ui/components';
 import { GlassButton } from '@veerone/galileo-glass-ui'; // Example focusable component
 
 function MyComponent() {
@@ -55,14 +55,14 @@ The `useGlassFocus` hook provides the core logic for the focus ring. You might u
 ### Import
 
 ```tsx
-import { useGlassFocus } from '@veerone/galileo-glass-ui'; 
+import { useGlassFocus } from '@veerone/galileo-glass-ui/hooks'; 
 ```
 
 ### Hook Usage
 
 ```tsx
 import React, { useRef } from 'react';
-import { useGlassFocus } from '@veerone/galileo-glass-ui';
+import { useGlassFocus } from '@veerone/galileo-glass-ui/hooks';
 
 function FocusableButton() {
   // Ref to the actual focusable element

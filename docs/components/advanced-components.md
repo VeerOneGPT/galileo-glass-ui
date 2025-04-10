@@ -616,7 +616,7 @@ import {
   ImageListItemBar 
 } from '@veerone/galileo-glass-ui/components';
 import InfoIcon from '@mui/icons-material/Info';
-import IconButton from '@mui/material/IconButton';
+import { Button } from '@veerone/galileo-glass-ui/components'; // Import Galileo Button
 
 const items = [
   { id: '1', img: '/path/to/image1.jpg', title: 'Breakfast', author: 'author1' },
@@ -655,9 +655,14 @@ function MyImageList() {
             actionPosition="right"
             glass
         actionIcon={
-              <IconButton aria-label={`info about ${item.title}`} sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            <InfoIcon />
-          </IconButton>
+              // Replace MUI IconButton with Galileo Button styled as an icon button
+              <Button 
+                variant="icon" // Assuming an 'icon' variant or similar exists
+                aria-label={`info about ${item.title}`} 
+                style={{ color: 'rgba(255, 255, 255, 0.7)', minWidth: 'auto', padding: '4px' }} // Basic styling
+              >
+                <InfoIcon fontSize="inherit" />
+              </Button>
         }
             showOnHover
       />

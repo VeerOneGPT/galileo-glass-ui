@@ -234,6 +234,12 @@ Subscribe to collision events originating from the internal `CollisionSystem`.
 *   **`onCollisionActive(callback)`**: Fires on each simulation step while bodies remain in contact.
 *   **`onCollisionEnd(callback)`**: Fires when two bodies cease contact.
 
+**Important Behavior Change (v1.0.25+):** 
+
+*   The `callback` function you provide to these methods is now executed **asynchronously** using `setTimeout(..., 0)`. 
+*   This change prevents potential "Maximum update depth exceeded" errors in React if your callback synchronously updates component state during the initial physics steps.
+*   **Implication:** Do not rely on the callback executing within the same synchronous tick as the collision event. If you need to update React state based on collision events, the asynchronous execution is generally safer. However, be mindful that the physics state might have changed slightly between the collision occurring and your callback executing.
+
 All subscription methods return an `UnsubscribeFunction` to remove the listener.
 
 The `callback` receives a `CollisionEvent` object:
@@ -674,14 +680,14 @@ function PhysicsDemo() {
       const bodyBData = event.bodyBUserData;
       
       console.log("Collision between:", bodyAData?.type, "and", bodyBData?.type);
-      console.log("Impact force:", event.impactForce);
+      console.log("Impact impulse:", event.impulse);
       console.log("Contact point:", event.contactPoint);
       
       // Update component state
       setCollisionCount(prev => prev + 1);
       
       // Play sound or trigger visual effect based on impact force
-      if (event.impactForce > 50) {
+      if (event.impulse > 50) {
         console.log("Strong collision detected!");
         // triggerCollisionEffect(event.contactPoint);
       }

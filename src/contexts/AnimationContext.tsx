@@ -2,7 +2,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { SpringConfig, DefaultSprings, SpringPresets } from '../animations/physics/springPhysics';
 import { PhysicsConfig } from '../animations/physics/galileoPhysicsSystem';
 import { QualityTier, MotionSensitivityLevel } from '../types/accessibility'; // Import QualityTier and MotionSensitivityLevel enums
-import { useQualityTier } from '../hooks/useQualityTier'; // Import the new hook
+import { useAdaptiveQuality } from '../hooks/useAdaptiveQuality'; // Import the new consolidated hook
 
 // Define the shape of the context state
 interface AnimationContextState {
@@ -63,7 +63,7 @@ export const AnimationProvider: React.FC<AnimationProviderProps> = ({
     defaultMotionSensitivity = MotionSensitivityLevel.MEDIUM 
 }) => {
   // Determine the active quality tier
-  const detectedQualityTier = useQualityTier();
+  const { qualityTier: detectedQualityTier } = useAdaptiveQuality();
   const activeQualityTier = forceQualityTier ?? detectedQualityTier;
 
   // Determine active sensitivity level (user override in value prop takes precedence)

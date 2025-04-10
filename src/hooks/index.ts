@@ -57,6 +57,12 @@ export { useChartPhysicsInteraction } from '../components/DataChart/hooks/useCha
 export { useSortableData } from './useSortableData';
 export { useFallbackStrategies } from './useFallbackStrategies';
 
+// Scroll Reveal Hook and Component
+export { useScrollReveal, ScrollReveal } from './useScrollReveal';
+
+// Performance/Adaptive hooks (ensure correct path)
+export { useAdaptiveQuality } from './useAdaptiveQuality';
+
 export {
     getPhysicsBodyState,
     verifyPhysicsEngineState,

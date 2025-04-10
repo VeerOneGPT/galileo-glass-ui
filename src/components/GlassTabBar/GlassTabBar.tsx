@@ -101,11 +101,15 @@ export const GlassTabBar = forwardRef<TabBarRef, GlassTabBarProps & AnimationPro
   
   // Determine final animation settings
   const finalDisableAnimation = !!(propDisableAnimation ?? contextDisableAnimation ?? isReducedMotion);
-  const finalAnimationConfig: PhysicsConfig | SpringConfig | undefined = 
-    propAnimationConfig ?? 
-    contextAnimationConfig ?? 
-    (physics ? { tension: physics.tension, friction: physics.friction, mass: physics.mass } : undefined) ?? // Convert old prop
-    undefined; // Or a default config if needed
+  
+  const finalAnimationConfig: PhysicsConfig | SpringConfig | undefined = useMemo(() => {
+    return (
+      propAnimationConfig ?? 
+      contextAnimationConfig ?? 
+      (physics ? { tension: physics.tension, friction: physics.friction, mass: physics.mass } : undefined) ?? // Convert old prop
+      undefined // Or a default config if needed
+    );
+  }, [propAnimationConfig, contextAnimationConfig, physics]);
   
   // Refs
   const tabsRef = useRef<HTMLDivElement>(null);

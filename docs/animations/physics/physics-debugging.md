@@ -777,6 +777,10 @@ Here are key strategies to improve physics performance:
        mask: 0x0002 // Only collide with group 2
      }
    });
+   const bodyB = engine.addBody({
+     // ...
+     collisionFilter: { group: 2, mask: 0xFFFFFFFF }
+   });
    ```
 
 2. **Implement Broadphase Boundaries**: For large scenes, create a spatial grid:
@@ -1064,7 +1068,7 @@ function setupCollisionDebugging(engine) {
     console.log('  Normal:', event.normal);
     console.log('  Penetration:', event.penetration);
     console.log('  Relative velocity:', event.relativeVelocity);
-    console.log('  Impact force:', event.impactForce);
+    console.log('  Impact impulse:', event.impulse);
     
     console.groupEnd();
   };

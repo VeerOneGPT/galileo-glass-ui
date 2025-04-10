@@ -19,13 +19,13 @@ const extensions = ['.js', '.jsx', '.ts', '.tsx'];
 
 // TypeScript plugin configuration using rollup-plugin-typescript2
 const tsconfigDefaults = { compilerOptions: { declaration: true } };
-const tsconfigOverride = { compilerOptions: { declaration: false } }; // Don't emit declarations for non-entry files if needed, adjust as necessary
+const tsconfigOverride = { compilerOptions: { declaration: false, declarationMap: false } }; // Don't emit declarations for non-entry files if needed, adjust as necessary
 
 const typescriptPlugin = typescript({
   typescript: require('typescript'), // Ensure it uses the installed TypeScript version
   tsconfig: './tsconfig.json',
-  // Use default tsconfig settings, including declaration: true
-  // rollup-plugin-typescript2 handles declaration file merging better
+  // Disable declaration generation here; rely on rollup-plugin-dts for bundling
+  tsconfigOverride: { compilerOptions: { declaration: false, declarationMap: false } },
   clean: true, // Clean the cache before building
   check: false, // Keep check: false as build works with it
 });
@@ -77,6 +77,7 @@ const baseExternal = [
   'react', 
   'react-dom', 
   'styled-components',
+  '@use-gesture/react',
   'chart.js',
   'react-chartjs-2',
   '@mui/icons-material',
@@ -258,6 +259,14 @@ const entryPoints = [
       cjs: 'dist/animations/orchestration/useAnimationSequence.js',
       esm: 'dist/animations/orchestration/useAnimationSequence.esm.js'
     }
+  },
+  // Add entry point for useGesturePhysics
+  {
+    input: 'src/animations/physics/gestures/useGesturePhysics.ts',
+    output: {
+      cjs: 'dist/animations/physics/gestures/useGesturePhysics.js',
+      esm: 'dist/animations/physics/gestures/useGesturePhysics.esm.js'
+    }
   }
 ];
 
@@ -410,6 +419,13 @@ const dtsConfigs = [
   {
     input: 'src/animations/orchestration/useAnimationSequence.ts',
     output: [{ file: 'dist/animations/orchestration/useAnimationSequence.d.ts', format: 'es' }],
+    plugins: [createDtsPlugin()],
+    external: dtsExternal
+  },
+  // Add d.ts entry point for useGesturePhysics
+  {
+    input: 'src/animations/physics/gestures/useGesturePhysics.ts',
+    output: [{ file: 'dist/animations/physics/gestures/useGesturePhysics.d.ts', format: 'es' }],
     plugins: [createDtsPlugin()],
     external: dtsExternal
   }

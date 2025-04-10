@@ -1,5 +1,10 @@
+# Animation Sequence Demo
+
+## React Example
+
+```jsx
 import React from 'react';
-import { useAnimationSequence, AnimationSequenceConfig, PublicAnimationStage, SequenceControls } from '@veerone/galileo-glass-ui';
+import { useAnimationSequence, AnimationSequenceConfig, PublicAnimationStage, SequenceControls } from '@veerone/galileo-glass-ui/hooks';
 import styled from 'styled-components';
 
 const Box = styled.div`
@@ -12,12 +17,11 @@ const Box = styled.div`
 `;
 
 const SequenceDemo = () => {
-  // Define the animation stages using PublicAnimationStage type
   const stages: PublicAnimationStage[] = [
     {
       id: 'fade-in-box1',
       type: 'style',
-      targets: '#box1', 
+      targets: '#box1',
       duration: 500,
       properties: { opacity: 1, transform: 'translateY(0px)' },
       easing: 'easeOutQuad',
@@ -27,48 +31,38 @@ const SequenceDemo = () => {
       type: 'style',
       targets: '#box2',
       duration: 500,
-      delay: 200, // Start slightly after box1
+      delay: 200,
       properties: { opacity: 1, transform: 'translateY(0px)' },
       easing: 'easeOutQuad',
-      dependsOn: ['fade-in-box1'], // Example dependency
+      dependsOn: ['fade-in-box1'],
     },
     {
       id: 'callback-stage',
       type: 'callback',
-      duration: 0, // Callbacks usually have 0 duration
-      delay: 700, // After animations likely finish
+      duration: 0,
+      delay: 700,
       callback: (progress, stageId) => {
         console.log(`Callback stage '${stageId}' fired at progress ${progress}`);
       }
     }
   ];
 
-  // Configure the sequence
   const config: AnimationSequenceConfig = {
     id: 'my-demo-sequence',
-    stages: stages,
+    stages,
     autoplay: false,
-    loop: true, // Set loop to true
-    yoyo: true, // Alternate direction on loops
-    onStart: (sequenceId) => console.log(`Sequence ${sequenceId} started.`),
-    onComplete: (sequenceId) => console.log(`Sequence ${sequenceId} completed cycle.`), 
+    loop: true,
+    yoyo: true,
+    onStart: sequenceId => console.log(`Sequence ${sequenceId} started.`),
+    onComplete: sequenceId => console.log(`Sequence ${sequenceId} completed cycle.`),
     onStageChange: (activeStageId, sequenceId) => {
       console.log(`Sequence ${sequenceId}: Active stage changed to ${activeStageId || 'none'}`);
     }
   };
 
-  // Use the hook
   const {
-    play,
-    pause,
-    stop,
-    reset, // New reset control
-    seekProgress,
-    progress, // Current progress (0-1)
-    playbackState, // 'idle', 'playing', 'paused', 'finished'
-    currentStageId, // ID of the most recently started stage
-    duration, // Calculated total duration
-    // ... other controls
+    play, pause, stop, reset, seekProgress,
+    progress, playbackState, currentStageId, duration
   }: SequenceControls & { progress: number; playbackState: string; currentStageId: string | null; duration: number } = useAnimationSequence(config);
 
   return (
@@ -81,7 +75,7 @@ const SequenceDemo = () => {
         <button onClick={play}>Play</button>
         <button onClick={pause}>Pause</button>
         <button onClick={stop}>Stop</button>
-        <button onClick={reset}>Reset</button> { /* Use reset button */ }
+        <button onClick={reset}>Reset</button>
         <button onClick={() => seekProgress(0.5)}>Seek 50%</button>
       </div>
       <div style={{ marginTop: '10px', fontSize: '12px', fontFamily: 'monospace' }}>
@@ -92,96 +86,68 @@ const SequenceDemo = () => {
 };
 
 export default SequenceDemo;
+```
 
 ---
 
-## `useAnimationSequence` Hook
+## `useAnimationSequence` Hook Documentation
 
-This hook provides powerful control over sequences of animations, allowing for complex choreography, dependencies, and timing.
+### Importing the Hook
 
 ```typescript
-import { 
-  useAnimationSequence, 
-  AnimationSequenceConfig, 
-  PublicAnimationStage, 
-  SequenceControls, 
-  AnimationSequenceResult 
-} from '@veerone/galileo-glass-ui';
-
-const { 
-  // Controls
-  play, pause, stop, reset, reverse, restart, 
-  seek, seekProgress, seekLabel, getProgress,
-  addStage, removeStage, updateStage, 
-  setPlaybackRate, getPlaybackState,
-  addCallback, removeCallback,
-  // State
-  progress, playbackState, currentStageId,
-  duration, direction, playbackRate, 
-  reducedMotion, stages, id 
-} = useAnimationSequence(config);
+import {
+  useAnimationSequence,
+  AnimationSequenceConfig,
+  PublicAnimationStage,
+  SequenceControls,
+  AnimationSequenceResult
+} from '@veerone/galileo-glass-ui/hooks';
 ```
 
 ### Configuration (`AnimationSequenceConfig`)
 
-*   `id?`: `string` - Optional unique identifier for the sequence.
-*   `stages`: `PublicAnimationStage[]` - An array defining the animation stages (see below).
-*   `duration?`: `number` (ms) - Optional total duration. If not provided, calculated from stages.
-*   `autoplay?`: `boolean` - Start playing immediately on mount. Default: `false`.
-*   `loop?`: `boolean` - If true, the sequence will loop indefinitely. Overrides `repeatCount`. Default: `false`.
-*   `repeatCount?`: `number` - Number of times to repeat the sequence (-1 for infinite, similar to `loop: true`). Default: `0`.
-*   `yoyo?`: `boolean` - If true, alternates direction on each repetition/loop. Default: `false`.
-*   `direction?`: `PlaybackDirection` (`'forward'`, `'backward'`, etc.) - Initial playback direction. Default: `'forward'`.
-*   `category?`: `AnimationCategory` - For accessibility categorization.
-*   `useWebAnimations?`: `boolean` - Experimental: Use Web Animations API if available.
-*   `playbackRate?`: `number` - Initial playback speed (1 = normal). Default: `1`.
-*   `onStart?`, `onUpdate?`, `onComplete?`, `onPause?`, `onResume?`, `onCancel?`, `onAnimationStart?`, `onAnimationComplete?`: Lifecycle callbacks (see `SequenceLifecycle` type).
-*   `onStageChange?`: `(activeStageId: string | null, sequenceId: string) => void` - **New:** Callback fired when the currently active stage changes (based on the stage that started most recently). `activeStageId` is `null` if no stage is currently running.
+| Property          | Type | Default | Description |
+|-------------------|------|---------|-------------|
+| `id`              | `string` | Optional | Unique identifier for the sequence |
+| `stages`          | `PublicAnimationStage[]` | Required | Array defining animation stages |
+| `autoplay`        | `boolean` | `false` | Automatically play on mount |
+| `loop`            | `boolean` | `false` | Loop indefinitely |
+| `repeatCount`     | `number` | `0` | Times to repeat sequence |
+| `yoyo`            | `boolean` | `false` | Alternate direction each loop |
+| `direction`       | `PlaybackDirection` | `'forward'` | Initial playback direction |
+| `playbackRate`    | `number` | `1` | Playback speed |
+| Lifecycle callbacks | Functions | Optional | Various callbacks (`onStart`, `onComplete`, etc.) |
 
 ### Animation Stages (`PublicAnimationStage`)
 
-Each stage in the `stages` array is an object defining a part of the animation. Key properties include:
+| Property     | Type | Description |
+|--------------|------|-------------|
+| `id`         | `string` | Unique stage ID |
+| `type`       | `'style'|'callback'|'event'|'group'|'stagger'` | Stage type |
+| `duration`   | `number` | Duration in milliseconds |
+| `delay`      | `number` | Delay before starting |
+| `targets`    | Selector/Element | Target element(s) |
+| `properties` | Object | CSS properties to animate |
+| `callback`   | Function | Callback function |
 
-*   `id`: `string` (required) - Unique ID for the stage.
-*   `type`: `'style' | 'callback' | 'event' | 'group' | 'stagger'` (required) - Type of stage.
-*   `duration`: `number` (ms, required for most types) - How long the stage lasts.
-*   `delay?`: `number` (ms) - Delay before the stage starts.
-*   `targets?`: `AnimationTarget` (string selector, Element, Ref, etc.) - Element(s) to animate (for `style`, `stagger`).
-*   `properties?`: `Record<string, unknown>` - CSS properties to animate to (for `style`, `stagger`).
-*   `callback?`: Function - Callback function for `callback` or `event` stages.
-*   `children?`: `PublicAnimationStage[]` - Nested stages for `group` type.
-*   `easing?`, `repeatCount?`, `yoyo?`, `dependsOn?`, etc. - See `PublicBaseAnimationStage` and specific stage types for all options.
+### Returned State and Controls (`AnimationSequenceResult`)
 
-### Return Value (`AnimationSequenceResult`)
+**State Properties:**
+- `progress`: Current sequence progress (0-1)
+- `playbackState`: Current state (`'idle'`, `'playing'`, `'paused'`, `'finished'`)
+- `currentStageId`: Currently active stage ID
+- `duration`: Total duration (ms)
 
-The hook returns an object containing state and controls:
+**Control Functions:**
+- `play()`: Start/resume playback
+- `pause()`: Pause playback
+- `stop()`: Stop playback and reset progress
+- `reset()`: Reset sequence state
+- `seekProgress(progress: number)`: Seek to specific progress
+- `setPlaybackRate(rate: number)`: Set playback speed
 
-*   **State Properties:**
-    *   `progress`: `number` - Current progress of the entire sequence (0 to 1).
-    *   `playbackState`: `PlaybackState` - Current state (`'idle'`, `'playing'`, `'paused'`, `'finished'`).
-    *   `currentStageId`: `string | null` - **New:** The ID of the stage that most recently started playing. `null` if idle or finished.
-    *   `duration`: `number` - Total calculated duration of the sequence in milliseconds.
-    *   `direction`: `PlaybackDirection` - Current playback direction.
-    *   `playbackRate`: `number` - Current playback speed.
-    *   `reducedMotion`: `boolean` - Whether reduced motion mode is effectively active.
-    *   `stages`: `PublicAnimationStage[]` - The array of stage configurations currently managed by the sequence.
-    *   `id`: `string` - The unique ID of the sequence instance.
-*   **Control Functions (`SequenceControls`):**
-    *   `play()`: Start or resume playback.
-    *   `pause()`: Pause playback.
-    *   `stop()`: Stop playback and reset progress to 0.
-    *   `reset()`: **New:** Stops playback, resets progress to 0, and clears internal stage states (useful for ensuring a clean restart, especially after complex interactions).
-    *   `reverse()`: Reverse playback direction (implementation may be limited).
-    *   `restart()`: Stop and immediately play from the beginning.
-    *   `seek(time: number)`: Jump to a specific time (ms) (implementation may be limited).
-    *   `seekProgress(progress: number)`: Jump to a specific progress (0 to 1).
-    *   `seekLabel(label: string)`: Jump to a named label/stage (implementation may be limited).
-    *   `getProgress()`: Get the current progress value.
-    *   `addStage()`, `removeStage()`, `updateStage()`: Dynamically modify stages (implementation may be limited).
-    *   `setPlaybackRate(rate: number)`: Change playback speed.
-    *   `getPlaybackState()`: Get the current playback state.
-    *   `addCallback()`, `removeCallback()`: Dynamically add/remove lifecycle callbacks.
+### Recent Updates (v1.0.22)
 
-### Recent Fixes (v1.0.22)
+- Fixed initial state issues (Bug #20)
+- Improved robustness of sequence execution logic
 
-*   **Initial State & Execution:** Resolved an issue (Bug #20) where the initial `from` state might not be applied correctly on mount, especially when using `autoplay: true`. The sequence execution logic has also been made more robust, ensuring stages run reliably according to their defined timing and dependencies.
