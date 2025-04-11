@@ -14,5 +14,32 @@ global.ResizeObserver = jest.fn().mockImplementation(() => ({
 }));
 
 describe('GlassTimeline Integration Tests', () => {
-  // ... (rest of the test file using 'render' which now comes from test-utils) ...
+  const sampleData: TimelineItem[] = [
+    {
+      id: '1',
+      date: new Date(2023, 0, 1),
+      title: 'Event 1',
+      content: 'Description for event 1',
+    },
+    {
+      id: '2',
+      date: new Date(2023, 1, 15),
+      title: 'Event 2',
+      content: 'Description for event 2',
+    },
+  ];
+
+  it('should render the timeline with data', () => {
+    render(<GlassTimeline items={sampleData} />);
+
+    // Check if titles and content are rendered
+    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.getByText('Description for event 1')).toBeInTheDocument();
+    expect(screen.getByText('Event 2')).toBeInTheDocument();
+    expect(screen.getByText('Description for event 2')).toBeInTheDocument();
+
+    // Optional: Check for date formatting (might need specific queries)
+    // expect(screen.getByText(/Jan 1, 2023/i)).toBeInTheDocument(); 
+    // expect(screen.getByText(/Feb 15, 2023/i)).toBeInTheDocument();
+  });
 });

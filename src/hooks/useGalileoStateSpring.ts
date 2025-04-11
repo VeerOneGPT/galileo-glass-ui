@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-// Import the correct class and presets
-import { SpringPhysics, SpringPresets, SpringConfig } from '../animations/physics/springPhysics';
+// Import the correct class and presets AS NAMESPACE
+import * as springPhysics from '../animations/physics/springPhysics';
+// Re-export necessary types/objects from the namespace
+export type { SpringConfig as GalileoSpringConfig } from '../animations/physics/springPhysics';
+export const SpringPresets = springPhysics.SpringPresets;
+
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { getCurrentTime } from '../utils/time';
-// Import context and AnimationProps
 import { useAnimationContext } from '../contexts/AnimationContext';
 import { AnimationProps } from '../animations/types';
 import { MotionSensitivityLevel, AnimationCategory } from '../types/accessibility'; // Import enum
-
-// Re-export config type for external use if needed
-export type { SpringConfig as GalileoSpringConfig };
-// Also re-export SpringPresets
-export { SpringPresets };
 
 // Define result type for onRest callback
 export interface SpringAnimationResult {
@@ -21,10 +19,10 @@ export interface SpringAnimationResult {
 }
 
 // Default spring configuration
-const DEFAULT_SPRING_CONFIG: Required<Omit<SpringConfig, 'initialVelocity' | 'clamp'>> & { precision: number } = {
-  tension: SpringPresets.DEFAULT.tension,
-  friction: SpringPresets.DEFAULT.friction,
-  mass: SpringPresets.DEFAULT.mass,
+const DEFAULT_SPRING_CONFIG: Required<Omit<springPhysics.SpringConfig, 'initialVelocity' | 'clamp'>> & { precision: number } = {
+  tension: 170,
+  friction: 26,
+  mass: 1,
   restThreshold: 0.01,
   precision: 0.01,
 };
@@ -91,22 +89,23 @@ export const useGalileoStateSpring = (
 
   // Resolve final spring config
   const finalSpringConfig = useMemo(() => {
-      const baseConfig: SpringConfig = DEFAULT_SPRING_CONFIG;
+      const CurrentSpringPresets = springPhysics.SpringPresets;
+      const baseConfig: typeof DEFAULT_SPRING_CONFIG = DEFAULT_SPRING_CONFIG;
       
-      let contextConf: Partial<SpringConfig> = {};
-      if (typeof defaultSpring === 'string' && defaultSpring in SpringPresets) {
-          contextConf = SpringPresets[defaultSpring as keyof typeof SpringPresets];
+      let contextConf: Partial<springPhysics.SpringConfig> = {};
+      if (typeof defaultSpring === 'string' && CurrentSpringPresets && defaultSpring in CurrentSpringPresets) {
+          contextConf = CurrentSpringPresets[defaultSpring as keyof typeof CurrentSpringPresets];
       } else if (typeof defaultSpring === 'object') {
           contextConf = defaultSpring ?? {};
       }
 
-      let propAnimConf: Partial<SpringConfig> = {};
-      if (typeof animationConfig === 'string' && animationConfig in SpringPresets) {
-          propAnimConf = SpringPresets[animationConfig as keyof typeof SpringPresets];
+      let propAnimConf: Partial<springPhysics.SpringConfig> = {};
+      if (typeof animationConfig === 'string' && CurrentSpringPresets && animationConfig in CurrentSpringPresets) {
+          propAnimConf = CurrentSpringPresets[animationConfig as keyof typeof CurrentSpringPresets];
       } else if (typeof animationConfig === 'object' && animationConfig !== null) {
           // Accept partial SpringConfig from animationConfig
           if ('tension' in animationConfig || 'friction' in animationConfig || 'mass' in animationConfig) {
-              propAnimConf = animationConfig as Partial<SpringConfig>;
+              propAnimConf = animationConfig as Partial<springPhysics.SpringConfig>;
           }
       }
       
@@ -120,11 +119,11 @@ export const useGalileoStateSpring = (
 
       // Ensure required fields have fallbacks
       let resolvedConfig = {
-          tension: mergedConfig.tension ?? DEFAULT_SPRING_CONFIG.tension,
-          friction: mergedConfig.friction ?? DEFAULT_SPRING_CONFIG.friction,
-          mass: mergedConfig.mass ?? DEFAULT_SPRING_CONFIG.mass,
-          restThreshold: mergedConfig.restThreshold ?? DEFAULT_SPRING_CONFIG.restThreshold,
-          precision: mergedConfig.precision ?? DEFAULT_SPRING_CONFIG.precision,
+          tension: mergedConfig.tension ?? baseConfig.tension,
+          friction: mergedConfig.friction ?? baseConfig.friction,
+          mass: mergedConfig.mass ?? baseConfig.mass,
+          restThreshold: mergedConfig.restThreshold ?? baseConfig.restThreshold,
+          precision: mergedConfig.precision ?? baseConfig.precision,
       };
 
       // --- Adjust for Reduced Motion & Sensitivity Level --- 
@@ -147,8 +146,8 @@ export const useGalileoStateSpring = (
               case MotionSensitivityLevel.NONE:
               default:
                   // Use standard reduced motion preset if available?
-                   if ('REDUCED_MOTION' in SpringPresets) {
-                       const reducedPreset = SpringPresets.REDUCED_MOTION;
+                   if (CurrentSpringPresets && 'REDUCED_MOTION' in CurrentSpringPresets) {
+                       const reducedPreset = CurrentSpringPresets.REDUCED_MOTION;
                        resolvedConfig.tension = reducedPreset.tension ?? resolvedConfig.tension;
                        resolvedConfig.friction = reducedPreset.friction ?? resolvedConfig.friction;
                        resolvedConfig.mass = reducedPreset.mass ?? resolvedConfig.mass;
@@ -170,7 +169,7 @@ export const useGalileoStateSpring = (
 
   const [currentValue, setCurrentValue] = useState(targetValue);
   const [isAnimating, setIsAnimating] = useState(false);
-  const springRef = useRef<SpringPhysics | null>(null);
+  const springRef = useRef<springPhysics.SpringPhysics | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const targetRef = useRef(targetValue);
@@ -194,18 +193,17 @@ export const useGalileoStateSpring = (
 
   // Function to initialize or update the SpringPhysics instance
   const initializeSpring = useCallback((startValue: number, initialVelocity?: number) => {
-    springRef.current = new SpringPhysics({
+    springRef.current = new springPhysics.SpringPhysics({
       tension: finalSpringConfig.tension,
       friction: finalSpringConfig.friction,
       mass: finalSpringConfig.mass,
       restThreshold: finalSpringConfig.restThreshold,
       initialVelocity: initialVelocity ?? 0,
     });
-    // Initialize position correctly
     springRef.current.reset(startValue, initialVelocity ?? 0);
     springRef.current.setTarget(targetRef.current);
     setCurrentValue(startValue);
-  }, [finalSpringConfig]); // Depend on resolved config
+  }, [finalSpringConfig]);
 
   // Initialize on mount
   useEffect(() => {

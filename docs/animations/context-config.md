@@ -13,6 +13,7 @@ This document explains how to configure default animation behaviors globally wit
 - [Example Usage](#example-usage)
 - [Best Practices](#best-practices)
 - [Adaptive Performance & Quality Tiers](#adaptive-performance-quality-tiers)
+- [Integration with Event-Based Animation System (v1.0.28+)](#integration-with-event-based-animation-system-v1028)
 
 ---
 
@@ -308,3 +309,90 @@ function MyPerformanceAwareComponent() {
 **Note:** Components are responsible for checking the `activeQualityTier` from the context and adjusting their behavior accordingly. The system provides the tier; components consume it.
 
 ---
+
+## Integration with Event-Based Animation System (v1.0.28+)
+
+The Animation Context system integrates with the refactored event-based animation system introduced in v1.0.28:
+
+### Animation Context Access in Events
+
+The event system can access context values via middleware:
+
+```typescript
+import { createContextAwareMiddleware } from '@veerone/galileo-glass-ui';
+
+// Get the event emitter from the game animation controller
+const emitter = gameAnimation.getEventEmitter();
+
+// Add middleware that includes context values
+emitter.addMiddleware(createContextAwareMiddleware());
+```
+
+With the context-aware middleware, event handlers receive context information:
+
+```typescript
+emitter.on(GameAnimationEventType.TRANSITION_START, (event) => {
+  // Access animation context data in the event
+  const { animationContext } = event.data;
+  
+  // Use context values to adjust animation behavior
+  if (animationContext.activeQualityTier === QualityTier.LOW) {
+    // Simplify animation for low-quality tier
+  }
+});
+```
+
+### Propagating Context Changes to Event System
+
+When context values change, you can notify the event system:
+
+```typescript
+// In a component using AnimationProvider
+const [qualityTier, setQualityTier] = useState(QualityTier.MEDIUM);
+
+// When user changes settings
+const handleQualityChange = (newTier) => {
+  // Update the context
+  setQualityTier(newTier);
+  
+  // Notify all game animation controllers via a global event
+  window.dispatchEvent(new CustomEvent('galileo:animation-context-change', {
+    detail: { activeQualityTier: newTier }
+  }));
+};
+```
+
+The event-based animation system listens for these changes to update its behavior:
+
+```typescript
+// Inside the GameAnimationController implementation
+useEffect(() => {
+  const handleContextChange = (e) => {
+    if (emitter) {
+      // Forward context changes to the event system
+      emitter.emit({
+        type: GameAnimationEventType.CONTEXT_CHANGE,
+        data: e.detail,
+        source: 'animation-context',
+        timestamp: Date.now(),
+        preventDefault: false,
+        prevent: () => {}
+      });
+    }
+  };
+  
+  window.addEventListener('galileo:animation-context-change', handleContextChange);
+  return () => {
+    window.removeEventListener('galileo:animation-context-change', handleContextChange);
+  };
+}, [emitter]);
+```
+
+### Benefits of Context Integration
+
+This integration provides several key benefits:
+
+1. **Consistent Settings:** Animation behaviors remain consistent across both the traditional animation hooks and the event-based system.
+2. **Central Configuration:** Changes to animation settings are propagated throughout the system regardless of which animation approach is used.
+3. **Performance Adaptation:** Both systems can respond to quality tier changes and device capability detection.
+4. **Accessibility Synchronization:** Reduced motion preferences are consistently applied across all animation types.

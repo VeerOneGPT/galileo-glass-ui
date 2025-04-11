@@ -356,7 +356,9 @@ export const getAccessibleAnimation = (
 
   // Build the animation string
   return `
-    animation-name: ${finalPreset.keyframes.name};
+    animation-name: ${typeof finalPreset.keyframes === 'string' 
+      ? finalPreset.keyframes 
+      : finalPreset.keyframes?.name || 'unknown-animation'};
     animation-duration: ${options?.duration || finalPreset.duration};
     animation-timing-function: ${options?.easing || finalPreset.easing};
     animation-delay: ${options?.delay || finalPreset.delay || '0s'};

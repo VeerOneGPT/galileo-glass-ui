@@ -205,7 +205,8 @@ export const usePhysicsLayout = (
     });
 
     // Use mergedOptions directly as dependency, ensures rerun if any config changes
-  }, [engine, mergedOptions]);
+    // Also add itemCount to ensure it re-runs when the number of required bodies changes.
+  }, [engine, mergedOptions, itemCount]);
 
 
   // Function to calculate target positions (memoized)
@@ -349,19 +350,29 @@ export const usePhysicsLayout = (
       const currentStates = engine.getAllBodyStates();
       const newStyles: { [key: string]: React.CSSProperties } = {};
 
+      // Define expected state type for assertion
+      type ExpectedBodyState = { 
+        position: Vector2D; 
+        angle: number; 
+        velocity: Vector2D; // Add other expected properties from engine state
+        isStatic?: boolean;
+      };
+
       bodyIdsRef.current.forEach((bodyId, index) => {
-        const state = currentStates.get(bodyId);
+        const rawState = currentStates.get(bodyId);
         const elementSize = elementSizeMap.current.get(bodyId) || { width: 50, height: 50 }; 
 
-        // Check if state exists and potentially if sleeping (if API adds it)
-        // if (!state || state.isSleeping) {
-        if (!state) {
+        if (!rawState) {
             newStyles[bodyId] = styles[bodyId] || { position: 'absolute', visibility: 'hidden' };
             return;
         } 
 
+        // Assert the type of rawState
+        const state = rawState as ExpectedBodyState;
+
         newStyles[bodyId] = {
           position: 'absolute',
+          // Access properties after type assertion
           left: `${state.position.x - elementSize.width / 2}px`,
           top: `${state.position.y - elementSize.height / 2}px`,
           transform: `rotate(${state.angle}rad)`,

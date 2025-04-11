@@ -146,73 +146,112 @@ export function usePerformanceMonitor(options: QualityAdjustmentOptions = {}) {
     paintEndTime: 0
   });
   
-  /**
-   * Start performance monitoring
-   */
-  const startMonitoring = useCallback(() => {
-    if (isMonitoringRef.current) return;
+  // --- Quality Adjustment Callbacks --- 
+  const downgradeQuality = useCallback(() => {
+    const tiers = [
+      QualityTier.ULTRA,
+      QualityTier.HIGH,
+      QualityTier.MEDIUM,
+      QualityTier.LOW,
+      QualityTier.MINIMAL
+    ];
     
-    isMonitoringRef.current = true;
-    lastFrameTimeRef.current = performance.now();
-    frameCountRef.current = 0;
-    lastSampleTimeRef.current = performance.now();
+    const currentIndex = tiers.indexOf(qualityTier);
     
-    // Start frame monitoring
-    const monitorFrame = () => {
-      const now = performance.now();
-      const frameTime = now - lastFrameTimeRef.current;
-      lastFrameTimeRef.current = now;
-      
-      // Skip the first frame as it might have initialization overhead
-      if (frameCountRef.current > 0) {
-        frameTimeRef.current = frameTime;
-        
-        // Check if we need to take a sample
-        if (now - lastSampleTimeRef.current >= (config.sampleInterval || 500)) {
-          takeSample();
-          lastSampleTimeRef.current = now;
-        }
-      }
-      
-      frameCountRef.current++;
-      animationFrameIdRef.current = requestAnimationFrame(monitorFrame);
-    };
-    
-    // Start the monitoring
-    animationFrameIdRef.current = requestAnimationFrame(monitorFrame);
-    
-    // Also enable quality tier performance monitoring
-    startPerformanceMonitoring();
-  }, [config.sampleInterval, startPerformanceMonitoring]);
-  
-  /**
-   * Stop performance monitoring
-   */
-  const stopMonitoring = useCallback(() => {
-    if (!isMonitoringRef.current) return;
-    
-    if (animationFrameIdRef.current !== null) {
-      cancelAnimationFrame(animationFrameIdRef.current);
-      animationFrameIdRef.current = null;
+    if (currentIndex < tiers.length - 1) {
+      // Move down one tier
+      setQualityPreference(tiers[currentIndex + 1]);
     }
-    
-    isMonitoringRef.current = false;
-    
-    // Also disable quality tier performance monitoring
-    stopPerformanceMonitoring();
-  }, [stopPerformanceMonitoring]);
+  }, [qualityTier, setQualityPreference]);
   
-  /**
-   * Take a performance sample
-   */
+  const upgradeQuality = useCallback(() => {
+    const tiers = [
+      QualityTier.ULTRA,
+      QualityTier.HIGH,
+      QualityTier.MEDIUM,
+      QualityTier.LOW,
+      QualityTier.MINIMAL
+    ];
+    
+    const currentIndex = tiers.indexOf(qualityTier);
+    
+    if (currentIndex > 0) {
+      // Move up one tier
+      setQualityPreference(tiers[currentIndex - 1]);
+    }
+  }, [qualityTier, setQualityPreference]);
+
+  // --- Performance Check Logic (Original version) --- 
+  const checkPerformance = useCallback((currentFps: number) => {
+     // console.log('[checkPerformance] FPS:', currentFps);
+     const targetFps = config.targetFps || 60;
+     const minFps = config.minFpsThreshold || 45;
+     const now = performance.now();
+     
+     if (currentFps < minFps) {
+       setConsecutiveHighFpsFrames(0);
+       setConsecutiveLowFpsFrames(prev => prev + 1);
+       
+       const downgradeCooldown = config.downgradeCooldown || 2000;
+       const timeSinceLastAdjustment = now - lastAdjustmentTime;
+       
+       // Use state value directly here (may be stale in callback)
+       if (
+         consecutiveLowFpsFrames > 3 && 
+         timeSinceLastAdjustment > downgradeCooldown &&
+         config.adjustQualityTier
+       ) {
+         // console.log('[checkPerformance] Downgrading quality...');
+         downgradeQuality();
+         setLastAdjustmentTime(now);
+         setConsecutiveLowFpsFrames(0); 
+       }
+       setIsPerformanceIssue(true);
+
+     } else if (currentFps >= targetFps) {
+       setConsecutiveLowFpsFrames(0);
+       setConsecutiveHighFpsFrames(prev => prev + 1);
+
+       const upgradeCooldown = config.upgradeCooldown || 10000;
+       const timeSinceLastAdjustment = now - lastAdjustmentTime;
+       
+       // Use state value directly here (may be stale in callback)
+       if (
+         consecutiveHighFpsFrames > 20 && 
+         timeSinceLastAdjustment > upgradeCooldown &&
+         config.adjustQualityTier &&
+         autoAdjusted 
+       ) {
+         // console.log('[checkPerformance] Upgrading quality...');
+         upgradeQuality();
+         setLastAdjustmentTime(now);
+         setConsecutiveHighFpsFrames(0); 
+       }
+       setIsPerformanceIssue(false);
+
+     } else {
+       setConsecutiveLowFpsFrames(0);
+       setConsecutiveHighFpsFrames(0);
+     }
+  }, [
+    config.targetFps, 
+    config.minFpsThreshold,
+    config.downgradeCooldown,
+    config.upgradeCooldown,
+    config.adjustQualityTier,
+    lastAdjustmentTime, // Keep original state dependencies
+    consecutiveLowFpsFrames, 
+    consecutiveHighFpsFrames, 
+    autoAdjusted,
+    downgradeQuality,
+    upgradeQuality
+  ]);
+
+  // --- Sampling Logic (Original version) --- 
   const takeSample = useCallback(() => {
+    // console.log('[takeSample] Running'); 
     const now = performance.now();
-    
-    // Calculate FPS from frame time
-    const fps = frameTimeRef.current > 0 
-      ? Math.min(1000 / frameTimeRef.current, 120) // Cap at 120fps
-      : 60; // Default if no frame time data yet
-    
+    const fps = frameTimeRef.current > 0 ? Math.min(1000 / frameTimeRef.current, 120) : 60;
     const sample: PerformanceSample = {
       timestamp: now,
       metrics: {
@@ -237,11 +276,8 @@ export function usePerformanceMonitor(options: QualityAdjustmentOptions = {}) {
       const memoryUsage = null; // Removed performance.memory usage
     }
     
-    // Add to samples, keeping only the most recent samples
     setSamples(prevSamples => {
       const newSamples = [...prevSamples, sample].slice(-(config.sampleSize || 20));
-      
-      // Calculate average metrics
       const averages: Partial<Record<PerformanceMetricType, number>> = {};
       
       // For each metric type
@@ -261,141 +297,80 @@ export function usePerformanceMonitor(options: QualityAdjustmentOptions = {}) {
       // Set average metrics
       setAverageMetrics(averages);
       
-      // Check for performance issues
       const avgFps = averages[PerformanceMetricType.FPS];
+      // console.log('[takeSample] Avg FPS:', avgFps);
       if (avgFps !== undefined) {
-        checkPerformance(avgFps);
+        checkPerformance(avgFps); // Call original checkPerformance
       }
-      
       return newSamples;
     });
-  }, [config.collectDetailedMetrics, config.sampleSize]);
-  
-  /**
-   * Check performance against thresholds and adjust if needed
-   */
-  const checkPerformance = useCallback((currentFps: number) => {
-    const targetFps = config.targetFps || 60;
-    const minFps = config.minFpsThreshold || 45;
-    const now = performance.now();
+  }, [config.collectDetailedMetrics, config.sampleSize, checkPerformance]);
+
+  // --- Monitoring Start/Stop (Original version) --- 
+  const startMonitoring = useCallback(() => {
+    if (isMonitoringRef.current) return;
+    isMonitoringRef.current = true;
+    lastFrameTimeRef.current = performance.now();
+    frameCountRef.current = 0;
+    lastSampleTimeRef.current = performance.now();
     
-    if (currentFps < minFps) {
-      // Track consecutive low FPS frames
-      setConsecutiveLowFpsFrames(prev => prev + 1);
-      setConsecutiveHighFpsFrames(0);
+    const monitorFrame = () => {
+      // console.log('[monitorFrame] Running'); // Add log
+      const now = performance.now();
+      const frameTime = now - lastFrameTimeRef.current;
+      lastFrameTimeRef.current = now;
       
-      // Check if we need to reduce quality
-      const downgradeCooldown = config.downgradeCooldown || 2000;
-      const timeSinceLastAdjustment = now - lastAdjustmentTime;
-      
-      if (
-        consecutiveLowFpsFrames > 3 && 
-        timeSinceLastAdjustment > downgradeCooldown &&
-        config.adjustQualityTier
-      ) {
-        // Downgrade quality tier
-        downgradeQuality();
-        setLastAdjustmentTime(now);
-        setConsecutiveLowFpsFrames(0);
+      if (frameCountRef.current > 0) {
+        frameTimeRef.current = frameTime;
+        
+        if (now - lastSampleTimeRef.current >= (config.sampleInterval || 500)) {
+          // console.log('[monitorFrame] Taking sample'); // Add log
+          takeSample();
+          lastSampleTimeRef.current = now;
+        }
       }
       
-      setIsPerformanceIssue(true);
-    } else if (currentFps >= targetFps) {
-      // Track consecutive high FPS frames
-      setConsecutiveHighFpsFrames(prev => prev + 1);
-      setConsecutiveLowFpsFrames(0);
-      
-      // Check if we can increase quality
-      const upgradeCooldown = config.upgradeCooldown || 10000;
-      const timeSinceLastAdjustment = now - lastAdjustmentTime;
-      
-      if (
-        consecutiveHighFpsFrames > 20 && 
-        timeSinceLastAdjustment > upgradeCooldown &&
-        config.adjustQualityTier &&
-        autoAdjusted // Only upgrade if we previously auto-adjusted
-      ) {
-        // Upgrade quality tier
-        upgradeQuality();
-        setLastAdjustmentTime(now);
-        setConsecutiveHighFpsFrames(0);
+      frameCountRef.current++;
+      // Add check for isMonitoringRef before scheduling next frame
+      if (isMonitoringRef.current) { 
+          animationFrameIdRef.current = requestAnimationFrame(monitorFrame);
       }
-      
-      setIsPerformanceIssue(false);
-    } else {
-      // Reset counters for middle range FPS
-      setConsecutiveLowFpsFrames(0);
-      setConsecutiveHighFpsFrames(0);
-    }
-  }, [
-    config.targetFps, 
-    config.minFpsThreshold,
-    config.downgradeCooldown,
-    config.upgradeCooldown,
-    config.adjustQualityTier,
-    lastAdjustmentTime,
-    consecutiveLowFpsFrames,
-    consecutiveHighFpsFrames,
-    autoAdjusted
-  ]);
+    };
+    
+    // Start the monitoring
+    // console.log('[startMonitoring] Scheduling first frame'); // Add log
+    animationFrameIdRef.current = requestAnimationFrame(monitorFrame);
+    
+    // Also enable quality tier performance monitoring
+    startPerformanceMonitoring();
+  }, [config.sampleInterval, startPerformanceMonitoring, takeSample]);
   
-  /**
-   * Downgrade quality tier
-   */
-  const downgradeQuality = useCallback(() => {
-    const tiers = [
-      QualityTier.ULTRA,
-      QualityTier.HIGH,
-      QualityTier.MEDIUM,
-      QualityTier.LOW,
-      QualityTier.MINIMAL
-    ];
+  const stopMonitoring = useCallback(() => {
+    if (!isMonitoringRef.current) return;
     
-    const currentIndex = tiers.indexOf(qualityTier);
-    
-    if (currentIndex < tiers.length - 1) {
-      // Move down one tier
-      setQualityPreference(tiers[currentIndex + 1]);
+    if (animationFrameIdRef.current !== null) {
+      cancelAnimationFrame(animationFrameIdRef.current);
+      animationFrameIdRef.current = null;
     }
-  }, [qualityTier, setQualityPreference]);
-  
-  /**
-   * Upgrade quality tier
-   */
-  const upgradeQuality = useCallback(() => {
-    const tiers = [
-      QualityTier.ULTRA,
-      QualityTier.HIGH,
-      QualityTier.MEDIUM,
-      QualityTier.LOW,
-      QualityTier.MINIMAL
-    ];
     
-    const currentIndex = tiers.indexOf(qualityTier);
+    isMonitoringRef.current = false;
     
-    if (currentIndex > 0) {
-      // Move up one tier
-      setQualityPreference(tiers[currentIndex - 1]);
-    }
-  }, [qualityTier, setQualityPreference]);
-  
-  /**
-   * Enable performance monitoring and quality adjustment
-   */
+    // Also disable quality tier performance monitoring
+    stopPerformanceMonitoring();
+  }, [stopPerformanceMonitoring]);
+
+  // --- Public Control Functions --- 
   const enable = useCallback(() => {
     setIsEnabled(true);
     startMonitoring();
   }, [startMonitoring]);
   
-  /**
-   * Disable performance monitoring and quality adjustment
-   */
   const disable = useCallback(() => {
     setIsEnabled(false);
     stopMonitoring();
   }, [stopMonitoring]);
-  
-  // Start/stop monitoring when enabled state changes
+
+  // --- Main Effect --- 
   useEffect(() => {
     if (isEnabled) {
       startMonitoring();
@@ -407,7 +382,8 @@ export function usePerformanceMonitor(options: QualityAdjustmentOptions = {}) {
       stopMonitoring();
     };
   }, [isEnabled, startMonitoring, stopMonitoring]);
-  
+
+  // --- Return Value --- 
   return {
     /** Whether performance monitoring is enabled */
     isEnabled,

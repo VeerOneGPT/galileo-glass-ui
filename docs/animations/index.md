@@ -22,9 +22,15 @@ The Galileo animation system is built around a few core concepts:
    - Now with improved TypeScript support in v1.0.19 through the new `PublicAnimationStage` type system
    - Simplified API makes creating complex animation sequences more intuitive
 
-4. **Accessibility:** Features like `useReducedMotion` ensure animations respect user preferences and device capabilities.
+4. **Event-Based State Transitions:** The refactored `useGameAnimation` hook (v1.0.28+) provides a powerful system for state-based animations with:
+   - Event emitter pattern for predictable state transitions 
+   - Middleware support for logging, error recovery, and performance monitoring
+   - AbortController pattern for cleaner resource management
+   - Improved error handling for interrupted animations
 
-5. **Performance:** Adaptive quality tiers and optimizations ensure animations run smoothly across devices.
+5. **Accessibility:** Features like `useReducedMotion` ensure animations respect user preferences and device capabilities.
+
+6. **Performance:** Adaptive quality tiers and optimizations ensure animations run smoothly across devices.
 
 ## Documentation Sections
 
@@ -33,10 +39,14 @@ The Galileo animation system is built around a few core concepts:
 *   **[Gesture Physics](./gesture-physics.md):** Documentation for `useGesturePhysics` and related gesture handling.
 *   **[Magnetic Effects](./magnetic-effects.md):** Documentation for `useMagneticElement`.
 *   **[Animation Orchestration](./orchestration.md):** Deep dive into `useAnimationSequence` for creating complex animation sequences.
+*   **[Game Animation](./game-animation.md):** Documentation for the `useGameAnimation` hook for state-based animations.
 *   **[Animation Context & Configuration](./context-config.md):** Understand how to use `AnimationProvider` and `useAnimationContext` for global settings and presets.
 *   **[Accessibility](./accessibility.md):** Details on `useReducedMotion` and building accessible animations.
+*   **[Migration Guide](../migrations/ANIMATION-SYSTEM-MIGRATION-GUIDE.md):** Guide for migrating to the refactored event-based animation system (v1.0.28+).
 
 Choose the appropriate section based on your needs:
 - For custom physics simulations or game-like mechanics, start with the Physics Engine API.
 - For common UI interactions, use the Core Physics Hooks.
 - For complex animations, refer to Animation Orchestration.
+- For state-based transitions in components or applications, use the Game Animation Framework.
+- For migrating from the older animation system to the new event-based system, see the Migration Guide.

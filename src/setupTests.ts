@@ -73,3 +73,53 @@ global.performance = {
 //   unobserve: jest.fn(),
 //   disconnect: jest.fn(),
 // }));
+
+// Polyfill for requestAnimationFrame (needed for some animation tests in JSDOM)
+global.requestAnimationFrame = (callback) => {
+  return setTimeout(callback, 0);
+};
+
+global.cancelAnimationFrame = (id) => {
+  clearTimeout(id);
+};
+
+// Mock for ResizeObserver (often needed in component tests)
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// Mock sessionStorage (if needed)
+const sessionStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] || null,
+    setItem: (key: string, value: string) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+  };
+})();
+Object.defineProperty(window, 'sessionStorage', {
+  value: sessionStorageMock,
+});
+
+// Mock window.scrollTo
+Object.defineProperty(window, 'scrollTo', { value: jest.fn(), writable: true });
+
+// Mock IntersectionObserver
+global.IntersectionObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+  takeRecords: jest.fn(() => []),
+  root: null,
+  rootMargin: '',
+  thresholds: [],
+}));

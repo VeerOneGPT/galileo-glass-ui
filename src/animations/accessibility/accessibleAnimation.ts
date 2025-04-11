@@ -8,7 +8,7 @@ import { css, FlattenSimpleInterpolation, Keyframes } from 'styled-components';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useAnimationSpeed } from '../../hooks/useAnimationSpeed';
 import { presets } from '../presets';
-import { AnimationPreset, AccessibleAnimationOptions } from '../types';
+import { AnimationPreset, AccessibleAnimationOptions } from '../core/types';
 
 import { animationMapper } from './AnimationMapper';
 import {
@@ -139,9 +139,13 @@ export const accessibleAnimation = (
   if (typeof mapped.animation === 'string') {
     keyframeName = mapped.animation;
   } else if ('keyframes' in mapped.animation && mapped.animation.keyframes) {
-    keyframeName = mapped.animation.keyframes.name;
+    keyframeName = typeof mapped.animation.keyframes === 'string' 
+      ? mapped.animation.keyframes 
+      : mapped.animation.keyframes.name || 'unknown-animation';
   } else if ('animation' in mapped.animation && mapped.animation.animation) {
-    keyframeName = mapped.animation.animation.name;
+    keyframeName = typeof mapped.animation.animation === 'string'
+      ? mapped.animation.animation
+      : (mapped.animation.animation as Keyframes).name || 'unknown-animation';
   } else if ('name' in mapped.animation) {
     // Direct keyframes object
     keyframeName = mapped.animation.name;
@@ -283,8 +287,8 @@ export const getAccessibleKeyframes = (
           typeof preset.keyframes === 'object' && 
           'name' in preset.keyframes && 
           preset.keyframes.name === animationName) {
-        // Force cast to Keyframes type to satisfy the interface requirements
-        return preset.keyframes as any;
+        // Return the found keyframes with proper type assertion
+        return preset.keyframes as Keyframes;
       }
     }
 
@@ -294,11 +298,13 @@ export const getAccessibleKeyframes = (
     typeof mapped.animation === 'object' &&
     'keyframes' in mapped.animation
   ) {
-    return mapped.animation.keyframes;
+    return typeof mapped.animation.keyframes === 'string'
+      ? null // Can't return a string as Keyframes
+      : mapped.animation.keyframes;
   } else {
     // If it's already a Keyframes object or needs to be cast as one
-    return (mapped.animation && typeof mapped.animation === 'object') 
-      ? (mapped.animation as any) 
+    return (mapped.animation && typeof mapped.animation === 'object' && 'name' in mapped.animation) 
+      ? (mapped.animation as Keyframes) 
       : null;
   }
 };

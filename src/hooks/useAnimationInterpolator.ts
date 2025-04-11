@@ -475,6 +475,7 @@ export function useAnimationInterpolator(
       cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
       pauseTimeRef.current = performance.now();
+      setIsTransitioning(false);
     }
   }, [isTransitioning]);
   
@@ -487,6 +488,9 @@ export function useAnimationInterpolator(
         targetStateRef.current !== null && 
         currentStateRef.current !== null &&
         interpolatorRef.current !== null) {
+      
+      // Set as transitioning immediately
+      setIsTransitioning(true);
       
       // Calculate new start time to maintain correct progress
       const pauseDuration = performance.now() - pauseTimeRef.current;
@@ -531,9 +535,6 @@ export function useAnimationInterpolator(
           interpolatorRef.current = null;
         }
       };
-      
-      // Set as transitioning
-      setIsTransitioning(true);
       
       // Start animation loop
       animationRef.current = requestAnimationFrame(animate);

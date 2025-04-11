@@ -63,7 +63,7 @@ describe('useMagneticEffect', () => {
     });
     act(() => {
        const moveEvent = new MouseEvent('mousemove', { clientX: 150, clientY: 125, bubbles: true, cancelable: true });
-       fireEvent(window, moveEvent); 
+       fireEvent(document, moveEvent); 
     });
 
     // Advance timers & run pending
@@ -90,7 +90,7 @@ describe('useMagneticEffect', () => {
     act(() => {
         fireEvent.mouseEnter(targetElement);
         const moveEvent = new MouseEvent('mousemove', { clientX: 150, clientY: 125, bubbles: true, cancelable: true });
-        fireEvent(window, moveEvent); 
+        fireEvent(document, moveEvent); 
         jest.advanceTimersByTime(16.667);
         jest.runOnlyPendingTimers(); 
     });
@@ -102,9 +102,16 @@ describe('useMagneticEffect', () => {
         fireEvent.mouseLeave(targetElement); 
     });
 
+    // Ensure mousemove runs outside radius to trigger active = false
+    act(() => {
+       const moveEvent = new MouseEvent('mousemove', { clientX: 500, clientY: 500, bubbles: true, cancelable: true }); // Far outside radius
+       fireEvent(document, moveEvent); 
+    });
+
     // Advance timers & run pending
     act(() => {
-        jest.advanceTimersByTime(500);
+        // Increase time to allow reset animation to complete
+        jest.advanceTimersByTime(2000); 
         jest.runOnlyPendingTimers();
     });
 
@@ -130,7 +137,7 @@ describe('useMagneticEffect', () => {
     act(() => {
       fireEvent.mouseEnter(targetElement);
       const moveEvent = new MouseEvent('mousemove', { clientX: 150, clientY: 125, bubbles: true, cancelable: true });
-      fireEvent(window, moveEvent);
+      fireEvent(document, moveEvent);
       jest.advanceTimersByTime(16.667); 
       jest.runOnlyPendingTimers();
     });

@@ -56,8 +56,10 @@ The Galileo Glass UI features a powerful, integrated physics-based animation sys
 | [**Physics Engine API**](./physics/engine-api.md) | Direct access to the physics engine (v1.0.8+) |
 | [**Physics Interaction Hook**](./hooks/physics-interaction.md) | Documentation for physics interaction hooks (`useGalileoPhysicsEngine`, `usePhysicsEngine` (alias), `usePhysicsInteraction`, etc.) |
 | [**Sequence Orchestration**](./animations/orchestration.md) | Guide to `useAnimationSequence` for complex, timed animations |
+| [**Game Animation**](./animations/game-animation.md) | State-based animation system with event emitter pattern (v1.0.28+) |
 | [**Context & Configuration**](./animations/context-config.md) | Using `AnimationProvider` and presets for global configuration |
 | [**Accessibility**](./animations/accessibility.md) | Details on `useReducedMotion` and accessibility features |
+| [**Migration Guide**](./migrations/ANIMATION-SYSTEM-MIGRATION-GUIDE.md) | Guide for migrating to the refactored event-based animation system (v1.0.28+) |
 | [**(WIP) Transition Hooks**](./animations/transition-hooks.md) | Documentation for state/transition hooks (e.g., `useTransitioningState`) |
 
 ## Performance & Optimization

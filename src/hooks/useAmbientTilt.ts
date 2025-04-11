@@ -42,7 +42,12 @@ export const useAmbientTilt = (options?: AmbientTiltOptions): { style: CSSProper
   // Merge provided options with defaults
   const config: RequiredAmbientTiltOptions = { ...defaultOptions, ...options };
   
-  const [style, setStyle] = useState<React.CSSProperties>({});
+  // Initialize style with defaults
+  const [style, setStyle] = useState<React.CSSProperties>(() => ({
+    perspective: `${config.perspective}px`,
+    transform: 'rotateX(0deg) rotateY(0deg)',
+    willChange: 'transform',
+  }));
   const rafId = useRef<number | null>(null);
   const currentRotation = useRef({ x: 0, y: 0 });
   const targetRotation = useRef({ x: 0, y: 0 });
@@ -139,12 +144,13 @@ export const useAmbientTilt = (options?: AmbientTiltOptions): { style: CSSProper
       const deltaXNorm = clamp(deltaX / centerX, -1, 1);
       const deltaYNorm = clamp(deltaY / centerY, -1, 1);
       
-      targetRotation.current.y = deltaXNorm * config.maxRotateY; 
-      targetRotation.current.x = -deltaYNorm * config.maxRotateX; 
+      // Correct axis mapping and signs (attempt 2)
+      targetRotation.current.x = deltaYNorm * config.maxRotateX; // Positive Y mouse -> Positive X rotation
+      targetRotation.current.y = -deltaXNorm * config.maxRotateY; // Positive X mouse -> Negative Y rotation
     };
     
     // Add listener and start loop if enabled
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove); // Remove options object
     // Start the loop using the ref callback
     if (!rafId.current && updateStyleCallback.current) {
         rafId.current = requestAnimationFrame(updateStyleCallback.current);
@@ -152,7 +158,7 @@ export const useAmbientTilt = (options?: AmbientTiltOptions): { style: CSSProper
 
     // Cleanup function
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousemove', handleMouseMove); // Remove options object
       if (rafId.current) cancelAnimationFrame(rafId.current);
       rafId.current = null;
     };

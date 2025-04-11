@@ -151,3 +151,115 @@ import {
 - Fixed initial state issues (Bug #20)
 - Improved robustness of sequence execution logic
 
+### Integration with Event-Based Animation System (v1.0.28+)
+
+The `useAnimationSequence` hook can be effectively combined with the refactored event-based animation system introduced in v1.0.28:
+
+```tsx
+import React, { useEffect } from 'react';
+import { 
+  useAnimationSequence, 
+  useGameAnimation, 
+  GameAnimationEventType 
+} from '@veerone/galileo-glass-ui';
+
+function CombinedAnimationExample() {
+  // Set up the game animation controller
+  const gameAnimation = useGameAnimation({
+    initialState: 'idle',
+    states: [
+      { id: 'idle', name: 'Idle State' },
+      { id: 'active', name: 'Active State' }
+    ],
+    transitions: [
+      { from: 'idle', to: 'active', type: 'fade', duration: 500 }
+    ]
+  });
+  
+  // Define animation sequence for detailed element animations
+  const sequence = useAnimationSequence({
+    id: 'elementSequence',
+    stages: [
+      {
+        id: 'fadeIn',
+        type: 'style',
+        targets: '.item',
+        properties: { opacity: 1 },
+        from: { opacity: 0 },
+        duration: 300
+      },
+      {
+        id: 'slideIn',
+        type: 'stagger',
+        targets: '.item',
+        properties: { transform: 'translateY(0)' },
+        from: { transform: 'translateY(20px)' },
+        duration: 500,
+        staggerDelay: 100,
+        dependsOn: ['fadeIn']
+      }
+    ],
+    autoplay: false
+  });
+  
+  // Connect the two systems via the event emitter
+  useEffect(() => {
+    if (!gameAnimation.getEventEmitter) return;
+    
+    const emitter = gameAnimation.getEventEmitter();
+    const unsubscribe = emitter.on(GameAnimationEventType.STATE_CHANGE, (event) => {
+      if (event.data.newStateId === 'active') {
+        // Start sequence when transitioning to active state
+        sequence.play();
+      } else if (event.data.newStateId === 'idle') {
+        // Reset sequence when returning to idle
+        sequence.stop();
+        sequence.reset();
+      }
+    });
+    
+    return unsubscribe;
+  }, [gameAnimation, sequence]);
+  
+  // Button to trigger state change
+  const handleActivate = () => {
+    gameAnimation.transitionTo('active');
+  };
+  
+  return (
+    <div>
+      <button onClick={handleActivate}>
+        Activate
+      </button>
+      <div className="animation-container">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="item">
+            Item {i}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+This integration pattern offers several advantages:
+
+1. **Hierarchical Animation Control**:
+   - Use `useGameAnimation` for high-level state management
+   - Use `useAnimationSequence` for detailed, element-specific animations
+
+2. **Event-Driven Coordination**:
+   - Trigger sequences in response to state changes
+   - Maintain consistent animation state throughout the application
+
+3. **Enhanced Debugging**:
+   - Use logging middleware to track sequence execution
+   - Monitor performance of complex animations
+
+4. **Optimized Resource Usage**:
+   - Avoid running animations when not needed
+   - Coordinate multiple animations efficiently
+
+For complex applications with many animated components, this combined approach provides both the flexibility of sequence-based animations and the reliability of the event-based system.
+

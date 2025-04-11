@@ -147,7 +147,9 @@ describe('GlassDataGrid Component', () => {
     // The DimensionalGlass component should have a height style
     const table = screen.getByRole('table');
     const container = table.closest('div'); // Get the DimensionalGlass container
+    expect(container).toBeInTheDocument(); // Ensure container exists
     
+    // Check inline style attribute now
     expect(container).toHaveStyle('height: 300px');
     expect(container).toHaveStyle('overflow-y: auto');
   });

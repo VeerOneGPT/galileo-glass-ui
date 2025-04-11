@@ -71,7 +71,7 @@ export interface MouseCursorEffectOptions {
 /**
  * Type for cursor position
  */
-interface CursorPosition {
+export interface CursorPosition {
   x: number;
   y: number;
   prevX: number;

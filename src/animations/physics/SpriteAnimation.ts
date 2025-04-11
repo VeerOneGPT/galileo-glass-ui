@@ -942,9 +942,15 @@ export function createAnimationFromSpritesheet(
   } = options;
   
   const frames: SpriteFrame[] = [];
+  const sheetManager = SpriteSheetManager.getInstance();
+  const sheet = sheetManager.getSheet(spritesheet.src);
+  
+  if (!sheet) {
+    throw new Error(`Spritesheet not found: ${spritesheet.src}`);
+  }
   
   for (let i = startFrame; i <= endFrame; i++) {
-    const coords = SpriteSheetManager.getInstance().getFrameCoordinates(id, i);
+    const coords = sheetManager.getFrameCoordinates(spritesheet.src, i);
     
     if (!coords) {
       throw new Error(`Invalid frame index: ${i}`);

@@ -92,8 +92,18 @@ export const useMagneticEffect = (options: MagneticEffectOptions = {}) => {
     : scaleAmplitude;
 
   useEffect(() => {
+    // === Removed early exit ===
+
     const element = elementRef.current;
     if (!element) return;
+
+    // === Refined Reduced Motion Handling ===
+    if (combinedOptions.reducedMotion) {
+      element.style.transform = 'translate3d(0px, 0px, 0px) scale(1) rotate(0deg)';
+      element.style.transition = ''; // Ensure no transition
+      return; // Skip listeners and animation setup
+    }
+    // =====================================
     
     // Apply smooth transition if enabled
     if (smooth) {
@@ -131,6 +141,17 @@ export const useMagneticEffect = (options: MagneticEffectOptions = {}) => {
         }
       } else {
         transformRef.current.active = false;
+        // === Removed Immediate Reset on Leave ===
+        // if (requestRef.current) {
+        //   cancelAnimationFrame(requestRef.current);
+        //   requestRef.current = undefined;
+        // }
+        // if (element) { // Ensure element still exists
+        //     element.style.transform = 'translate3d(0px, 0px, 0px) scale(1) rotate(0deg)';
+        //     // Optionally reset transition if it was added
+        //     // element.style.transition = ''; 
+        // }
+        // ======================================
       }
     };
     
@@ -161,7 +182,8 @@ export const useMagneticEffect = (options: MagneticEffectOptions = {}) => {
           Math.abs(transform.rotation) < 0.1 && 
           Math.abs(transform.scale - 1) < 0.01
         ) {
-          element.style.transform = '';
+          // Explicitly set to the zero state instead of empty string
+          element.style.transform = 'translate3d(0px, 0px, 0px) scale(1) rotate(0deg)';
           if (requestRef.current) {
             cancelAnimationFrame(requestRef.current);
             requestRef.current = undefined;
@@ -317,12 +339,15 @@ export const useMagneticEffect = (options: MagneticEffectOptions = {}) => {
         }
       }
       
-      // Apply the transform
-      element.style.transform = `
-        translate(${transform.x}px, ${transform.y}px)
-        ${affectsRotation ? `rotate(${transform.rotation}deg)` : ''}
-        ${affectsScale ? `scale(${transform.scale})` : ''}
+      // Construct the transform string
+      const transformString = `
+        translate3d(${transform.x.toFixed(1)}px, ${transform.y.toFixed(1)}px, 0px)
+        ${affectsRotation ? `rotate(${transform.rotation.toFixed(1)}deg)` : ''}
+        ${affectsScale ? `scale(${transform.scale.toFixed(2)})` : ''}
       `;
+      
+      // Apply the transform
+      element.style.transform = transformString.trim(); // Apply the calculated transform
       
       // Continue animation
       requestRef.current = requestAnimationFrame(updatePosition);
@@ -340,9 +365,9 @@ export const useMagneticEffect = (options: MagneticEffectOptions = {}) => {
         requestRef.current = undefined;
       }
       
-      // Reset element transform
+      // Reset element transform to explicit zero state
       if (element) {
-        element.style.transform = '';
+        element.style.transform = 'translate3d(0px, 0px, 0px) scale(1) rotate(0deg)';
         element.style.transition = '';
       }
     };

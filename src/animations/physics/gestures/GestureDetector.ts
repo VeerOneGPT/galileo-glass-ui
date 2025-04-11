@@ -436,6 +436,7 @@ export class GestureDetector {
     } else {
       // Start long press timer
       this.clearLongPressTimer();
+      const longPressDelay = this.options.longPressTimeThreshold ?? 500;
       this.longPressTimer = window.setTimeout(() => {
         if (this.isActive && !this.multiTouchActive && this.interactionStartPosition) {
            const currentPos = this.interactionStartPosition; // Use start pos for check
@@ -453,10 +454,12 @@ export class GestureDetector {
               )
             );
             this.interactionStartTime = null; // Consumed by long press
+          } else {
           }
+        } else {
         }
         this.longPressTimer = null;
-      }, this.options.longPressTimeThreshold ?? 500);
+      }, longPressDelay);
       
       // Record potential tap time
       this.lastTapTime = this.interactionStartTime;
@@ -890,6 +893,8 @@ export class GestureDetector {
     
     const touches = event.changedTouches;
     const now = Date.now();
+    let wasMultiTouchActive = this.multiTouchActive; // Remember if we started in multi-touch mode
+    let lastProcessedTrackerData: TrackedTouch | null = null; // To store data before deletion
     
     // Process ended touches
     for (let i = 0; i < touches.length; i++) {
@@ -906,8 +911,13 @@ export class GestureDetector {
            tracker.lastTime - tracker.startTime
         );
 
+        // Store a copy of the tracker data *before* deleting it
+        // This ensures we have reference data even if this is the last touch being removed
+        lastProcessedTrackerData = { ...tracker }; 
+
         // Single touch end checks (Tap, Swipe, Pan End)
-        if (Object.keys(this.touchTracker).length === 1 && !this.multiTouchActive) { 
+        // Check if ONLY this touch was active before deleting it
+        if (Object.keys(this.touchTracker).length === 1 && !wasMultiTouchActive) { 
           const panData = this.createGestureData(
             GestureType.PAN,
             GestureState.ENDED,
@@ -956,28 +966,26 @@ export class GestureDetector {
           }
         }
         
-        // Remove the touch from tracking
+        // Remove the touch from tracking AFTER potentially using its data and storing a copy
         delete this.touchTracker[touch.identifier];
       }
     }
     
-    // Check if multi-touch ended
-    const activeTouches = Object.values(this.touchTracker);
-    if (this.multiTouchActive && activeTouches.length < 2) {
+    // Check if multi-touch sequence ended (went from >=2 touches to <2)
+    const activeTouchesCount = Object.keys(this.touchTracker).length;
+    if (wasMultiTouchActive && activeTouchesCount < 2) {
       this.multiTouchActive = false;
-      // End Pinch and Rotate gestures if they were active
-      // Use the state of the *first* remaining touch as a reference point
-      const refTouch = activeTouches[0]; 
-      if (refTouch) {
+
+      // Trigger ENDED state for Pinch/Rotate using the data from the *last processed* ending touch
+      if (lastProcessedTrackerData) { 
            this.triggerGestureEvent(
              this.createGestureData(
                GestureType.PINCH,
                GestureState.ENDED,
                event,
-               refTouch.startPosition,
-               refTouch.lastPosition,
-               refTouch.startTime
-               // Final scale/rotation could be added if needed, but ENDED implies final state
+               lastProcessedTrackerData.startPosition, // Use stored data
+               lastProcessedTrackerData.lastPosition,  // Use stored data
+               lastProcessedTrackerData.startTime      // Use stored data
              )
            );
            this.triggerGestureEvent(
@@ -985,24 +993,29 @@ export class GestureDetector {
                GestureType.ROTATE,
                GestureState.ENDED,
                event,
-               refTouch.startPosition,
-               refTouch.lastPosition,
-               refTouch.startTime
+               lastProcessedTrackerData.startPosition, // Use stored data
+               lastProcessedTrackerData.lastPosition,  // Use stored data
+               lastProcessedTrackerData.startTime      // Use stored data
              )
            );
+      } else {
+          // This case should ideally not happen if wasMultiTouchActive was true
+          // and we processed at least one touch in changedTouches, but log just in case.
+          console.warn("GestureDetector: Multi-touch ended but couldn't retrieve last tracker data.");
       }
+
       // Reset multi-touch specific state
       this.initialTouchDistance = 0;
       this.initialTouchAngle = 0;
     }
     
-    // If no touches remain, reset completely
-    if (activeTouches.length === 0) {
+    // If no touches remain active after all processing, reset general interaction state
+    if (activeTouchesCount === 0) {
       this.isActive = false;
       this.clearLongPressTimer();
       this.interactionStartPosition = null;
       this.interactionStartTime = null;
-      // Don't reset lastTapTime here, it might be needed for next start
+      // Don't reset lastTapTime here if a tap was just recognized
     }
   };
   

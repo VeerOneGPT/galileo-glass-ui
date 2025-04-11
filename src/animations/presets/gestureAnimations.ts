@@ -12,7 +12,8 @@ import {
   animationTimings,
   animationEasings,
   AnimationIntensity,
-  fadeAnimation
+  // Unused import prefixed with underscore
+  fadeAnimation as _fadeAnimation
 } from './accessibleAnimations';
 import type { AnimationPreset } from '../core/types';
 
@@ -575,7 +576,7 @@ export const gestureAnimationPresets = {
  */
 export const createGestureAnimationConfig = (
   preset: keyof typeof gestureAnimationPresets | GestureAnimationConfig,
-  customConfig = {}
+  customConfig: Partial<GestureAnimationConfig> = {}
 ) => {
   // Get the preset configuration
   const presetConfig = typeof preset === 'string' 
@@ -592,11 +593,11 @@ export const createGestureAnimationConfig = (
     ...customConfig,
     constraints: {
       ...presetConfig.constraints,
-      ...((customConfig as any).constraints || {}),
+      ...((customConfig as Partial<GestureAnimationConfig>).constraints || {}),
     },
     physicsParams: {
       ...presetConfig.physicsParams,
-      ...((customConfig as any).physicsParams || {}),
+      ...((customConfig as Partial<GestureAnimationConfig>).physicsParams || {}),
     },
   };
   
@@ -604,15 +605,15 @@ export const createGestureAnimationConfig = (
   return {
     gestures: config.gestures,
     preset: config.physicsPreset,
-    tension: config.physicsParams.tension,
-    friction: config.physicsParams.friction,
-    mass: config.physicsParams.mass,
-    velocityScale: config.physicsParams.velocityScale,
-    deceleration: config.physicsParams.deceleration,
-    allowTranslateX: config.constraints.allowTranslateX,
-    allowTranslateY: config.constraints.allowTranslateY,
-    allowScale: config.constraints.allowScale,
-    allowRotate: config.constraints.allowRotate,
-    boundaries: config.constraints.boundaries,
+    tension: config.physicsParams?.tension,
+    friction: config.physicsParams?.friction,
+    mass: config.physicsParams?.mass,
+    velocityScale: config.physicsParams?.velocityScale,
+    deceleration: config.physicsParams?.deceleration,
+    allowTranslateX: config.constraints?.allowTranslateX,
+    allowTranslateY: config.constraints?.allowTranslateY,
+    allowScale: config.constraints?.allowScale,
+    allowRotate: config.constraints?.allowRotate,
+    boundaries: config.constraints?.boundaries,
   };
 };

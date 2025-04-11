@@ -40,7 +40,13 @@ export enum GameEventType {
   ENERGY = 'energy',
   
   /** Custom effect */
-  CUSTOM = 'custom'
+  CUSTOM = 'custom',
+  
+  /** Confetti effect (used in tests) */
+  CONFETTI = 'confetti',
+  
+  /** None effect (used in tests) */
+  NONE = 'none'
 }
 
 /**
@@ -142,69 +148,11 @@ export interface Particle {
 }
 
 /**
- * Particle emitter configuration
- */
-export interface ParticleEmitterConfig {
-  /** Unique emitter ID */
-  id?: string;
-  
-  /** Position of the emitter */
-  position: Vector;
-  
-  /** Direction of emission (or range [min, max] in degrees) */
-  direction?: number | [number, number];
-  
-  /** Speed of emitted particles (or range [min, max]) */
-  speed?: number | [number, number];
-  
-  /** Shape of the emitter */
-  shape?: EmitterShape;
-  
-  /** Size of emitter area */
-  size?: number | { width: number, height: number };
-  
-  /** Emission rate (particles per second) */
-  rate?: number;
-  
-  /** Burst count (for one-time bursts) */
-  burstCount?: number;
-  
-  /** Minimum time between emissions (seconds) */
-  minEmissionInterval?: number;
-  
-  /** Duration of emission (seconds, 0 = forever) */
-  duration?: number;
-  
-  /** If true, emitter moves with its parent element */
-  followElement?: boolean;
-  
-  /** Reference to a DOM element for positioning */
-  element?: HTMLElement | string;
-  
-  /** Configuration for emitted particles */
-  particleConfig?: Partial<ParticleConfig>;
-  
-  /** If true, emitter is active */
-  active?: boolean;
-  
-  /** Forces that apply within this emitter's area */
-  localForces?: Array<{
-    type: 'gravity' | 'wind' | 'vortex' | 'attraction' | 'custom';
-    strength: number;
-    position?: Vector;
-    direction?: Vector;
-    radius?: number;
-    /** For custom forces, a function that calculates the force */
-    calculate?: (particle: Particle, emitter: ParticleEmitter) => Vector;
-  }>;
-}
-
-/**
- * Individual particle configuration
+ * Configuration for individual particles, typically defined within an emitter.
  */
 export interface ParticleConfig {
-  /** Initial size (pixels) or range [min, max] */
-  size: number | [number, number];
+  /** Initial size (pixels) or range [min, max]. If not set, a default might be used. */
+  size?: number | [number, number];
   
   /** Size change over time (pixels/second) */
   sizeVelocity?: number;
@@ -284,10 +232,70 @@ export interface ParticleConfig {
     /** Collision elasticity (0-1) */
     elasticity?: number;
   };
+  
+  /** Number of particles to emit (e.g., for a burst). If not set, emitter rate is used. */
+  count?: number;
 }
 
 /**
- * Particle emitter class
+ * Particle emitter configuration
+ */
+export interface ParticleEmitterConfig {
+  /** Unique emitter ID */
+  id?: string;
+  
+  /** Position of the emitter */
+  position: Vector;
+  
+  /** Direction of emission (degrees) */
+  direction?: number | [number, number];
+  
+  /** Speed of emitted particles */
+  speed?: number | [number, number];
+  
+  /** Shape of the emitter */
+  shape?: EmitterShape;
+  
+  /** Size of emitter area */
+  size?: number | { width: number; height: number };
+  
+  /** Emission rate (particles per second) */
+  rate?: number;
+  
+  /** Burst count (for one-time bursts) */
+  burstCount?: number;
+  
+  /** Minimum time between emissions (seconds) */
+  minEmissionInterval?: number;
+  
+  /** Duration of emission (seconds, 0 = forever) */
+  duration?: number;
+  
+  /** If true, emitter moves with its parent element */
+  followElement?: boolean;
+  
+  /** Reference to a DOM element for positioning */
+  element?: HTMLElement | string;
+  
+  /** Configuration for emitted particles */
+  particleOptions?: Partial<ParticleConfig>;
+  
+  /** If true, emitter is active */
+  active?: boolean;
+  
+  /** Forces that apply within this emitter's area */
+  localForces?: Array<{
+    type: 'gravity' | 'wind' | 'vortex' | 'attraction' | 'custom';
+    strength: number;
+    position?: Vector;
+    direction?: Vector;
+    radius?: number;
+    calculate?: (particle: Particle, emitter: ParticleEmitter) => Vector;
+  }>;
+}
+
+/**
+ * Particle emitter class - Manages emission logic based on config
  */
 export class ParticleEmitter {
   /** Unique ID */
@@ -326,34 +334,27 @@ export class ParticleEmitter {
   /** Time since last emission */
   timeSinceLastEmission = 0;
   
+  /** Accumulated emission debt for fractional rates */
+  emissionDebt = 0;
+  
   /** Particles emitted so far */
   particlesEmitted = 0;
   
-  /** DOM element for positioning */
+  /** Reference element */
   element: HTMLElement | null = null;
   
-  /** Follow element position */
+  /** Follow element flag */
   followElement: boolean;
   
-  /** Particle configuration */
+  /** Particle config */
   particleConfig: Partial<ParticleConfig>;
   
-  /** Is the emitter active */
+  /** Active state */
   active: boolean;
   
   /** Local forces */
-  localForces: Array<{
-    type: 'gravity' | 'wind' | 'vortex' | 'attraction' | 'custom';
-    strength: number;
-    position?: Vector;
-    direction?: Vector;
-    radius?: number;
-    calculate?: (particle: Particle, emitter: ParticleEmitter) => Vector;
-  }>;
+  localForces: NonNullable<ParticleEmitterConfig['localForces']>;
   
-  /**
-   * Create a new particle emitter
-   */
   constructor(config: ParticleEmitterConfig) {
     // Set defaults and configuration
     this.id = config.id || `emitter_${Math.floor(Math.random() * 10000000)}`;
@@ -410,7 +411,7 @@ export class ParticleEmitter {
     }
     
     // Particle configuration
-    this.particleConfig = config.particleConfig || {};
+    this.particleConfig = config.particleOptions || {};
     
     // Active state
     this.active = config.active !== undefined ? config.active : true;
@@ -448,7 +449,6 @@ export class ParticleEmitter {
       };
     }
     
-    // Check if we should emit new particles
     const newParticles: Particle[] = [];
     
     // Burst emission (one-time)
@@ -459,28 +459,21 @@ export class ParticleEmitter {
       this.particlesEmitted += this.burstCount;
     }
     
-    // Continuous emission based on rate
+    // Continuous emission based on rate using emission debt
     if (this.rate > 0) {
-      const particlesToEmit = Math.floor(this.rate * dt);
-      const emissionProbability = this.rate * dt - particlesToEmit;
-      
-      // Ensure minimum interval between emissions
-      if (this.timeSinceLastEmission >= this.minEmissionInterval) {
-        // Emit whole particles
-        for (let i = 0; i < particlesToEmit; i++) {
-          newParticles.push(this.createParticle());
-          this.particlesEmitted++;
-        }
-        
-        // Probabilistic emission for partial particles
-        if (Math.random() < emissionProbability) {
-          newParticles.push(this.createParticle());
-          this.particlesEmitted++;
-        }
-        
-        if (newParticles.length > 0) {
-          this.timeSinceLastEmission = 0;
-        }
+      this.emissionDebt += this.rate * dt; // Accumulate debt
+      const particlesToEmit = Math.floor(this.emissionDebt); // Calculate whole particles to emit
+
+      if (particlesToEmit > 0) {
+         // Check min interval if needed (though debt approach might make this less critical)
+         if (this.timeSinceLastEmission >= this.minEmissionInterval) { 
+            for (let i = 0; i < particlesToEmit; i++) {
+              newParticles.push(this.createParticle());
+              this.particlesEmitted++;
+            }
+            this.emissionDebt -= particlesToEmit; // Subtract emitted particles from debt
+            this.timeSinceLastEmission = 0; // Reset interval timer
+         }
       }
     }
     
@@ -703,6 +696,9 @@ export interface GameParticleSystemConfig {
   
   /** Callback when a particle dies */
   onParticleDeath?: (particle: Particle) => void;
+  
+  /** Presets for specific event types */
+  eventPresets?: { [key in GameEventType | string]?: Partial<GameParticleSystemConfig> };
 }
 
 /**
@@ -714,22 +710,19 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.SUCCESS,
     emitters: [
       {
-        id: 'success-burst',
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.POINT,
-        burstCount: 30,
+        position: { x: 0.5, y: 0.5 }, // Center
+        rate: 0,
+        burstCount: 50,
+        duration: 0.1,
         speed: [100, 300],
-        particleConfig: {
-          size: [4, 10],
-          life: [0.6, 1.2],
-          colors: ['#4CAF50', '#8BC34A', '#CDDC39', '#FFEB3B'],
-          shape: ParticleShape.CIRCLE,
-          opacity: 0.9,
-          finalOpacity: 0,
-          animations: [ParticleAnimationType.FADE, ParticleAnimationType.SCALE],
-          finalSize: 0,
-          damping: 0.8,
-          gravityScale: 0.5
+        direction: [0, 360],
+        particleOptions: {
+          life: [0.5, 1.5],
+          shape: ParticleShape.STAR,
+          colors: ['#FFD700', '#FFA500'], // Gold, Orange
+          size: [5, 15],
+          gravityScale: 0.5,
+          drag: 0.02
         }
       }
     ],
@@ -750,19 +743,19 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.ERROR,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.CIRCLE,
-        size: 20,
-        burstCount: 20,
+        position: { x: 0.5, y: 0.5 }, // Center
+        rate: 0,
+        burstCount: 30,
+        duration: 0.1,
         speed: [50, 150],
-        particleConfig: {
-          size: [5, 8],
-          life: [0.5, 0.8],
-          colors: ['#F44336', '#E91E63', '#FF5722'],
-          shape: ParticleShape.CIRCLE,
-          opacity: 0.9,
-          finalOpacity: 0,
-          animations: [ParticleAnimationType.FADE]
+        direction: [0, 360],
+        particleOptions: {
+          life: [0.3, 0.8],
+          shape: ParticleShape.TRIANGLE,
+          colors: ['#DC143C', '#FF0000'], // Crimson, Red
+          size: [8, 12],
+          gravityScale: 0.3,
+          rotationVelocity: [-180, 180]
         }
       }
     ],
@@ -783,24 +776,20 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.REWARD,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.POINT,
-        burstCount: 40,
-        speed: [200, 400],
-        particleConfig: {
-          size: [8, 15],
-          life: [1, 3],
-          colors: ['#FFD700', '#FFC107', '#FFEB3B', '#FFFFFF'],
-          shape: ParticleShape.STAR,
-          opacity: 1,
-          finalOpacity: 0,
-          animations: [
-            ParticleAnimationType.FADE, 
-            ParticleAnimationType.ROTATE, 
-            ParticleAnimationType.SCALE
-          ],
-          rotationVelocity: [30, 120],
-          finalSize: 3
+        position: { x: 0.5, y: 0.1 }, // Top center, falling down
+        rate: 100,
+        duration: 2,
+        speed: [50, 150],
+        direction: [80, 100], // Downward spread
+        shape: EmitterShape.LINE,
+        size: { width: 0.8, height: 0 }, // Wide line at top
+        particleOptions: {
+          life: [2, 4],
+          shape: ParticleShape.CIRCLE,
+          colors: ['#FFFF00', '#ADFF2F', '#00FFFF', '#FF00FF'], // Yellow, GreenYellow, Aqua, Fuchsia
+          size: [3, 8],
+          gravityScale: 0.2,
+          drag: 0.01
         }
       }
     ],
@@ -826,20 +815,20 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.EXPLOSION,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.POINT,
-        burstCount: 50,
-        speed: [200, 500],
-        particleConfig: {
-          size: [5, 20],
-          life: [0.5, 1.5],
-          colors: ['#FF5722', '#FF9800', '#FFEB3B', '#FFFFFF'],
+        position: { x: 0.5, y: 0.5 }, // Center
+        rate: 0,
+        burstCount: 100,
+        duration: 0.05, // Very short burst
+        speed: [200, 600],
+        direction: [0, 360], // All directions
+        particleOptions: {
+          life: [0.3, 0.8],
           shape: ParticleShape.CIRCLE,
-          opacity: 1,
-          finalOpacity: 0,
-          animations: [ParticleAnimationType.FADE, ParticleAnimationType.SCALE],
-          finalSize: 0,
-          damping: 0.3
+          colors: ['#FFA500', '#FF4500', '#FF0000'], // Orange, OrangeRed, Red
+          size: [2, 8],
+          opacityVelocity: -1.5, // Fade out quickly
+          gravityScale: 0.1, // Less affected by gravity initially
+          drag: 0.03,
         }
       }
     ],
@@ -855,22 +844,19 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.SPARKLE,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.CIRCLE,
-        size: 30,
-        rate: 20,
-        duration: 1,
-        particleConfig: {
-          size: [2, 6],
-          life: [0.5, 1.5],
-          colors: ['#FFFFFF', '#E3F2FD', '#BBDEFB', '#90CAF9'],
+        position: { x: 0.5, y: 0.5 },
+        rate: 50,
+        duration: 0.5,
+        speed: [10, 50],
+        direction: [0, 360],
+        particleOptions: {
+          life: [0.2, 0.6],
           shape: ParticleShape.STAR,
-          opacity: 0.9,
-          finalOpacity: 0,
-          animations: [ParticleAnimationType.FADE, ParticleAnimationType.SCALE],
-          finalSize: 1,
-          rotationVelocity: [60, 180]
-        }
+          colors: ['#FFFFFF', '#FFFACD'], // White, LemonChiffon
+          size: [3, 6],
+          opacityVelocity: -2, // Fade quickly
+          gravityScale: 0, // No gravity
+        },
       }
     ],
     maxParticles: 100,
@@ -885,21 +871,19 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.TRAIL,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.POINT,
-        rate: 30,
-        followElement: true,
-        particleConfig: {
-          size: 6,
-          finalSize: 0,
-          life: [0.3, 0.8],
-          colors: ['#2196F3', '#03A9F4', '#00BCD4'],
+        position: { x: 0, y: 0 },
+        rate: 200, // High rate for smooth trail
+        duration: 0, // Continuous
+        speed: [5, 20], // Low speed relative to emitter
+        direction: [0, 360], // Emit slightly behind
+        particleOptions: {
+          life: [0.3, 0.7],
           shape: ParticleShape.CIRCLE,
-          opacity: 0.7,
-          finalOpacity: 0,
-          animations: [ParticleAnimationType.FADE, ParticleAnimationType.SCALE],
-          damping: 0.9
-        }
+          colors: ['#ADD8E6'], // LightBlue
+          size: [2, 4],
+          opacityVelocity: -1.5,
+          gravityScale: 0,
+        },
       }
     ],
     maxParticles: 150,
@@ -914,21 +898,21 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.IMPACT,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.CIRCLE,
-        size: 10,
-        burstCount: 15,
-        speed: [100, 300],
+        position: { x: 0.5, y: 0.5 },
+        rate: 0,
+        burstCount: 40,
+        duration: 0.05,
+        speed: [150, 350],
         direction: [0, 360],
-        particleConfig: {
-          size: [3, 8],
-          life: [0.2, 0.6],
-          colors: ['#9C27B0', '#673AB7', '#3F51B5', '#FFFFFF'],
-          shape: ParticleShape.CIRCLE,
-          opacity: 0.8,
-          finalOpacity: 0,
-          animations: [ParticleAnimationType.FADE]
-        }
+        particleOptions: {
+          life: [0.2, 0.5],
+          shape: ParticleShape.SQUARE,
+          colors: ['#808080', '#A9A9A9'], // Gray, DarkGray
+          size: [4, 8],
+          rotationVelocity: [-90, 90],
+          gravityScale: 0.4,
+          drag: 0.04,
+        },
       }
     ],
     maxParticles: 60,
@@ -943,26 +927,20 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.COLLECT,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.CIRCLE,
-        size: 10,
-        burstCount: 12,
-        speed: [80, 150],
-        particleConfig: {
-          size: [5, 10],
-          life: [0.5, 1],
-          colors: ['#4CAF50', '#8BC34A', '#CDDC39'],
-          shape: ParticleShape.CIRCLE,
-          opacity: 0.9,
-          finalOpacity: 0,
-          animations: [
-            ParticleAnimationType.FADE, 
-            ParticleAnimationType.SCALE
-          ],
-          finalSize: 0,
-          damping: 0.5,
-          rotationVelocity: 180
-        }
+        position: { x: 0.5, y: 0.5 },
+        rate: 0,
+        burstCount: 20,
+        duration: 0.1,
+        speed: [80, 200],
+        direction: [-45, 45], // Towards top-center generally
+        particleOptions: {
+          life: [0.4, 0.9],
+          shape: ParticleShape.STAR,
+          colors: ['#FFD700'], // Gold
+          size: [6, 12],
+          gravityScale: -0.3, // Move upwards slightly
+          drag: 0.02,
+        },
       }
     ],
     maxParticles: 50,
@@ -982,25 +960,21 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     eventType: GameEventType.ENERGY,
     emitters: [
       {
-        position: { x: 0, y: 0, z: 0 },
-        shape: EmitterShape.CIRCLE,
-        size: 20,
-        rate: 30,
-        duration: 1.5,
-        particleConfig: {
-          size: [3, 8],
-          life: [0.5, 1],
-          colors: ['#3F51B5', '#2196F3', '#03A9F4', '#00BCD4'],
+        position: { x: 0.5, y: 0.5 },
+        rate: 80,
+        duration: 1,
+        speed: [30, 90],
+        direction: [0, 360],
+        particleOptions: {
+          life: [0.5, 1.2],
           shape: ParticleShape.CIRCLE,
+          colors: ['#00FFFF', '#00BFFF'], // Aqua, DeepSkyBlue
+          size: [4, 7],
           opacity: 0.7,
-          finalOpacity: 0,
-          animations: [
-            ParticleAnimationType.FADE, 
-            ParticleAnimationType.COLOR
-          ],
-          colorAnimation: ['#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', '#3F51B5'],
-          blending: true
-        }
+          blending: true, // Additive blending for energy feel
+          gravityScale: 0,
+          drag: 0.01,
+        },
       }
     ],
     maxParticles: 150,
@@ -1022,7 +996,7 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
     emitters: [
       {
         position: { x: 0, y: 0, z: 0 },
-        particleConfig: {
+        particleOptions: {
           size: 5,
           life: 1,
           colors: ['#FFFFFF'],
@@ -1030,6 +1004,33 @@ export const EVENT_PRESETS: Record<GameEventType, GameParticleSystemConfig> = {
         }
       }
     ]
+  },
+  
+  [GameEventType.CONFETTI]: {
+    emitters: [
+      {
+        position: { x: 0.5, y: 0 }, // Top center
+        rate: 0,
+        burstCount: 100,
+        duration: 0.1, // Short burst
+        speed: [100, 400],
+        direction: [60, 120], // Downward spread
+        shape: EmitterShape.POINT,
+        particleOptions: {
+          life: [1.5, 3],
+          shape: ParticleShape.SQUARE, // Mix shapes?
+          colors: ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'],
+          size: [5, 10],
+          rotationVelocity: [-360, 360],
+          gravityScale: 0.6,
+          drag: 0.05,
+        },
+      },
+    ],
+  },
+  
+  [GameEventType.NONE]: {
+    emitters: [] // No emitters active
   }
 };
 
@@ -1130,7 +1131,7 @@ export class GameParticleSystem {
     
     this.isActive = true;
     this.isPaused = false;
-    this.lastTimestamp = null;
+    this.lastTimestamp = Date.now();
     
     // Start animation loop
     this.update = this.update.bind(this);
@@ -1203,7 +1204,7 @@ export class GameParticleSystem {
       this.lastTimestamp = timestamp;
     }
     
-    const dt = Math.min((timestamp - this.lastTimestamp) / 1000, 0.1); // Cap at 100ms
+    const dt = (timestamp - this.lastTimestamp) / 1000;
     this.lastTimestamp = timestamp;
     
     // Update emitters and create new particles
@@ -1211,21 +1212,27 @@ export class GameParticleSystem {
     this.emitters.forEach(emitter => {
       const newParticles = emitter.update(dt);
       if (newParticles) {
-        // Add new particles
+        const performanceLevel = this.config.performanceLevel !== undefined ? this.config.performanceLevel : 0.8;
+        
         for (const particle of newParticles) {
-          // Check if we can add more particles
+          const shouldSkip = Math.random() > performanceLevel;
+          
+          if (shouldSkip) { 
+            continue;
+          }
+          
           if (this.particles.length < (this.config.maxParticles || 200)) {
-            this.particles.push(particle);
+            this.particles.push(particle); 
             
-            // Create DOM element if using DOM renderer
             if (this.config.renderer === 'dom') {
               this.createParticleElement(particle);
             }
             
-            // Particle created callback
             if (this.onParticleCreated) {
               this.onParticleCreated(particle);
             }
+          } else {
+            break; 
           }
         }
       }
@@ -1532,10 +1539,9 @@ export class GameParticleSystem {
    */
   private initializeContainer(): void {
     if (this.config.container) {
-      // Use provided container
       this.container = this.config.container;
-    } else {
-      // Create a new container
+    } else if (typeof document !== 'undefined') { // Check if document exists
+      // Create a new container only in browser environment
       this.container = document.createElement('div');
       this.container.className = 'game-particle-container';
       this.container.style.position = 'absolute';
@@ -1547,7 +1553,10 @@ export class GameParticleSystem {
       this.container.style.overflow = 'hidden';
       this.container.style.zIndex = '9999';
       
-      document.body.appendChild(this.container);
+      // Append only if document.body exists
+      if (document.body) {
+        document.body.appendChild(this.container);
+      }
     }
   }
   
@@ -1621,19 +1630,24 @@ export class GameParticleSystem {
    * Initialize style element for CSS animations
    */
   private initializeStyles(): void {
-    this.styleElement = document.createElement('style');
-    this.styleElement.type = 'text/css';
-    document.head.appendChild(this.styleElement);
-    
-    // Add basic particle styles
-    this.styleElement.textContent = `
-      .game-particle {
-        position: absolute;
-        pointer-events: none;
-        will-change: transform, opacity;
-        backface-visibility: hidden;
-      }
-    `;
+    if (typeof document !== 'undefined' && document.head) { // Check if document.head exists
+      this.styleElement = document.createElement('style');
+      this.styleElement.type = 'text/css';
+      document.head.appendChild(this.styleElement);
+      
+      // Add basic particle styles
+      this.styleElement.textContent = `
+        .game-particle {
+          position: absolute;
+          pointer-events: none;
+          will-change: transform, opacity;
+          backface-visibility: hidden;
+        }
+      `;
+    } else {
+       // Optionally log a warning if styles cannot be initialized (e.g., in Node.js)
+       console.warn("Cannot initialize GameParticleSystem styles outside of a browser environment.");
+    }
   }
   
   /**
@@ -1925,10 +1939,10 @@ export class GameParticleSystem {
       }
     }
     
-    if (updates.particleConfig !== undefined) {
+    if (updates.particleOptions !== undefined) {
       emitter.particleConfig = {
         ...emitter.particleConfig,
-        ...updates.particleConfig
+        ...updates.particleOptions
       };
     }
     
@@ -1948,10 +1962,10 @@ export class GameParticleSystem {
         burstCount: config.emitters && config.emitters[0] && config.emitters[0].burstCount 
           ? config.emitters[0].burstCount 
           : 20,
-        particleConfig: config.emitters && config.emitters[0] && config.emitters[0].particleConfig 
-          ? config.emitters[0].particleConfig 
-          : this.config.emitters && this.config.emitters[0] && this.config.emitters[0].particleConfig
-            ? this.config.emitters[0].particleConfig 
+        particleOptions: config.emitters && config.emitters[0] && config.emitters[0].particleOptions 
+          ? config.emitters[0].particleOptions 
+          : this.config.emitters && this.config.emitters[0] && this.config.emitters[0].particleOptions
+            ? this.config.emitters[0].particleOptions 
             : undefined
       }]
     };
@@ -1971,15 +1985,15 @@ export class GameParticleSystem {
   createTrail(element: HTMLElement | string, config: Partial<GameParticleSystemConfig> = {}): string {
     // Configure trail emitter
     const trailConfig: ParticleEmitterConfig = {
-      position: { x: 0, y: 0, z: 0 },
+      position: { x: 0, y: 0 },
       followElement: true,
       element,
       rate: config.emitters && config.emitters[0] && config.emitters[0].rate 
         ? config.emitters[0].rate 
         : 15,
-      particleConfig: config.emitters && config.emitters[0] && config.emitters[0].particleConfig 
-        ? config.emitters[0].particleConfig 
-        : EVENT_PRESETS[GameEventType.TRAIL].emitters![0].particleConfig
+      particleOptions: config.emitters && config.emitters[0] && config.emitters[0].particleOptions 
+        ? config.emitters[0].particleOptions 
+        : EVENT_PRESETS[GameEventType.TRAIL].emitters![0].particleOptions
     };
     
     // Add the emitter

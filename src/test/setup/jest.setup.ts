@@ -9,18 +9,34 @@ import '@testing-library/jest-dom';
 import 'jest-styled-components';
 import React from 'react'; // Needed for the styled-components mock
 
+// Remove the global styled-components mock
+// // --- Add Global Styled Components Mock ---
+// jest.mock('styled-components', () => {
+//   const React = require('react'); // Require React inside the mock
+//   return {
+//     // ... mock details ...
+//   }
+// });
+// // --- End Global Styled Components Mock ---
+
 // Mock Animation Frame API
 let rafId = 0;
 const rafCallbacks = new Map<number, FrameRequestCallback>();
-global.requestAnimationFrame = jest.fn((cb: FrameRequestCallback): number => {
+
+// Assign mock directly to window for JSDOM environment
+window.requestAnimationFrame = jest.fn((cb: FrameRequestCallback): number => {
   const id = ++rafId;
   rafCallbacks.set(id, cb);
   // Return the ID, but don't automatically schedule/run the callback
   return id;
 });
-global.cancelAnimationFrame = jest.fn((handle: number) => {
+window.cancelAnimationFrame = jest.fn((handle: number) => {
   rafCallbacks.delete(handle);
 });
+
+// Also assign to global for broader compatibility if needed, although window should suffice for jsdom
+global.requestAnimationFrame = window.requestAnimationFrame;
+global.cancelAnimationFrame = window.cancelAnimationFrame;
 
 // Helper function to manually run RAF callbacks (can be imported in tests)
 // Renamed to avoid conflict with potential testing-library functions
@@ -91,6 +107,26 @@ global.MutationObserver = jest.fn().mockImplementation(() => ({
     takeRecords: jest.fn(() => [])
 }));
 
+// Mock CSS.supports
+Object.defineProperty(window, 'CSS', {
+  value: {
+    ...window.CSS, // Preserve existing CSS object properties if any
+    supports: jest.fn((property, value) => {
+      // Basic mock: return true for common cases, false otherwise
+      // You might need to refine this based on specific features used
+      if (property === 'backdrop-filter' || property === '-webkit-backdrop-filter') {
+        return true; 
+      }
+      if (property === 'animation') {
+        return true; // Assume animations are supported
+      }
+      // Add more specific checks if needed for your tests
+      return false; 
+    }),
+  },
+  writable: true,
+  configurable: true, // Ensure it can be configured
+});
 
 // Reset mocks before each test
 beforeEach(() => {

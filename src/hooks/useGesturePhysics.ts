@@ -16,6 +16,9 @@ import { useReducedMotion } from './useReducedMotion';
 import { useAnimationContext } from '../contexts/AnimationContext';
 import { SpringConfig, SpringPresets } from '../animations/physics/springPhysics';
 
+// Export the options type so it can be imported elsewhere
+export type { GesturePhysicsOptions };
+
 // Default options
 const DEFAULT_GESTURE_OPTIONS = {
     inertia: true,

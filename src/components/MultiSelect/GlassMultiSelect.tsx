@@ -858,18 +858,13 @@ const GlassMultiSelectInternal = <T = string>(
   };
 
   const handleOptionClick = (option: MultiSelectOption<T>) => {
-    if (option.disabled || (option as any).__isDisabled__) return;
-    if ((option as any).__isCreatable__) {
-        if (onCreateOption) {
-            const createdOption = onCreateOption(inputValue);
-            if (createdOption) handleOptionSelectInternal(createdOption);
-            if (clearInputOnSelect) setInputValue('');
-            if (!closeOnSelect) inputRef.current?.focus();
-            else setIsDropdownOpen(false);
-        }
-        return;
-    }
+    if (disabled) return;
+
     handleOptionSelectInternal(option);
+    setInputValue('');
+    
+    // If needed, focus can be handled differently, e.g., on the container
+    // inputRef.current?.focus();
   };
 
   const handleOptionSelectInternal = (option: MultiSelectOption<T>) => {
@@ -1124,7 +1119,7 @@ const GlassMultiSelectInternal = <T = string>(
                                         onClick={() => !isDisabled && handleOptionClick(option)}
                                         onMouseEnter={() => !isDisabled && setFocusedOptionIndex(currentIndex)}
                                         role="option"
-                                        aria-selected={isSelected}
+                                        aria-selected={isFocused}
                                         aria-disabled={isDisabled}
                                         data-option-index={currentIndex}
                                     >
@@ -1184,6 +1179,7 @@ const GlassMultiSelectInternal = <T = string>(
         $disabled={disabled}
         $hasError={!!error}
         onClick={handleContainerClick}
+        aria-disabled={disabled}
       >
         <TokensContainer>
           {/* Render with AnimatedTokenWrapper */}

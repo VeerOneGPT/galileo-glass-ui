@@ -1072,17 +1072,16 @@ const UnifiedThemeProvider: React.FC<ThemeProviderProps> = ({
 };
 
 /**
- * Memoized ThemeProvider wrapper with presence tracking.
+ * ThemeProvider component (exporting the unified provider directly for now).
  *
- * This component prevents unnecessary re-renders and provides theme context.
+ * This component provides theme context.
  */
-export const ThemeProvider = React.memo(UnifiedThemeProvider);
+export const ThemeProvider = UnifiedThemeProvider;
 
-// ------ Create Hooks for Accessing Context ------
+// ------ Theme Hooks ------
 
 /**
- * Main hook for accessing the full theme.
- * Use more specific hooks for better performance when possible.
+ * Returns the full theme object based on current settings.
  */
 export const useTheme = () => {
   const colorModeContext = useContext(ColorModeContext);

@@ -1,27 +1,34 @@
 /**
  * Intelligent Animation Fallbacks
- * 
- * Provides intelligent fallbacks for animations based on user preferences
+ *
+ * Provides mechanisms for automatically determining and applying appropriate
+ * animation fallbacks based on user preferences, device capabilities, and
+ * context.
  */
+
 import { css, keyframes, Keyframes, FlattenSimpleInterpolation } from 'styled-components';
-
-import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { useEnhancedReducedMotion, EnhancedReducedMotionInfo } from '../../hooks/useEnhancedReducedMotion';
-import { AnimationPreset, AccessibleAnimationOptions } from '../types';
-import { presets } from '../presets';
-
-import { animationMapper } from './AnimationMapper';
-import {
-  MotionSensitivityLevel,
-  AnimationComplexity,
-  AnimationCategory,
+import { 
+  AnimationPreset, 
+  AccessibleAnimationOptions
+} from '../core/types'; // Keep core types needed
+import { 
+  AnimationCategory, 
+  AnimationComplexity, // Use AnimationComplexity from MotionSensitivity
   getMotionSensitivity,
   getAdjustedAnimation,
-  EnhancedAnimationOptions,
+  EnhancedAnimationOptions, 
+  MotionSensitivityLevel,
+  MotionSensitivityConfig, // Import MotionSensitivityConfig
+  AnimationDistanceScale // Import AnimationDistanceScale
 } from './MotionSensitivity';
+import { animationMapper } from './AnimationMapper';
+import { 
+  useEnhancedReducedMotion, 
+  EnhancedReducedMotionInfo 
+} from '../../hooks/useEnhancedReducedMotion';
 
 /**
- * Animation fallback type
+ * Animation fallback behavior types
  */
 export enum AnimationFallbackType {
   /** Use original animation */
@@ -44,6 +51,9 @@ export enum AnimationFallbackType {
   
   /** Reduce speed of the animation */
   REDUCED_SPEED = 'reduced_speed',
+  
+  /** Smart fallback */
+  SMART = 'smart',
 }
 
 /**
@@ -67,6 +77,8 @@ export interface AnimationFallbackConfig {
   
   /** Static URI to display instead of animation (if applicable) */
   staticUri?: string;
+  
+  // Removed properties that come from EnhancedReducedMotionInfo
 }
 
 /**
@@ -101,19 +113,21 @@ export const generateReducedMagnitudeAnimation = (
  * 
  * @param animation Original animation preset or keyframes
  * @param options Animation options
- * @param reducedMotionInfo Enhanced reduced motion information
+ * @param reducedMotionInfo Information about the user's reduced motion preference
+ * @param sensitivityConfig The resolved motion sensitivity configuration to use
+ * @param confidence Optional confidence score for reduced motion detection
  * @returns Appropriate fallback configuration
  */
 export const determineAnimationFallback = (
   animation: AnimationPreset | Keyframes | string,
   options: EnhancedAnimationOptions,
-  reducedMotionInfo: EnhancedReducedMotionInfo
+  reducedMotionInfo: EnhancedReducedMotionInfo, // Use the specific type from the hook
+  sensitivityConfig: MotionSensitivityConfig, // Pass the config explicitly
+  confidence?: number // Pass confidence separately
 ): AnimationFallbackConfig => {
+  // Destructure only prefersReducedMotion from the hook result
   const { 
     prefersReducedMotion, 
-    confidence, 
-    recommendedSensitivityLevel,
-    detectionMethod
   } = reducedMotionInfo;
   
   const {
@@ -128,18 +142,18 @@ export const determineAnimationFallback = (
     importance = 5,
   } = options;
   
+  // Use the passed sensitivityConfig directly
+  
   // If user doesn't prefer reduced motion and importance is high, use original
   if (!prefersReducedMotion && importance >= 7) {
     return {
       type: AnimationFallbackType.ORIGINAL,
       duration,
+      // Removed properties now passed via reducedMotionInfo/sensitivityConfig
     };
   }
   
-  // Get motion sensitivity configuration
-  const sensitivityConfig = getMotionSensitivity(recommendedSensitivityLevel);
-  
-  // Get adjusted animation parameters
+  // Get adjusted animation parameters using the passed sensitivityConfig
   const adjustedAnimation = getAdjustedAnimation(options, sensitivityConfig);
   
   // If animation should be disabled, skip it entirely
@@ -150,7 +164,8 @@ export const determineAnimationFallback = (
   }
   
   // For background or decorative animations with low importance, prefer skipping
-  if ((isBackground || importance <= 3) && prefersReducedMotion && confidence > 0.6) {
+  // Use the passed confidence value if available
+  if ((isBackground || importance <= 3) && prefersReducedMotion && confidence && confidence > 0.6) {
     return {
       type: AnimationFallbackType.SKIP,
     };
@@ -158,7 +173,7 @@ export const determineAnimationFallback = (
   
   // For parallax effects, either skip or significantly reduce
   if (isParallax && prefersReducedMotion) {
-    if (confidence > 0.7) {
+    if (confidence && confidence > 0.7) {
       return {
         type: AnimationFallbackType.SKIP,
       };
@@ -172,7 +187,7 @@ export const determineAnimationFallback = (
   }
   
   // For auto-playing animations, consider user preferences more strongly
-  if (autoPlay && prefersReducedMotion && confidence > 0.5) {
+  if (autoPlay && prefersReducedMotion && confidence && confidence > 0.5) {
     // Check category-specific settings
     if (sensitivityConfig.categorySettings[category]?.enabled === false) {
       return {
@@ -198,7 +213,7 @@ export const determineAnimationFallback = (
   
   // Check mapped animations from animation mapper
   const mappedAnimation = animationMapper.getAccessibleAnimation(animation, {
-    sensitivity: recommendedSensitivityLevel,
+    sensitivity: sensitivityConfig.level, // Use level from the passed config
     category,
     duration: adjustedAnimation.duration,
   });
@@ -233,8 +248,9 @@ export const determineAnimationFallback = (
   }
   
   // For minimal animation complexity, use fade-only
+  // Compare using AnimationComplexity from MotionSensitivity.ts
   if (sensitivityConfig.maxAllowedComplexity === AnimationComplexity.MINIMAL ||
-      sensitivityConfig.maxAllowedComplexity === AnimationComplexity.FADE_ONLY) {
+      sensitivityConfig.maxAllowedComplexity === AnimationComplexity.FADE_ONLY) { 
     return {
       type: AnimationFallbackType.FADE_ONLY,
       duration: adjustedAnimation.duration,
@@ -254,12 +270,13 @@ export const determineAnimationFallback = (
  * Apply an animation fallback to generate the appropriate CSS
  * 
  * @param animation Original animation preset or keyframes
- * @param fallback Fallback configuration
+ * @param fallback Fallback configuration (now simpler)
+ * @param options Animation options
  * @returns CSS for the animation with fallback applied
  */
 export const applyAnimationFallback = (
   animation: AnimationPreset | Keyframes | string,
-  fallback: AnimationFallbackConfig,
+  fallback: AnimationFallbackConfig, // This interface is now simpler
   options: Omit<AccessibleAnimationOptions, 'duration'> = {}
 ): FlattenSimpleInterpolation => {
   const {
@@ -269,6 +286,7 @@ export const applyAnimationFallback = (
     speedMultiplier = 1.0,
     alternativeAnimation,
     staticUri,
+    // Removed properties that are not part of the simplified fallback config
   } = fallback;
   
   const {
@@ -317,18 +335,16 @@ export const applyAnimationFallback = (
         if (typeof alternativeAnimation === 'string') {
           keyframeName = alternativeAnimation;
         } else if ('keyframes' in alternativeAnimation && alternativeAnimation.keyframes) {
-          keyframeName = alternativeAnimation.keyframes.name;
+          keyframeName = typeof alternativeAnimation.keyframes === 'string'
+            ? alternativeAnimation.keyframes
+            : (alternativeAnimation.keyframes as Keyframes).name || 'unknown-animation';
         } else if ('animation' in alternativeAnimation && alternativeAnimation.animation) {
-          keyframeName = alternativeAnimation.animation.name;
-        } else if ('name' in alternativeAnimation) {
-          keyframeName = alternativeAnimation.name;
+          keyframeName = typeof alternativeAnimation.animation === 'string'
+            ? alternativeAnimation.animation
+            : (alternativeAnimation.animation as Keyframes).name || 'unknown-animation';
         } else {
-          // Fallback to fade-only if can't determine name
-          return applyAnimationFallback(
-            animation, 
-            { type: AnimationFallbackType.FADE_ONLY, duration }, 
-            options
-          );
+          // Fallback to a generated name
+          keyframeName = `animation-${Math.random().toString(36).substring(2, 9)}`;
         }
         
         return css`
@@ -344,9 +360,14 @@ export const applyAnimationFallback = (
       }
       
       // Fallback to fade-only if no alternative
+      // Pass only necessary properties for FADE_ONLY
       return applyAnimationFallback(
         animation, 
-        { type: AnimationFallbackType.FADE_ONLY, duration }, 
+        {
+          type: AnimationFallbackType.FADE_ONLY,
+          duration, // Pass duration
+          // No need to pass other properties like prefersReducedMotion here
+        },
         options
       );
       
@@ -374,18 +395,16 @@ export const applyAnimationFallback = (
       if (typeof animation === 'string') {
         keyframeName = animation;
       } else if ('keyframes' in animation && animation.keyframes) {
-        keyframeName = animation.keyframes.name;
+        keyframeName = typeof animation.keyframes === 'string'
+          ? animation.keyframes
+          : (animation.keyframes as Keyframes).name || 'unknown-animation';
       } else if ('animation' in animation && animation.animation) {
-        keyframeName = animation.animation.name;
-      } else if ('name' in animation) {
-        keyframeName = animation.name;
+        keyframeName = typeof animation.animation === 'string'
+          ? animation.animation
+          : (animation.animation as Keyframes).name || 'unknown-animation';
       } else {
-        // Fallback to fade-only if can't determine name
-        return applyAnimationFallback(
-          animation, 
-          { type: AnimationFallbackType.FADE_ONLY, duration }, 
-          options
-        );
+        // Fallback to a generated name
+        keyframeName = `animation-${Math.random().toString(36).substring(2, 9)}`;
       }
       
       // Return animation CSS with adjusted duration
@@ -419,11 +438,27 @@ export const useIntelligentAnimationFallbacks = (
   animation: AnimationPreset | Keyframes | string,
   options: EnhancedAnimationOptions & Omit<AccessibleAnimationOptions, 'duration'> = {}
 ): FlattenSimpleInterpolation => {
-  // Get enhanced reduced motion information
+  // Get reduced motion preference info from the hook
   const reducedMotionInfo = useEnhancedReducedMotion();
   
-  // Determine appropriate fallback
-  const fallback = determineAnimationFallback(animation, options, reducedMotionInfo);
+  // --- Determine sensitivity level and confidence (Needs implementation) ---
+  // Placeholder: Determine sensitivity level based on context or options
+  // Example: Could come from component props, context, or be calculated
+  const sensitivityLevel: MotionSensitivityLevel = MotionSensitivityLevel.MEDIUM; // TODO: Replace placeholder
+  const confidence: number | undefined = undefined; // TODO: Determine confidence if needed
+  
+  // Get the motion sensitivity config based on the determined level
+  const sensitivityConfig = getMotionSensitivity(sensitivityLevel);
+  // --- End Placeholder ---
+  
+  // Determine appropriate fallback by passing the necessary info
+  const fallback = determineAnimationFallback(
+    animation, 
+    options, 
+    reducedMotionInfo, 
+    sensitivityConfig, 
+    confidence
+  );
   
   // Apply fallback
   return applyAnimationFallback(animation, fallback, options);

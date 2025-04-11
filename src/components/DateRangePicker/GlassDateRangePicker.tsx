@@ -1464,6 +1464,7 @@ export const GlassDateRangePicker = forwardRef<GlassDateRangePickerRef, DateRang
       role="dialog"
       aria-modal="true"
       aria-label="Date range selection calendar"
+      data-testid="date-range-calendar"
     >
       <PickerHeader $color={color} data-animate={String(animate)}>
         <div className="title">{comparisonMode ? 'Select Range & Comparison' : 'Select Date Range'}</div>
@@ -1635,9 +1636,52 @@ export const GlassDateRangePicker = forwardRef<GlassDateRangePickerRef, DateRang
   // Determine portal container
   const portalContainer = !inline && typeof document !== 'undefined' ? document.body : null;
   
-  // Log state before return
-  console.log('isOpen:', isOpen, 'activeScene:', activeScene);
+  // Comment out log statement which can clutter test output
+  // console.log('isOpen:', isOpen, 'activeScene:', activeScene);
 
+  // Effect to set initial view date based on value
+  useEffect(() => {
+    if (localValue.startDate) {
+      setViewDate(new Date(localValue.startDate));
+    }
+  }, []);
+
+  // Expose imperative methods through ref
+  useImperativeHandle(ref, () => ({
+    openPicker: () => setIsOpen(true),
+    closePicker: () => setIsOpen(false),
+    getSelectedRange: () => localValue,
+    getComparisonRange: () => isComparing ? { primary: localValue, comparison: localComparisonValue } : null,
+    setRange: (range: DateRange | null) => {
+      if (range) {
+        setLocalValue(range);
+      } else {
+        setLocalValue({ startDate: null, endDate: null });
+      }
+    },
+    setComparisonRange: (range: ComparisonDateRange | null) => {
+      if (range) {
+        // Extract primary and comparison from the ComparisonDateRange
+        setLocalValue(range.primary);
+        setLocalComparisonValue(range.comparison);
+        setIsComparing(true);
+      } else {
+        setLocalValue({ startDate: null, endDate: null });
+        setLocalComparisonValue({ startDate: null, endDate: null });
+        setIsComparing(false);
+      }
+    },
+    clearRange: () => {
+      setLocalValue({ startDate: null, endDate: null });
+      setLocalComparisonValue({ startDate: null, endDate: null });
+      setIsComparing(false);
+      setFocusedInput(null);
+      setActivePresetId(null);
+    },
+    getInputContainerElement: () => inputRef.current,
+    getPickerElement: () => pickerRef.current
+  }));
+  
   return (
     <DateRangePickerRoot
       ref={rootRef}
@@ -1647,6 +1691,7 @@ export const GlassDateRangePicker = forwardRef<GlassDateRangePickerRef, DateRang
       $reducedMotion={prefersReducedMotion}
       className={className}
       style={style}
+      data-testid="glass-date-range-picker"
     >
       {label && <Label htmlFor={id || 'glass-date-range'}>{label}</Label>}
       
@@ -1674,8 +1719,9 @@ export const GlassDateRangePicker = forwardRef<GlassDateRangePickerRef, DateRang
           aria-expanded={isOpen}
           aria-label={ariaLabel || label || 'Date range picker'}
           id={id || 'glass-date-range'}
-          role="button"
+          role="textbox"
           tabIndex={disabled ? -1 : 0}
+          data-testid="date-range-input"
         >
           <InputValue>
             {localValue.startDate || localValue.endDate ? (
@@ -1712,23 +1758,13 @@ export const GlassDateRangePicker = forwardRef<GlassDateRangePickerRef, DateRang
       {error && errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
       {helperText && !error && <HelperText>{helperText}</HelperText>}
       
-      {/* Temporary: Render picker content directly if isOpen, bypassing portal/scene for testing */}
+      {/* Use conditional rendering for tests - restore scene transition */}
       {isOpen && renderPickerContent()}
-      
-      {/* Original Portal Logic - Commented out for testing 
-      {portalContainer ? (
-        createPortal(
-          activeScene === 'visible' && renderPickerContent(),
-          portalContainer
-        )
-      ) : (
-        activeScene === 'visible' && renderPickerContent()
-      )}
-      */}
     </DateRangePickerRoot>
   );
 });
 
+// Make sure imperative handle is properly initialized
 // Add displayName
 GlassDateRangePicker.displayName = 'GlassDateRangePicker';
 

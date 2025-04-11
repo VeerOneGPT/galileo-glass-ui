@@ -152,45 +152,81 @@ export function useAnimationPreferences(options: AnimationPreferencesOptions = {
       return;
     }
     
+    let loadedPreferences: Partial<AnimationPreferences> = {};
+    let loadedMode: PreferenceMode | null = null;
+    
     try {
-      // Load the preference mode
-      const savedMode = localStorage.getItem(`${storageKeyPrefix}preference-mode`);
-      if (savedMode && Object.values(PreferenceMode).includes(savedMode as PreferenceMode)) {
-        updatePreferenceMode(savedMode as PreferenceMode);
-      }
-      
-      // Load quality tier preference
+      // Load individual preferences first
       const savedQualityTier = localStorage.getItem(STORAGE_KEYS.QUALITY_PREFERENCE);
       if (savedQualityTier && Object.values(QualityTier).includes(savedQualityTier as QualityTier)) {
-        updateQualityTier(savedQualityTier as QualityTier);
+        loadedPreferences.qualityTier = savedQualityTier as QualityTier;
       }
-      
-      // Load battery saver preference
+
       const savedBatterySaver = localStorage.getItem(STORAGE_KEYS.BATTERY_SAVER);
-      if (savedBatterySaver === 'true') {
-        updatePreferenceMode(PreferenceMode.BATTERY_SAVER);
-      }
-      
-      // Load custom features
+      // Load battery saver setting - affects mode later
+      const isBatterySaver = savedBatterySaver === 'true'; 
+
       const savedCustomFeatures = localStorage.getItem(STORAGE_KEYS.CUSTOM_FEATURES);
       if (savedCustomFeatures) {
         try {
-          const customFeatures = JSON.parse(savedCustomFeatures);
-          updateCustomFeatures(customFeatures);
-        } catch (e) {
-          // Ignore JSON parse errors
-        }
+          loadedPreferences.customFeatures = JSON.parse(savedCustomFeatures);
+          loadedPreferences.useCustomFeatures = true; // Assume custom features mean useCustom is true
+        } catch (e) { /* Ignore */ }
+      }
+
+      const savedReducedMotion = localStorage.getItem(STORAGE_KEYS.REDUCED_MOTION);
+      if (savedReducedMotion === 'true' || savedReducedMotion === 'false') { // Check for both true/false
+         loadedPreferences.prefersReducedMotion = savedReducedMotion === 'true';
       }
       
-      // Load reduced motion preference
-      const savedReducedMotion = localStorage.getItem(STORAGE_KEYS.REDUCED_MOTION);
-      if (savedReducedMotion === 'true') {
-        toggleReducedMotion(true);
+      // Load the preference mode LAST
+      const savedMode = localStorage.getItem(`${storageKeyPrefix}preference-mode`);
+      if (savedMode && Object.values(PreferenceMode).includes(savedMode as PreferenceMode)) {
+         loadedMode = savedMode as PreferenceMode;
+      } else if (isBatterySaver) { 
+          // If battery saver flag is set but no mode, default mode to battery saver
+          loadedMode = PreferenceMode.BATTERY_SAVER;
+      } else if (loadedPreferences.qualityTier || loadedPreferences.useCustomFeatures) {
+          // If quality or custom features were set but no mode, default mode to custom
+          loadedMode = PreferenceMode.CUSTOM;
       }
+
+      // Now apply the loaded state
+      setPreferences(current => {
+        let finalMode = loadedMode || PreferenceMode.AUTO;
+        let finalPrefs: Partial<AnimationPreferences> = {};
+
+        // Apply preset if mode is not custom or auto initially
+        if (finalMode !== PreferenceMode.AUTO && finalMode !== PreferenceMode.CUSTOM) {
+            finalPrefs = PRESET_CONFIGURATIONS[finalMode];
+        }
+
+        // Merge loaded individual settings over defaults/presets
+        finalPrefs = {
+            ...current, // Start with current (or default)
+            ...finalPrefs, // Apply preset values if applicable
+            ...loadedPreferences, // Apply individually loaded settings
+            mode: finalMode // Apply final mode
+        };
+        
+        // Ensure consistency: if mode is not CUSTOM, useCustomFeatures should be false unless preset says otherwise
+        if (finalMode !== PreferenceMode.CUSTOM && PRESET_CONFIGURATIONS[finalMode]?.useCustomFeatures !== true) {
+           finalPrefs.useCustomFeatures = false;
+        }
+        // Ensure consistency: if mode is CUSTOM, useCustomFeatures should be true
+        else if (finalMode === PreferenceMode.CUSTOM) {
+           finalPrefs.useCustomFeatures = true;
+        }
+        
+        return finalPrefs as AnimationPreferences;
+      });
+
     } catch (e) {
       // Ignore localStorage errors
       console.error('Error loading animation preferences:', e);
     }
+    // Dependencies: Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistPreferences, storageKeyPrefix]);
   
   /**

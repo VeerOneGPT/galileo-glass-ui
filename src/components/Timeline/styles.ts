@@ -40,7 +40,9 @@ export const pulseAnimation = keyframes`
 `;
 
 // Main container
-export const TimelineContainer = styled.div<{
+export const TimelineContainer = styled.div.attrs(props => ({
+  'data-testid': props['data-testid'] || 'glass-timeline', // Apply data-testid
+}))<{
   $orientation: TimelineOrientation;
   $width?: string | number;
   $height?: string | number;
@@ -50,7 +52,7 @@ export const TimelineContainer = styled.div<{
 }>`
   position: relative;
   display: flex;
-  flex-direction: ${props => props.$orientation === 'vertical' ? 'row' : 'column'};
+  flex-direction: ${props => props.$orientation === 'vertical' ? 'column' : 'row'};
   width: ${props => props.$width 
     ? (typeof props.$width === 'number' ? `${props.$width}px` : props.$width) 
     : '100%'
@@ -100,7 +102,9 @@ export const TimelineScrollContainer = styled.div<{
 `;
 
 // Timeline axis
-export const TimelineAxis = styled.div<{
+export const TimelineAxis = styled.div.attrs(props => ({
+  'data-testid': props['data-testid'] || 'timeline-axis', // Apply data-testid
+}))<{
   $orientation: TimelineOrientation;
   $height?: number;
   $glassVariant?: GlassVariant;
@@ -240,7 +244,9 @@ export const TimeMarker = styled.div<{
 `;
 
 // Timeline events container
-export const TimelineEvents = styled.div<{
+export const TimelineEvents = styled.div.attrs(props => ({
+  'data-testid': props['data-testid'] || 'timeline-events', // Apply data-testid
+}))<{
   $orientation: TimelineOrientation;
   $markerPosition: MarkerPosition;
   $density: TimelineDensity;

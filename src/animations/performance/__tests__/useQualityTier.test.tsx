@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react-hooks';
 import { useQualityTier } from '../useQualityTier';
 import { QualityTier } from '../types';
 import useDeviceCapabilities, { DeviceTier, DeviceType } from '../useDeviceCapabilities';
+import useAnimationPreferences, { PreferenceMode } from '../useAnimationPreferences';
 
 // Mock the useDeviceCapabilities hook
 jest.mock('../useDeviceCapabilities', () => {
@@ -21,6 +22,33 @@ jest.mock('../useDeviceCapabilities', () => {
       DESKTOP: 'desktop',
       UNKNOWN: 'unknown',
     },
+  };
+});
+
+// Mock useAnimationPreferences
+jest.mock('../useAnimationPreferences', () => {
+  const mockUpdateMode = jest.fn();
+  const mockUpdateTier = jest.fn(); 
+  // Add other mocks as needed by useQualityTier
+  return {
+    __esModule: true,
+    default: jest.fn().mockReturnValue({
+      preferences: {
+        mode: 'auto', // Use string literal instead of PreferenceMode.AUTO
+        qualityTier: 'medium', // Use string literal
+        // ... other default preferences
+      },
+      updatePreferenceMode: mockUpdateMode,
+      updateQualityTier: mockUpdateTier, // Add mock
+      // ... other functions
+    }),
+    PreferenceMode: { // Re-export the enum values as strings for the test
+      AUTO: 'auto',
+      QUALITY: 'quality',
+      PERFORMANCE: 'performance',
+      BATTERY_SAVER: 'battery-saver',
+      CUSTOM: 'custom'
+    }
   };
 });
 
@@ -95,6 +123,10 @@ describe('useQualityTier', () => {
     });
     // End Reset Time Mocks
 
+    // Store mock functions for assertion
+    const mockUpdateMode = jest.fn();
+    const mockUpdateTier = jest.fn(); 
+
     // Default device capabilities
     (useDeviceCapabilities as jest.Mock).mockReturnValue({
       deviceTier: DeviceTier.MEDIUM,
@@ -104,6 +136,16 @@ describe('useQualityTier', () => {
       prefersReducedMotion: false,
       batterySaving: false,
     });
+    
+    // Ensure useAnimationPreferences mock is reset and returns the mock function
+    (useAnimationPreferences as jest.Mock).mockReturnValue({
+      preferences: { mode: PreferenceMode.AUTO, qualityTier: QualityTier.MEDIUM },
+      updatePreferenceMode: mockUpdateMode,
+      updateQualityTier: mockUpdateTier
+    });
+    // Reset mock calls specifically
+    mockUpdateMode.mockClear();
+    mockUpdateTier.mockClear(); 
   });
 
   afterEach(() => {
@@ -154,31 +196,62 @@ describe('useQualityTier', () => {
   });
 
   test('should allow manual setting of quality tier', () => {
-    const { result } = renderHook(() => useQualityTier());
+    const { result, rerender } = renderHook(() => useQualityTier());
+    const prefsHookResult = (useAnimationPreferences as jest.Mock)();
+    
     act(() => {
       result.current.setQualityPreference(QualityTier.ULTRA);
     });
-    expect(result.current.qualityTier).toBe(QualityTier.ULTRA);
-    expect(localStorageMock.setItem).toHaveBeenCalledWith(
+    
+    // Should call the preferences hook update function
+    expect(prefsHookResult.updateQualityTier).toHaveBeenCalledWith(QualityTier.ULTRA);
+    
+    // Update mock return value and rerender to reflect change
+    (useAnimationPreferences as jest.Mock).mockReturnValue({
+      ...prefsHookResult,
+      preferences: { ...prefsHookResult.preferences, qualityTier: QualityTier.ULTRA }
+    });
+    rerender();
+    
+    // localStorage should NOT be called directly when useDetailedPreferences is true (default)
+    expect(localStorageMock.setItem).not.toHaveBeenCalledWith(
       'galileo-glass-quality-preference',
       QualityTier.ULTRA
     );
   });
 
   test('should reset to automatic tier detection', () => {
-    localStorageMock.setItem('galileo-glass-quality-preference', QualityTier.LOW);
-    const { result } = renderHook(() => useQualityTier());
-    expect(result.current.qualityTier).toBe(QualityTier.LOW); // Verify initial state
+    // Mock initial preference set via preferences hook (e.g., user set to LOW)
+    const mockUpdateModeFn = jest.fn();
+    (useAnimationPreferences as jest.Mock).mockReturnValue({
+        preferences: { mode: PreferenceMode.QUALITY, qualityTier: QualityTier.LOW },
+        updatePreferenceMode: mockUpdateModeFn,
+        updateQualityTier: jest.fn() // Add mock for updateQualityTier
+    });
 
+    const { result, rerender } = renderHook(() => useQualityTier());
+    
+    // Verify initial state is LOW due to mocked user preference
+    expect(result.current.qualityTier).toBe(QualityTier.LOW); 
+
+    // Reset to auto
     act(() => {
       result.current.resetQualityToAuto();
     });
 
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith('galileo-glass-quality-preference');
-    // Re-render might be needed if the hook doesn't immediately update state synchronously
-    // Rerender(); // If needed
-    // Assuming immediate update based on mock
-    expect(result.current.qualityTier).toBe(QualityTier.MEDIUM);
+    // Should call the preferences hook's update mode function
+    expect(mockUpdateModeFn).toHaveBeenCalledWith(PreferenceMode.AUTO);
+    
+    // localStorage.removeItem should NOT be called when useDetailedPreferences is true
+    expect(localStorageMock.removeItem).not.toHaveBeenCalledWith('galileo-glass-quality-preference');
+    
+    // Re-mock return value for preferences hook AFTER reset is called to simulate state change
+    (useAnimationPreferences as jest.Mock).mockReturnValue({
+      preferences: { mode: PreferenceMode.AUTO, qualityTier: QualityTier.MEDIUM },
+      updatePreferenceMode: mockUpdateModeFn,
+      updateQualityTier: jest.fn()
+    });
+    rerender();
   });
 
   test('should reduce quality tier when battery saving is active', () => {

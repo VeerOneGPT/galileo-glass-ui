@@ -107,8 +107,10 @@ Element.prototype.animate = function(
   options: KeyframeAnimationOptions
 ): Animation {
   const mockAnim = new MockAnimation(this, keyframes, options);
-  // Simulate automatic start event
-  // The renderer handles autoplay logic, the native animate doesn't have autoplay
+  // Simulate automatic playing state unless explicitly paused later
+  mockAnim.playState = 'running'; 
+  
+  // Simulate async start event
   Promise.resolve().then(() => {
     mockAnim['callListeners']('start', new AnimationPlaybackEvent('start', { currentTime: 0 }));
   });

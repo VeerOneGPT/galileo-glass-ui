@@ -12,7 +12,6 @@ import {
 } from '../core/types';
 import { animationOrchestrator, AnimationTarget } from './Orchestrator';
 import { MotionSensitivityLevel } from '../accessibility/MotionSensitivity';
-import { Keyframes } from 'styled-components';
 
 // Types
 /**
@@ -1071,13 +1070,10 @@ export class DeclarativeSequencer {
    */
   private getAnimationByName(name: string): AnimationPreset {
     // Create a compliant Keyframes object builder
-    const createKeyframes = (name: string, rules: string): Keyframes => {
-      return {
-        name,
-        rules,
-        id: `keyframe-${name}-${Math.random().toString(36).substring(2, 9)}`,
-        getName: function() { return this.name; }
-      };
+    const createKeyframes = (name: string, rules: string): string => {
+      console.warn('Keyframes creation is not fully implemented in DeclarativeSequencer. Returning dummy value.');
+      // This should ideally integrate with a CSS-in-JS library or generate actual CSS
+      return `dummy-keyframes-${name}` as string; // Return string
     };
 
     // Look for built-in animations

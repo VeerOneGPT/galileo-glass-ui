@@ -18,6 +18,7 @@ This document details the `useOrchestration` hook provided by Galileo Glass UI f
 - [Example Usage](#example-usage)
 - [Best Practices](#best-practices)
 - [Known Issues and Workarounds](#known-issues-and-workarounds)
+- [Integration with Event-Based Animation System (v1.0.28+)](#integration-with-event-based-animation-system-v1028)
 
 ---
 
@@ -876,3 +877,131 @@ const sequence = useAnimationSequence({
 ```
 
 Physics-based animations provide a more natural feel compared to traditional easing functions, especially for interactive elements and smooth transitions. 
+
+## Integration with Event-Based Animation System (v1.0.28+)
+
+The animation orchestration hooks can work alongside the new event-based animation system introduced in v1.0.28:
+
+### Using Orchestration with GameAnimationController
+
+You can combine the `useAnimationSequence` hook with the refactored `useGameAnimation` hook for complex, coordinated animations:
+
+```typescript
+import React, { useEffect } from 'react';
+import { 
+  useAnimationSequence, 
+  useGameAnimation, 
+  GameAnimationEventType 
+} from '@veerone/galileo-glass-ui';
+
+function CoordinatedAnimationExample() {
+  // Set up game animation for state management
+  const gameAnimation = useGameAnimation({
+    initialState: 'menu',
+    states: [/* ... */],
+    transitions: [/* ... */]
+  });
+  
+  // Set up animation sequence for complex element animations
+  const sequence = useAnimationSequence({
+    id: 'menu-elements',
+    stages: [/* ... */],
+    autoplay: false
+  });
+  
+  // Get the event emitter
+  const emitter = gameAnimation.getEventEmitter();
+  
+  // Connect the systems by listening for events
+  useEffect(() => {
+    // Play the sequence when transitioning to a specific state
+    const unsubscribe = emitter.on(GameAnimationEventType.STATE_CHANGE, (event) => {
+      if (event.data.newStateId === 'game') {
+        // Start a specific sequence when entering game state
+        sequence.play();
+      } else if (event.data.newStateId === 'menu') {
+        // Reverse animation when going back to menu
+        sequence.reverse();
+        sequence.play();
+      }
+    });
+    
+    return unsubscribe;
+  }, [emitter, sequence]);
+  
+  return (
+    <div>
+      {/* Your UI components */}
+    </div>
+  );
+}
+```
+
+### Coordinating Multiple Animation Systems
+
+For advanced applications, you can create a higher-level coordination system:
+
+```typescript
+// AnimationCoordinator.js
+class AnimationCoordinator {
+  constructor() {
+    this.gameControllers = new Map();
+    this.sequences = new Map();
+  }
+  
+  registerGameController(id, controller) {
+    this.gameControllers.set(id, controller);
+    // Subscribe to events from this controller
+    const emitter = controller.getEventEmitter();
+    emitter.on(GameAnimationEventType.STATE_CHANGE, (event) => {
+      this.handleStateChange(id, event);
+    });
+  }
+  
+  registerSequence(id, sequence) {
+    this.sequences.set(id, sequence);
+  }
+  
+  handleStateChange(controllerId, event) {
+    // Implement coordination logic based on state changes
+    // E.g., start/stop sequences, trigger transitions in other controllers
+  }
+  
+  // Additional coordination methods...
+}
+
+// Export a singleton instance
+export const coordinator = new AnimationCoordinator();
+```
+
+In your components:
+
+```tsx
+function AnimatedComponent() {
+  const gameAnimation = useGameAnimation({ /* ... */ });
+  const sequence = useAnimationSequence({ /* ... */ });
+  
+  useEffect(() => {
+    // Register with coordinator
+    coordinator.registerGameController('main', gameAnimation);
+    coordinator.registerSequence('elements', sequence);
+    
+    return () => {
+      // Cleanup if needed
+    };
+  }, [gameAnimation, sequence]);
+  
+  // Rest of component
+}
+```
+
+### Benefits of Combined Approach
+
+Using both orchestration hooks and the event-based system offers several advantages:
+
+1. **Separation of Concerns**: Use game animation for high-level state management and orchestration hooks for detailed element animations.
+2. **Event-Driven Coordination**: Leverage the event system to trigger sequences at the right moment.
+3. **Error Handling**: Benefit from the error recovery middleware for more robust animations.
+4. **Performance Monitoring**: Use the performance middleware to identify bottlenecks in complex animations.
+
+This approach is particularly useful for complex UIs with multi-step transitions between major application states. 

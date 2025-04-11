@@ -19,3 +19,11 @@ export {
   type GamePhysicsObjectConfig,
   type GamePhysicsEnvironment
 } from '../physics/useGamePhysics';
+
+// Export the refactored useGameAnimation hook
+export { useGameAnimation as useGameAnimationRefactored } from './useGameAnimationRefactored';
+
+// Export event emitter and middleware components
+export * from './GameAnimationEventEmitter';
+export * from './GameAnimationMiddleware';
+export * from './GameAnimationController';

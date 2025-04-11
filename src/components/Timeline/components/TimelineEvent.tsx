@@ -246,43 +246,28 @@ export const TimelineEvent: React.FC<TimelineEventProps> = ({
     <TimelineItem
       key={item.id}
       data-item-id={item.id}
+      role="listitem"
+      tabIndex={0}
       $isActive={isActive}
       $color={item.color || color || 'primary'}
-      $density={density}
-      className={`timeline-item ${isHighlighted ? 'highlighted' : ''} ${isActive ? 'active' : ''}`}
-      style={combinedStyle}
       $orientation={orientation}
       $side={side}
+      $density={density}
+      style={combinedStyle}
+      className={[
+        'timeline-item', 
+        isActive ? 'active' : '', 
+        item.category ? `category-${item.category}` : ''
+      ].join(' ')}
+      onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
-      tabIndex={0}
     >
-      {/* Conditionally render children based on flex order */}
-      {orientation === 'vertical' && side === 'left' && (
-        <>
-          {renderContentComponent()}
-          {renderConnectorComponent()}
-          {renderMarkerComponent()}
-        </>
-      )}
-      {orientation === 'vertical' && side === 'right' && (
-        <>
-          {renderMarkerComponent()}
-          {renderConnectorComponent()}
-          {renderContentComponent()}
-        </>
-      )}
-       {(orientation === 'vertical' && side === 'center' || orientation === 'horizontal') && (
-         // Default order (Marker -> Connector -> Content) - Assuming column layout for these cases
-        <>
-          {renderMarkerComponent()}
-          {renderConnectorComponent()}
-          {renderContentComponent()}
-        </>
-      )}
+      {renderMarkerComponent()}
+      {renderConnectorComponent()}
+      {renderContentComponent()}
     </TimelineItem>
   );
 };

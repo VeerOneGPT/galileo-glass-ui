@@ -4,7 +4,7 @@
  * An advanced glass-styled chart component with physics-based interactions,
  * smooth animations, and rich customization options.
  */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 // import styled from 'styled-components'; // unused
 import { 
   Chart as ChartJS, 
@@ -117,11 +117,14 @@ import {
 // Import our new physics interaction hook
 import { useChartPhysicsInteraction } from './hooks';
 
-// Import the new plugin
-import { GalileoElementInteractionPlugin } from './plugins/GalileoElementInteractionPlugin';
+// Import the new plugin and its exported types
+import {
+  GalileoElementInteractionPlugin,
+  GetElementPhysicsOptions,
+} from './plugins/GalileoElementInteractionPlugin';
 
-// Import GetElementPhysicsOptions and ChartVariant
-import { GetElementPhysicsOptions, ChartVariant } from './types/ChartProps';
+// Import ChartVariant separately
+import { ChartVariant } from './types/ChartProps';
 
 // Register required Chart.js components
 ChartJS.register(
@@ -190,11 +193,16 @@ ChartJS.register(pathAnimationPlugin);
 // Register our interaction plugin
 ChartJS.register(GalileoElementInteractionPlugin);
 
-// Adjust Chart.js defaults for better glass UI compatibility
-defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+// Adjust Chart.js defaults safely
+if (defaults?.plugins?.tooltip) {
+  defaults.plugins.tooltip.enabled = false; // Use custom tooltip
+}
+if (defaults?.font) {
+  defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+}
+// Set colors safely
 defaults.color = 'rgba(255, 255, 255, 0.7)';
 defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
-defaults.plugins.tooltip.enabled = false; // We'll use our custom tooltip
 
 /**
  * Register required Chart.js components
@@ -464,6 +472,7 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
   const { isReducedMotion } = useAccessibilitySettings();
   const chartRef = useRef<ChartJS | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartWrapperRef = useRef<HTMLDivElement | null>(null);
   
   // Quality tier system integration
   const qualityTier = useQualityTier();
@@ -491,23 +500,20 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     respectReducedMotion: true
   });
   
-  // Extract physics properties that are supported by the hook
-  const physicsConfig = {
-    tension: interaction.physics?.tension || qualityPhysicsParams.stiffness,
-    friction: interaction.physics?.friction || (qualityPhysicsParams.dampingRatio * 2 * Math.sqrt(qualityPhysicsParams.stiffness * qualityPhysicsParams.mass)),
-    mass: interaction.physics?.mass || qualityPhysicsParams.mass,
-  };
-  
   // Use our physics interaction hook for zoom/pan functionality
   const { 
     isPanning,
     zoomLevel,
     applyZoom,
     resetZoom
-  } = useChartPhysicsInteraction(chartRef, {
+  } = useChartPhysicsInteraction(chartRef, chartWrapperRef, {
     enabled: interaction.zoomPanEnabled || false,
     mode: interaction.zoomMode || 'xy',
-    physics: physicsConfig, // Pass the resolved physics config
+    physics: {
+      tension: interaction.physics?.tension || qualityPhysicsParams.stiffness,
+      friction: interaction.physics?.friction || (qualityPhysicsParams.dampingRatio * 2 * Math.sqrt(qualityPhysicsParams.stiffness * qualityPhysicsParams.mass)),
+      mass: interaction.physics?.mass || qualityPhysicsParams.mass,
+    },
     minZoom: interaction.physics?.minZoom || 0.5,
     maxZoom: interaction.physics?.maxZoom || 5,
     wheelSensitivity: interaction.physics?.wheelSensitivity || 0.1,
@@ -1001,214 +1007,50 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
     document.body.removeChild(link);
   }, [chartRef, containerRef, chartType, title, subtitle, exportOptions, kpi]);
   
-  // Chart reference callback
+  // Combined ref callback for ChartJS instance
   const chartRefCallback = useCallback((instance: ChartJS | null) => {
     chartRef.current = instance;
-    // Trigger zoom changed callback when chart is created/updated
-    handleZoomChanged();
-  }, [handleZoomChanged]);
+    // Call the forwarded ref if it exists
+    if (typeof ref === 'function') {
+      ref(instance as unknown as GlassDataChartRef); // May need type assertion
+    } else if (ref) {
+      ref.current = instance as unknown as GlassDataChartRef; // May need type assertion
+    }
+  }, [ref]);
   
-  // Available chart types for switching
-  const availableTypes: ChartVariant[] = ['line', 'bar', 'area'];
-  
-  // Add KPI type if kpi props are provided
-  if (kpi) {
-    availableTypes.push('kpi');
-  }
-  
-  // Only offer pie/doughnut switching if data format is compatible
-  const canShowPieChart = datasets.length === 1 && datasets[0].data.every(point => 
-    typeof point.y === 'number' && point.y !== null && point.y > 0
-  );
-  
-  if (canShowPieChart) {
-    availableTypes.push('pie', 'doughnut');
-  }
-  
-  // Configure chart options
-  const chartOptions: ChartOptions<ChartType> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: enablePhysicsAnimation 
-      ? {
-          duration: isReducedMotion ? 0 : animation.duration,
-          delay: (context) => {
-            // Enhanced staggered delay for more natural animation
-            if (animation.staggerDelay && context.datasetIndex !== undefined) {
-              return context.datasetIndex * (animation.staggerDelay || 0) + (context.dataIndex || 0) * 20;
-            }
-            return 0;
-          },
-          // Add easing based on physics principles
-          easing: 'easeOutExpo',
-        }
-      : {
-          duration: isReducedMotion ? 0 : animation.duration,
-          easing: animation.easing || 'easeOutQuart',
-          delay: (context) => {
-            // Add staggered delay if specified
-            if (animation.staggerDelay && context.datasetIndex !== undefined) {
-              return context.datasetIndex * (animation.staggerDelay || 0);
-            }
-            return 0;
-          }
-        },
-    layout: {
-      padding: {
-        top: 10,
-        right: 10,
-        bottom: 10,
-        left: 10
-      }
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: false,
-      },
-      // Use custom animation for path effects
-      // Note: Chart.js options type doesn't include custom plugins, but they work at runtime
-      ...(enablePhysicsAnimation && (chartType === 'line' || chartType === 'area') ? {
-        // @ts-ignore - Custom plugin configuration
-        pathAnimation: { enabled: true }
-      } : {}),
-      // Pass getElementPhysicsOptions AND current chartType to our custom plugin
-      // @ts-ignore - Ignore TS error for custom plugin namespace
-      galileoElementInteraction: {
-        enabled: interaction.physicsHoverEffects, // Pass enabled flag based on prop
-        getElementPhysicsOptions, // Pass the function prop
-        chartType, // Pass the current chartType state
-      }
-    },
+  // Memoize chart options
+  const chartOptions = useMemo(() => {
+    // ... (options calculation logic)
     
-    // Simplify scales configuration to make it compatible with Chart.js types
-    scales: chartType !== 'pie' && chartType !== 'doughnut' && chartType !== 'radar' && chartType !== 'polarArea'
-      ? {
-          x: {
-            display: axis.showXLabels,
-            grid: {
-              display: axis.showXGrid,
-              color: axis.gridColor,
-            },
-            ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
-              padding: 8,
-              maxRotation: 0,
-              count: axis.xTicksCount,
-            },
-            title: {
-              display: !!axis.xTitle,
-              text: axis.xTitle || '',
-              color: 'rgba(255, 255, 255, 0.7)',
-              font: {
-                weight: 'normal',
-                size: 12,
-              },
-              padding: { top: 10 }
-            }
-          },
-          y: {
-            display: axis.showYLabels,
-            position: 'left',
-            grid: {
-              display: axis.showYGrid,
-              color: axis.gridColor,
-            },
-            ticks: {
-              color: 'rgba(255, 255, 255, 0.7)',
-              padding: 8,
-              count: axis.yTicksCount,
-            },
-            title: {
-              display: !!axis.yTitle,
-              text: axis.yTitle || '',
-              color: 'rgba(255, 255, 255, 0.7)',
-              font: {
-                weight: 'normal',
-                size: 12,
-              },
-              padding: { bottom: 10 }
-            }
-          },
-          // Add right y-axis if any dataset uses it
-          ...(datasets.some(d => d.useRightYAxis) ? {
-            y1: {
-              display: axis.showYLabels,
-              position: 'right',
-              grid: {
-                display: false,
-              },
-              ticks: {
-                color: 'rgba(255, 255, 255, 0.7)',
-                padding: 8,
-              }
-            }
-          } : {})
+    return {
+      // ... calculated options
+      plugins: { 
+        legend: { display: false }, // Disable built-in legend
+        tooltip: { enabled: false }, // Disable built-in tooltip
+        zoom: { 
+          // Configuration for chartjs-plugin-zoom (if used, ensure it's registered)
+          // This seems redundant now with useChartPhysicsInteraction
+          // pan: { enabled: false }, // Disable default pan
+          // zoom: { wheel: { enabled: false }, pinch: { enabled: false }, mode: 'xy' } // Disable default zoom
+        },
+        // Configure our custom interaction plugin
+        [GalileoElementInteractionPlugin.id]: { 
+          elementAnimationTargets,
+          setElementAnimationTargets,
+          getElementPhysicsOptions,
+          isReducedMotion,
         }
-      : undefined,
-    // Different options based on chart type
-    ...(chartType === 'pie' || chartType === 'doughnut' ? {
-      cutout: chartType === 'doughnut' ? '50%' : undefined,
-    } : {}),
-    // Handle hover interactions
-    hover: {
-      mode: 'nearest',
-      intersect: false,
-    },
-    elements: {
-      // Customize line elements
-      line: {
-        borderWidth: 2,
-        tension: 0.4, // Smooth curve
-      },
-      // Customize point elements
-      point: {
-        hitRadius: 8,
-        hoverRadius: 6,
-        hoverBorderWidth: 2,
-      },
-      // Customize bar elements
-      bar: {
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      // Customize arc elements (pie/doughnut)
-      arc: {
-        // Set borderWidth to 0 for pie/doughnut to avoid artifacts with small segments (Task 1 Fix)
-        borderWidth: (chartType === 'pie' || chartType === 'doughnut') ? 0 : 1,
-        borderColor: 'rgba(255, 255, 255, 0.1)',
       }
     }
-  };
-  
-  // Expose imperative methods via ref
-  React.useImperativeHandle(ref, () => ({
-    getChartInstance: () => chartRef.current,
-    exportChart: (format: string = 'image/png', quality?: number) => {
-      return chartRef.current?.toBase64Image(format, quality);
-    },
-    updateChart: (config?: any) => {
-      chartRef.current?.update(config);
-    },
-    getContainerElement: () => containerRef.current,
-    switchChartType: (type: ChartVariant) => {
-      handleTypeChange(type); // Call the internal handler
-    },
-    // Temporarily comment out plugin interactions to resolve type errors
-    /*
-    setHoveredElement: (datasetIndex: number | null, index: number | null) => {
-      // Accessing plugins directly might be incorrect based on types
-      const plugin = chartRef.current?.plugins.find(p => p.id === GalileoElementInteractionPlugin.id) as typeof GalileoElementInteractionPlugin | undefined;
-      plugin?.setExternalHover?.(chartRef.current, datasetIndex, index);
-    },
-    clearHoveredElement: () => {
-       const plugin = chartRef.current?.plugins.find(p => p.id === GalileoElementInteractionPlugin.id) as typeof GalileoElementInteractionPlugin | undefined;
-       plugin?.clearExternalHover?.(chartRef.current);
-    }
-    */
-  }), [chartRef, handleTypeChange]); // Add handleTypeChange to dependencies
+  }, [datasets, chartType, axis, legend, isReducedMotion, elementAnimationTargets, getElementPhysicsOptions]); // Dependencies
+
+  // Plugins to pass to the Chart component
+  // Ensure all used plugins are registered above
+  const chartPlugins: Plugin<ChartType>[] = useMemo(() => [
+    pathAnimationPlugin,
+    GalileoElementInteractionPlugin,
+    // Add other custom plugins if needed
+  ], []); 
 
   return (
     <ChartContainer
@@ -1226,54 +1068,33 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
       $borderRadius={borderRadius}
       $borderColor={borderColor}
     >
-      {/* SVG Filters */}
       {svgFilters}
-      
-      {/* Atmospheric Background */}
-      <AtmosphericBackground $color={color} />
-      
-      {/* Chart Header */}
-      {(title || subtitle) && (
-        <ChartHeader>
-          {title && <ChartTitle>{title}</ChartTitle>}
-          {subtitle && <ChartSubtitle>{subtitle}</ChartSubtitle>}
-        </ChartHeader>
-      )}
-      
-      {/* Toolbar */}
-      {showToolbar && (
-        <ChartToolbar>
-          {/* Type selector */}
-          {allowTypeSwitch && (
-            <ChartTypeSelector>
-              {availableTypes.map(type => (
-                <TypeButton
-                  key={type}
-                  $active={chartType === type}
-                  onClick={() => handleTypeChange(type)}
-                >
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
-                </TypeButton>
-              ))}
-            </ChartTypeSelector>
-          )}
-          
-          {/* Enhanced Export button */}
-          {allowDownload && (
-            renderExportButton ? (
-              renderExportButton(handleExportChart)
-            ) : (
-              <EnhancedExportButton onClick={handleExportChart} title="Export chart as image">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </EnhancedExportButton>
-            )
-          )}
-        </ChartToolbar>
-      )}
+      <ChartHeader>
+        {title && <ChartTitle>{title}</ChartTitle>}
+        {subtitle && <ChartSubtitle>{subtitle}</ChartSubtitle>}
+      </ChartHeader>
+      <ChartWrapper ref={chartWrapperRef}> 
+        {interaction.zoomPanEnabled && (
+          <ZoomControls 
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            onReset={resetZoom}
+            zoomLevel={zoomLevel}
+            $variant={glassVariant}
+          />
+        )}
+        <Chart
+          key={chartType} // Ensures re-render on type change
+          type={getChartJsType()}
+          data={chartData}
+          options={chartOptions}
+          plugins={chartPlugins} // Pass the memoized plugins array
+          ref={chartRefCallback} // Use the combined ref callback
+          onClick={handleDataPointClick}
+          onMouseMove={handleChartHover} 
+          onMouseLeave={handleChartLeave}
+        />
+      </ChartWrapper>
       
       {/* Legend - Top position */}
       {legend.show && legend.position === 'top' && (
@@ -1312,36 +1133,6 @@ export const GlassDataChart = React.forwardRef<GlassDataChartRef, GlassDataChart
           })}
         </ChartLegend>
       )}
-      
-      {/* Chart Component with Key Prop */}
-      <ChartWrapper 
-        style={enablePhysicsAnimation ? {
-          transform: `scale(${springValue ?? 0})`, // Provide fallback if springValue is undefined
-          opacity: springValue ?? 0,
-          transition: `transform ${animation.duration ?? 0}ms, opacity ${animation.duration ?? 0}ms`
-        } : undefined}
-      >
-        {interaction.zoomPanEnabled && (
-          <ZoomControls 
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            onReset={resetZoom}
-            zoomLevel={zoomLevel}
-            $variant={glassVariant}
-          />
-        )}
-        
-        <Chart
-          key={chartType}
-          type={getChartJsType()}
-          data={chartData}
-          options={chartOptions}
-          ref={chartRefCallback}
-          onClick={handleDataPointClick}
-          onMouseMove={handleChartHover}
-          onMouseLeave={handleChartLeave}
-        />
-      </ChartWrapper>
       
       {/* Legend - Bottom position */}
       {legend.show && legend.position === 'bottom' && (

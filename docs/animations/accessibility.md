@@ -12,6 +12,7 @@ Ensuring animations are accessible to all users, including those with motion sen
   - [Example Usage](#example-usage-enhanced)
 - [Animation Categories](#animation-categories)
 - [Alternative Animations](#alternative-animations)
+- [Event-Based Animation Accessibility](#event-based-animation-accessibility)
 - [Other Accessibility Considerations](#other-accessibility-considerations)
   - [Focus Indicators](#focus-indicators)
   - [Keyboard Navigation](#keyboard-navigation)
@@ -208,77 +209,71 @@ For detailed implementation guidance, see the [Alternative Animations](./alterna
 
 ---
 
-## Other Accessibility Considerations
+## Event-Based Animation Accessibility
 
-### Focus Indicators
-- Ensure focus indicators are always clearly visible, even during animations.
-- Focus ring animations should respect `prefersReducedMotion` (e.g., the basic `useReducedMotion` hook can be used to make the animation `immediate`).
-- The `GlassFocusRing` component aims to handle this automatically (Verify its implementation).
+The refactored animation system in v1.0.28+ uses an event-based architecture that improves accessibility in several ways:
 
-### Keyboard Navigation
-- All interactions achievable via pointer (mouse/touch) must also be achievable via keyboard.
-- Animations triggered by hover should typically also trigger on focus for keyboard users.
-- Ensure animations don't trap focus or interfere with expected navigation order.
+### Motion Sensitivity Support
 
-### Pause/Stop Controls
-- For continuous, looping, or potentially distracting animations (especially `DECORATIVE` or `BACKGROUND`), provide controls to pause, stop, or hide them, as required by WCAG 2.2.2 Pause, Stop, Hide.
-- Hooks like `useAnimationSequence` provide `pause()` and `stop()` controls.
-
----
-
-## Best Practices
-
-- **Use `useReducedMotion` (Basic):** For simple checks of the OS preference where no user override is needed.
-- **Use `useEnhancedReducedMotion`:** When you need to allow users to override the system preference via `localStorage`.
-- **Consume Hook Correctly:** When using `useEnhancedReducedMotion`, destructure the specific properties you need (`prefersReducedMotion`, `systemPrefersReducedMotion`, `isOverridden`, `setUserOverride`) rather than using the entire returned object in dependency arrays.
-- **Categorize Animations:** Conceptually assign `AnimationCategory` values when implementing animations to guide decisions about importance and fallbacks.
-- **Provide Alternatives:** When motion is significant, design a non-motion alternative (fade, static state, property change) and implement it conditionally based on the `prefersReducedMotion` value from either hook.
-- **Test Thoroughly:** Test animations with `prefersReducedMotion` enabled (system setting) and by using the `setUserOverride` function from `useEnhancedReducedMotion`.
-- **Prefer System Settings:** The default behavior (when `setUserOverride` is `null`) respects the user's system-wide choice. Only force an override when providing explicit user controls within the application.
-- **Keep Essential Motion:** Don't disable motion that is essential for understanding the UI state or interaction, unless a clear alternative is provided.
-
----
-
-## Animation Categories
-
-Animations are categorized to allow different handling based on user preferences or sensitivity levels. Components implementing animations should consider these categories.
-
-- `ESSENTIAL`: Crucial for understanding state or interaction (e.g., focus indicators, loading spinners).
-- `TRANSITION`: Navigational or state change transitions (e.g., page loads, modal entrance).
-- `FEEDBACK`: Direct response to user input (e.g., button press effect).
-- `HOVER`: Effects triggered by hovering.
-- `SCROLL`: Parallax or effects linked to scrolling.
-- `ATTENTION`: Animations designed to draw user attention (e.g., notification bounce).
-- `LOADING`: Indeterminate progress indicators.
-- `DECORATIVE`: Purely aesthetic animations with no functional purpose.
-- `BACKGROUND`: Subtle background effects.
-
-When using hooks like `useAlternativeAnimations`, you can specify the animation category to ensure proper adaptation:
+The GameAnimationEventEmitter automatically adapts animations based on user motion preferences:
 
 ```typescript
-const { isAnimationDisabled, duration } = useAlternativeAnimations({
-  category: AnimationCategory.ESSENTIAL // This category will get special treatment
-});
+// The event emitter in the GameAnimationController automatically checks
+// for motion preferences and adjusts animations accordingly
+const { motionSensitivity } = gameAnimation;
+console.log(`Current motion sensitivity: ${motionSensitivity}`); // 'low', 'medium', or 'high'
 ```
 
----
+### Accessibility Middleware
 
-## Alternative Animations
+You can add dedicated middleware to further enhance accessibility:
 
-When `prefersReducedMotion` is true, components should ideally provide an alternative way to convey information or state changes. The Galileo Glass UI provides tools to implement these alternatives:
+```typescript
+import { 
+  createAccessibilityMiddleware,
+  GameAnimationEventType
+} from '@veerone/galileo-glass-ui';
 
-1. **`useAlternativeAnimations` Hook**: Provides utilities based on motion sensitivity.
-2. **`withAlternativeAnimations` HOC**: Enhances components with alternative animation capabilities.
+// Get the event emitter from the controller
+const emitter = gameAnimation.getEventEmitter();
 
-Common alternative types include:
+// Add accessibility middleware
+emitter.addMiddleware(createAccessibilityMiddleware({
+  // Automatically use alternative animations based on motion sensitivity
+  provideAlternatives: true,
+  
+  // Categories that should be completely disabled at low sensitivity
+  disableCategories: [
+    AnimationCategory.DECORATIVE,
+    AnimationCategory.BACKGROUND
+  ],
+  
+  // Events that should trigger accessibility adjustments
+  monitorEvents: [
+    GameAnimationEventType.TRANSITION_START,
+    GameAnimationEventType.STATE_CHANGE
+  ]
+}));
+```
 
-- `FADE`: Replace motion with a cross-fade.
-- `STATIC`: Remove the animation entirely, jump to the end state.
-- `SIMPLIFIED`: Use a less complex version of the animation.
-- `ALTERNATIVE_PROPERTY`: Animate a different property (e.g., background color instead of position).
-- `NONE`: No specific alternative.
+### Runtime Adaptation to Changing Preferences
 
-For detailed implementation guidance, see the [Alternative Animations](./alternative-animations.md) documentation.
+The event system allows animations to adapt immediately when user preferences change:
+
+```typescript
+// When user preferences change, emit a special event to update all active animations
+emitter.emit({
+  type: GameAnimationEventType.ACCESSIBILITY_CHANGE,
+  data: { 
+    motionSensitivity: 'low',
+    prefersReducedMotion: true
+  },
+  source: 'user-settings',
+  timestamp: Date.now(),
+  preventDefault: false,
+  prevent: () => {}
+});
+```
 
 ---
 

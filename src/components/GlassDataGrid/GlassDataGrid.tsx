@@ -196,11 +196,15 @@ export const GlassDataGrid = forwardRef<HTMLDivElement, GlassDataGridProps<any>>
       <DimensionalGlass 
         ref={ref} // Forward ref to the DimensionalGlass
         className={className} 
-        style={style}
+        style={{
+            ...style, // Merge with existing style prop
+            ...(height && { height: typeof height === 'number' ? `${height}px` : height, overflowY: 'auto' }),
+            position: 'relative', // Keep other necessary styles
+            perspective: '1000px',
+        }}
         variant="standard" // Pass relevant props to DimensionalGlass
         elevation={1}
         css={`
-            ${height ? `height: ${typeof height === 'number' ? height+'px' : height}; overflow-y: auto;` : ''}
             position: relative;
             perspective: 1000px; 
         `}

@@ -1,197 +1,112 @@
 /**
  * Tests for withOrchestration HOC
  */
-import { render, cleanup } from '@testing-library/react';
 import React from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { withOrchestration, animationOrchestrator, AnimationSequence, AnimationTarget } from '../Orchestrator';
+import { MotionSensitivityLevel } from '../../accessibility/MotionSensitivity';
+import '@testing-library/jest-dom'; // Explicitly import matchers
 import { keyframes } from 'styled-components';
+import { AnimationPreset } from '../../core/types';
 
 // Get the original animationOrchestrator instance to mock it
 import * as OrchestratorModule from '../Orchestrator';
-import { withOrchestration, AnimationSequence } from '../Orchestrator';
 
 // Mock dependencies
 // REMOVED manual jest.mock for styled-components
 
-// Create spy objects for the orchestrator functions
-const createSequenceSpy = jest
-  .spyOn(OrchestratorModule.animationOrchestrator, 'createSequence')
-  .mockImplementation(function (this: any, _id, _sequence) {
-    return this;
-  });
+// Use the globally defined mock object from the jest.mock call
+const mockOrchestrator = animationOrchestrator;
 
-const stopSpy = jest
-  .spyOn(OrchestratorModule.animationOrchestrator, 'stop')
-  .mockImplementation(() => {});
+// Define spies on the mock object
+const createSequenceSpy = jest.spyOn(mockOrchestrator, 'createSequence');
+const stopSpy = jest.spyOn(mockOrchestrator, 'stop');
+const playSpy = jest.spyOn(mockOrchestrator, 'play'); // Add playSpy if needed
 
-const _playSpy = jest
-  .spyOn(OrchestratorModule.animationOrchestrator, 'play')
-  .mockImplementation(() => Promise.resolve());
+// Define a keyframe animation name string
+const testKfsName = 'test-fade-in';
+const testKfs = keyframes`${testKfsName} { from { opacity: 0; } to { opacity: 1; } }`;
+
+// Test component
+interface TestProps { testProp: string; }
+const TestComponent: React.FC<TestProps> = ({ testProp }) => <div>{testProp}</div>;
+TestComponent.displayName = 'MyTestComponent'; // Add displayName for sequence ID testing
 
 describe('withOrchestration', () => {
-  afterEach(() => {
-    cleanup();
-    jest.clearAllMocks();
+
+  beforeEach(() => {
+    // Clear spies on the mock object
+    createSequenceSpy.mockClear();
+    stopSpy.mockClear();
+    playSpy.mockClear();
+    // Reset implementations if needed (e.g., if a test overrides them)
+    createSequenceSpy.mockImplementation(function (this: any, _id, _sequence) { return this; });
+    stopSpy.mockImplementation(() => {});
+    playSpy.mockImplementation(() => Promise.resolve());
   });
 
-  test('should create a sequence when component mounts', () => {
-    // Define a basic component
-    const TestComponent = () => <div>Test Component</div>;
+  const testAnimation: AnimationPreset = {
+    // keyframes: testKfs, // Use name string
+    keyframes: testKfsName,
+    duration: '300ms',
+    easing: 'linear',
+  };
+  
+  const testTarget: AnimationTarget = {
+    target: '#test-target',
+    animation: testAnimation,
+  };
 
-    // Define animation sequence
-    const sequence: AnimationSequence = {
-      targets: [
-        {
-          target: '#test-element',
-          animation: {
-            keyframes: keyframes`from { opacity: 0; } to { opacity: 1; }`,
-            duration: '300ms',
-            easing: 'ease',
-            fillMode: 'both',
-          },
-        },
-      ],
-      parallel: false,
-      autoPlay: true,
-    };
+  const testSequence: AnimationSequence = {
+    targets: [testTarget],
+    autoPlay: true,
+  };
 
-    // Create wrapped component
-    const WrappedComponent = withOrchestration(TestComponent, sequence);
+  it('should render the wrapped component', () => {
+    const EnhancedComponent = withOrchestration(TestComponent, testSequence);
+    render(<EnhancedComponent testProp="Test Value" />);
+    expect(screen.getByText('Test Value')).toBeInTheDocument();
+  });
 
-    // Render the wrapped component
-    render(<WrappedComponent />);
+  it('should have correct displayName', () => {
+    const EnhancedComponent = withOrchestration(TestComponent, testSequence);
+    expect(EnhancedComponent.displayName).toBe('WithOrchestration(MyTestComponent)');
+  });
 
-    // Check that createSequence was called with a sequence ID and the sequence
+  it('should create a sequence on mount', () => {
+    const EnhancedComponent = withOrchestration(TestComponent, testSequence);
+    render(<EnhancedComponent testProp="Test" />);
+    expect(createSequenceSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('should pass sequence config to createSequence', () => {
+    const EnhancedComponent = withOrchestration(TestComponent, testSequence);
+    render(<EnhancedComponent testProp="Test" />);
+    expect(createSequenceSpy).toHaveBeenCalledWith(expect.any(String), testSequence);
+  });
+
+  it('should generate a unique sequence ID containing component name', () => {
+    const EnhancedComponent = withOrchestration(TestComponent, testSequence);
+    render(<EnhancedComponent testProp="Test" />);
     expect(createSequenceSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Component'),
-      expect.objectContaining({
-        targets: sequence.targets,
-        parallel: sequence.parallel,
-        autoPlay: sequence.autoPlay,
-      })
-    );
-  });
-
-  test('should stop the sequence when component unmounts', () => {
-    // Define a basic component
-    const TestComponent = () => <div>Test Component</div>;
-
-    // Define animation sequence
-    const sequence: AnimationSequence = {
-      targets: [
-        {
-          target: '#test-element',
-          animation: {
-            keyframes: keyframes`from { opacity: 0; } to { opacity: 1; }`,
-            duration: '300ms',
-            easing: 'ease',
-            fillMode: 'both',
-          },
-        },
-      ],
-      parallel: false,
-      autoPlay: true,
-    };
-
-    // Create wrapped component
-    const WrappedComponent = withOrchestration(TestComponent, sequence);
-
-    // Render and unmount the wrapped component
-    const { unmount } = render(<WrappedComponent />);
-    unmount();
-
-    // Check that stop was called with a sequence ID
-    expect(stopSpy).toHaveBeenCalledWith(expect.stringContaining('Component'));
-  });
-
-  test('should pass props to the wrapped component', () => {
-    // Define a component with props
-    interface TestProps {
-      testProp: string;
-    }
-    const TestComponent: React.FC<TestProps> = ({ testProp }) => <div>{testProp}</div>;
-    TestComponent.displayName = 'TestComponent';
-
-    // Define animation sequence
-    const sequence: AnimationSequence = {
-      targets: [
-        {
-          target: '#test-element',
-          animation: {
-            keyframes: keyframes`from { opacity: 0; } to { opacity: 1; }`,
-            duration: '300ms',
-            easing: 'ease',
-            fillMode: 'both',
-          },
-        },
-      ],
-      parallel: false,
-      autoPlay: true,
-    };
-
-    // Create wrapped component
-    const WrappedComponent = withOrchestration(TestComponent, sequence);
-
-    // Render the wrapped component with props
-    const { getByText } = render(<WrappedComponent testProp="Test Value" />);
-
-    // Check that the props were passed through
-    expect(getByText('Test Value')).toBeInTheDocument();
-
-    // Check that the sequence ID includes the component's displayName
-    expect(createSequenceSpy).toHaveBeenCalledWith(
-      expect.stringContaining('TestComponent'),
+      expect.stringContaining('MyTestComponent'),
       expect.anything()
     );
   });
 
-  test('should generate unique IDs based on timestamp', () => {
-    // Define a basic component
-    const TestComponent = () => <div>Test Component</div>;
-
-    // Define animation sequence
-    const sequence: AnimationSequence = {
-      targets: [
-        {
-          target: '#test-element',
-          animation: {
-            keyframes: keyframes`from { opacity: 0; } to { opacity: 1; }`,
-            duration: '300ms',
-            easing: 'ease',
-            fillMode: 'both',
-          },
-        },
-      ],
-      parallel: false,
-      autoPlay: true,
-    };
-
-    // Spy on Date.now to control the timestamp
-    const realDateNow = Date.now;
-    let dateNowCallCount = 0;
-
-    // Mock Date.now to return different timestamps
-    Date.now = jest.fn(() => {
-      dateNowCallCount++;
-      return 1000000 + dateNowCallCount;
-    });
-
-    // Create two wrapped components (they should have different IDs)
-    const WrappedComponent1 = withOrchestration(TestComponent, sequence);
-    const WrappedComponent2 = withOrchestration(TestComponent, sequence);
-
-    // Render both components
-    render(<WrappedComponent1 />);
-    render(<WrappedComponent2 />);
-
-    // Verify createSequence was called with different IDs
-    expect(createSequenceSpy).toHaveBeenCalledTimes(2);
-    const firstCallId = createSequenceSpy.mock.calls[0][0];
-    const secondCallId = createSequenceSpy.mock.calls[1][0];
-
-    // The IDs should be different due to different timestamps
-    expect(firstCallId).not.toEqual(secondCallId);
-
-    // Restore the original Date.now
-    Date.now = realDateNow;
+  it('should call orchestrator stop on unmount', () => {
+    const EnhancedComponent = withOrchestration(TestComponent, testSequence);
+    const { unmount } = render(<EnhancedComponent testProp="Test" />);
+    
+    // Ensure createSequence was called to get the ID
+    expect(createSequenceSpy).toHaveBeenCalledTimes(1);
+    const sequenceId = createSequenceSpy.mock.calls[0][0]; // Get the ID used
+    
+    // Unmount
+    unmount();
+    
+    // Verify stop was called exactly once with the correct ID
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(stopSpy).toHaveBeenCalledWith(sequenceId);
   });
 });

@@ -127,7 +127,7 @@ export const useDraggableListPhysics = (
 
   // --- Refs --- 
   const bodyIds = useRef<Map<number, string>>(new Map()); 
-  const targetPositions = useRef<Map<string, Vector2D>>(new Map()); 
+  const targetPositions = useRef<Map<string, Vector2D>>(new Map());
   const elementDimensions = useRef<Map<string, { width: number; height: number }>>(new Map());
   const animationFrameRef = useRef<number | null>(null);
   const isMounted = useRef(false);
@@ -159,15 +159,19 @@ export const useDraggableListPhysics = (
   // --- Effect: Initialize/Cleanup physics bodies ---
   useEffect(() => {
     isMounted.current = true;
+    // Add a flag to prevent setting state if effect runs after unmount
+    let didUnmount = false; 
     if (!engine) return;
     
-    // << RE-ADD Check if item count has changed >>
-    if (itemRefs.length === prevItemCountRef.current) {
-        // console.log('Skipping body init, item count unchanged.');
-        return; 
+    // Check if item count has actually changed
+    if (prevItemCountRef.current === itemRefs.length) {
+      // console.log('Item count unchanged, skipping body init effect');
+      return; // Skip effect if item count is the same
     }
-    // console.log('Running body init, item count changed.');
+    prevItemCountRef.current = itemRefs.length; // Update the count
 
+    // console.log('Running body init effect... Item count:', itemRefs.length); // Add log
+    
     // Clear previous bodies 
     bodyIds.current.forEach(id => engine?.removeBody(id));
     bodyIds.current.clear();
@@ -180,41 +184,57 @@ export const useDraggableListPhysics = (
     let initialOffset = 0;
 
     itemRefs.forEach((ref, index) => {
-        let dims = { width: 0, height: 0 };
-        let hasValidDims = false;
-        if (ref.current) {
-            dims = { width: ref.current.offsetWidth, height: ref.current.offsetHeight }; 
-            hasValidDims = !isNaN(dims.width) && !isNaN(dims.height) && dims.width > 0 && dims.height > 0;
-        }
-
-        if (!hasValidDims) {
-            console.warn(`useDraggableListPhysics: Could not get valid dimensions for item at index ${index}. Using fallback.`);
-            dims = { width: 100, height: 50 }; // Use fallback dimensions
-        }
-        
-        const initialPosition = direction === 'vertical' ? { x: 0, y: initialOffset } : { x: initialOffset, y: 0 };
-        const bodyOptions: PhysicsBodyOptions = {
-            shape: { type: 'rectangle', width: dims.width, height: dims.height },
-            position: initialPosition,
-            mass: mass,
-            userData: { listIndex: index }
-        };
-        const bodyId = engine.addBody(bodyOptions);
-        if (bodyId) {
-            newBodyIds.set(index, bodyId);
-            initPos.set(bodyId, initialPosition);
-            elemDims.set(bodyId, dims);
+        let dims = { width: 100, height: 50 }; // Default dims
+        let bodyId: string | null = null; // Initialize bodyId
+        try {
+            if (ref.current) {
+                const readWidth = ref.current.offsetWidth;
+                const readHeight = ref.current.offsetHeight;
+                // Check if dimensions are valid numbers
+                if (!isNaN(readWidth) && !isNaN(readHeight) && readWidth > 0 && readHeight > 0) {
+                    dims = { width: readWidth, height: readHeight };
+                } else {
+                    console.warn(`useDraggableListPhysics: Invalid dimensions for item ${index}`, { readWidth, readHeight });
+                }
+            } else {
+                console.warn(`useDraggableListPhysics: ref.current is null for item ${index}`);
+            }
+            
+            const initialPosition = direction === 'vertical' ? { x: 0, y: initialOffset } : { x: initialOffset, y: 0 };
+            const bodyOptions: PhysicsBodyOptions = {
+                shape: { type: 'rectangle', width: dims.width, height: dims.height },
+                position: initialPosition,
+                mass: mass,
+                userData: { listIndex: index }
+            };
+            
+            // Add body with try-catch
+            bodyId = engine.addBody(bodyOptions);
+            
+            if (bodyId) {
+                newBodyIds.set(index, bodyId);
+                initPos.set(bodyId, initialPosition);
+                elemDims.set(bodyId, dims);
+            } else {
+                 console.error(`useDraggableListPhysics: engine.addBody failed for item ${index}`);
+            }
+        } catch (error) {
+            console.error(`useDraggableListPhysics: Error processing item ${index}`, error);
+            // Continue to next item if possible
         }
         if (direction === 'vertical') initialOffset += dims.height + spacing;
         else initialOffset += dims.width + spacing;
     });
 
+    // Check if component unmounted during async operations (though this effect is sync)
+    if (didUnmount) return; 
+
     bodyIds.current = newBodyIds;
     elementDimensions.current = elemDims;
     const initialOrder = itemRefs.map((_, i) => i);
+    // console.log('Setting initial state...'); // Add log
     setCurrentOrder(initialOrder);
     calculateTargetPositions(initialOrder, newBodyIds, elemDims); 
-    // Set initial styles based on calculated positions/dimensions
     setStyles(itemRefs.map((_, index) => {
         const bodyId = newBodyIds.get(index);
         const pos = initPos.get(bodyId || '') || { x: 0, y: 0 };
@@ -236,24 +256,24 @@ export const useDraggableListPhysics = (
     setIsDragging(false); // Ensure dragging is false initially
     dragState.current = resetDragState();
     
-    // << RE-ADD Update the stored count >>
-    prevItemCountRef.current = itemRefs.length;
-
     // Cleanup function
     return () => {
-      isMounted.current = false;
-      bodyIds.current.forEach(id => engine?.removeBody(id));
-      bodyIds.current.clear();
-      targetPositions.current.clear();
-      elementDimensions.current.clear();
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null; 
+      didUnmount = true;
+      // console.log('Running body cleanup effect...'); // Add log
+      if (isMounted.current) { 
+        // Only cleanup if component was mounted
+        bodyIds.current.forEach(id => engine?.removeBody(id));
+        bodyIds.current.clear(); // Clear the map on cleanup
+        targetPositions.current.clear();
+        elementDimensions.current.clear();
+        isMounted.current = false; // Mark as unmounted
+      }
     };
-    // This effect should run primarily when itemRefs or the engine changes.
-    // Mass, direction, spacing changes ideally trigger recalculation within the loop or specific handlers.
-  }, [itemRefs, engine]); 
+  // Depend on item count, engine, and stable configs/callbacks
+  // Using itemRefs.length instead of itemRefs prevents loops if the array ref changes but length doesn't
+  }, [itemRefs.length, engine, mass, direction, spacing, calculateTargetPositions]); 
 
-  // --- Effect: Physics update loop ---
+  // --- Effect: Physics update loop (Modified to set state based on ref) ---
   useEffect(() => {
     if (!engine || !isMounted.current || bodyIds.current.size === 0) {
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
@@ -264,6 +284,7 @@ export const useDraggableListPhysics = (
 
     const updateLoop = (timestamp: number) => {
         if (!isActive || !isMounted.current) return; 
+        
         if (bodyIds.current.size !== itemRefs.length) {
              if (isMounted.current) animationFrameRef.current = requestAnimationFrame(updateLoop);
              return;
@@ -272,15 +293,80 @@ export const useDraggableListPhysics = (
         const dt = Math.min(0.032, (timestamp - lastTimestamp.current) / 1000); 
         lastTimestamp.current = timestamp; 
 
+        // Remove this incorrect call - engine update is likely internal
+        // engine.update(dt); 
         const allStates = engine.getAllBodyStates();
         if (!allStates) {
             if (isMounted.current) animationFrameRef.current = requestAnimationFrame(updateLoop);
             return;
         }
         
+        // --- Update Drag State Based on Ref --- 
+        const currentIsDragging = dragState.current.isPointerDragging || dragState.current.isKeyboardDragging;
+        let derivedDraggedIndex: number | null = null;
+        if (dragState.current.isPointerDragging && dragState.current.draggedBodyId) {
+            derivedDraggedIndex = Array.from(bodyIds.current.entries()).find(
+                ([idx, id]) => id === dragState.current.draggedBodyId
+            )?.[0] ?? null; 
+        } else if (dragState.current.isKeyboardDragging) {
+            derivedDraggedIndex = dragState.current.keyboardDraggedOriginalIndex;
+        }
+        
+        if (currentIsDragging !== isDragging) {
+            setIsDragging(currentIsDragging);
+        }
+        if (derivedDraggedIndex !== draggedOriginalIndex) {
+            setDraggedOriginalIndex(derivedDraggedIndex);
+        }
+        
+        // --- Variable Declarations for Loop --- 
         const newStylesArray: CSSProperties[] = Array(itemRefs.length).fill({});
         let isAnyBodyActive = false;
-
+        let draggedItemCurrentY = 0; // Track Y position for reordering
+        
+        // --- Reordering Logic (as before) --- 
+        let potentialNewOrder = [...currentOrder];
+        const draggedBodyId = dragState.current.draggedBodyId;
+        if (draggedBodyId && currentIsDragging) {
+          const draggedState = allStates.get(draggedBodyId);
+          const draggedOriginalIdx = currentOrder.findIndex(idx => bodyIds.current.get(idx) === draggedBodyId);
+          
+          if (draggedState && draggedOriginalIdx !== -1) {
+             draggedItemCurrentY = draggedState.position.y; // Store current Y
+              
+             const draggedVisualIndex = potentialNewOrder.findIndex(originalIdx => bodyIds.current.get(originalIdx) === draggedBodyId);
+              
+             potentialNewOrder.forEach((originalIdx, visualIndex) => {
+                 if (visualIndex === draggedVisualIndex) return;
+                 const otherBodyId = bodyIds.current.get(originalIdx);
+                 if (!otherBodyId) return;
+                 const otherState = allStates.get(otherBodyId);
+                 const otherDims = elementDimensions.current.get(otherBodyId) || { height: 50 };
+                 if (!otherState) return;
+                 const overlapThreshold = otherDims.height / 2;
+                 const dy = draggedState.position.y - otherState.position.y; 
+                 
+                 if (visualIndex > draggedVisualIndex && dy > overlapThreshold) {
+                     [potentialNewOrder[draggedVisualIndex], potentialNewOrder[visualIndex]] = 
+                         [potentialNewOrder[visualIndex], potentialNewOrder[draggedVisualIndex]];
+                 }
+                 else if (visualIndex < draggedVisualIndex && dy < -overlapThreshold) {
+                     [potentialNewOrder[draggedVisualIndex], potentialNewOrder[visualIndex]] = 
+                         [potentialNewOrder[visualIndex], potentialNewOrder[draggedVisualIndex]];
+                 }
+             });
+              
+             if (JSON.stringify(potentialNewOrder) !== JSON.stringify(currentOrder)) {
+                 setCurrentOrder(potentialNewOrder);
+                 if (onOrderChange) {
+                     onOrderChange(potentialNewOrder); 
+                 }
+                 calculateTargetPositions(potentialNewOrder, bodyIds.current, elementDimensions.current);
+             }
+          }
+        }
+        
+        // --- Apply Forces & Update Styles (as before) --- 
         currentOrder.forEach((originalIndex) => {
             const bodyId = bodyIds.current.get(originalIndex);
             if (!bodyId) return;
@@ -289,11 +375,10 @@ export const useDraggableListPhysics = (
 
             let forceX = 0;
             let forceY = 0;
+            const isDragged = (dragState.current.isPointerDragging && dragState.current.draggedBodyId === bodyId) || 
+                              (dragState.current.isKeyboardDragging && dragState.current.keyboardDraggedOriginalIndex === originalIndex);
             const isBeingPointerDragged = dragState.current.isPointerDragging && dragState.current.draggedBodyId === bodyId;
-            const isBeingKeyboardDragged = dragState.current.isKeyboardDragging && dragState.current.keyboardDraggedOriginalIndex === originalIndex;
-            const isDragged = isBeingPointerDragged || isBeingKeyboardDragged;
 
-            // Apply Settling Force (if not pointer dragging)
             if (!isBeingPointerDragged) {
                 const targetPos = targetPositions.current.get(bodyId);
                  if (targetPos) {
@@ -302,24 +387,21 @@ export const useDraggableListPhysics = (
                      forceY = dy * settleTension - currentState.velocity.y * settleFriction;
                      forceX = dx * settleTension - currentState.velocity.x * settleFriction;
                      
-                     // Check if close enough to snap
                      const isCloseY = Math.abs(dy) < 0.1 && Math.abs(currentState.velocity.y) < 0.1;
                      const isCloseX = Math.abs(dx) < 0.1 && Math.abs(currentState.velocity.x) < 0.1;
 
-                     if(isCloseY && isCloseX) {
+                     if(isCloseY && isCloseX && !isDragged) { 
                          engine.updateBodyState(bodyId, { position: targetPos, velocity: { x: 0, y: 0 } });
                          forceX = 0;
                          forceY = 0;
                      } else {
-                         isAnyBodyActive = true; // Still needs to move/settle
+                         isAnyBodyActive = true;
                      }
                  } else {
-                     // Fallback: Damp velocity if target is missing
                      forceX = -currentState.velocity.x * settleFriction;
                      forceY = -currentState.velocity.y * settleFriction;
                  }
              } else {
-                 // Apply Damping during Pointer Drag (main drag force is in handlePointerMove)
                  forceX = -currentState.velocity.x * dragFriction; 
                  forceY = -currentState.velocity.y * dragFriction; 
                  isAnyBodyActive = true;
@@ -329,8 +411,7 @@ export const useDraggableListPhysics = (
                 engine.applyForce(bodyId, { x: forceX, y: forceY });
              }
 
-            // --- Update Style --- 
-            const finalState = engine.getBodyState(bodyId) ?? currentState; // Use potentially updated state
+            const finalState = engine.getBodyState(bodyId) ?? currentState;
             const dims = elementDimensions.current.get(bodyId) || { width: 100, height: 50 };
             const z = isDragged ? liftZ : 0; 
             const scale = isDragged ? liftScale : 1; 
@@ -346,11 +427,8 @@ export const useDraggableListPhysics = (
                 zIndex: isDragged ? 100 : 10, 
                 boxShadow: shadow, 
                 userSelect: 'none',
-                cursor: isDragged ? draggingCursor : 'grab', // Apply correct cursor
-                 // Only apply CSS transition for non-dragged items settling - helps smooth out minor jitters
-                // Transition transform might fight physics slightly, use with caution or remove if problematic.
-                // transition: !isDragged ? 'box-shadow 0.2s ease' : 'none', 
-                transition: 'none', // Disable CSS transitions for now to let physics dominate
+                cursor: isDragged ? draggingCursor : 'grab',
+                transition: 'none',
                 willChange: 'transform, box-shadow',
             };
             
@@ -359,19 +437,19 @@ export const useDraggableListPhysics = (
             }
         });
 
-        // Batch style updates only if changed
+        // Batch style updates (as before)
         setStyles(prevStyles => {
-            if (JSON.stringify(prevStyles) !== JSON.stringify(newStylesArray)) {
+            if (prevStyles.length !== newStylesArray.length || JSON.stringify(prevStyles) !== JSON.stringify(newStylesArray)) {
                 return newStylesArray;
             }
             return prevStyles;
         });
       
-        // Continue loop?
+        // Continue loop? (as before)
         if (dragState.current.isPointerDragging || dragState.current.isKeyboardDragging || isAnyBodyActive) { 
             if (isMounted.current) animationFrameRef.current = requestAnimationFrame(updateLoop);
         } else {
-            animationFrameRef.current = null; // Stop the loop when idle
+            animationFrameRef.current = null;
         }
     };
 
@@ -387,7 +465,8 @@ export const useDraggableListPhysics = (
         if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
     };
-  }, [engine, settleTension, settleFriction, dragTension, dragFriction, currentOrder, itemRefs.length, mass, direction, spacing, liftZ, liftScale, liftShadow, draggingCursor, calculateTargetPositions]); 
+  // Depend on necessary values including currentOrder to re-trigger force calculation
+  }, [engine, settleTension, settleFriction, dragTension, dragFriction, currentOrder, itemRefs.length, mass, direction, spacing, liftZ, liftScale, liftShadow, draggingCursor, calculateTargetPositions, onOrderChange, isDragging, draggedOriginalIndex]); 
 
   // --- Pointer Handlers ---
   
@@ -505,28 +584,23 @@ export const useDraggableListPhysics = (
   const handlePointerDown = useCallback((event: React.PointerEvent, originalIndex: number) => {
     const bodyId = bodyIds.current.get(originalIndex);
     const targetElement = itemRefs[originalIndex]?.current;
-    // More specific logging for early exit - REMOVED
-    if (!engine) { /* console.log(...) */ return; }
-    if (!bodyId) { /* console.log(...) */ return; }
-    if (!targetElement) { /* console.log(...) */ return; }
-    if (!(event.target instanceof Node)) { /* console.log(...) */ return; }
-    if (process.env.NODE_ENV !== 'test' && !targetElement.contains(event.target)) { /* console.log(...) */ return; }
+    if (!engine || !bodyId || !targetElement || !(event.target instanceof Node)) return;
+    // Skip check in test environment
+    if (process.env.NODE_ENV !== 'test' && !targetElement.contains(event.target)) return; 
     
     event.preventDefault();
     event.stopPropagation();
     targetElement.setPointerCapture(event.pointerId);
 
     const initialElementState = engine.getBodyState(bodyId);
-    if (!initialElementState) {
-        // console.log(...) - REMOVED
-        return;
-    }
+    if (!initialElementState) return;
 
     const offset = {
         x: event.clientX - initialElementState.position.x, 
         y: event.clientY - initialElementState.position.y
     }; 
 
+    // Update ref immediately, state update will happen in loop
     dragState.current = {
         ...resetDragState(),
         isPointerDragging: true,
@@ -534,60 +608,97 @@ export const useDraggableListPhysics = (
         initialPointerPos: { x: event.clientX, y: event.clientY },
         initialElementPos: initialElementState.position,
         draggedBodyId: bodyId,
-        orderBeforeInteraction: [...currentOrder], // Store order at drag start
-        offset: offset
+        orderBeforeInteraction: [...currentOrder], 
+        offset: offset,
+        // Store the original index being dragged in the ref
+        keyboardDraggedOriginalIndex: originalIndex 
     };
-    setDraggedOriginalIndex(originalIndex);
-    setIsDragging(true);
+    // Removed direct state updates: setDraggedOriginalIndex(originalIndex); setIsDragging(true);
 
     document.addEventListener('pointermove', handlePointerMove);
     document.addEventListener('pointerup', handlePointerUp);
     document.addEventListener('pointercancel', handlePointerUp);
     
-  }, [engine, currentOrder, itemRefs, handlePointerMove, handlePointerUp, resetDragState]);
+  }, [engine, currentOrder, itemRefs, handlePointerMove, handlePointerUp]); // Removed resetDragState dependency as it's stable
 
   // --- Keyboard Handler ---
   const handleKeyDown = useCallback((event: React.KeyboardEvent, originalIndex: number) => {
     const bodyId = bodyIds.current.get(originalIndex);
-    // Specific logging for early checks - REMOVED
-    if (!engine) { /* console.log(...) */ return; }
-    if (!bodyId) { /* console.log(...) */ return; }
+    if (!engine || !bodyId) return;
 
     const currentDisplayIndex = currentOrder.indexOf(originalIndex);
-    if (currentDisplayIndex === -1) {
-        // console.log(...) - REMOVED
-        return;
-    }
+    if (currentDisplayIndex === -1) return;
 
     const lastDisplayIndex = currentOrder.length - 1;
     const targetElement = itemRefs[originalIndex]?.current; 
     
     if (event.key === ' ' || event.key === 'Enter') {
         event.preventDefault(); 
-        if (!dragState.current.isKeyboardDragging) {
-             if (!targetElement) { /* console.log(...) */ return; } // REMOVED LOG
-            // Start keyboard drag
-            // ... (update dragState ref) ...
-            setDraggedOriginalIndex(originalIndex);
-            setIsDragging(true);
-        } else if (dragState.current.keyboardDraggedOriginalIndex === originalIndex) {
-            if (!targetElement) { /* console.log(...) */ return; } // REMOVED LOG
-            // Confirm keyboard drag (drop)
-            // ... (drop logic, focus call) ...
-            setDraggedOriginalIndex(null);
-            setIsDragging(false);
+        if (dragState.current.isKeyboardDragging) {
+            // End Dragging
+            if (onOrderChange) {
+                // Callback with final order only if it changed
+                if(JSON.stringify(currentOrder) !== JSON.stringify(dragState.current.orderBeforeInteraction)) {
+                    onOrderChange(currentOrder);
+                }
+            }
+            // Update ref, state update will follow in loop
+            dragState.current = resetDragState();
+            // Removed direct state updates: setDraggedOriginalIndex(null); setIsDragging(false);
+        } else {
+            // Start Dragging
+            // Update ref immediately, state update will happen in loop
+            dragState.current = {
+                ...resetDragState(),
+                isKeyboardDragging: true,
+                draggedBodyId: bodyId,
+                keyboardDraggedOriginalIndex: originalIndex,
+                orderBeforeInteraction: [...currentOrder],
+            };
+            // Removed direct state updates: setDraggedOriginalIndex(originalIndex); setIsDragging(true);
         }
-    } else if (dragState.current.isKeyboardDragging && dragState.current.keyboardDraggedOriginalIndex === originalIndex) {
-         if (!targetElement) { /* console.log(...) */ return; } // REMOVED LOG
-        // Handle movement keys & Escape
-        // ... (movement/escape logic, focus calls) ...
-         if (event.key === 'Escape') {
-            // ... (escape logic) ...
-            setDraggedOriginalIndex(null);
-            setIsDragging(false);
+    } else if (dragState.current.isKeyboardDragging && originalIndex === dragState.current.keyboardDraggedOriginalIndex) {
+        // Handle arrow keys only if currently keyboard dragging THIS item
+        let newOrder = [...currentOrder];
+        const draggedCurrentDisplayIndex = newOrder.indexOf(originalIndex);
+        let targetDisplayIndex = draggedCurrentDisplayIndex;
+
+        if (direction === 'vertical') {
+            if (event.key === 'ArrowUp' && draggedCurrentDisplayIndex > 0) {
+                targetDisplayIndex = draggedCurrentDisplayIndex - 1;
+            } else if (event.key === 'ArrowDown' && draggedCurrentDisplayIndex < lastDisplayIndex) {
+                targetDisplayIndex = draggedCurrentDisplayIndex + 1;
+            }
+        } else { // Horizontal or Both
+             if (event.key === 'ArrowLeft' && draggedCurrentDisplayIndex > 0) {
+                targetDisplayIndex = draggedCurrentDisplayIndex - 1;
+            } else if (event.key === 'ArrowRight' && draggedCurrentDisplayIndex < lastDisplayIndex) {
+                targetDisplayIndex = draggedCurrentDisplayIndex + 1;
+            }
+        }
+
+        if (targetDisplayIndex !== draggedCurrentDisplayIndex) {
+             event.preventDefault();
+             // Perform swap
+             const itemToMove = newOrder.splice(draggedCurrentDisplayIndex, 1)[0];
+             newOrder.splice(targetDisplayIndex, 0, itemToMove);
+             setCurrentOrder(newOrder);
+             calculateTargetPositions(newOrder, bodyIds.current, elementDimensions.current);
+             // No direct onOrderChange call here; let it be called when drag ends if needed
+        }
+        
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            // Revert order and end drag
+            const originalOrder = dragState.current.orderBeforeInteraction;
+            setCurrentOrder(originalOrder);
+            calculateTargetPositions(originalOrder, bodyIds.current, elementDimensions.current);
+            // Update ref, state update follows in loop
+            dragState.current = resetDragState();
+            // Removed direct state updates: setDraggedOriginalIndex(null); setIsDragging(false);
         }
     }
-  }, [engine, currentOrder, calculateTargetPositions, onOrderChange, itemRefs, direction, resetDragState]);
+  }, [engine, currentOrder, itemRefs, onOrderChange, direction, calculateTargetPositions]); // Removed resetDragState
 
   // --- Hook Result --- 
   // Renamed from getPointerHandlers to getHandlers

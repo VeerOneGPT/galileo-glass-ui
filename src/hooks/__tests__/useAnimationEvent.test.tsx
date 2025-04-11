@@ -1,241 +1,224 @@
 /**
- * Fixed tests for useAnimationEvent hook
+ * Tests for useAnimationEvent hook
  */
-
-import React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react-hooks';
+import _React from 'react';
 import { useAnimationEvent } from '../useAnimationEvent';
+import {
+  AnimationEventBus,
+  AnimationEventType,
+  AnimationEvent
+} from '../../animations/orchestration/AnimationEventSystem';
 
-// Mock AnimationEventSystem
-// Create a simplified version of the required classes and types
-enum AnimationEventType {
-  START = 'animation:start',
-  UPDATE = 'animation:update',
-  COMPLETE = 'animation:complete',
-  CANCEL = 'animation:cancel',
-  PAUSE = 'animation:pause',
-  RESUME = 'animation:resume'
+// Testing types - match the real enum values for compatibility
+const mockAnimationEventTypes = {
+  START: 'start',
+  UPDATE: 'update',
+  COMPLETE: 'complete',
+  CANCEL: 'cancel',
+  PAUSE: 'pause',
+  RESUME: 'resume'
+};
+
+// Type for event listeners
+type MockEventListenerType = (event: AnimationEvent) => void;
+
+// Type for subscription
+interface MockSubscription {
+  _active: boolean;
+  _type: string;
+  _listener: MockEventListenerType;
+  isActive(): boolean;
+  unsubscribe(): void;
+  getType(): string;
+  getListener(): MockEventListenerType;
 }
 
-interface AnimationEvent<T = any> {
-  type: string;
-  target: string;
-  data?: T;
-  timestamp: number;
-}
-
-// Cast the mock bus to match the AnimationEventBus interface
-type AnimationEventBusType = any;
-
-// Store a reference to the mock classes to use in tests
-let MockBus: any;
-let mockAnimationEventTypes: any;
-
-// Move the mock implementation inside the jest.mock to avoid referencing out-of-scope variables
-jest.mock('../../animations/orchestration/AnimationEventSystem', () => {
-  // Define enum values inside the mock function
-  mockAnimationEventTypes = {
-    START: 'animation:start',
-    UPDATE: 'animation:update',
-    COMPLETE: 'animation:complete',
-    CANCEL: 'animation:cancel',
-    PAUSE: 'animation:pause',
-    RESUME: 'animation:resume'
-  };
-
-  // Define the MockAnimationEventSubscription inside the mock function
-  class MockSubscription {
-    _active = true;
-    _type;
-    _listener;
-    _unsubscribeFn;
-    
-    constructor(type, listener, unsubscribeFn) {
-      this._type = type;
-      this._listener = listener;
-      this._unsubscribeFn = unsubscribeFn;
+// Create a mock event bus class that implements the AnimationEventBus interface
+class MockEventBus {
+  private _listeners: Map<string, Set<MockSubscription>> = new Map();
+  private _middleware: MockEventListenerType[] = [];
+  private _filters: MockEventListenerType[] = [];
+  
+  constructor() {
+    // Initialize event bus
+  }
+  
+  on(type: string, listener: MockEventListenerType): MockSubscription {
+    if (!this._listeners.has(type)) {
+      this._listeners.set(type, new Set());
     }
     
-    isActive() {
-      return this._active;
+    const subscription = new MockSubscriptionImpl(type, listener, 
+      () => this._removeSubscription(subscription));
+    
+    this._listeners.get(type)?.add(subscription);
+    
+    return subscription;
+  }
+  
+  once(type: string, listener: MockEventListenerType): MockSubscription {
+    const onceListener = (event: AnimationEvent) => {
+      subscription.unsubscribe();
+      listener(event);
+    };
+    
+    const subscription = this.on(type, onceListener);
+    return subscription;
+  }
+  
+  off(type: string, listener: (event: AnimationEvent) => void, _options?: unknown): this {
+    if (this._listeners.has(type)) {
+      const subscriptions = this._listeners.get(type);
+      subscriptions?.forEach(sub => {
+        if (sub.getListener() === listener) {
+          sub.unsubscribe();
+        }
+      });
+    }
+    return this;
+  }
+  
+  emit(type: string, target?: string, data?: unknown): void {
+    if (target === undefined) {
+      target = 'mock-target';
     }
     
-    unsubscribe() {
-      if (this._active) {
-        this._active = false;
-        this._unsubscribeFn(this);
-      }
-    }
+    const event = {
+      type,
+      target,
+      data,
+      timestamp: Date.now()
+    } as AnimationEvent;
     
-    getType() {
-      return this._type;
-    }
-    
-    getListener() {
-      return this._listener;
+    if (this._listeners.has(type)) {
+      // Call listeners with the event object
+      this._listeners.get(type)?.forEach(sub => sub._listener(event));
     }
   }
-
-  // Define the MockAnimationEventBus inside the mock function
-  class MockEventBus {
-    private _listeners: Map<string, Set<MockSubscription>> = new Map();
-    private middleware: any[] = [];
-    private filters: any[] = [];
-
-    constructor() {
-      // Initialization moved to property declarations
-    }
-    
-    on(type: string, listener: Function, options?: { once?: boolean }): MockSubscription {
-      if (!this._listeners.has(type)) {
-        this._listeners.set(type, new Set());
-      }
-      const subscription = new MockSubscription(type, listener, () => this._removeSubscription(subscription));
-      this._listeners.get(type)!.add(subscription);
-
-      if (options?.once) {
-        const originalListener = listener;
-        listener = (event: AnimationEvent) => {
-          originalListener(event);
-          this.off(type, listener);
-        };
-        // Re-create subscription with the wrapped listener for correct removal
-        this._removeSubscription(subscription); // Remove the original one
-        const onceSubscription = new MockSubscription(type, listener, () => this._removeSubscription(onceSubscription));
-        this._listeners.get(type)!.add(onceSubscription);
-        return onceSubscription;
-      }
-      
-      return subscription;
-    }
-    
-    once(type: string, listener: Function, options?: {}): MockSubscription {
-      return this.on(type, listener, { ...options, once: true });
-    }
-    
-    off(type: string, listener: Function, options?: {}): this {
-      if (!this._listeners.has(type)) return this;
-
-      const subscriptions = this._listeners.get(type)!;
-      subscriptions.forEach(subscription => {
-        if (subscription.getListener() === listener) {
-          subscription.unsubscribe(); // This calls _removeSubscription
-        }
-      });
-      return this;
-    }
-    
-    emit<T = any>(type: string, target?: string, data?: T): this {
-      const event = this.createEvent(type, target, data) as AnimationEvent<T>;
-
-      // Apply middleware
-      let processedEvent = event;
-      for (const mw of this.middleware) {
-        processedEvent = mw(processedEvent);
-        if (!processedEvent) return this; // Middleware cancelled the event
-      }
-
-      // Apply filters
-      for (const filter of this.filters) {
-        if (!filter(processedEvent)) return this; // Filter stopped the event
-      }
-
-      // Execute listeners
-      this.executeListeners(processedEvent);
-      return this;
-    }
-    
-    _removeSubscription(subscription: MockSubscription): void {
-      const type = subscription.getType();
-      if (this._listeners.has(type)) {
-        this._listeners.get(type)!.delete(subscription);
-        if (this._listeners.get(type)!.size === 0) {
-          this._listeners.delete(type);
-        }
-      }
-    }
-    
-    addEventListener(type, listener, options) {
-      return this.on(type, listener, options);
-    }
-    
-    removeEventListener(type, listener, options) {
-      this.off(type, listener, options);
-    }
-    
-    dispatchEvent(event) {
-      return this.emit(event.type, event.target, event.data);
-    }
-    
-    addMiddleware(middleware) {
-      this.middleware.push(middleware);
-      return this;
-    }
-    
-    removeMiddleware(middleware) {
-      const index = this.middleware.indexOf(middleware);
-      if (index !== -1) {
-        this.middleware.splice(index, 1);
-      }
-      return this;
-    }
-    
-    addFilter(filter) {
-      this.filters.push(filter);
-      return this;
-    }
-    
-    removeFilter(filter) {
-      const index = this.filters.indexOf(filter);
-      if (index !== -1) {
-        this.filters.splice(index, 1);
-      }
-      return this;
-    }
-    
-    executeListeners(event) {
-      if (!this._listeners.has(event.type)) return;
-      
-      const subscriptions = [...this._listeners.get(event.type)];
-      subscriptions.forEach(subscription => {
-        if (subscription.isActive()) {
-          subscription.getListener()(event);
-        }
-      });
-    }
-    
-    createEvent(type, target, data) {
-      return {
-        type,
-        target,
-        data,
-        timestamp: Date.now()
-      };
-    }
-    
-    clearListeners(type) {
-      if (type) {
+  
+  _removeSubscription(subscription: MockSubscription): void {
+    const type = subscription.getType();
+    if (this._listeners.has(type)) {
+      this._listeners.get(type)?.delete(subscription);
+      if (this._listeners.get(type)?.size === 0) {
         this._listeners.delete(type);
-      } else {
-        this._listeners.clear();
       }
-      return this;
-    }
-    
-    getEventTypes() {
-      return Array.from(this._listeners.keys());
     }
   }
+  
+  addEventListener(type: string, listener: MockEventListenerType, _options?: unknown) {
+    return this.on(type, listener);
+  }
+  
+  removeEventListener(type: string, listener: MockEventListenerType, _options?: unknown) {
+    this.off(type, listener);
+  }
+  
+  dispatchEvent(event: AnimationEvent) {
+    // Simple dispatch, might need more logic based on AnimationEvent structure
+    return this.emit(event.type, event.target, event.data);
+  }
+  
+  addMiddleware(middleware: MockEventListenerType) {
+    this._middleware.push(middleware);
+    return this;
+  }
+  
+  removeMiddleware(middleware: MockEventListenerType) {
+    const index = this._middleware.indexOf(middleware);
+    if (index !== -1) {
+      this._middleware.splice(index, 1);
+    }
+    return this;
+  }
+  
+  addFilter(filter: MockEventListenerType) {
+    this._filters.push(filter);
+    return this;
+  }
+  
+  removeFilter(filter: MockEventListenerType) {
+    const index = this._filters.indexOf(filter);
+    if (index !== -1) {
+      this._filters.splice(index, 1);
+    }
+    return this;
+  }
+  
+  executeListeners(event: AnimationEvent) {
+    if (!this._listeners.has(event.type)) return;
+    
+    const subscriptions = [...this._listeners.get(event.type) || []];
+    subscriptions.forEach(subscription => {
+      if (subscription.isActive()) {
+        subscription.getListener()(event);
+      }
+    });
+  }
+  
+  createEvent(type: string, target: string, data?: unknown) {
+    return {
+      type,
+      target,
+      data,
+      timestamp: Date.now()
+    } as AnimationEvent;
+  }
+  
+  clearListeners(type?: string) {
+    if (type) {
+      this._listeners.delete(type);
+    } else {
+      this._listeners.clear();
+    }
+    return this;
+  }
+  
+  getEventTypes() {
+    return Array.from(this._listeners.keys());
+  }
+  
+  destroy() {
+    // Cleanup resources
+  }
+}
 
-  // Store the class in the outer variable
-  MockBus = MockEventBus;
+// MockSubscriptionImpl class implementation
+class MockSubscriptionImpl implements MockSubscription {
+  _active = true;
+  _type: string;
+  _listener: MockEventListenerType;
+  _unsubscribeFn: () => void;
+  
+  constructor(type: string, listener: MockEventListenerType, unsubscribeFn: () => void) {
+    this._type = type;
+    this._listener = listener;
+    this._unsubscribeFn = unsubscribeFn;
+  }
+  
+  isActive(): boolean {
+    return this._active;
+  }
+  
+  unsubscribe(): void {
+    if (this._active) {
+      this._active = false;
+      this._unsubscribeFn();
+    }
+  }
+  
+  getType(): string {
+    return this._type;
+  }
+  
+  getListener(): MockEventListenerType {
+    return this._listener;
+  }
+}
 
-  return {
-    animationEventBus: new MockEventBus(),
-    AnimationEventBus: MockEventBus,
-    AnimationEventType: mockAnimationEventTypes
-  };
-});
+// Create the mock event bus before tests run
+const mockBus = new MockEventBus();
 
 describe('useAnimationEvent (Fixed)', () => {
   beforeEach(() => {
@@ -257,7 +240,7 @@ describe('useAnimationEvent (Fixed)', () => {
   });
   
   it('should use provided event bus and ID', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const customId = 'test-component';
     
     const { result } = renderHook(() => 
@@ -272,7 +255,7 @@ describe('useAnimationEvent (Fixed)', () => {
   });
   
   it('should subscribe to events and receive notifications', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const listener = jest.fn();
     
     const { result } = renderHook(() => 
@@ -284,7 +267,7 @@ describe('useAnimationEvent (Fixed)', () => {
     });
     
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target', { value: 123 });
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target', { value: 123 });
     });
     
     expect(listener).toHaveBeenCalledTimes(1);
@@ -298,7 +281,7 @@ describe('useAnimationEvent (Fixed)', () => {
   });
   
   it('should subscribe once and receive only one notification', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const listener = jest.fn();
     
     const { result } = renderHook(() => 
@@ -310,15 +293,15 @@ describe('useAnimationEvent (Fixed)', () => {
     });
     
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
     });
     
     expect(listener).toHaveBeenCalledTimes(1);
   });
   
   it('should unsubscribe from events', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const listener = jest.fn();
     
     const { result } = renderHook(() => 
@@ -330,7 +313,7 @@ describe('useAnimationEvent (Fixed)', () => {
     });
     
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
     });
     
     expect(listener).toHaveBeenCalledTimes(1);
@@ -340,19 +323,19 @@ describe('useAnimationEvent (Fixed)', () => {
     });
     
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
     });
     
     expect(listener).toHaveBeenCalledTimes(1); // Still 1, not called again
   });
   
   it('should emit events', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const listener = jest.fn();
     
     act(() => {
-      customBus.on(mockAnimationEventTypes.START, listener);
-      customBus.on(mockAnimationEventTypes.COMPLETE, listener);
+      mockBus.on(mockAnimationEventTypes.START, listener);
+      mockBus.on(mockAnimationEventTypes.COMPLETE, listener);
     });
     
     const { result } = renderHook(() => 
@@ -390,7 +373,7 @@ describe('useAnimationEvent (Fixed)', () => {
   });
   
   it('should set up initial events when immediate is true', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const startListener = jest.fn();
     const completeListener = jest.fn();
     
@@ -412,8 +395,8 @@ describe('useAnimationEvent (Fixed)', () => {
     );
     
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
-      customBus.emit(mockAnimationEventTypes.COMPLETE, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.COMPLETE, 'test-target');
     });
     
     expect(startListener).toHaveBeenCalledTimes(1);
@@ -421,7 +404,7 @@ describe('useAnimationEvent (Fixed)', () => {
   });
   
   it('should not set up initial events when immediate is false', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const startListener = jest.fn();
     
     renderHook(() => 
@@ -438,14 +421,14 @@ describe('useAnimationEvent (Fixed)', () => {
     );
     
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
     });
     
     expect(startListener).toHaveBeenCalledTimes(0);
   });
   
   it('should clean up subscriptions on unmount', () => {
-    const customBus = new MockBus() as AnimationEventBusType;
+    const customBus = mockBus as unknown as AnimationEventBus;
     const listener = jest.fn();
     
     const { unmount } = renderHook(() => {
@@ -460,7 +443,7 @@ describe('useAnimationEvent (Fixed)', () => {
     
     // Should receive event before unmount
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
     });
     
     expect(listener).toHaveBeenCalledTimes(1);
@@ -470,7 +453,7 @@ describe('useAnimationEvent (Fixed)', () => {
     
     // Should not receive event after unmount
     act(() => {
-      customBus.emit(mockAnimationEventTypes.START, 'test-target');
+      mockBus.emit(mockAnimationEventTypes.START, 'test-target');
     });
     
     expect(listener).toHaveBeenCalledTimes(1); // Still 1, not called again

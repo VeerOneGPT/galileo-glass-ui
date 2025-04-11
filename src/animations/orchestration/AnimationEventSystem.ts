@@ -976,3 +976,88 @@ export class AnimationEventManager {
  * Global animation event manager singleton
  */
 export const animationEventManager = new AnimationEventManager();
+
+/**
+ * Create logging middleware for animation events
+ * @param options Logging options
+ * @returns Middleware function
+ */
+export function createLoggingMiddleware(
+  options: { 
+    level?: 'debug' | 'info' | 'warn' | 'error',
+    excludeTypes?: string[]
+  } = {}
+): AnimationEventMiddleware {
+  const { 
+    level = 'debug',
+    excludeTypes = []
+  } = options;
+  
+  return (event, next) => {
+    // Skip excluded event types
+    if (excludeTypes.includes(event.type)) {
+      next(event);
+      return;
+    }
+    
+    // Choose log method based on level
+    const logger = level === 'error' ? console.error :
+                   level === 'warn' ? console.warn :
+                   level === 'info' ? console.info :
+                   console.debug;
+    
+    logger(`[${event.target}] ${event.type}`, event.data);
+    
+    // Continue to next middleware
+    next(event);
+  };
+}
+
+/**
+ * Create performance tracking middleware
+ * @param options Performance tracking options 
+ * @returns Middleware function
+ */
+export function createPerformanceMiddleware(
+  options: {
+    threshold?: number,
+    trackTypes?: string[]
+  } = {}
+): AnimationEventMiddleware {
+  const {
+    threshold = 16.7, // Default to 60fps threshold
+    trackTypes = []
+  } = options;
+  
+  const measurements = new Map<string, number>();
+  
+  return (event, next) => {
+    // Only track specified types
+    if (trackTypes.length === 0 || trackTypes.includes(event.type)) {
+      const startTime = performance.now();
+      
+      // Store start time for this event type
+      measurements.set(event.type, startTime);
+      
+      // Override next to measure time
+      const wrappedNext = (evt: AnimationEvent) => {
+        const endTime = performance.now();
+        const duration = endTime - startTime;
+        
+        // Log slow events
+        if (duration > threshold) {
+          console.warn(
+            `[PERF] Slow event handler: ${evt.type} took ${duration.toFixed(2)}ms`,
+            { threshold, event: evt }
+          );
+        }
+        
+        next(evt);
+      };
+      
+      wrappedNext(event);
+    } else {
+      next(event);
+    }
+  };
+}

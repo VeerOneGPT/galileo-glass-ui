@@ -342,7 +342,7 @@ export class AnimationOrchestrator {
         this.activeAnimations.add(timerId);
 
         // Get appropriate animation based on sensitivity
-        const mappedAnimation = animationMapper.getAccessibleAnimation(target.animation, {
+        const mappedAnimation = animationMapper.getAccessibleAnimation(target.animation as any, {
           sensitivity,
           duration: durationMs,
         });
@@ -351,12 +351,14 @@ export class AnimationOrchestrator {
         this.triggerEvent({
           type: 'start',
           target: typeof target.target === 'string' ? target.target : 'element',
-          animation: target.animation.keyframes.name,
+          animation: typeof target.animation.keyframes === 'string' 
+            ? target.animation.keyframes 
+            : target.animation.keyframes?.name || 'unknown-animation',
           timestamp: Date.now(),
         });
 
         // Apply animation to DOM element
-        this.applyAnimation(target, mappedAnimation.animation);
+        this.applyAnimation(target, mappedAnimation.animation as any);
 
         // Set completion timer
         const completionTimer = setTimeout(() => {
@@ -367,7 +369,9 @@ export class AnimationOrchestrator {
           this.triggerEvent({
             type: 'complete',
             target: typeof target.target === 'string' ? target.target : 'element',
-            animation: target.animation.keyframes.name,
+            animation: typeof target.animation.keyframes === 'string' 
+              ? target.animation.keyframes 
+              : target.animation.keyframes?.name || 'unknown-animation',
             timestamp: Date.now(),
           });
 
@@ -421,7 +425,9 @@ export class AnimationOrchestrator {
       `;
     } else if ('keyframes' in animation) {
       animationCSS = `
-        animation-name: ${animation.keyframes.name};
+        animation-name: ${typeof animation.keyframes === 'string' 
+          ? animation.keyframes 
+          : animation.keyframes?.name || 'unknown-animation'};
         animation-duration: ${target.duration || animation.duration || '0.3s'};
         animation-timing-function: ${animation.easing || 'ease'};
         animation-fill-mode: ${animation.fillMode || 'both'};
@@ -429,12 +435,18 @@ export class AnimationOrchestrator {
     } else {
       // Get animation name with fallbacks
       let animationName = '';
-      if ('name' in animation) {
-        animationName = animation.name;
+      if (typeof animation === 'object' && 'name' in animation) {
+        animationName = animation.name as string;
       } else if ('keyframes' in animation && animation.keyframes) {
-        animationName = animation.keyframes.name;
+        animationName = typeof animation.keyframes === 'string'
+          ? animation.keyframes
+          : (animation.keyframes as Keyframes).name || 'unknown-animation';
       } else if ('animation' in animation && animation.animation) {
-        animationName = animation.animation.name;
+        animationName = typeof animation.animation === 'string'
+          ? animation.animation
+          : (typeof animation.animation === 'object' && 'name' in animation.animation 
+              ? (animation.animation as any).name 
+              : 'unknown-animation');
       } else {
         animationName = `animation-${Math.random().toString(36).substring(2, 9)}`;
       }

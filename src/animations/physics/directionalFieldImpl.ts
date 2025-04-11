@@ -197,14 +197,14 @@ function calculateRadialForce(
   // Get center point (default to center of element)
   const center = config.center || { x: 0.5, y: 0.5 };
   
-  // Calculate normalized coordinates relative to center (-1 to 1)
-  const normalizedX = (pointerData.position.x / pointerData.distance) * 2 - center.x * 2;
-  const normalizedY = (pointerData.position.y / pointerData.distance) * 2 - center.y * 2;
+  // Calculate vector from center to pointer position
+  const deltaX = pointerData.position.x - center.x;
+  const deltaY = pointerData.position.y - center.y;
   
   // Create radial vector (pointing away from center)
   const radialVector = normalizeVector({
-    x: normalizedX,
-    y: normalizedY
+    x: deltaX,
+    y: deltaY
   });
   
   // Calculate magnitude based on behavior

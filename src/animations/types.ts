@@ -79,8 +79,8 @@ export type AnimationFillMode = 'none' | 'forwards' | 'backwards' | 'both';
 export type AnimationPlayState = 'running' | 'paused';
 
 export interface AnimationPreset {
-  keyframes?: Keyframes;
-  animation?: Keyframes; // Keep both if used
+  keyframes?: string | Keyframes;
+  animation?: string | Keyframes; // Keep both if used
   duration: string | number;
   easing: string;
   delay?: string | number;
@@ -504,6 +504,7 @@ export interface GameAnimationController {
   motionSensitivity: ImportedMotionSensitivityLevel;
   debug: boolean;
   setDebug: (enabled: boolean) => void;
+  getEventEmitter?: () => any;
 }
 
 // --- END Game Animation Types ---

@@ -24,6 +24,53 @@ import { useMagneticElement } from '@veerone/galileo-glass-ui/magnetic';
 import { useChartPhysicsInteraction } from '@veerone/galileo-glass-ui/charts/useChartPhysicsInteraction';
 ```
 
+## Event-Based Animation System (v1.0.28+)
+
+```javascript
+// Main hook for game animation with event-based system
+import { 
+  useGameAnimation,
+  // Event types
+  GameAnimationEventType,
+  // Utility for getting controller from ref
+  getGameAnimationController,
+  // Middleware creators
+  createLoggingMiddleware,
+  createErrorRecoveryMiddleware,
+  createPerformanceMiddleware,
+  createAccessibilityMiddleware,
+  createContextAwareMiddleware
+} from '@veerone/galileo-glass-ui/animations/game';
+
+// Usage example:
+const gameAnimation = useGameAnimation({
+  initialState: 'menu',
+  states: [ /* ... */ ],
+  transitions: [ /* ... */ ]
+});
+
+// Access the event emitter
+const emitter = gameAnimation.getEventEmitter();
+
+// Add middleware for logging, error recovery, etc.
+emitter.addMiddleware(createLoggingMiddleware({
+  level: 'debug',
+  excludeTypes: [GameAnimationEventType.TRANSITION_PROGRESS]
+}));
+
+// Listen for events
+const unsubscribe = emitter.on(GameAnimationEventType.STATE_CHANGE, (event) => {
+  console.log('State changed:', event.data);
+});
+
+// Clean up when component unmounts
+useEffect(() => {
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}, []);
+```
+
 ## Device and Quality Hooks
 
 ```javascript

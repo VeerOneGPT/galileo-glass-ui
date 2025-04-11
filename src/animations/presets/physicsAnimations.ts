@@ -6,9 +6,9 @@
  */
 import { keyframes } from 'styled-components';
 import { GalileoPhysics } from '../physics/unifiedPhysicsAPI';
-import { SpringPresets as ImportedSpringPresets } from '../physics';
+import { SpringPresets as _ImportedSpringPresets } from '../physics';
 import { PhysicsInteractionType } from '../physics/types';
-import { PhysicsAnimationMode } from '../physics/advancedPhysicsAnimations';
+import { PhysicsAnimationMode as _PhysicsAnimationMode } from '../physics/advancedPhysicsAnimations';
 
 import {
   animationTimings,
@@ -457,7 +457,7 @@ export const createSpringAnimation = (config: Partial<SpringPreset> = {}) => {
       // Generate frames using the spring physics calculations
       const frames = [];
       const steps = 20; // Number of keyframes to generate
-      const springPhysics = GalileoPhysics.createSpring(springConfig);
+      const _springPhysics = GalileoPhysics.createSpring(springConfig);
       
       // Instead of using solve method
       for (let i = 0; i < steps; i++) {
@@ -528,7 +528,6 @@ export const getPhysicsConfig = (preset: string | Partial<SpringPreset> = 'respo
     type: PhysicsInteractionType.SPRING,
     stiffness: config.tension,
     damping: config.friction,
-    mass: config.mass,
-    mode: 'natural' as any
+    mass: config.mass
   });
 };

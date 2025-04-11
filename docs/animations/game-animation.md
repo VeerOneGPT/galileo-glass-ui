@@ -1,5 +1,7 @@
 # Game Animation Framework
 
+> **New in v1.0.28:** The Game Animation Framework has been refactored to use an event-based system with middleware support, offering improved state management, error recovery, and performance. See the [Migration Guide](../migrations/ANIMATION-SYSTEM-MIGRATION-GUIDE.md) for details on upgrading to the new system.
+
 The Game Animation Framework provides robust state-based animation capabilities inspired by game development techniques. At its core is the `useGameAnimation` hook, which manages cohesive animation sequences when transitioning between different application or "game" states.
 
 ## Core Concepts
@@ -9,6 +11,8 @@ The Game Animation Framework provides robust state-based animation capabilities 
 - **Choreographed Sequences:** Coordinate multiple elements with precise timing and dependencies
 - **Accessibility:** Built-in reduced motion support
 - **Staggered Effects:** Apply animations to multiple elements with configurable timing patterns
+- **Event System:** The refactored hook (v1.0.28+) uses an event emitter pattern for better state management and error handling
+- **Middleware:** Support for custom middleware for logging, error recovery, and performance monitoring
 
 ## API Reference
 
@@ -351,6 +355,18 @@ interface GameAnimationController {
   
   /** Whether reduced motion is active */
   reducedMotion: boolean;
+  
+  /** Motion sensitivity level for accessibility */
+  motionSensitivity: MotionSensitivityLevel;
+  
+  /** Whether debug mode is enabled */
+  debug: boolean;
+  
+  /** Set debug mode */
+  setDebug: (enabled: boolean) => void;
+  
+  /** Get the event emitter for this controller (v1.0.28+) */
+  getEventEmitter?: () => GameAnimationEventEmitter;
 }
 ```
 
@@ -789,3 +805,136 @@ The Game Animation framework is ideal for:
 - Elaborate state transition animations.
 
 **Recommendation:** Due to the specialized nature, check for explicit examples or specific component implementations (`GlassTimeline`, `GlassCarousel`, etc., might use parts of this internally) before attempting to use these conceptual hooks directly. They might not be exposed as part of the general public API. 
+
+## Event-Based System (v1.0.28+)
+
+The refactored animation system in v1.0.28 introduces an event-based architecture that improves state management, error handling, and performance. This section covers the key components of this new system.
+
+### GameAnimationEventEmitter
+
+The event emitter is responsible for dispatching events related to state changes and transitions. You can access it through the controller:
+
+```typescript
+const gameAnimation = useGameAnimation({ /* config */ });
+const emitter = gameAnimation.getEventEmitter();
+
+// Listen for specific events
+emitter.on(GameAnimationEventType.STATE_CHANGE, (event) => {
+  console.log('State changed:', event.data);
+});
+
+emitter.on(GameAnimationEventType.TRANSITION_PROGRESS, (event) => {
+  console.log('Transition progress:', event.data.progress);
+});
+```
+
+### Event Types
+
+```typescript
+enum GameAnimationEventType {
+  STATE_BEFORE_CHANGE = 'state:beforeChange',
+  STATE_CHANGE = 'state:change',
+  STATE_AFTER_CHANGE = 'state:afterChange',
+  TRANSITION_START = 'transition:start',
+  TRANSITION_PROGRESS = 'transition:progress',
+  TRANSITION_COMPLETE = 'transition:complete',
+  TRANSITION_CANCEL = 'transition:cancel',
+  TRANSITION_ERROR = 'transition:error',
+  ANIMATION_ERROR = 'animation:error',
+  ANIMATION_RECOVERY = 'animation:recovery',
+  RESOURCE_LOAD = 'resource:load',
+  RESOURCE_ERROR = 'resource:error'
+}
+```
+
+### Middleware
+
+The new system supports middleware for logging, error recovery, and performance monitoring. Middleware can be added to the event emitter to transform or intercept events:
+
+```typescript
+import { 
+  createLoggingMiddleware, 
+  createErrorRecoveryMiddleware,
+  createPerformanceMiddleware
+} from '@veerone/galileo-glass-ui';
+
+const emitter = gameAnimation.getEventEmitter();
+
+// Add logging middleware
+emitter.addMiddleware(createLoggingMiddleware({
+  level: 'debug',
+  excludeTypes: [GameAnimationEventType.TRANSITION_PROGRESS]
+}));
+
+// Add error recovery middleware
+emitter.addMiddleware(createErrorRecoveryMiddleware({
+  // Custom recovery strategies (will be merged with defaults)
+  MyCustomError: (error, context) => {
+    // Implement custom recovery logic
+    return { resolved: true, resolution: 'Fixed in custom way' };
+  }
+}));
+
+// Add performance monitoring middleware
+emitter.addMiddleware(createPerformanceMiddleware({
+  threshold: 16.7, // Warn for events taking longer than one frame at 60fps
+  trackTypes: [
+    GameAnimationEventType.TRANSITION_START,
+    GameAnimationEventType.TRANSITION_COMPLETE
+  ]
+}));
+```
+
+### Custom Middleware
+
+You can create custom middleware to add your own functionality:
+
+```typescript
+import { AnimationEventMiddleware } from '@veerone/galileo-glass-ui';
+
+// Create a custom analytics middleware
+const analyticsMiddleware: AnimationEventMiddleware = (event, next) => {
+  // Only track certain events
+  if (event.type === GameAnimationEventType.STATE_CHANGE) {
+    trackAnalyticsEvent('state_change', {
+      from: event.data.previousStateId,
+      to: event.data.newStateId,
+      duration: event.timestamp - (event.data.timestamp || 0)
+    });
+  }
+  
+  // Always call next to continue the middleware chain
+  next(event);
+};
+
+// Add the middleware
+emitter.addMiddleware(analyticsMiddleware);
+```
+
+### Error Recovery
+
+The error recovery middleware provides default strategies for common animation errors, but you can extend it with custom strategies for your application's specific needs:
+
+```typescript
+emitter.addMiddleware(createErrorRecoveryMiddleware({
+  // Custom recovery for network-related animation resources
+  NetworkResourceError: (error, context) => {
+    // Try to load a fallback resource
+    if (context.resourceUrl) {
+      const fallbackUrl = context.resourceUrl.replace('/hd/', '/sd/');
+      loadResource(fallbackUrl).then(resource => {
+        context.onResourceLoad?.(resource);
+      });
+      
+      return { 
+        resolved: true, 
+        resolution: 'Using low-resolution fallback' 
+      };
+    }
+    
+    return { resolved: false };
+  }
+}));
+```
+
+For more details on the event-based system and migrating from the older version, see the [Migration Guide](../migrations/ANIMATION-SYSTEM-MIGRATION-GUIDE.md). 

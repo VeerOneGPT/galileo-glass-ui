@@ -84,8 +84,10 @@ describe('useDynamicResolutionScaling', () => {
     
     const { result } = renderHook(() => useDynamicResolutionScaling(customConfig));
     
-    // Should use the custom initial resolution
-    expect(result.current.resolution).toBe(0.6);
+    // Should use the custom initial resolution, then immediately adjust based on FPS
+    // Initial=0.6, Mock FPS=60, Target=45, Buffer=5 -> Increase
+    // New = 0.6 * (1 + upscaleFactor=0.04) = 0.624
+    expect(result.current.resolution).toBeCloseTo(0.624, 3);
     
     // Config should include custom values
     expect(result.current.config.targetFps).toBe(45);
@@ -151,15 +153,17 @@ describe('useDynamicResolutionScaling', () => {
       updateInterval: 100
     }));
     
-    // Initial resolution should be 1.0 for MEDIUM tier
-    expect(result.current.resolution).toBe(1.0);
+    // Initial resolution should be 1.0 (MEDIUM), then immediately adjust based on FPS
+    // Initial=1.0, Mock FPS=30, Target=60, Buffer=5 -> Decrease
+    // New = 1.0 * (1 - downscaleFactor=0.1) = 0.9
+    expect(result.current.resolution).toBeCloseTo(0.9, 3);
     
     // Advance time beyond update interval and rerender
     await act(async () => {
         currentTime += 200;
         rerender();
         // Wait briefly for potential async updates within the hook
-        await waitFor(() => expect(result.current.resolution).not.toBe(1.0), { timeout: 50 });
+        await waitFor(() => expect(result.current.resolution).not.toBeCloseTo(1.0, 3), { timeout: 50 });
     });
     
     // Resolution should decrease
@@ -184,15 +188,17 @@ describe('useDynamicResolutionScaling', () => {
       initialResolution: 0.7
     }));
     
-    // Initial resolution should be 0.7 (custom)
-    expect(result.current.resolution).toBe(0.7);
+    // Initial resolution should be 0.7 (custom), then immediately adjust based on FPS
+    // Initial=0.7, Mock FPS=90, Target=60, Buffer=5 -> Increase
+    // New = 0.7 * (1 + upscaleFactor=0.04) = 0.728
+    expect(result.current.resolution).toBeCloseTo(0.728, 3);
     
     // Advance time beyond update interval and rerender
     await act(async () => {
         currentTime += 200;
         rerender();
         // Wait briefly for potential async updates within the hook
-        await waitFor(() => expect(result.current.resolution).not.toBe(0.7), { timeout: 50 });
+        await waitFor(() => expect(result.current.resolution).not.toBeCloseTo(0.7, 3), { timeout: 50 });
     });
     
     // Resolution should increase

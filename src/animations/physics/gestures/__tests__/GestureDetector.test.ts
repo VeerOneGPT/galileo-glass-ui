@@ -44,6 +44,12 @@ class MockEventTarget {
 // Mock HTMLElement with style and getBoundingClientRect
 class MockElement extends MockEventTarget {
   style: Record<string, any> = {};
+  ownerDocument: any;
+
+  constructor(doc: any) {
+    super();
+    this.ownerDocument = doc;
+  }
   
   getBoundingClientRect() {
     return { 
@@ -67,53 +73,111 @@ class MockElement extends MockEventTarget {
   }
 }
 
+// Mock Touch object for environments without Touch Events API
+class MockTouch {
+  identifier: number;
+  target: EventTarget;
+  clientX: number;
+  clientY: number;
+  pageX?: number;
+  pageY?: number;
+  screenX?: number;
+  screenY?: number;
+  radiusX?: number;
+  radiusY?: number;
+  rotationAngle?: number;
+  force?: number;
+
+  constructor(init: Partial<MockTouch>) {
+    this.identifier = init.identifier ?? 0;
+    this.target = init.target ?? new MockEventTarget(); // Use MockEventTarget as default
+    this.clientX = init.clientX ?? 0;
+    this.clientY = init.clientY ?? 0;
+    this.pageX = init.pageX;
+    this.pageY = init.pageY;
+    this.screenX = init.screenX;
+    this.screenY = init.screenY;
+    this.radiusX = init.radiusX;
+    this.radiusY = init.radiusY;
+    this.rotationAngle = init.rotationAngle;
+    this.force = init.force;
+  }
+}
+
 // Create a fresh environment for each test to prevent state leakage
 function createTestEnvironment() {
-  // Fresh document and window mocks for each test
-  const mockDocument = new MockEventTarget();
-  const mockWindow = {
-    setTimeout: jest.fn().mockImplementation((cb, delay) => {
-      const id = setTimeout(() => {}, 0); // Create a real timeout ID
-      // Store the callback for manual triggering
-      timeoutCallbacks.set(id as unknown as number, cb);
-      return id;
-    }),
-    clearTimeout: jest.fn().mockImplementation((id) => {
-      timeoutCallbacks.delete(id as unknown as number);
-      clearTimeout(id); // Clear the real timeout
-    }),
-  };
-  
-  // Store timeout callbacks for manual triggering
+  // Store original globals
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  const originalTouch = global.Touch;
+
+  // Spy on document methods
+  if (!global.document) {
+    throw new Error('global.document is not available in test environment.');
+  }
+  const docAddSpy = jest.spyOn(global.document, 'addEventListener');
+  const docRemoveSpy = jest.spyOn(global.document, 'removeEventListener');
+
+  // --- Mock window timers using spies --- 
   const timeoutCallbacks = new Map<number, Function>();
-  
-  // Trigger a stored timeout callback
+
+  if (!global.window) {
+    throw new Error('global.window is not available in test environment.');
+  }
+
+  // Store original timer functions BEFORE spying
+  const originalSetTimeout = global.window.setTimeout;
+  const originalClearTimeout = global.window.clearTimeout;
+
+  const timeoutSpy = jest.spyOn(global.window, 'setTimeout').mockImplementation(((cb: Function, delay?: number) => {
+    // Use the ORIGINAL setTimeout to get a real ID, but track the callback
+    const id = originalSetTimeout(() => { 
+      // This inner callback might run if not cleared, but we control the *intended* callback execution via triggerTimeout
+    }, delay || 0); 
+    timeoutCallbacks.set(id as unknown as number, cb);
+    return id as any; 
+  }) as typeof setTimeout);
+
+  const clearTimeoutSpy = jest.spyOn(global.window, 'clearTimeout').mockImplementation(((id?: number) => {
+    if (id !== undefined) {
+      timeoutCallbacks.delete(id);
+      originalClearTimeout(id); // Use the ORIGINAL clearTimeout
+    }
+  }) as typeof clearTimeout);
+
+  // Helper to manually trigger a stored timeout callback
   const triggerTimeout = (id: number) => {
     const callback = timeoutCallbacks.get(id);
     if (callback) {
       callback();
-      timeoutCallbacks.delete(id);
+      timeoutCallbacks.delete(id); // Remove after execution
     }
   };
-  
-  // Set up globals for this test
-  const originalDocument = global.document;
-  const originalWindow = global.window;
-  global.document = mockDocument as any;
-  global.window = mockWindow as any;
-  
-  // Create a fresh element and detector for this test
-  const element = new MockElement();
-  
+  // --- End timer mocking ---
+
+  global.Touch = MockTouch as any; // Keep MockTouch assignment
+
+  const element = new MockElement(global.document);
+
   return {
-    document: mockDocument,
-    window: mockWindow,
+    document: global.document, 
+    window: global.window, // Return the actual window
     element,
-    timeoutCallbacks,
+    docAddSpy,    
+    docRemoveSpy,
+    // We don't need to return the timer spies themselves, but keep the map and trigger fn
+    timeoutCallbacks, 
     triggerTimeout,
     cleanup: () => {
-      global.document = originalDocument;
+      // Restore spies
+      docAddSpy.mockRestore();
+      docRemoveSpy.mockRestore();
+      timeoutSpy.mockRestore();
+      clearTimeoutSpy.mockRestore();
+      // Restore original globals
+      global.document = originalDocument; 
       global.window = originalWindow;
+      global.Touch = originalTouch;
     }
   };
 }
@@ -122,23 +186,34 @@ function createTestEnvironment() {
 
 // Helper to simulate mouse events
 function simulateMouseEvent(target: MockEventTarget, type: string, options: any = {}) {
-  const event = {
-    type,
+  // Use the actual MouseEvent constructor if available in the environment
+  const event = new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
     clientX: options.clientX ?? 100,
     clientY: options.clientY ?? 100,
     button: options.button ?? 0,
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
-    target: options.target ?? target,
-    ...options
-  };
+    // JSDOM might not support all options, add based on need
+    ...(options.view && { view: options.view }),
+    ...(options.detail && { detail: options.detail }),
+    ...(options.screenX && { screenX: options.screenX }),
+    ...(options.screenY && { screenY: options.screenY }),
+    ...(options.ctrlKey && { ctrlKey: options.ctrlKey }),
+    ...(options.altKey && { altKey: options.altKey }),
+    ...(options.shiftKey && { shiftKey: options.shiftKey }),
+    ...(options.metaKey && { metaKey: options.metaKey }),
+    ...(options.relatedTarget && { relatedTarget: options.relatedTarget }),
+  });
   
+  // Add potentially missing properties if JSDOM doesn't set them
+  Object.defineProperty(event, 'target', { value: options.target ?? target, writable: false });
+
   if (type.startsWith('mouse')) {
     if (type === 'mousedown' || type === 'mouseover' || type === 'mouseout') {
       target.dispatchEvent(event);
     } else {
-      // For mousemove and mouseup, dispatch to document
-      (global.document as any).dispatchEvent(event);
+      // For mousemove and mouseup, dispatch to the actual global document
+      global.document.dispatchEvent(event);
     }
   }
   
@@ -147,29 +222,47 @@ function simulateMouseEvent(target: MockEventTarget, type: string, options: any 
 
 // Helper to simulate touch events with proper structure
 function simulateTouchEvent(target: MockEventTarget, type: string, touchList: any[] = [], options: any = {}) {
-  const touches = touchList.map((touch, index) => ({
-    identifier: touch.identifier ?? index,
-    clientX: touch.clientX ?? 100,
-    clientY: touch.clientY ?? 100,
-    target: touch.target ?? target,
-    ...touch
-  }));
+  const touchPoints = touchList.map((touch, index) => {
+    // Create Touch objects using the (now potentially mocked) global Touch
+    return new (global.Touch as any)({
+      identifier: touch.identifier ?? index,
+      target: touch.target ?? target,
+      clientX: touch.clientX ?? 100,
+      clientY: touch.clientY ?? 100,
+      // Add other Touch properties if needed
+      ...(touch.pageX && { pageX: touch.pageX }),
+      ...(touch.pageY && { pageY: touch.pageY }),
+      ...(touch.screenX && { screenX: touch.screenX }),
+      ...(touch.screenY && { screenY: touch.screenY }),
+      ...(touch.radiusX && { radiusX: touch.radiusX }),
+      ...(touch.radiusY && { radiusY: touch.radiusY }),
+      ...(touch.rotationAngle && { rotationAngle: touch.rotationAngle }),
+      ...(touch.force && { force: touch.force }),
+    });
+  });
+
+  // Use TouchEvent constructor
+  const event = new TouchEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    touches: touchPoints, // Use created Touch objects
+    targetTouches: touchPoints.filter(t => t.target === target),
+    changedTouches: touchPoints, // Assume all touches changed for simplicity
+    ...(options.view && { view: options.view }),
+    ...(options.ctrlKey && { ctrlKey: options.ctrlKey }),
+    ...(options.altKey && { altKey: options.altKey }),
+    ...(options.shiftKey && { shiftKey: options.shiftKey }),
+    ...(options.metaKey && { metaKey: options.metaKey }),
+  });
   
-  const event = {
-    type,
-    touches: [...touches],
-    changedTouches: [...touches],
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
-    target: options.target ?? target,
-    ...options
-  };
-  
+  // Add potentially missing properties
+  Object.defineProperty(event, 'target', { value: options.target ?? target, writable: false });
+
   if (type === 'touchstart') {
     target.dispatchEvent(event);
   } else {
-    // For touchmove, touchend, and touchcancel, dispatch to document
-    (global.document as any).dispatchEvent(event);
+    // For touchmove, touchend, and touchcancel, dispatch to the actual global document
+    global.document.dispatchEvent(event);
   }
   
   return event;
@@ -191,9 +284,10 @@ function simulateTouchTap(element: MockEventTarget, position = { x: 100, y: 100 
 // --- Tests ---
 
 describe('GestureDetector (Fixed)', () => {
-  // Use fake timers for all tests
   beforeAll(() => {
-    jest.useFakeTimers();
+    // Keep jest.useFakeTimers() as it helps control time-based logic within tests
+    // even though we manually trigger our specific long-press timeout.
+    jest.useFakeTimers(); 
   });
   
   afterAll(() => {
@@ -201,62 +295,70 @@ describe('GestureDetector (Fixed)', () => {
   });
   
   describe('Event Subscription', () => {
-    test('should attach event listeners when created', () => {
+    test('should attach event listeners when created', () => { 
       const env = createTestEnvironment();
-      
+      let gestureDetector: any; 
+
       try {
-        const gestureDetector = createGestureDetector(env.element as any, {
+        gestureDetector = createGestureDetector(env.element as any, {
           enableMouseEvents: true,
           enableTouchEvents: true,
-          enablePointerEvents: false
+          enablePointerEvents: false // Assuming pointer events off for this check
         });
-        
-        // Check element listeners
+
+        // Check element listeners (using internal mock state is fine here)
         expect(env.element.listeners['mousedown']).toBeDefined();
-        expect(env.element.listeners['mouseover']).toBeDefined();
-        expect(env.element.listeners['mouseout']).toBeDefined();
         expect(env.element.listeners['touchstart']).toBeDefined();
-        
-        // Check document listeners
-        expect(env.document.listeners['mousemove']).toBeDefined();
-        expect(env.document.listeners['mouseup']).toBeDefined();
-        expect(env.document.listeners['touchmove']).toBeDefined();
-        expect(env.document.listeners['touchend']).toBeDefined();
-        expect(env.document.listeners['touchcancel']).toBeDefined();
-        
-        gestureDetector.destroy();
+        expect(env.element.listeners['mouseover']).toBeDefined(); 
+        expect(env.element.listeners['mouseout']).toBeDefined();
+
+        // Check document listeners using the spy
+        expect(env.docAddSpy).toHaveBeenCalledWith('mousemove', expect.any(Function));
+        expect(env.docAddSpy).toHaveBeenCalledWith('mouseup', expect.any(Function));
+        expect(env.docAddSpy).toHaveBeenCalledWith('touchmove', expect.any(Function));
+        expect(env.docAddSpy).toHaveBeenCalledWith('touchend', expect.any(Function));
+        expect(env.docAddSpy).toHaveBeenCalledWith('touchcancel', expect.any(Function));
+
       } finally {
+        gestureDetector?.destroy();
         env.cleanup();
       }
     });
-    
-    test('should remove event listeners when destroyed', () => {
+
+    test('should detach event listeners on destroy', () => {
       const env = createTestEnvironment();
-      
+      let gestureDetector: any;
+      let elementRemoveSpy: jest.SpyInstance | null = null; // Declare spy
+
       try {
-        const gestureDetector = createGestureDetector(env.element as any, {
+        gestureDetector = createGestureDetector(env.element as any, {
           enableMouseEvents: true,
           enableTouchEvents: true,
           enablePointerEvents: false
         });
-        
-        // Destroy the detector
+
+        // Spy on element's removeEventListener *after* creation but *before* destroy
+        elementRemoveSpy = jest.spyOn(env.element, 'removeEventListener');
+
         gestureDetector.destroy();
-        
-        // Check element listeners are gone
-        expect(env.element.listeners['mousedown'] || []).toHaveLength(0);
-        expect(env.element.listeners['mouseover'] || []).toHaveLength(0);
-        expect(env.element.listeners['mouseout'] || []).toHaveLength(0);
-        expect(env.element.listeners['touchstart'] || []).toHaveLength(0);
-        
-        // Check document listeners are gone
-        expect(env.document.listeners['mousemove'] || []).toHaveLength(0);
-        expect(env.document.listeners['mouseup'] || []).toHaveLength(0);
-        expect(env.document.listeners['touchmove'] || []).toHaveLength(0);
-        expect(env.document.listeners['touchend'] || []).toHaveLength(0);
-        expect(env.document.listeners['touchcancel'] || []).toHaveLength(0);
+
+        // Check element listeners removed using spy
+        expect(elementRemoveSpy).toHaveBeenCalledWith('mousedown', expect.any(Function));
+        expect(elementRemoveSpy).toHaveBeenCalledWith('touchstart', expect.any(Function));
+        expect(elementRemoveSpy).toHaveBeenCalledWith('mouseover', expect.any(Function));
+        expect(elementRemoveSpy).toHaveBeenCalledWith('mouseout', expect.any(Function));
+
+        // Check document listeners removed using the global document spy
+        expect(env.docRemoveSpy).toHaveBeenCalledWith('mousemove', expect.any(Function));
+        expect(env.docRemoveSpy).toHaveBeenCalledWith('mouseup', expect.any(Function));
+        expect(env.docRemoveSpy).toHaveBeenCalledWith('touchmove', expect.any(Function));
+        expect(env.docRemoveSpy).toHaveBeenCalledWith('touchend', expect.any(Function));
+        expect(env.docRemoveSpy).toHaveBeenCalledWith('touchcancel', expect.any(Function));
+
       } finally {
-        env.cleanup();
+        elementRemoveSpy?.mockRestore(); // Restore element spy if created
+        // gestureDetector is already destroyed if created
+        env.cleanup(); // Cleans up global document spies and globals
       }
     });
   });
@@ -417,11 +519,11 @@ describe('GestureDetector (Fixed)', () => {
       }
     });
     
-    test('should detect long press with mouse events', () => {
+    test('should detect long press with mouse events', () => { 
       const env = createTestEnvironment();
-      
+      let gestureDetector: any;
       try {
-        const gestureDetector = createGestureDetector(env.element as any, {
+        gestureDetector = createGestureDetector(env.element as any, {
           enableMouseEvents: true,
           longPressTimeThreshold: 500
         });
@@ -429,14 +531,18 @@ describe('GestureDetector (Fixed)', () => {
         const gestureHandler = jest.fn();
         gestureDetector.on(GestureType.LONG_PRESS, gestureHandler);
         
-        // Start mouse down
         simulateMouseEvent(env.element, 'mousedown');
         
-        // Get the last timeout ID
+        // Get the last timeout ID *from our map*
         const timeoutIds = Array.from(env.timeoutCallbacks.keys());
         const longPressTimeoutId = timeoutIds[timeoutIds.length - 1];
+
+        if (longPressTimeoutId === undefined) {
+          // Throw error if timer wasn't set as expected
+          throw new Error('Long press timer ID was not found in mock callbacks map.');
+        }
         
-        // Trigger the long press timeout
+        // Trigger the long press timeout via our helper
         env.triggerTimeout(longPressTimeoutId);
         
         expect(gestureHandler).toHaveBeenCalledTimes(1);
@@ -447,7 +553,7 @@ describe('GestureDetector (Fixed)', () => {
           })
         );
         
-        gestureDetector.destroy();
+        gestureDetector?.destroy(); 
       } finally {
         env.cleanup();
       }
@@ -617,9 +723,9 @@ describe('GestureDetector (Fixed)', () => {
     
     test('should detect pinch gesture with touch events', () => {
       const env = createTestEnvironment();
-      
+      let gestureDetector: any;
       try {
-        const gestureDetector = createGestureDetector(env.element as any, {
+        gestureDetector = createGestureDetector(env.element as any, {
           enableTouchEvents: true
         });
         
@@ -651,7 +757,7 @@ describe('GestureDetector (Fixed)', () => {
         
         // Touch move (pinch out)
         simulateTouchEvent(
-          env.document, 
+          env.element, 
           'touchmove', 
           [
             { identifier: 0, clientX: 50, clientY: 100 },
@@ -677,7 +783,7 @@ describe('GestureDetector (Fixed)', () => {
         
         // Touch end
         simulateTouchEvent(
-          env.document, 
+          env.element, 
           'touchend', 
           [
             { identifier: 0, clientX: 50, clientY: 100 },
@@ -703,9 +809,9 @@ describe('GestureDetector (Fixed)', () => {
     
     test('should detect rotate gesture with touch events', () => {
       const env = createTestEnvironment();
-      
+      let gestureDetector: any;
       try {
-        const gestureDetector = createGestureDetector(env.element as any, {
+        gestureDetector = createGestureDetector(env.element as any, {
           enableTouchEvents: true
         });
         
@@ -737,7 +843,7 @@ describe('GestureDetector (Fixed)', () => {
         
         // Touch move (rotate 45 degrees)
         simulateTouchEvent(
-          env.document, 
+          env.element, 
           'touchmove', 
           [
             { identifier: 0, clientX: 100, clientY: 100 }, // Fixed
@@ -763,7 +869,7 @@ describe('GestureDetector (Fixed)', () => {
         
         // Touch end
         simulateTouchEvent(
-          env.document, 
+          env.element, 
           'touchend', 
           [
             { identifier: 0, clientX: 100, clientY: 100 },

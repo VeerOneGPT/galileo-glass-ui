@@ -10,7 +10,7 @@ import {
   animationEasings,
   AnimationIntensity,
   fadeAnimation,
-  slideUpAnimation,
+  slideUpAnimation as _slideUpAnimation,
 } from './accessibleAnimations';
 import type { AnimationPreset } from '../core/types';
 
@@ -423,13 +423,13 @@ export const orchestrationPresets = {
  * Helper function to get an orchestration preset's delay for an element at a specific index
  * @param preset Orchestration preset to use
  * @param index Index of the element in the sequence
- * @param total Total number of elements in the sequence
+ * @param _total Total number of elements in the sequence
  * @returns Delay in milliseconds
  */
 export const getOrchestrationDelay = (
   preset: OrchestrationPreset,
   index: number,
-  total: number
+  _total: number
 ): number => {
   if (!preset.baseDelay) {
     return 0;

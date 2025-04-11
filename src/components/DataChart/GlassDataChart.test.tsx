@@ -225,19 +225,71 @@ describe('DataChart Rendering (Task 27 Bugs)', () => {
 // - Responsive behavior
 // - Accessibility checks
 
-it.skip('[TODO] should render area variant correctly with fill', () => {
-  // Setup for area chart
-  // Assert canvas contains filled area elements
+it('should render area variant correctly with fill', () => {
+  render(
+    <TestWrapper>
+      <GlassDataChart 
+        datasets={mockDatasets} 
+        variant="area"
+      />
+    </TestWrapper>
+  );
+
+  // Check that the chart type passed to Chart.js is correct (likely 'line')
+  // and that the dataset includes fill=true.
+  expect(require('react-chartjs-2').Chart).toHaveBeenCalled();
+  const passedData = mockChartInstance.data;
+  // Depending on how Chart.js wrapper handles 'area', the type might still be 'line'
+  // but the dataset config is the key.
+  expect(passedData.datasets[0]).toHaveProperty('fill', true);
+  // Optionally check background color if expected for area
+  expect(passedData.datasets[0]).toHaveProperty('backgroundColor'); 
 });
 
-it.skip('[TODO] should render pie variant correctly', () => {
-  // Setup for pie chart
-  // Assert canvas contains arc elements
+it('should render pie variant correctly', () => {
+  render(
+    <TestWrapper>
+      <GlassDataChart 
+        datasets={samplePieDoughnutData} // Use data suitable for pie
+        variant="pie"
+      />
+    </TestWrapper>
+  );
+
+  expect(require('react-chartjs-2').Chart).toHaveBeenCalled();
+  const passedOptions = mockChartInstance.options;
+  const passedData = mockChartInstance.data;
+  
+  // Pie charts usually don't have scales
+  expect(passedOptions?.scales).toBeUndefined(); 
+  // Check data structure is suitable for pie (e.g., single dataset, labels match)
+  expect(passedData.labels).toEqual(samplePieDoughnutLabels);
+  expect(passedData.datasets?.length).toBe(1);
+  expect(passedData.datasets[0].data).toEqual([300, 50, 100]);
 });
 
-it.skip('[TODO] should render doughnut variant correctly with cutout', () => {
-  // Setup for doughnut chart
-  // Assert canvas contains arc elements with a hole in the middle
+it('should render doughnut variant correctly with cutout', () => {
+  render(
+    <TestWrapper>
+      <GlassDataChart 
+        datasets={samplePieDoughnutData} // Use data suitable for doughnut
+        variant="doughnut"
+      />
+    </TestWrapper>
+  );
+
+  expect(require('react-chartjs-2').Chart).toHaveBeenCalled();
+  const passedOptions = mockChartInstance.options;
+  const passedData = mockChartInstance.data;
+  
+  // Doughnut charts don't have scales and should have a cutout property
+  expect(passedOptions?.scales).toBeUndefined(); 
+  expect(passedOptions).toHaveProperty('cutout'); 
+  expect(typeof (passedOptions as any).cutout).toBe('string'); // e.g., '50%'
+  // Check data structure
+  expect(passedData.labels).toEqual(samplePieDoughnutLabels);
+  expect(passedData.datasets?.length).toBe(1);
+  expect(passedData.datasets[0].data).toEqual([300, 50, 100]);
 });
 
 it.skip('[TODO] should handle transparency correctly for overlapping areas/bars', () => {

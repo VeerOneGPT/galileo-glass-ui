@@ -28,8 +28,7 @@ export const useAlternativeAnimations = (options: {
   // Get enhanced motion detection
   const { 
     prefersReducedMotion: detectedReducedMotion,
-    recommendedSensitivityLevel 
-  } = useEnhancedReducedMotion({});
+  } = useEnhancedReducedMotion();
   
   // Get animation context values
   const { 
@@ -41,9 +40,8 @@ export const useAlternativeAnimations = (options: {
   const finalSensitivityLevel = useMemo(() => {
     return propSensitivity ?? 
            contextSensitivity ?? 
-           recommendedSensitivityLevel ?? 
            'medium';
-  }, [propSensitivity, contextSensitivity, recommendedSensitivityLevel]);
+  }, [propSensitivity, contextSensitivity]);
 
   const isAnimationDisabled = useMemo(() => {
     return propDisableAnimation ?? 

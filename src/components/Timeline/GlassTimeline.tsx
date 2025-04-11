@@ -46,11 +46,10 @@ import {
   usePositionInertia, 
   clamp 
 } from './hooks';
-import { 
-  TimelineEvent, 
-  TimelineMarkers, 
-  TimelineControls 
-} from './components';
+// Import components directly
+import TimelineEvent from './components/TimelineEvent'; 
+import TimelineMarkers from './components/TimelineMarkers'; 
+import TimelineControls from './components/TimelineControls';
 
 // Import styled components
 import {
@@ -437,20 +436,24 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
     return formatDate(date, currentViewMode, currentZoomLevel);
   }, [currentViewMode, currentZoomLevel, markers.formatter]);
   
-  // Determine which side an event should be on
-  const getEventSide = useCallback((index: number, itemId: string | number): 'left' | 'right' | 'center' => {
-    if (markerPosition === 'left') return 'right';
-    if (markerPosition === 'right') return 'left';
-    if (markerPosition === 'center') return 'center';
-    
-    // For alternate, determine based on index or ID
-    const idNumber = typeof itemId === 'string' 
-      ? itemId.charCodeAt(0) + itemId.charCodeAt(itemId.length - 1)
-      : itemId;
-      
-    return index % 2 === 0 || idNumber % 2 === 0 ? 'right' : 'left';
-  }, [markerPosition]);
-  
+  // Ensure these wrappers are defined correctly
+  const parseDateWrapper = useCallback((date: Date | string): Date => {
+    return parseDate(date);
+  }, [parseDate]);
+
+  const formatDateWrapper = useCallback((date: Date, viewMode: TimelineViewMode, zoomLevel: ZoomLevel): string => {
+      return formatDate(date, viewMode, zoomLevel);
+  }, [formatDate]);
+
+  const getEventSideWrapper = useCallback((index: number, itemId: string | number): 'left' | 'right' | 'center' => {
+      if (orientation === 'horizontal') return 'center';
+      if (markerPosition === 'center') return 'center';
+      if (markerPosition === 'alternate') {
+          return index % 2 === 0 ? 'left' : 'right';
+      }
+      return markerPosition;
+  }, [orientation, markerPosition]);
+
   // Handle date change
   const changeDate = useCallback((newDate: Date) => {
     setCurrentDate(newDate);
@@ -826,62 +829,119 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
     }
   }, [flickPhysicsScroll]);
   
-  // Render events - STRATEGY 9: Relative + Margin
+  // Render events - Re-implementing grouping logic
   const renderEvents = () => {
-    const itemsToRender = groupedItems 
-      ? Object.entries(groupedItems).flatMap(([dateKey, itemsForDate]) => itemsForDate)
-      : filteredItems;
-
-    // SORT items explicitly by date first!
-    const sortedItems = [...itemsToRender].sort((a, b) => parseDate(a.date).getTime() - parseDate(b.date).getTime());
     
-    return sortedItems.map((item, index) => {
-      // Keep only animation style calculation logic (if still needed/used)
-      // This part might need review based on how TimelineEvent uses physics props
-      const style: React.CSSProperties = {}; 
-      // TODO: Review if itemPhysicsProps are sufficient or if manual style needed here
-      // For now, pass empty style object, relying on TimelineEvent internal springs
+    // Calculate the map ONLY if groupByDate is true
+    const groupedItemsMap = useMemo(() => {
+        if (!groupByDate) return null;
+        return groupItemsByDate(filteredItems, currentZoomLevel, groupThreshold);
+    }, [filteredItems, groupByDate, currentZoomLevel, groupThreshold]); // Use correct dependencies
 
-      const groupInfo = groupedItems ? Object.entries(groupedItems).find(([key, items]) => items.some(i => i.id === item.id)) : undefined;
-      const isGroupedAndNotFirst = groupInfo ? groupInfo[1].findIndex(i => i.id === item.id) > 0 : false;
-      if (groupedItems && isGroupedAndNotFirst) return null; 
+    // Determine the final list of items or group representatives to render
+    const itemsToRender = useMemo(() => {
+      if (!groupByDate || !groupedItemsMap) {
+        return filteredItems; 
+      }
 
-      return (
-        <TimelineEvent
-          key={item.id}
-          item={item}
-          index={index} 
-          isGrouped={groupInfo ? groupInfo[1].length > 1 : false}
-          orientation={orientation}
-          isHighlighted={!!item.highlighted}
-          color={color}
-          finalDisableAnimation={finalDisableAnimation}
-          glassContent={glassContent}
-          glassVariant={glassVariant}
-          blurStrength={blurStrength}
-          contentClassName={contentClassName}
-          markerClassName={markerClassName}
-          handleItemClick={handleItemClick}
-          renderContent={renderContent}
-          renderMarker={renderMarker}
-          density={density}
-          itemPhysicsProps={itemPhysicsProps[item.id.toString()] || { translateX: 0, translateY: 0, scale: 1, opacity: 1 }}
-          finalInteractionConfig={finalInteractionConfig}
-          formatDate={formatDate}
-          currentViewMode={currentViewMode}
-          currentZoomLevel={currentZoomLevel}
-          parseDate={parseDate}
-          getEventSide={getEventSide}
-          selectedId={selectedId}
-          groupedItems={groupedItems}
-          glassMarkers={glassMarkers}
-          format={formatDateFn}
-          style={style}
-        />
-      );
-    });
+      const renderedItemIds = new Set<string | number>();
+      const result: TimelineItem[] = [];
+
+      filteredItems.forEach(item => {
+        const dateKey = formatDateFn(parseDateWrapper(item.date), 'yyyy-MM-dd'); 
+        const group = groupedItemsMap ? groupedItemsMap[dateKey] : undefined;
+        
+        if (group && group.length > 1) {
+           // Item belongs to a group (collapsible or not based on threshold elsewhere)
+           // We only care about rendering the representative (first) item.
+           const representativeId = group[0].id;
+           if (!renderedItemIds.has(representativeId)) {
+             renderedItemIds.add(representativeId);
+             // Use the actual representative item data
+             result.push(group[0]); 
+           }
+           // If item.id !== representativeId, do nothing (don't add it)
+        } else {
+          // Item is truly standalone (not in a group of size > 1)
+          // Add it if not already somehow added (shouldn't happen with this logic)
+          if (!renderedItemIds.has(item.id)) {
+             renderedItemIds.add(item.id);
+             result.push(item);
+          }
+        }
+      });
+
+      return result;
+    }, [filteredItems, groupByDate, groupedItemsMap, parseDateWrapper]); // Removed groupThreshold as decision is based on group existence
+
+    // Check loading/empty state AFTER filtering
+    if (itemsToRender.length === 0 && !loadingPast && !loadingFuture) { 
+      return renderEmptyState();
+    }
+
+    return (
+      <TimelineEvents
+        ref={eventsContainerRef}
+        $orientation={orientation}
+        $markerPosition={markerPosition} 
+        $density={density} 
+        data-testid="timeline-events"
+        role="list"
+      >
+        {loadingPast && (
+          <LoadingIndicator $position="start" $orientation={orientation}>
+            Loading past events...
+          </LoadingIndicator>
+        )} 
+        {itemsToRender.map((item, index) => {
+          // Determine if the *rendered* item represents a group
+          const dateKey = groupedItemsMap ? formatDateFn(parseDateWrapper(item.date), 'yyyy-MM-dd') : null;
+          const fullGroup = dateKey && groupedItemsMap ? groupedItemsMap[dateKey] : undefined;
+          const isGroupRepresentative = !!(fullGroup && fullGroup.length > groupThreshold && item.id === fullGroup[0].id);
+
+          return (
+            <TimelineEvent
+              key={item.id}
+              item={item} // This is the representative item if grouped
+              index={index} 
+              orientation={orientation}
+              density={density}
+              isHighlighted={!!item.highlighted} // Restore basic highlight check
+              color={item.color || color || 'primary'}
+              finalDisableAnimation={finalDisableAnimation}
+              glassContent={glassContent}
+              glassVariant={glassVariant}
+              blurStrength={blurStrength}
+              contentClassName={contentClassName}
+              markerClassName={markerClassName}
+              handleItemClick={handleItemClick}
+              renderContent={renderContent}
+              renderMarker={renderMarker}
+              itemPhysicsProps={itemPhysicsProps[item.id] || { translateX: 0, translateY: 0, scale: 1, opacity: 1 }}
+              finalInteractionConfig={finalInteractionConfig}
+              formatDate={formatDateWrapper} 
+              currentViewMode={currentViewMode}
+              currentZoomLevel={currentZoomLevel}
+              parseDate={parseDateWrapper} 
+              getEventSide={getEventSideWrapper} 
+              selectedId={selectedId}
+              isGrouped={isGroupRepresentative} // Pass determined grouping status
+              // Pass the full map if grouping is enabled, needed for TimelineEvent to lookup group
+              groupedItems={groupedItemsMap ?? undefined} 
+              glassMarkers={glassMarkers}
+              format={formatDateFn}
+            />
+          );
+        })}
+        {loadingFuture && (
+          <LoadingIndicator $position="end" $orientation={orientation}>
+            Loading future events...
+          </LoadingIndicator>
+        )}
+      </TimelineEvents>
+    );
   };
-  
+
   const renderEmptyState = () => {
     return (
       <EmptyStateMessage>
@@ -960,25 +1020,7 @@ export const GlassTimeline = forwardRef<TimelineRef, TimelineProps & Partial<Ani
         )}
         
         {/* Timeline Events */}
-        <TimelineEvents
-          ref={eventsContainerRef}
-          $orientation={orientation}
-          $markerPosition={markerPosition}
-          $density={density}
-        >
-          {loadingPast && (
-            <LoadingIndicator $position="start" $orientation={orientation}>
-              Loading past events...
-            </LoadingIndicator>
-          )} 
-          {filteredItems.length === 0 && !loadingPast && !loadingFuture && renderEmptyState()}
-          {renderEvents()}
-          {loadingFuture && (
-            <LoadingIndicator $position="end" $orientation={orientation}>
-              Loading future events...
-            </LoadingIndicator>
-          )}
-        </TimelineEvents>
+        {renderEvents()}
       </TimelineScrollContainer>
     </TimelineContainer>
   );

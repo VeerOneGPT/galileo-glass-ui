@@ -64,8 +64,8 @@ export type AnimationPlayState = 'running' | 'paused';
  */
 export interface AnimationPreset {
   /** The animation keyframes or direct reference to a keyframe animation */
-  keyframes?: Keyframes;
-  animation?: Keyframes;
+  keyframes?: string | Keyframes;
+  animation?: string | Keyframes;
 
   /** Default animation duration */
   duration: string | number;
@@ -114,6 +114,22 @@ export interface AnimationOptions {
   iterations?: number | string;
   direction?: AnimationDirection;
   playState?: AnimationPlayState;
+}
+
+/**
+ * Animation preset reference type
+ */
+export type AnimationPresetReference = string | AnimationPreset;
+
+/**
+ * Accessible animation options
+ */
+export interface AccessibleAnimationOptions extends AnimationOptions {
+  complexity?: AnimationComplexity;
+  motionSensitivity?: MotionSensitivityLevel;
+  prefersReducedMotion?: boolean;
+  accessibilityMode?: 'auto' | 'standard' | 'reduced' | 'none';
+  alternate?: AnimationPresetReference | Keyframes | string;
 }
 
 /**

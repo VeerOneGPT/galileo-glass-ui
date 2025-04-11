@@ -107,6 +107,7 @@ describe('GlassMasonry Component', () => {
         items={mockItems}
         glassVariant="frosted"
         glassItems={true}
+        glassContainer={true}
       >
         {(item) => (
           <div data-testid={`masonry-item-${item.id}`}>

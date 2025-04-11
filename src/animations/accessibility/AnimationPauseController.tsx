@@ -412,25 +412,75 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
   initialSpeed = 1,
   restorePreferences = true
 }) => {
-  // Get registered animations
-  const getAnimations = useCallback(() => {
-    return Array.from(globalRegistry.animations.values());
+  // Use a ref to track the registry state to prevent infinite render cycles
+  const registryRef = useRef(globalRegistry);
+  
+  // Track the current animations array with a ref to prevent infinite loops
+  const animationsArrayRef = useRef<AnimationControlInterface[]>([]);
+  
+  // Track when the registry actually changes with a counter
+  const [registryVersion, setRegistryVersion] = useState(0);
+  
+  // Subscribe to the registry with a stable subscription function
+  const subscribeToRegistry = useCallback((callback: () => void) => {
+    // Create a wrapper that updates our version counter first, then calls the callback
+    const wrappedCallback = () => {
+      setRegistryVersion(v => v + 1);
+      callback();
+    };
+    
+    const unsubscribe = registryRef.current.subscribe(wrappedCallback);
+    return unsubscribe;
   }, []);
   
-  // Subscribe to registry changes
+  // Stable snapshot function that returns the SAME array reference if data hasn't changed
+  const getAnimationsSnapshot = useCallback(() => {
+    // This will only rebuild the array when registryVersion changes
+    // This ensures we maintain referential equality when possible
+    const animations = Array.from(registryRef.current.animations.values());
+    
+    // Check if animations have actually changed before updating the reference
+    const hasChanged = hasAnimationsChanged(animationsArrayRef.current, animations);
+    
+    if (hasChanged || animationsArrayRef.current.length === 0) {
+      // Only update the reference if the content has changed
+      animationsArrayRef.current = animations;
+    }
+    
+    return animationsArrayRef.current;
+  }, [registryVersion]); // Only recreate when registryVersion changes
+  
+  // Helper to compare animations arrays
+  const hasAnimationsChanged = (prev: AnimationControlInterface[], current: AnimationControlInterface[]) => {
+    if (prev.length !== current.length) return true;
+    
+    // Since animations are stored in a Map, we can compare the IDs
+    // rather than doing a deep comparison of the animation objects
+    const prevIds = new Set(prev.map(a => a.id));
+    return current.some(a => !prevIds.has(a.id));
+  };
+  
+  // Subscribe to registry changes with stable subscription and snapshot functions
   const animations = useSyncExternalStore(
-    globalRegistry.subscribe,
-    getAnimations
+    subscribeToRegistry,
+    getAnimationsSnapshot,
+    getAnimationsSnapshot // Same function for server rendering
   );
   
   // State for global controls
   const [globalPaused, setGlobalPausedState] = useState(initialPaused);
   const [globalSpeed, setGlobalSpeedState] = useState(initialSpeed);
   
+  // Custom notification function to batch updates
+  const notifyListeners = useCallback(() => {
+    // This will trigger the version increment which will
+    // cause the getAnimationsSnapshot to potentially return a new value
+    registryRef.current.notifyListeners();
+  }, []);
+  
   // Keep registry in sync with state
   useEffect(() => {
-    globalRegistry.globalPaused = globalPaused;
-    globalRegistry.notifyListeners();
+    registryRef.current.globalPaused = globalPaused;
     
     // When global pause state changes, apply to all animations
     if (globalPaused) {
@@ -446,11 +496,13 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
         }
       });
     }
-  }, [globalPaused, animations]);
+    
+    // Notify after all updates to batch notifications
+    notifyListeners();
+  }, [globalPaused, animations, notifyListeners]);
   
   useEffect(() => {
-    globalRegistry.globalSpeed = globalSpeed;
-    globalRegistry.notifyListeners();
+    registryRef.current.globalSpeed = globalSpeed;
     
     // When global speed changes, apply to all animations
     animations.forEach(animation => {
@@ -458,7 +510,10 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
         animation.setSpeed(globalSpeed);
       }
     });
-  }, [globalSpeed, animations]);
+    
+    // Notify after all updates to batch notifications
+    notifyListeners();
+  }, [globalSpeed, animations, notifyListeners]);
   
   // Load preferences on initial mount
   useEffect(() => {
@@ -485,57 +540,57 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
   
   // Individual animation controls
   const pauseAnimation = useCallback((id: string) => {
-    const animation = globalRegistry.animations.get(id);
+    const animation = registryRef.current.animations.get(id);
     if (animation && animation.canPause) {
       animation.pause();
-      globalRegistry.notifyListeners();
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   const resumeAnimation = useCallback((id: string) => {
-    const animation = globalRegistry.animations.get(id);
+    const animation = registryRef.current.animations.get(id);
     if (animation && animation.canPause) {
       animation.resume();
-      globalRegistry.notifyListeners();
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   const toggleAnimationPause = useCallback((id: string) => {
-    const animation = globalRegistry.animations.get(id);
+    const animation = registryRef.current.animations.get(id);
     if (animation && animation.canPause) {
       if (animation.paused) {
         animation.resume();
       } else {
         animation.pause();
       }
-      globalRegistry.notifyListeners();
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   const setAnimationSpeed = useCallback((id: string, speed: number) => {
-    const animation = globalRegistry.animations.get(id);
+    const animation = registryRef.current.animations.get(id);
     if (animation && animation.canAdjustSpeed) {
       const clampedSpeed = Math.max(0, Math.min(1, speed));
       animation.setSpeed(clampedSpeed);
-      globalRegistry.notifyListeners();
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   const stopAnimation = useCallback((id: string) => {
-    const animation = globalRegistry.animations.get(id);
+    const animation = registryRef.current.animations.get(id);
     if (animation) {
       animation.stop();
-      globalRegistry.notifyListeners();
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   const restartAnimation = useCallback((id: string) => {
-    const animation = globalRegistry.animations.get(id);
+    const animation = registryRef.current.animations.get(id);
     if (animation) {
       animation.restart();
-      globalRegistry.notifyListeners();
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   // Animation registration
   const createAnimationController = useCallback((options: AnimationControlOptions): AnimationControlInterface => {
@@ -559,16 +614,16 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
     } = options;
     
     // Check if animation already exists
-    if (globalRegistry.animations.has(id)) {
+    if (registryRef.current.animations.has(id)) {
       console.warn(`Animation with ID ${id} already exists. Returning existing controller.`);
-      return globalRegistry.animations.get(id)!;
+      return registryRef.current.animations.get(id)!;
     }
     
     const startTime = Date.now();
     const endTime = duration ? startTime + duration : undefined;
     
     // Initial pause state should respect global pause state for non-essential animations
-    const actuallyPaused = (globalRegistry.globalPaused && !isEssential) || startPaused;
+    const actuallyPaused = (registryRef.current.globalPaused && !isEssential) || startPaused;
     
     // Create animation controller
     const controller: AnimationControlInterface = {
@@ -595,7 +650,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
           }
           
           onPause();
-          globalRegistry.notifyListeners();
+          notifyListeners();
         }
       },
       
@@ -610,7 +665,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
           }
           
           onResume();
-          globalRegistry.notifyListeners();
+          notifyListeners();
         }
       },
       
@@ -635,7 +690,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
         }
         
         onSpeedChange(clampedSpeed);
-        globalRegistry.notifyListeners();
+        notifyListeners();
       },
       
       stop: () => {
@@ -648,7 +703,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
         }
         
         onStop();
-        globalRegistry.notifyListeners();
+        notifyListeners();
       },
       
       restart: () => {
@@ -666,7 +721,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
         }
         
         onRestart();
-        globalRegistry.notifyListeners();
+        notifyListeners();
       },
       
       seekTo: (position: number) => {
@@ -680,19 +735,19 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
             anim.currentTime = timePosition;
           });
           
-          globalRegistry.notifyListeners();
+          notifyListeners();
         }
       },
       
       destroy: () => {
-        globalRegistry.animations.delete(id);
-        globalRegistry.notifyListeners();
+        registryRef.current.animations.delete(id);
+        notifyListeners();
       }
     };
     
     // Register the animation
-    globalRegistry.animations.set(id, controller);
-    globalRegistry.notifyListeners();
+    registryRef.current.animations.set(id, controller);
+    notifyListeners();
     
     // Apply initial state
     if (actuallyPaused) {
@@ -704,24 +759,24 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
     }
     
     return controller;
-  }, []);
+  }, [notifyListeners]);
   
   // Unregister an animation
   const unregisterAnimation = useCallback((id: string) => {
-    if (globalRegistry.animations.has(id)) {
-      globalRegistry.animations.delete(id);
-      globalRegistry.notifyListeners();
+    if (registryRef.current.animations.has(id)) {
+      registryRef.current.animations.delete(id);
+      notifyListeners();
     }
-  }, []);
+  }, [notifyListeners]);
   
   // Get all registered animations
   const getRegisteredAnimations = useCallback(() => {
-    return Array.from(globalRegistry.animations.values());
+    return Array.from(registryRef.current.animations.values());
   }, []);
   
   // Get a specific animation by ID
   const getAnimation = useCallback((id: string) => {
-    return globalRegistry.animations.get(id);
+    return registryRef.current.animations.get(id);
   }, []);
   
   // Persistence functions
@@ -731,7 +786,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
     try {
       const animationStates: Record<string, { paused: boolean; speed: number }> = {};
       
-      globalRegistry.animations.forEach((animation, id) => {
+      registryRef.current.animations.forEach((animation, id) => {
         // Only save state for non-temporary animations
         if (!id.startsWith('temp-')) {
           animationStates[id] = {
@@ -768,7 +823,7 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
       
       // Apply individual animation settings
       Object.entries(preferences.animationStates).forEach(([id, state]) => {
-        const animation = globalRegistry.animations.get(id);
+        const animation = registryRef.current.animations.get(id);
         if (animation) {
           if (state.paused) {
             animation.pause();
@@ -779,11 +834,11 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
         }
       });
       
-      globalRegistry.notifyListeners();
+      notifyListeners();
     } catch (error) {
       console.error('Failed to load animation preferences:', error);
     }
-  }, []);
+  }, [notifyListeners]);
   
   const resetPreferences = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -796,18 +851,18 @@ export const AnimationPauseControllerProvider: React.FC<AnimationPauseController
       setGlobalSpeedState(1);
       
       // Reset all animations
-      globalRegistry.animations.forEach(animation => {
+      registryRef.current.animations.forEach(animation => {
         if (!animation.isEssential) {
           animation.resume();
           animation.setSpeed(1);
         }
       });
       
-      globalRegistry.notifyListeners();
+      notifyListeners();
     } catch (error) {
       console.error('Failed to reset animation preferences:', error);
     }
-  }, []);
+  }, [notifyListeners]);
   
   // Create context value
   const contextValue: AnimationPauseControllerContextType = {

@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimationCategory, MotionSensitivityLevel } from '../accessibility/MotionSensitivity';
 import { useReducedMotion } from '../accessibility/useReducedMotion';
-import { useAnimationSequence } from '../orchestration/useAnimationSequence';
+import { useAnimationSequence } from '../orchestration';
 import { getElementFromRef } from '../../utils/elementTypes';
 import { getReducedMotionAlternative } from '../utils/accessibilityUtils';
 import {
@@ -483,7 +483,6 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
           properties: { opacity: 1, transform: 'none' },
           duration: toState?.enterDuration ?? effectiveTransition.duration ?? config.defaultDuration ?? 400,
           easing: effectiveTransition.easing ?? config.defaultEasing ?? 'easeInOutCubic',
-          physics: physicsConfig,
           dependsOn: [`exit-${fromState?.id}`],
           category: effectiveTransition.category ?? config.category
         });
@@ -721,8 +720,7 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
         }
     }
     
-    // Add completion event stage
-    // Fix 4: Use concise check with original variable names
+    // Add completion event stage WITH STATE UPDATES
     stages.push({ 
         id: 'transition-complete', type: 'event', duration: 0, 
         dependsOn: [
@@ -731,47 +729,42 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
             ...(stages.some(s => s.id === 'background-reset') ? ['background-reset'] : [])
         ].filter(Boolean),
         callback: () => {
+            logDebug('transition-complete event callback triggered - updating state');
             setIsTransitioning(false);
             setTransitionProgress(1);
             
-            // Call onComplete callback
             if (effectiveTransition.onComplete) {
                 effectiveTransition.onComplete();
             }
             
-            // Set active state
+            // Set active state HERE
             if (toState) {
                 if (allowMultipleActiveStates) {
-                    // Add to active states, removing exclusive states if needed
                     setActiveStateIds(current => {
                         let newActiveStates = [...current];
-                        
-                        // If the target state is exclusive, remove all other states
                         if (toState.exclusive) {
                             newActiveStates = [toState.id];
                         } else {
-                            // Remove exclusive states
                             newActiveStates = newActiveStates.filter(id => {
-                                const state = statesMap.current.get(id);
-                                return state && !state.exclusive;
+                                const s = statesMap.current.get(id);
+                                return s && !s.exclusive;
                             });
-                            
-                            // Add the target state if not already present
                             if (!newActiveStates.includes(toState.id)) {
                                 newActiveStates.push(toState.id);
                             }
                         }
-                        
                         return newActiveStates;
                     });
                 } else {
-                    // Single active state mode
                     setActiveStateIds([toState.id]);
                 }
+                // Call external state change handler AFTER internal state is updated
+                if (onStateChange) { onStateChange(fromState?.id || null, toState.id); }
+            } else {
+                 logDebug('transition-complete: toState is null/undefined, resetting active states');
+                 setActiveStateIds([]); 
+                 if (onStateChange) { onStateChange(fromState?.id || null, null); }
             }
-            
-            // Reset current transition
-            setCurrentTransition(null);
         }
     });
     
@@ -896,139 +889,33 @@ export function useGameAnimation(config: GameAnimationConfig): GameAnimationCont
     }
     
     // Prepare and play the animation sequence
-    animationSequence.updateStage = () => {}; // Clear existing stages
-    stages.forEach(stage => {
-      animationSequence.addStage(stage as any); // Cast needed if types don't perfectly match
-    });
+    animationSequence.reset(); 
+    stages.forEach(stage => { animationSequence.addStage(stage as any); });
     
-    // Add component state synchronization stage if configured
-    if (effectiveTransition.componentSync) {
-      const { targets, propsMap, fromState, toState, applyStateUpdate } = effectiveTransition.componentSync;
-      
-      // Get component elements to synchronize
-      const syncTargets = getElements(targets);
-      
-      if (syncTargets.length > 0 && (propsMap || (fromState && toState))) {
-        logDebug('Adding component state synchronization', { 
-          syncTargets, 
-          fromState, 
-          toState, 
-          hasPropsMap: !!propsMap 
-        });
-        
-        // Create a callback stage that updates component props based on progress
-        animationSequence.addStage({
-          id: 'component-sync',
-          type: 'callback',
-          duration: effectiveTransition.duration ?? defaultDuration,
-          easing: effectiveTransition.easing ?? defaultEasing,
-          dependsOn: ['transition-complete'], // Run in parallel with the main transition
-          callback: (progress) => {
-            // Update components based on transition progress
-            syncTargets.forEach(target => {
-              // Either use the propsMap functions or interpolate between fromState and toState
-              if (propsMap) {
-                const updatedProps: Record<string, any> = {};
-                
-                // Apply each prop mapping function with the current progress
-                Object.entries(propsMap).forEach(([propKey, mapFn]) => {
-                  const startValue = fromState?.[propKey] ?? null;
-                  const endValue = toState?.[propKey] ?? null;
-                  updatedProps[propKey] = mapFn(progress, startValue, endValue);
-                });
-                
-                // Apply the state updates
-                if (applyStateUpdate) {
-                  applyStateUpdate(target, updatedProps);
-                } else {
-                  // Default implementation: apply as data attributes
-                  Object.entries(updatedProps).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined) {
-                      target.dataset[`sync${key.charAt(0).toUpperCase()}${key.slice(1)}`] = 
-                        typeof value === 'object' ? JSON.stringify(value) : String(value);
-                    }
-                  });
-                }
-              } else if (fromState && toState) {
-                // Simple linear interpolation between fromState and toState
-                const updatedProps: Record<string, any> = {};
-                
-                // Process each property in both states
-                const allProps = new Set([...Object.keys(fromState), ...Object.keys(toState)]);
-                allProps.forEach(propKey => {
-                  const startValue = fromState[propKey];
-                  const endValue = toState[propKey];
-                  
-                  // Skip if property doesn't exist in both states
-                  if (startValue === undefined || endValue === undefined) return;
-                  
-                  // Interpolate based on type
-                  if (typeof startValue === 'number' && typeof endValue === 'number') {
-                    updatedProps[propKey] = startValue + (endValue - startValue) * progress;
-                  } else if (typeof startValue === 'string' && typeof endValue === 'string') {
-                    // For strings, just switch at 50% progress
-                    updatedProps[propKey] = progress < 0.5 ? startValue : endValue;
-                  } else if (typeof startValue === 'boolean' && typeof endValue === 'boolean') {
-                    // For booleans, switch at 50% progress
-                    updatedProps[propKey] = progress < 0.5 ? startValue : endValue;
-                  } else if (
-                    typeof startValue === 'object' && 
-                    startValue !== null && 
-                    typeof endValue === 'object' && 
-                    endValue !== null
-                  ) {
-                    // For simple objects, attempt shallow interpolation
-                    updatedProps[propKey] = { ...startValue };
-                    Object.keys(endValue).forEach(key => {
-                      const sVal = startValue[key];
-                      const eVal = endValue[key];
-                      if (typeof sVal === 'number' && typeof eVal === 'number') {
-                        updatedProps[propKey][key] = sVal + (eVal - sVal) * progress;
-                      }
-                    });
-                  } else {
-                    // For other types, just switch at 50% progress
-                    updatedProps[propKey] = progress < 0.5 ? startValue : endValue;
-                  }
-                });
-                
-                // Apply the state updates
-                if (applyStateUpdate) {
-                  applyStateUpdate(target, updatedProps);
-                } else {
-                  // Default implementation: apply as data attributes
-                  Object.entries(updatedProps).forEach(([key, value]) => {
-                    if (value !== null && value !== undefined) {
-                      target.dataset[`sync${key.charAt(0).toUpperCase()}${key.slice(1)}`] = 
-                        typeof value === 'object' ? JSON.stringify(value) : String(value);
-                    }
-                  });
-                }
-              }
-            });
-          }
-        });
-      }
-    }
-    
+    // Add callbacks (keep simple listeners)
+    animationSequence.removeCallback('onUpdate', setTransitionProgress); // Use direct setter
+    animationSequence.addCallback('onUpdate', setTransitionProgress);
+
     // Start the sequence
     animationSequence.play();
-    
-    // Listen to progress updates
-    animationSequence.addCallback('onUpdate', (progress) => {
-      setTransitionProgress(progress);
-    });
-    
   }, [
+    statesMap,
+    activeStateIds, 
+    allowMultipleActiveStates,
+    onStateChange,
+    logDebug,
     animationSequence, 
     getElements, 
     defaultDuration, 
     defaultEasing, 
-    allowMultipleActiveStates,
-    prefersReducedMotion,
+    prefersReducedMotion, 
     isAnimationAllowed,
     category,
-    logDebug
+    findTransition,
+    createDefaultTransition,
+    setCurrentTransition,
+    setIsTransitioning,
+    setTransitionProgress
   ]);
   
   // Gesture physics event handlers

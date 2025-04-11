@@ -1,6 +1,6 @@
 {
   "name": "@veerone/galileo-glass-ui",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "private": false,
   "description": "A comprehensive glass morphism design system for modern interfaces",
   "homepage": "https://galileo-glass.com/",
@@ -102,6 +102,7 @@
     "test:coverage": "jest --coverage",
     "test:physics": "jest --config=jest.physics.config.js",
     "test:physics:coverage": "jest --config=jest.physics.config.js --coverage",
+    "test:core": "node --max-old-space-size=8192 node_modules/.bin/jest -c jest.config.core.js src/animations/orchestration",
     "test:visual": "start-server-and-test storybook http-get://localhost:6006 'test-storybook --url http://localhost:6006'",
     "test:visual:update": "test-storybook --url http://localhost:6006 --update-snapshots",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx src/ --max-warnings=900",

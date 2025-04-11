@@ -187,4 +187,167 @@ interface DraggableListOptions {
 - **Layout:** The hook assumes a simple vertical stack layout for calculating target positions. It does not support complex grid or horizontal layouts directly for target setting (though `axis` can influence drag constraints).
 - **Performance:** Performance may degrade with a very large number of items due to physics calculations and DOM updates.
 - **Keyboard Accessibility:** Not implemented.
-- **Touch Support:** Works with touch events via the pointer event handlers. 
+- **Touch Support:** Works with touch events via the pointer event handlers.
+
+## Integration with Event-Based Animation System (v1.0.28+)
+
+The `useDraggableListPhysics` hook can be integrated with the event-based animation system introduced in v1.0.28 to coordinate draggable list operations with other animations:
+
+```typescript
+import React, { useState, useMemo, createRef, useEffect } from 'react';
+import { 
+  useDraggableListPhysics, 
+  useGameAnimation, 
+  GameAnimationEventType 
+} from '@veerone/galileo-glass-ui';
+
+function DraggableListWithEvents() {
+  const [items, setItems] = useState([
+    { id: 'a', text: 'Item A' },
+    { id: 'b', text: 'Item B' },
+    { id: 'c', text: 'Item C' }
+  ]);
+  
+  // Create refs for each item
+  const itemRefs = useMemo(() => 
+    Array.from({ length: items.length }, () => createRef<HTMLDivElement>()), 
+    [items.length]
+  );
+  
+  // Set up drag-and-drop physics
+  const handleOrderChange = (newOrderIndices: number[]) => {
+    setItems(currentItems => newOrderIndices.map(index => currentItems[index]));
+    
+    // Notify event system about the reordering
+    if (emitter) {
+      emitter.emit({
+        type: 'list:reordered',
+        data: { newOrderIndices },
+        source: 'draggable-list',
+        timestamp: Date.now(),
+        preventDefault: false,
+        prevent: () => {}
+      });
+    }
+  };
+  
+  const { styles, getPointerHandlers } = useDraggableListPhysics({
+    itemRefs,
+    onOrderChange: handleOrderChange,
+    spacing: 10
+  });
+  
+  // Set up game animation controller for state coordination
+  const gameAnimation = useGameAnimation({
+    initialState: 'idle',
+    states: [
+      { id: 'idle', name: 'Idle State' },
+      { id: 'editing', name: 'Editing State' },
+      { id: 'locked', name: 'Locked State' }
+    ],
+    transitions: [
+      { from: 'idle', to: 'editing', type: 'fade', duration: 300 },
+      { from: 'editing', to: 'idle', type: 'fade', duration: 200 },
+      { from: '*', to: 'locked', type: 'fade', duration: 200 },
+      { from: 'locked', to: 'idle', type: 'fade', duration: 300 }
+    ]
+  });
+  
+  // Store emitter in a variable for use outside effects
+  const emitter = gameAnimation.getEventEmitter();
+  
+  // Listen for drag events to update animation state
+  useEffect(() => {
+    // Listen for pointer down events on all items
+    const handleDragStart = () => {
+      gameAnimation.transitionTo('editing');
+    };
+    
+    // Listen for pointer up events to go back to idle
+    const handleDragEnd = () => {
+      setTimeout(() => {
+        if (gameAnimation.activeStates[0]?.id === 'editing') {
+          gameAnimation.transitionTo('idle');
+        }
+      }, 300);
+    };
+    
+    // Add event listeners to item elements
+    itemRefs.forEach(ref => {
+      const element = ref.current;
+      if (element) {
+        element.addEventListener('pointerdown', handleDragStart);
+        element.addEventListener('pointerup', handleDragEnd);
+        element.addEventListener('pointercancel', handleDragEnd);
+      }
+    });
+    
+    // Clean up
+    return () => {
+      itemRefs.forEach(ref => {
+        const element = ref.current;
+        if (element) {
+          element.removeEventListener('pointerdown', handleDragStart);
+          element.removeEventListener('pointerup', handleDragEnd);
+          element.removeEventListener('pointercancel', handleDragEnd);
+        }
+      });
+    };
+  }, [itemRefs, gameAnimation]);
+  
+  return (
+    <div className="container">
+      <div className="list-container" style={{ position: 'relative', height: 200, border: '1px solid #ccc' }}>
+        {items.map((item, index) => (
+          <div
+            key={item.id}
+            ref={itemRefs[index]}
+            {...getPointerHandlers(index)}
+            style={{
+              ...styles[index],
+              padding: '10px',
+              background: gameAnimation.activeStates[0]?.id === 'locked' ? '#ccc' : '#6366f1',
+              color: 'white',
+              borderRadius: '4px',
+              userSelect: 'none',
+              pointerEvents: gameAnimation.activeStates[0]?.id === 'locked' ? 'none' : 'auto'
+            }}
+          >
+            {item.text}
+          </div>
+        ))}
+      </div>
+      
+      <div style={{ marginTop: 16 }}>
+        <button 
+          onClick={() => {
+            // Toggle between locked and idle states
+            if (gameAnimation.activeStates[0]?.id === 'locked') {
+              gameAnimation.transitionTo('idle');
+            } else {
+              gameAnimation.transitionTo('locked');
+            }
+          }}
+        >
+          {gameAnimation.activeStates[0]?.id === 'locked' ? 'Unlock List' : 'Lock List'}
+        </button>
+        <span style={{ marginLeft: 10 }}>
+          Current state: {gameAnimation.activeStates[0]?.id}
+        </span>
+      </div>
+    </div>
+  );
+}
+```
+
+This integration demonstrates:
+
+1. **State-Based Interaction Control**: The list can be locked or unlocked based on application state.
+
+2. **Drag-Event State Coordination**: List items being dragged automatically transition the application to an "editing" state.
+
+3. **Custom Event Emission**: Notify the event system about list reordering so other components can react.
+
+4. **Visual Feedback**: Item appearance changes based on the current state.
+
+This pattern is particularly useful for complex applications where draggable lists need to be coordinated with other UI elements and animations. 

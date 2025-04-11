@@ -39,7 +39,8 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
      - **Enhanced Collisions:** More detailed collision event data (`impactForce`, `collisionPoint`, `relativeVelocity`).
     - **Layout:** New `usePhysicsLayout` hook for physics-driven grid, stack, or freeform arrangements.
     - **Orchestration:** `useAnimationSequence` and `useSequence` for complex sequences, staggering, and state transitions.
-    - **Game Animation:** Enhanced [`useGameAnimation`](./docs/animations/game-animation.md) hook with physics-based transitions, 3D effects, and gesture integration.
+    - **Game Animation:** Enhanced [`useGameAnimation`](./docs/animations/game-animation.md) hook with physics-based transitions, 3D effects, gesture integration, and **new event-based system** for coordinating animations across components.
+    - **Event-Based Architecture:** New in v1.0.28, a powerful event system with middleware support for logging, error recovery, performance monitoring, and accessibility adaptation.
     - **New Presets:** Added 'shake', 'pulse', and 'confetti' animation presets.
     - **Specialized Effects:** Z-space, 3D transforms, parallax, particles.
     - **Performance:** GPU-accelerated, adaptive quality, replaces CSS/Framer Motion.
@@ -55,15 +56,15 @@ Built with **React 18/19, TypeScript, and Styled Components**, Galileo provides 
 
 ## ✨ What's New 
 
-**Version 1.0.27** delivers critical stability improvements and new features:
+**Version 1.0.28** introduces a powerful event-based animation system:
 
-- **Critical Physics Stability Fixes:** Resolved multiple "Maximum update depth exceeded" errors related to physics engine initialization, event callbacks, and component interactions (Bugs #22, #25).
-- **Physics Interaction Fixes:** Corrected core hook exports (`useGesturePhysics`, `useGalileoPhysicsEngine`) and restored non-functional physics zoom/pan in `DataChart` (Bugs #23, #24).
-- **`useEnhancedReducedMotion` Stability:** Fixed infinite loops caused by the hook and related issues in the `Fab` component (Bug #27).
-- **New Feature - Scroll Reveal:** Added `useScrollReveal` hook and `ScrollReveal` component for easy scroll-triggered entrance animations.
-- **New Feature - Adaptive Quality:** Introduced consolidated `useAdaptiveQuality` hook, deprecating `useQualityTier` and `useDeviceCapabilities`.
+- **Event-Based Animation System:** Completely refactored `useGameAnimation` hook with an event-driven architecture for better state management and component coordination.
+- **Middleware Support:** Built-in middleware for logging, error recovery, performance monitoring, and accessibility adaptation.
+- **Enhanced Integration:** Seamless integration with existing physics and animation hooks for coordinated interactions.
+- **Improved Accessibility:** Refined motion sensitivity controls and better context awareness throughout the animation system.
+- **Comprehensive Documentation:** Updated documentation with integration examples for all major animation hooks.
 
-> For full details, see the [**v1.0.27 Changelog**](./docs/changelog/CHANGELOG-1.0.27.md) or check the [previous release notes](./docs/changelog/CHANGELOG-1.0.24.md).
+> For full details, see the [**v1.0.28 Changelog**](./docs/changelog/CHANGELOG-1.0.28.md).
 
 ---
 
@@ -756,6 +757,104 @@ function PhysicsGridLayout() {
 
 </details>
 
+<details>
+<summary><b>🎭 Event-Based Animation System (v1.0.28+)</b></summary>
+<br>
+
+```jsx
+import React, { useEffect } from 'react';
+import { 
+  useGameAnimation, 
+  GameAnimationEventType,
+  createErrorRecoveryMiddleware 
+} from '@veerone/galileo-glass-ui/animations/game';
+
+function EventBasedAnimationExample() {
+  // Set up game animation with states and transitions
+  const gameAnimation = useGameAnimation({
+    initialState: 'idle',
+    states: [
+      { id: 'idle', name: 'Idle State' },
+      { id: 'active', name: 'Active State' },
+      { id: 'disabled', name: 'Disabled State' }
+    ],
+    transitions: [
+      { from: 'idle', to: 'active', type: 'fade', duration: 300 },
+      { from: 'active', to: 'idle', type: 'fade', duration: 200 },
+      { from: '*', to: 'disabled', type: 'fade', duration: 150 }
+    ]
+  });
+  
+  // Get the event emitter for subscribing to events
+  const emitter = gameAnimation.getEventEmitter();
+  
+  // Add error recovery middleware
+  useEffect(() => {
+    const middleware = createErrorRecoveryMiddleware({
+      fallbackState: 'idle',
+      onError: (error, event) => {
+        console.error('Animation error:', error);
+        console.log('Failed event:', event);
+      }
+    });
+    
+    emitter.addMiddleware(middleware);
+    
+    // Clean up middleware when component unmounts
+    return () => emitter.removeMiddleware(middleware);
+  }, [emitter]);
+  
+  // Listen for state changes
+  useEffect(() => {
+    const unsubscribe = emitter.on(GameAnimationEventType.STATE_CHANGE, (event) => {
+      console.log('State changed:', event.data);
+    });
+    
+    // Clean up subscription when component unmounts
+    return unsubscribe;
+  }, [emitter]);
+  
+  return (
+    <div>
+      <div 
+        style={{
+          padding: '20px',
+          background: gameAnimation.activeStates[0]?.id === 'disabled' 
+            ? '#ccc' 
+            : gameAnimation.activeStates[0]?.id === 'active' 
+              ? '#6366f1' 
+              : '#e5e7eb',
+          borderRadius: '8px',
+          transition: 'background-color 0.3s ease'
+        }}
+      >
+        Current State: {gameAnimation.activeStates[0]?.id}
+      </div>
+      
+      <div style={{ marginTop: '16px' }}>
+        <button onClick={() => gameAnimation.transitionTo('idle')}>
+          Idle
+        </button>
+        <button 
+          onClick={() => gameAnimation.transitionTo('active')}
+          style={{ marginLeft: '8px' }}
+        >
+          Active
+        </button>
+        <button 
+          onClick={() => gameAnimation.transitionTo('disabled')}
+          style={{ marginLeft: '8px' }}
+        >
+          Disabled
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+> **Event-Based Animation** (v1.0.28+) provides a powerful system for managing animation states, with middleware for logging, error recovery, performance monitoring, and accessibility.
+</details>
 
 ---
 
@@ -956,4 +1055,4 @@ npm install @mui/icons-material @emotion/react @emotion/styled
 ```
 
 // Version
-export const version = '1.0.27';
+export const version = '1.0.28';

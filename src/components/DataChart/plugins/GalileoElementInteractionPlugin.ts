@@ -1,8 +1,11 @@
 // src/components/DataChart/plugins/GalileoElementInteractionPlugin.ts
 import { Plugin, Chart, ChartDataset, ChartEvent, InteractionItem } from 'chart.js';
 import { Element } from 'chart.js';
-// Import the necessary type from ChartProps
+// Import the necessary types from ChartProps
 import { GetElementPhysicsOptions, ChartVariant } from '../types/ChartProps';
+
+// Export the imported types
+export type { GetElementPhysicsOptions, ChartVariant };
 
 // Simple spring physics update function
 // dt is delta time in seconds

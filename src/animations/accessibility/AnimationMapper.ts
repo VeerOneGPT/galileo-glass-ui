@@ -24,7 +24,7 @@ const basicAnimations = {
     easing: 'ease-in-out'
   }
 };
-import { AnimationPreset } from '../types';
+import { AnimationPreset } from '../core/types';
 
 import { AnimationMapping } from './AccessibilityTypes';
 import {
@@ -220,7 +220,9 @@ export class AnimationMapper {
       m =>
         (m.source === animation ||
           (typeof animation === 'string' &&
-            animation === (m.source as AnimationPreset).keyframes.name)) &&
+            typeof (m.source as AnimationPreset).keyframes !== 'string' &&
+            (m.source as AnimationPreset).keyframes &&
+            animation === ((m.source as AnimationPreset).keyframes as Keyframes).name)) &&
         (category === undefined || m.category === category)
     );
 
